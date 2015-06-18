@@ -3,12 +3,11 @@ Zabbix agent for Arduino
 
 Implemented:
 - A few Zabbix agent commands;
-- Functions of Arduino Language.
-
-Supported sensors:
-- One or more DS18B20 Thermometer;
-- DHTxx humidity/temperature sensor serie;
-- BMP085/180 pressure/temperature sensor serie.
+- Wraps a lot of Arduino Language functions.
+- Support one or more DS18B20 Thermometer;
+- Support DHTxx humidity/temperature sensor serie;
+- Support BMP085/180 pressure/temperature sensor serie.
+- Support any analog or digital sensor via `analogread` /`digitalread` commands .
 
 
 Minimum requirements: 
