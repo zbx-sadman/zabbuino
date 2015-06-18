@@ -1,5 +1,5 @@
 # Zabbuino
-Zabbix agent for Arduino
+An Zabbix agent for Arduino
 
 Implemented:
 - A few Zabbix agent commands;
@@ -7,8 +7,7 @@ Implemented:
 - Support one or more DS18B20 Thermometer;
 - Support DHTxx humidity/temperature sensor serie;
 - Support BMP085/180 pressure/temperature sensor serie.
-- Support any analog or digital sensor via `analogread` /`digitalread` commands .
-
+- Support any other analog or digital sensor via `analogread` /`digitalread` commands .
 
 Minimum requirements: 
 - W5100 Ethernet Module wint ATMega 168 and upward;
