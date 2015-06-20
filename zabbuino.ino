@@ -33,9 +33,8 @@ v 0.999 (14 May 2015)
 #define DEBUG_COMMANDS_ENABLE
 // shiftOut[]
 #define SHIFTOUT_COMMANDS_ENABLE
-// DS18x20.Temperature[]
-#define DS18X20_COMMANDS_ENABLE
 
+#define DS18X20_COMMANDS_ENABLE
 #define DHT_COMMANDS_ENABLE
 #define BMP085_COMMANDS_ENABLE
 
@@ -43,10 +42,10 @@ v 0.999 (14 May 2015)
 
 // Библиотека для модуля ENC28J60
 // Испытано с UIPEthernet version 1.09
-#include <UIPEthernet.h>
+//#include <UIPEthernet.h>
 // Стандартная библиотека Arduino Ethernet для использования с модулями, построенными на базе WizNet W5100
-//#include <SPI.h>
-//#include <Ethernet.h>
+#include <SPI.h>
+#include <Ethernet.h>
 
 // Wire (I2C) для BMP085/BMP180
 #include <Wire.h>
@@ -395,6 +394,7 @@ void executeCommand()
     // Примечание: команда является оберткой функции analogRead() www.arduino.cc/en/Reference/AnalogRead
     // Данная команда имеет смысл только для аналоговых пинов.
     // Состояние INPUT для пина должно быть определено в коде скетча. В противном случае совпадения считываемых данных с ожидаемыми может не произойти.    result = (long) analogRead(arg1);
+    result = (long) analogRead(arg1);
 
   } else if (strcmp(cmd, "analogreference") == 0) {
     // Команда: analogReference[source]
