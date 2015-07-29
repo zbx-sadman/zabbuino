@@ -81,6 +81,7 @@ int16_t DHTRead(uint8_t _pin, uint8_t _sensor_model, uint8_t _metric, char* _out
         result = data[0];
         result = result << 8;
         result += data[1];
+        break;
     }
   } else {
     // calc temp
@@ -95,6 +96,7 @@ int16_t DHTRead(uint8_t _pin, uint8_t _sensor_model, uint8_t _metric, char* _out
         result = result << 8;
         result += data[3];
         if (data[2] & 0x80) result = -result;
+        break;
     }
   }
 
