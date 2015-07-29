@@ -1,6 +1,6 @@
 #define DHT11 11
-#define DHT22 22
 #define DHT21 21
+#define DHT22 22
 #define AM2301 21
 #define AM2302 22
 
@@ -74,8 +74,9 @@ int16_t DHTRead(uint8_t _pin, uint8_t _sensor_model, uint8_t _metric, char* _out
     switch (_sensor_model) {
       case DHT11:
         result = data[0];
-      case DHT22:
+        break;
       case DHT21:
+      case DHT22:
       default:
         result = data[0];
         result = result << 8;
@@ -86,8 +87,9 @@ int16_t DHTRead(uint8_t _pin, uint8_t _sensor_model, uint8_t _metric, char* _out
     switch (_sensor_model) {
       case DHT11:
         result = data[2];
-      case DHT22:
+        break;
       case DHT21:
+      case DHT22:
       default:
         result = data[2] & 0x7F;
         result = result << 8;
