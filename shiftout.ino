@@ -98,10 +98,10 @@ void  shiftOut4bits(volatile uint8_t *_dataPortOutputRegister, uint8_t _dataPinB
     }
 
     // Make bit-blink with clockPin
-    //	eq digitalWrite(_clockPin, HIGH);
-    *_clockPortOutputRegister |= _clockPinBit;
     //	eq digitalWrite(_clockPin, LOW);
     *_clockPortOutputRegister &= ~_clockPinBit;
+    //	eq digitalWrite(_clockPin, HIGH);
+    *_clockPortOutputRegister |= _clockPinBit;
   }
 }
 
