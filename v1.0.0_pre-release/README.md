@@ -10,6 +10,7 @@ Improvements:
 
 New features:
 - Loading and saving network settings (and several other) to EEPROM for remote configuring and changing settings without re-flashing sketch;
+- Factory reset button can be connected directly to pins (internal pull-up resistors is used);
 - AVR Watchdog support;
 - DHCP support;
 - Do periodical ENC28J60 init() if no network activity for some time. This action may helps to kick ENC28J60 if that no answer. May be. I hope for it.
