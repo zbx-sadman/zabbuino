@@ -4,6 +4,8 @@
 
 I this time i make test with only W5100 Ethernet Shield only. ENC28J60 testing coming soon. Detailing source code commenting coming soon too.
 
+*UPD:* So, i was upload sketch to second Arduino: Mini Pro + ENC28J60 and make stress test with  _hping3 --flood <ipaddr>_. ENC stops responding to _zabbix\_get_ and another _ping_ session (non-flood). Soon the ENC was re-inited by Zabbuino, non-flood _ping_ and and _zabbix\_get_ works was restored. 
+
 Improvements:
 - Network concurrent connections problem fixed. 4 Zabbix item's with 10 sec polling period works good;
 - More RAM is free. More Flash is used.
