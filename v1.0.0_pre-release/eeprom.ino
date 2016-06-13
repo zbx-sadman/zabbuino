@@ -6,15 +6,15 @@ uint8_t saveConfig(netconfig_t* _configStruct)
     EEPROM[index] = p_configStruct[index];
   }
 
-  // Calculate CRC of _configStruct. At this point index == sizeof(netconfig_t), no need to calculate its again
-  calculatedCRC = dallas_crc8 (p_configStruct, index);
+  // Calculate CRC of _configStruct.
+  calculatedCRC = dallas_crc8 (p_configStruct, sizeof(netconfig_t));
   // Store its to EEPROM at next position
   EEPROM[index+1]=calculatedCRC;
 }
 
 uint8_t loadConfig(netconfig_t* _configStruct)
 {
-  // EEPROM.begin() - для ESP8266
+  // EEPROM.begin() - used for ESP8266
   // http://esp8266.ru/arduino-ide-esp8266/#eeprom
   uint8_t index, storedCRC, calculatedCRC, *p_configStruct = (uint8_t*) _configStruct;
 
@@ -26,18 +26,16 @@ uint8_t loadConfig(netconfig_t* _configStruct)
     p_configStruct[index] = EEPROM[index];
   }
 
-  // Calculate CRC of _configStruct which load from EEPROM. . At this point index == sizeof(netconfig_t), no need to calculate its again
-  calculatedCRC = dallas_crc8 (p_configStruct, index);
+  // Calculate CRC of _configStruct which load from EEPROM.
+  calculatedCRC = dallas_crc8 (p_configStruct, sizeof(netconfig_t));
   // Read _configStruct CRC which early stored to EEPROM
   storedCRC = EEPROM[index+1];
   // Check integrity of loaded structure...
   if (storedCRC == calculatedCRC) {
      // True, if loading finished successfully
      return true;
-  } else {
-     // Otherwise - False
-     return false;
-  }
+  }  // Otherwise - False
+  return false;
 }
 
 

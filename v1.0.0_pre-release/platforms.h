@@ -1,7 +1,6 @@
 #if defined(TEENSYDUINO) 
 
     //  --------------- Teensy -----------------
-
     #if defined(__AVR_ATmega32U4__)
         #define BOARD "Teensy 2.0"
     #elif defined(__AVR_AT90USB1286__)       

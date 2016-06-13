@@ -12,7 +12,7 @@
 
 
 #if defined (__AVR_AT94K__)
-									#define	_AVR_CPU_NAME_	"AT94k"
+                                                                        #define	_AVR_CPU_NAME_	"AT94k"
 #elif defined (__AVR_AT43USB320__)
 #elif defined (__AVR_AT43USB355__)
 #elif defined (__AVR_AT76C711__)

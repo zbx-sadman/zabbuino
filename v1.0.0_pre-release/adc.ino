@@ -1,6 +1,6 @@
 
 int16_t MeasureVoltage(uint8_t _analogChannel) {  
-  uint8_t i;
+  uint8_t i, oldADCSRA;
   uint32_t avgADC=0;
   
     /* • Bit 7:6 – REFS[1:0]: Reference Selection Bits
@@ -33,6 +33,8 @@ int16_t MeasureVoltage(uint8_t _analogChannel) {
        
   */
   ADMUX = (0 << REFS1) | (1 << REFS0) | _analogChannel;
+  //  save ADCSRA register
+  oldADCSRA = ADCSRA;
   ADCSRA |= (1 << ADPS2) | (1 << ADPS1) | (1 << ADPS0); 
   ADCSRA |= (1 << ADEN);
   delay(2); // Wait for Vref to settle
@@ -46,7 +48,9 @@ int16_t MeasureVoltage(uint8_t _analogChannel) {
   // Calculate average
   avgADC /= 255;
 
-  ADCSRA &= ~(1 << ADEN);  // turn ADC off
+  //  restore ADCSRA register
+  ADCSRA = oldADCSRA;
+  delay(2); 
   avgADC = 1125300L / avgADC; // Calculate Vcc (in mV); 1125300 = 1.1*1023*1000
 
   return avgADC;

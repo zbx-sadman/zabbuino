@@ -1,6 +1,6 @@
-
 void gatherMetrics(){
   correctVCCMetrics(MeasureVoltage(ANALOG_CHAN_VBG));
+//  correctVCCMetrics(0);
 }
 
 void correctVCCMetrics(uint32_t _currVCC) {
@@ -40,7 +40,7 @@ void sethostname(char* _dest, const char* _src){
 uint8_t hstoba(uint8_t* _array, const char* _data, uint8_t _len)
 {
   // don't fill _array and return false if mailformed string detected
-  if (_data[0] != '0' || _data[1] != 'x') { return false; }
+  if (!isHexString(_data)) { return false; }
   // skip prefix
   _data += 2;
   // for all bytes do...
@@ -52,6 +52,14 @@ uint8_t hstoba(uint8_t* _array, const char* _data, uint8_t _len)
   };
   return true;
 }
+
+// 
+uint8_t isHexString(const char* _source) 
+{
+  if (_source[0] == '0' && _source[1] == 'x') { return true; }
+  return false;
+}
+
 
 
 /* ****************************************************************************************************************************
@@ -263,26 +271,19 @@ uint32_t pl_atol(char const *_src, uint8_t _len) {
 }
 
 
-void printArray(byte *_address, byte _len, byte _type)
+void printArray(uint8_t *_src, uint8_t _len, uint8_t _type)
 {
-  _len--;
-  for (int i = 0; i < _len; i++)
-    {
-       if (1 == _type) {
-          Serial.print(_address[i], HEX);
-          Serial.print(':');
-       } else if (2 == _type) {
-          Serial.print(_address[i], DEC);
-          Serial.print('.');
-       }
-           
+  while (_len--) {
+    if (DBG_PRINT_AS_MAC == _type) {
+       Serial.print(*_src, HEX);
+       if (1 <= _len) { Serial.print(':'); }
+    } else if (DBG_PRINT_AS_IP == _type) {
+       Serial.print(*_src, DEC);
+       if (1 <= _len) Serial.print('.');
     }
-       if (1 == _type) {
-          Serial.print(_address[_len], HEX);
-       } else if (2 == _type) {
-          Serial.print(_address[_len], DEC);
-       }
-          Serial.println();
+    _src++;
+  }
+  Serial.println();
 }
 
 /*

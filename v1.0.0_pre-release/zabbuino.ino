@@ -24,15 +24,28 @@
 /* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
                                                                 !!! ENC28J60 users !!!
 
+    0. Please try to use https://github.com/ntruchsess/arduino_uip/tree/fix_errata12 brahch of UIPEthernet if yours ENC28J60 freeze or loose connection.
+    
     1. Comment #include <Ethernet.h> and <SPI.h> headers
     2. Uncomment #include <UIPEthernet.h> 
     3. Uncomment #define __ETH_ENC28J60__ to use specific ENC28J60 functions 
     
     Tested on UIPEthernet v1.09
+    
+    When UIPEthernet's fix_errata12 brahch did not help to add stability, you can buy W5100 shield.
+    Also u can try uncomment USE_DIRTY_HACK_AND_REBOOT_ENC28J60_IF_ITS_SEEMS_FREEZE (EIR.TXERIF and EIR.RXERIF is 1), but you eed to do one change in 
+    UIPEthernet\utility\Enc28J60Network.h :
+         private:
+            ...    
+            static uint8_t readReg(uint8_t address);  // << move its to __public__ section
+            ...
+             
+         public: 
+             ...
+    
 */
 //#include <UIPEthernet.h>
-//#define __ETH_ENC28J60__
-
+//#define USE_DIRTY_HACK_AND_REBOOT_ENC28J60_IF_ITS_SEEMS_FREEZE
 
 /* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
                                                                  PROGRAMM FEATURES SECTION
@@ -40,7 +53,11 @@
 */
 
 // Uncomment to enable AVR watchdog
-// Note: not all bootloader works correctly with watchdog functions. OptiBoot is watchdog compatible.
+//                                                                     !!! BEWARE !!!
+//                                                     NOT ALL BOOTLOADERS HANDLE WATCHDOG PROPERLY 
+//                                                    http://forum.arduino.cc/index.php?topic=157406.0 
+// 
+// Note: OptiBoot is watchdog compatible and use less flash space that stock bootloader.
 // Note: watchdog timeout may be vary for many controllers, see comments to macro WTD_TIMEOUT in zabbuino.h
 //#define FEATURE_WATCHDOG_ENABLE
 
@@ -56,28 +73,28 @@
 //#define FEATURE_PASSWORD_PROTECTION_FORCE
 
 // Uncomment to enable Arduino's tone[], noTone[] commands
-#define FEATURE_TONE_ENABLE
+//#define FEATURE_TONE_ENABLE
 
 // Uncomment to enable Arduino's randomSeed, random[] commands
-#define FEATURE_RANDOM_ENABLE
+//#define FEATURE_RANDOM_ENABLE
 
 // Uncomment to enable system's command which can be used in system debug process: cmdCount, sys.freeRAM and so
 #define DEBUG_COMMANDS_ENABLE
 
 // Uncomment to enable shiftOut[] command
-#define FEATURE_SHIFTOUT_ENABLE
+//#define FEATURE_SHIFTOUT_ENABLE
 
 // Uncomment to enable Dallas DS18x20 family functions: DS18x20.*[] commands
-#define FEATURE_DS18X20_ENABLE
+//#define FEATURE_DS18X20_ENABLE
 
 // Uncomment to enable DHT/AM humidity sensors functions: DHT.*[] commands
-#define FEATURE_DHT_ENABLE
+//#define FEATURE_DHT_ENABLE
 
 // Uncomment to enable BMP pressure sensors functions: BMP.*[] commands
-#define FEATURE_BMP085_ENABLE
+//#define FEATURE_BMP085_ENABLE
 
 // Uncomment to view the debug messages on the Serial Monitor
-//#define FEATURE_DEBUG_TO_SERIAL
+#define FEATURE_DEBUG_TO_SERIAL
 
 // Uncomment for get debug messages in TCP session - implementation not finished
 //#define DEBUG_MSG_TO_ETHCLIENT
@@ -92,7 +109,7 @@ EthernetServer ethServer(10050);
 EthernetClient ethClient;
 
 char cBuffer[BUFFER_SIZE];
-int argOffset[ARGS_NUM+1];
+int argOffset[ARGS_NUM];
 long sysMetrics[SYS_METRICS_NUMBER];
 
 /* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
@@ -185,10 +202,15 @@ void setup() {
   
 #ifdef FEATURE_DEBUG_TO_SERIAL
   SerialPrintln_P(PSTR("Begin internetworking"));
-  // printArray(netConfig.macAddress,6,1);
-  Serial.print("Hostname: "); Serial.println(netConfig.hostname);
-  Serial.print("IP      : "); Serial.println(Ethernet.localIP());
+  SerialPrint_P(PSTR("MAC     : ")); printArray(netConfig.macAddress, sizeof(netConfig.macAddress), DBG_PRINT_AS_MAC);
+  SerialPrint_P(PSTR("Hostname: ")); Serial.println(netConfig.hostname);
+  SerialPrint_P(PSTR("IP      : ")); Serial.println(Ethernet.localIP());
   SerialPrint_P(PSTR("Password: ")); Serial.println(netConfig.password);
+  // Block is compiled if UIPethernet.h is included
+#ifdef UIPETHERNET_H
+  SerialPrint_P(PSTR("ENC28J60: rev ")); Serial.println(Enc28J60.getrev());
+#endif
+
   //netConfig.ipGateway.printTo(Serial);
 #endif
 
@@ -200,7 +222,9 @@ void setup() {
    -=-=-=-=-=-=-=-=-=-=-=- */
 
   // I/O ports initialization. Refer to "I/O PORTS SETTING SECTION" in zabbuino.h
-  for (uint8_t i = 0; i < PORTS_NUM; i++) setPortMode(i, port_mode[i], port_pullup[i]);
+  for (uint8_t i = 0; i < PORTS_NUM; i++) { 
+    setPortMode(i, port_mode[i], port_pullup[i]);
+  }
 
   // Uncomment to force protect (enable even useProtection is false) your system from illegal access for change runtime settings and reboots 
 #ifdef FEATURE_PASSWORD_PROTECTION_FORCE
@@ -230,10 +254,7 @@ void loop() {
   dhcpRenewTime += NET_DHCP_RENEW_PERIOD;
   netProblemTime += NET_IDLE_TIMEOUT;
   sysMetricGatherTime += SYS_METRC_RENEW_PERIOD;
-
-#if defined(__ETH_ENC28J60__)
   encReInitTime += NET_ENC28J60_REINIT_PERIOD;
-#endif
 
   //!!!!!!!!!!!!!  need to check code for "mills() after 50 days" problem avoid
   // if no exist while() here - netProblemTime must be global or static - its will be 0 every loop() and time-related cases will be processeed abnormally
@@ -274,14 +295,20 @@ void loop() {
        blinkType = BLINK_NET_PROBLEM; 
     }
 
-#if defined(__ETH_ENC28J60__)
+#ifdef USE_DIRTY_HACK_AND_REBOOT_ENC28J60_IF_ITS_SEEMS_FREEZE
     // Time to reinit ENC28J60?
     if (nowTime > encReInitTime) {
-       Enc28J60.init(netConfig.macAddress); 
-       // Wait some time again before new reInit
-       encReInitTime = nowTime + NET_ENC28J60_REINIT_PERIOD; 
-    }
+       // if EIR.TXERIF or EIR.RXERIF is set - ENC28J60 detect error, re-init module 
+       if (Enc28J60.readReg(EIR) & (EIR_TXERIF | EIR_RXERIF)) {
+#ifdef FEATURE_DEBUG_TO_SERIAL
+          SerialPrintln_P(PSTR("ENC28J60 reinit"));
 #endif
+          Enc28J60.init(netConfig.macAddress); 
+          delay(NET_STABILIZATION_DELAY);
+       } 
+       encReInitTime = nowTime + NET_ENC28J60_REINIT_PERIOD;
+    }
+#endif // USE_DIRTY_HACK_AND_REBOOT_ENC28J60_IF_ITS_SEEMS_FREEZE
 
     // No errors in the loop?
     if (BLINK_NOPE == blinkType) {
@@ -302,7 +329,21 @@ void loop() {
     if (ethClient.connected()) {
        // A lot of chars wait for reading
        if (ethClient.available()) {
-          analyzeStream(ethClient.read());
+          // Do not need next char to analyze - EOL detected or there no room in buffer or max number or args parsed...   
+          if (false == analyzeStream(ethClient.read())) {
+             /*****  processing command *****/
+             // Destroy unused client's data 
+             ethClient.flush(); 
+             // Fire up State led, than will be turned off on next loop
+             digitalWrite(PIN_STATE_LED, HIGH);
+             //
+             // may be need test for client.connected()? 
+             executeCommand();
+             // Wait some time to finishing answer send
+             delay(NET_STABILIZATION_DELAY);
+             // close connection           
+             ethClient.stop(); 
+          }
           // ethClient.flush(); ethClient.println(nowTime); ethClient.println(" - bye");  delay(100); ethClient.stop(); 
           // Restart network activity control cycle
           encReInitTime = netProblemTime = millis();
@@ -329,17 +370,18 @@ void loop() {
 *  инициирует выполнение принятой команды
 *
 **************************************************************************************************************************** */
-void analyzeStream(char charFromClient) {
-   uint8_t static needSkipZabbix2Header, argIndex;
-   uint16_t static bufferWritePosition;
-   uint8_t lastOffset;
-   
-   // Put next char to buffer
-  cBuffer[bufferWritePosition] = tolower(charFromClient);
+uint8_t analyzeStream(char charFromClient) {
+  uint8_t static needSkipZabbix2Header, argIndex;
+  uint16_t static bufferWritePosition;
 
+  // If there is not room in buffer - simulate EOL recieving
+  if (BUFFER_SIZE <= bufferWritePosition ) { charFromClient = '\n'; }
+  // Put next char to buffer
+  cBuffer[bufferWritePosition] = tolower(charFromClient); 
+ 
   // When ZBX_HEADER_PREFIX_LENGTH chars is saved to buffer - test its for Zabbix2 protocol header prefix ("ZBXD\01") presence
   if (ZBX_HEADER_PREFIX_LENGTH == bufferWritePosition) {
-     if (memcmp(&cBuffer, "zbxd\01", ZBX_HEADER_PREFIX_LENGTH) == 0) {
+     if (0 == memcmp(&cBuffer, ZBX_HEADER_PREFIX, ZBX_HEADER_PREFIX_LENGTH)) {
         // If packet have prefix - set 'skip whole header' flag
         needSkipZabbix2Header = true;
      }
@@ -350,13 +392,18 @@ void analyzeStream(char charFromClient) {
      // If is setted - just begin write new data from begin of buffer. It's operation 'drop' Zabbix2 header
      bufferWritePosition = 0;
      needSkipZabbix2Header = false;
-     // 'return' here save a lot cpu time
-     return;
+     // Return 'Need next char' and save a lot cpu time 
+     return true;
   }
 
   // Process all chars if its not from header data
   if (!needSkipZabbix2Header) {
      switch (charFromClient) {
+        case ']':
+        case 0x20:
+          // Space or final square bracket found. Do nothing and next char will be written to same position. 
+          // Return 'Need next char'
+          return true;
         case '[':
         case ',':
           // Delimiter or separator found. Push begin of next argument (bufferWritePosition+1) on buffer to arguments offset array. 
@@ -364,40 +411,26 @@ void analyzeStream(char charFromClient) {
           // Make current buffer segment like C-string
           cBuffer[bufferWritePosition] = '\0'; break;
         case '\n':
-          // Don't increase argIndex. All unused argOffset[] items must be pointed to this <null> item.
-          argOffset[argIndex] = bufferWritePosition; 
-          cBuffer[bufferWritePosition] = '\0'; break;
-        case ']':
-        case 0x20:
-          // Space or final square bracket found. Rewind buffer write position to one position
-          bufferWritePosition--; break;
+          // EOL detected
+          // Save last argIndex that pointed to <null> item. All unused argOffset[] items must be pointed to this <null> item too.
+          cBuffer[bufferWritePosition] = '\0'; 
+          while (ARGS_NUM > argIndex) { argOffset[argIndex++] = bufferWritePosition;}
+          // increase argIndex++ to pass (ARGS_NUM < argIndex) condition 
+          argIndex++; break;
       }
       // EOL reached or there is not room to store args. Stop stream analyzing and do command executing
-      if ( '\n' == charFromClient || ARGS_NUM < argIndex ) {
-        // Where are last item (<nulled> \n )- ?
-        lastOffset = argOffset[argIndex];
-        // Point unused argOffsets[] to last item.
-         while (ARGS_NUM > argIndex) { argOffset[argIndex] = lastOffset; argIndex++; }  
-         // Destroy unused client's data 
-         ethClient.flush(); 
-         // Test for processing data availability
-         if (0 < bufferWritePosition) {
-            /*****  processing  *****/
-            digitalWrite(PIN_STATE_LED, HIGH);
-            executeCommand();
-            // delay(100);
-            // close connection           
-            ethClient.stop(); 
-            // clear vars for next round
-            bufferWritePosition = argIndex = 0;
-            needSkipZabbix2Header = false;
-            return;
-         }
+      if (ARGS_NUM < argIndex) {
+         // clear vars for next round
+         bufferWritePosition = argIndex = 0;
+         needSkipZabbix2Header = false;
+         // Return 'Do not need next char'
+         return false;
        }             
   }
-  // Until the buffer is filled completely - move write position to the tail
-  if (BUFFER_SIZE > bufferWritePosition ) { bufferWritePosition++; } 
-
+  // 
+  bufferWritePosition++;
+  // Return 'Need next char' and save a lot cpu time 
+  return true;
 }
 
 void executeCommand()
@@ -436,9 +469,12 @@ void executeCommand()
     enableAction = false;
   }
 
-// !!!!!!!!!!!!!!! Проверить: portWrite, shiftout
-
-  if (0 == strcmp_P(cBuffer, PSTR(CMD_ZBX_AGENT_PING))) {
+// !!!!!!!!!!!!!!! Проверить: portWrite
+  if ('\0' == cBuffer ) {
+    // If no data to processing in buffer - return '0'
+    result = RESULT_IS_FAIL;
+    
+  } else if (0 == strcmp_P(cBuffer, PSTR(CMD_ZBX_AGENT_PING))) {
     // Команда: agent.ping
     // Параметры: не требуются
     // Результат: возвращается значение '1'
@@ -458,6 +494,13 @@ void executeCommand()
     strcpy_P(cBuffer, PSTR(ZBX_AGENT_VERISON));
 
 #ifdef DEBUG_COMMANDS_ENABLE
+
+  } else if (0 == strcmp_P(cBuffer, PSTR(CMD_SYS_UPTIME))) {
+    // Команда: agent.uptime
+    // Параметры: не требуются
+    // Результат: возвращается количество секунд, прошедших с момента включения
+    result = millis() / 1000;
+
   } else if (0 == strcmp_P(cBuffer, PSTR(CMD_SYS_CMDCOUNT))) {
     // Команда: agent.cmdCount
     // Параметры: не требуются
@@ -554,10 +597,10 @@ void executeCommand()
         // ip, netmask and gateway have one structure - 4 byte
         // take 6 bytes from second argument of command and use as new MAC-address
         // if convertation is failed (return false) succes variable must be falsed too via logic & operator
-        success &= hstoba((uint8_t*) mac, &cBuffer[argOffset[2]], 6);
-        memcpy(&netConfig.macAddress, &mac, 6);
+        success &= hstoba((uint8_t*) mac, &cBuffer[argOffset[2]], sizeof(netConfig.macAddress));
+        memcpy(&netConfig.macAddress, &mac, sizeof(netConfig.macAddress));
     
-        // use 4 bytes from third argument of command as new IP-address
+        // use 4 bytes from third argument of command as new IP-address. sizeof(IPAddress) returns 6 instead 4
         success &= hstoba((uint8_t*) &ip, &cBuffer[argOffset[3]], 4);
         netConfig.ipAddress = IPAddress(ip);
 
@@ -588,7 +631,7 @@ void executeCommand()
      if (enableAction) {
         ethClient.println("1");
         // hang-up if no delay
-        delay(100);
+        delay(NET_STABILIZATION_DELAY);
         ethClient.stop();
 #ifdef FEATURE_WATCHDOG_ENABLE
         // Watchdog deactivation
@@ -607,13 +650,13 @@ void executeCommand()
     // To avoid wrong results and graphs in monitoring system - correct min/max metrics
     correctVCCMetrics(result);
 
-  } else if (0 == strcmp_P(cBuffer, PSTR(CMD_SYS_GET_MINVCC))) {
+  } else if (0 == strcmp_P(cBuffer, PSTR(CMD_SYS_GET_VCCMIN))) {
     // Команда: sys.minvcc
     // Параметры: не требуются
     // Результат: пользователю возвращается значение минимального значения напряжения в mV на входе VCC микроконтроллера с момента подачи питания.
     result = sysMetrics[SYS_METRIC_IDX_VCCMIN];
 
-  } else if (0 == strcmp_P(cBuffer, PSTR(CMD_SYS_GET_MAXVCC))) {
+  } else if (0 == strcmp_P(cBuffer, PSTR(CMD_SYS_GET_VCCMAX))) {
     // Команда: sys.maxvcc
     // Параметры: не требуются
     // Результат: пользователю возвращается значение максимального значения напряжения в mV на входе VCC микроконтроллера с момента подачи питания.
@@ -659,6 +702,7 @@ void executeCommand()
     // Данная команда имеет смысл только для аналоговых пинов.
     // Состояние INPUT для пина должно быть определено в коде скетча. В противном случае совпадения считываемых данных с ожидаемыми может не произойти.   
     result = (long) analogRead(arg[0]);
+    
 
   } else if (0 == strcmp_P(cBuffer, PSTR(CMD_ARDUINO_ANALOGREFERENCE))) {
     // Команда: analogReference[source]
@@ -729,11 +773,11 @@ void executeCommand()
     // Для защелкивания сдвигового регистра перед использованием команды shiftout значение пина latch должно быть определено.
     // В противном случае защелкивания сдвигового регистра не производится.
     // enableAction used asal latchPinDefined
-    enableAction = ('\0' != arg[3]) && isSafePin(arg[2]);   // << корректный способ проверки или нет?  
+    enableAction = ('\0' != arg[2]) && isSafePin(arg[2]);   // << корректный способ проверки или нет?  
     result = RESULT_IS_FAIL;
     if (isSafePin(arg[0]) &&  isSafePin(arg[1])) {
        if (enableAction) { digitalWrite(arg[2], LOW); }
-       advShiftOut(arg[0], arg[1], arg[3], cBuffer);
+       advShiftOut(arg[0], arg[1], arg[3], &cBuffer[argOffset[4]]);
        if (enableAction) { digitalWrite(arg[2], HIGH);}
        result = RESULT_IS_OK;
     }

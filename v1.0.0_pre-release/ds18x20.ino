@@ -1,14 +1,14 @@
 // Model IDs
-#define DS18S20MODEL 0x10  // also DS1820
-#define DS18B20MODEL 0x28
-#define DS1822MODEL  0x22
-#define DS1825MODEL  0x3B
+#define DS18S20MODEL 	0x10  // also DS1820
+#define DS18B20MODEL 	0x28
+#define DS1822MODEL  	0x22
+#define DS1825MODEL  	0x3B
 
 // Device resolution
-#define TEMP_9_BIT  0x1F //  9 bit
-#define TEMP_10_BIT 0x3F // 10 bit
-#define TEMP_11_BIT 0x5F // 11 bit
-#define TEMP_12_BIT 0x7F // 12 bit
+#define TEMP_9_BIT  	0x1F //  9 bit
+#define TEMP_10_BIT 	0x3F // 10 bit
+#define TEMP_11_BIT 	0x5F // 11 bit
+#define TEMP_12_BIT 	0x7F // 12 bit
 
 
 // OneWire commands
@@ -31,7 +31,6 @@
 #define COUNT_REMAIN    6
 #define COUNT_PER_C     7
 #define SCRATCHPAD_CRC  8
-
 
 /*
 int16_t DS18X20Discovery(uint8_t _pin)
@@ -65,10 +64,10 @@ uint8_t DS18X20GetFirstID(OneWire _ow, uint8_t *_addr)
 
 /* ****************************************************************************************************************************
 *
-*   Функция считывания температуры с цифрового термометра семейства DS18x20.
+*   Read temperature from digital sensor Dallas DS18x20 family
 *
-*   С термометрами, иными нежели DS18B20 работа не проверялась. Вероятны проблемы с правильным вычислением температуры из-за
-*   неправильных корректировок tRaw
+*   Subroutine is tested with DS18B20 only. 
+*   Probably you can meet problems with the correct calculation of temperature due to incorrect 'tRaw' adjustment 
 *
 **************************************************************************************************************************** */
 int16_t DS18X20Read(uint8_t _pin, uint8_t _resolution, char* _id, char* _outBuffer)
@@ -77,39 +76,75 @@ int16_t DS18X20Read(uint8_t _pin, uint8_t _resolution, char* _id, char* _outBuff
   int16_t conversionTimeout;
   uint32_t tRaw;
 
-  // Приведение в порядок параметра _resolution
+  // Resolution must be: 9 <= _resolution <= 12 
   _resolution = constrain(_resolution, 9, 12);
 
-  // Создание нового объекта OneWire
   OneWire ow(_pin);
 
-
-  // Перенос идентификатора (адреса) датчика из строки в массив (структура DeviceAddress)
-  if ('\0' != _id[0] && '0' == _id[0] && 'x' == _id[1]) {
+  // Convert sensor ID (if its given) from HEX string to byte array (DeviceAddress structure). 
+  // Sensor ID is equal DeviceAddress.
+  if ('\0' != _id[0] && isHexString(_id)) {
     _id+=2;
     for (i = 0; i < 8; i++) {
       dsAddr[i] = htod(*_id++) << 4;
       dsAddr[i] += htod(*_id++);
     }
   } else {
+    // If ID not valid - search any sensor on OneWire bus and use its. Or return error when no devices found.    
     if (!DS18X20GetFirstID(ow, dsAddr)) {return DEVICE_DISCONNECTED_C;};
   }
 
-  // Проверка возможности работы с датчиком. Идентификатор модели - в первом байте адреса
+  // Validate sensor. Model id saved in first byte of DeviceAddress (sensor ID).
   if (DS18S20MODEL != dsAddr[0] && DS18B20MODEL != dsAddr[0] && DS1822MODEL != dsAddr[0])
     return DEVICE_DISCONNECTED_C;
 
-  // Чтение ScratchPad термометра с целью получения значений регистров CONFIGURATION, HIGH_ALARM_TEMP, LOW_ALARM_TEMP
-  // В случае неудачного чтения (несовпадение контрольного кода пакета) - выход из подпрограммы
+  // Get values of CONFIGURATION, HIGH_ALARM_TEMP, LOW_ALARM_TEMP registers via ScratchPad reading.
+  // Or return error if bad CRC detected
   if (!DS18X20ReadScratchPad(ow, dsAddr, scratchPad))
     return DEVICE_DISCONNECTED_C;
 
-  // Определение схемы питания - полноценная или паразитная
+  // Detect power on sensor - parasite or not
   parasitePowerUsed = false;
   ow.reset();
   ow.select(dsAddr);
   ow.write(READPOWERSUPPLY);
   if (ow.read_bit() == 0) parasitePowerUsed = true;
+
+  // Sensor already configured to use '_resolution'? Do not make write operation. 
+  if (scratchPad[CONFIGURATION] != _resolution) {
+     //  DS1820 and DS18S20 have not CONFIGURATION registry, resolution setting have no sense
+     if (DS18B20MODEL == dsAddr[0]) {
+        switch (_resolution) {
+          case 12:
+            scratchPad[CONFIGURATION] = TEMP_12_BIT;
+            break;
+          case 11:
+            scratchPad[CONFIGURATION] = TEMP_11_BIT;
+            break;
+          case 10:
+            scratchPad[CONFIGURATION] = TEMP_10_BIT;
+            break;
+          case 9:
+          default:
+            scratchPad[CONFIGURATION] = TEMP_9_BIT;
+            break;
+        }
+
+        ow.reset();
+        ow.select(dsAddr);
+        ow.write(WRITESCRATCH);
+        // Change only 3 byte. That is enough to sensor's resolution change
+        for ( i = HIGH_ALARM_TEMP; i <= CONFIGURATION; i++) {
+          ow.write(scratchPad[i]); // configuration
+        }
+        // When sensor used 'parasite' power settings must be copied to DS's EEPROM.
+        // Otherwise its will be lost on 'ow.reset()' operation
+        if (parasitePowerUsed) {
+           ow.write(COPYSCRATCH, 1);
+           delay(11);
+       }
+     } // if (DS18B20MODEL == dsAddr[0])
+  } // if (scratchPad[CONFIGURATION] != _resolution)
 
   // From Dallas's datasheet:
   //        12 bit resolution, 750 ms conversion time
@@ -119,46 +154,8 @@ int16_t DS18X20Read(uint8_t _pin, uint8_t _resolution, char* _id, char* _outBuff
   // conversionTimeout = (tCONV + 10%) / (2 ^ (12 [bit resolution]- N [bit resolution])). 12bit => 750ms+10%, 11bit => 375ms+10% ...
   // For some DS sensors you may need increase tCONV to 1250ms or more
   conversionTimeout = 825 / (1 << (12 - _resolution));
-
-  // Если разрешение менять не нужно, то можно сэкономить на операции записи в ScratchPad
-  if (scratchPad[CONFIGURATION] != _resolution)
-  {
-    // Модели DS1820 и DS18S20 не имеют регистра CONFIGURATION, установка разрешения через запись значения регистра бессмысленна.
-    if (DS18B20MODEL == dsAddr[0])
-    {
-      switch (_resolution)
-      {
-        case 12:
-          scratchPad[CONFIGURATION] = TEMP_12_BIT;
-          break;
-        case 11:
-          scratchPad[CONFIGURATION] = TEMP_11_BIT;
-          break;
-        case 10:
-          scratchPad[CONFIGURATION] = TEMP_10_BIT;
-          break;
-        case 9:
-        default:
-          scratchPad[CONFIGURATION] = TEMP_9_BIT;
-          break;
-      }
-
-      ow.reset();
-      ow.select(dsAddr);
-      ow.write(WRITESCRATCH);
-      // Записываем только три байта. Этого достаточно для смены разрешения термометра
-      for ( i = HIGH_ALARM_TEMP; i <= CONFIGURATION; i++)
-        ow.write(scratchPad[i]); // configuration
-
-      // Для питания термометра по схеме с паразитным питанием необходимо скопировать установки в EEPROM. В противном случае они сбросятся при ow.reset перед конвертацией
-      if (parasitePowerUsed) {
-        ow.write(COPYSCRATCH, 1);
-        delay(11);
-      }
-    }
-  }
-
-  // Запуск процедуры замера температуры
+  
+  // Temperature read begin!
   ow.reset();
   ow.select(dsAddr);
   ow.write(STARTCONVO, 1);         // start conversion, with parasite power on at the end

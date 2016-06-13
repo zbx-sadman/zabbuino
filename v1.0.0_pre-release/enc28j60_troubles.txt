@@ -1,0 +1,3 @@
+https://forum.mysensors.org/topic/536/problems-with-enc28j60-losing-connection-freezing-using-uipethernet-or-ethershield-read-this
+trouble fixed in
+https://github.com/ntruchsess/arduino_uip/tree/fix_errata12
