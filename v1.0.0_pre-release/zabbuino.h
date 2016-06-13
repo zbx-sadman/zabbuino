@@ -115,6 +115,10 @@
 #define CMD_BMP_PRESSURE             	"bmp.pressure"
 #define CMD_BMP_TEMPERATURE          	"bmp.temperature"
 
+// BH1750 light sensors commands
+#define CMD_BH1750_RAW             	"bh1750.raw"
+#define CMD_BH1750_LUX             	"bh1750.lux"
+
 /* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
                                                            VARIOUS DEFINES SECTION 
 */
@@ -139,9 +143,12 @@
 
 #define ZBX_AGENT_VERISON             	"Zabbuino 1.0.0"
 
-#define SENS_READ_TEMP 			0x00
-#define SENS_READ_HUMD 			0x01
-#define SENS_READ_PRSS 			0x02
+#define SENS_READ_TEMP 			0x01
+#define SENS_READ_HUMD 			0x02
+#define SENS_READ_PRSS 			0x03
+#define SENS_READ_LUX                   0x04
+
+#define SENS_READ_RAW 			0xFF
 
 #define RESULT_IS_FAIL                	-0xFFAL
 #define RESULT_IS_OK                  	-0xFFBL

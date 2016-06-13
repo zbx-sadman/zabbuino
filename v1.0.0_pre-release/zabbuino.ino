@@ -93,6 +93,9 @@
 // Uncomment to enable BMP pressure sensors functions: BMP.*[] commands
 //#define FEATURE_BMP085_ENABLE
 
+// Uncomment to enable BH1750 light sensors functions: BH1750.*[] commands
+#define FEATURE_BH1750_ENABLE
+
 // Uncomment to view the debug messages on the Serial Monitor
 #define FEATURE_DEBUG_TO_SERIAL
 
@@ -882,6 +885,26 @@ void executeCommand()
       result = BMP085Read(arg[0], arg[1], arg[2], SENS_READ_PRSS, cBuffer);
     //  }
 #endif
+
+#ifdef FEATURE_BH1750_ENABLE
+  } else if (0 == strcmp_P(cBuffer, PSTR(CMD_BH1750_RAW))) {
+    // Команда: BH1750.raw[sdaPin, sclPin, mode]
+    // mode:  32 - (0x20) BH1750_ONE_TIME_HIGH_RES_MODE 
+    //        33 - (0x21) BH1750_ONE_TIME_HIGH_RES_MODE_2
+    //        35 - (0x23) BH1750_ONE_TIME_LOW_RES_MODE
+    // Примечание: sdaPin, sclPin на данный момент не применяются (используются стандартные пины для I2C подключения) и зарезервированы для внедрения SoftTWI интерфейсов.
+    result = BH1750Read(arg[0], arg[1], arg[2], SENS_READ_RAW, cBuffer);
+
+  } else if (0 == strcmp_P(cBuffer, PSTR(CMD_BH1750_LUX))) {
+    // Команда: BH1750.lux[sdaPin, sclPin, mode]
+    // mode:  32 - (0x20) BH1750_ONE_TIME_HIGH_RES_MODE 
+    //        33 - (0x21) BH1750_ONE_TIME_HIGH_RES_MODE_2
+    //        35 - (0x23) BH1750_ONE_TIME_LOW_RES_MODE
+    // Примечание: sdaPin, sclPin на данный момент не применяются (используются стандартные пины для I2C подключения) и зарезервированы для внедрения SoftTWI интерфейсов.
+    result = BH1750Read(arg[0], arg[1], arg[2], SENS_READ_LUX, cBuffer);
+
+#endif
+
 
   } else {
     // В любом ином случае команда считается неопределенной.

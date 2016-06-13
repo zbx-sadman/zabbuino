@@ -1,4 +1,4 @@
-#define BMP085_ADDRESS 0x77  // I2C address of BMP085
+#define BMP085_I2C_ADDRESS 0x77  // I2C address of BMP085
 
 /* ****************************************************************************************************************************
 *
@@ -32,7 +32,7 @@ int16_t BMP085Read(uint8_t _sdaPin, uint8_t _sclPin, uint8_t _oversampling, uint
   // ******** Get Temperature ********
   // Write 0x2E into Register 0xF4
   // This requests a temperature reading
-  Wire.beginTransmission(BMP085_ADDRESS);
+  Wire.beginTransmission(BMP085_I2C_ADDRESS);
   Wire.write(0xF4);
   Wire.write(0x2E);
   Wire.endTransmission();
@@ -59,7 +59,7 @@ int16_t BMP085Read(uint8_t _sdaPin, uint8_t _sclPin, uint8_t _oversampling, uint
 
     // Write 0x34+(_oversampling<<6) into register 0xF4
     // Request a pressure reading w/ oversampling setting
-    Wire.beginTransmission(BMP085_ADDRESS);
+    Wire.beginTransmission(BMP085_I2C_ADDRESS);
     Wire.write(0xF4);
     Wire.write(0x34 + (_oversampling << 6));
     Wire.endTransmission();
@@ -68,10 +68,10 @@ int16_t BMP085Read(uint8_t _sdaPin, uint8_t _sclPin, uint8_t _oversampling, uint
     delay(2 + (3 << _oversampling));
 
     // Read register 0xF6 (MSB), 0xF7 (LSB), and 0xF8 (XLSB)
-    Wire.beginTransmission(BMP085_ADDRESS);
+    Wire.beginTransmission(BMP085_I2C_ADDRESS);
     Wire.write(0xF6);
     Wire.endTransmission();
-    Wire.requestFrom(BMP085_ADDRESS, 3);
+    Wire.requestFrom(BMP085_I2C_ADDRESS, 3);
 
     // Wait for data to become available
     while (Wire.available() < 3)
@@ -128,11 +128,11 @@ int16_t  bmp085ReadInt(unsigned char address)
 {
   uint8_t msb, lsb;
 
-  Wire.beginTransmission(BMP085_ADDRESS);
+  Wire.beginTransmission(BMP085_I2C_ADDRESS);
   Wire.write(address);
   Wire.endTransmission();
 
-  Wire.requestFrom(BMP085_ADDRESS, 2);
+  Wire.requestFrom(BMP085_I2C_ADDRESS, 2);
   while (Wire.available() < 2)
     ;
   msb = Wire.read();
