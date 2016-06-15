@@ -237,10 +237,10 @@ const byte port_protect[PORTS_NUM] = {
   // Bits 6, 7 have not correspondented pins in Arduino Mini Pro / Freeduino 2009
   B11111100, /*     PORTB        
 D13 -^    ^- D8    <- pins   */
-  B11111110, /*     PORTC 
+  B00000000, /*     PORTC 
    ^-A7   ^-A0   <- pins    */
   // Pins D0, D1 is protected by settings 0, 1 bits, due its used to RX/TX lines of UART and make it possible to transmit data to Serial Monitor  
-  B11111111  /*     PORTD 
+  B00000011  /*     PORTD 
    ^-D7   ^-D0   <- pins    */
 #elif defined(ARDUINO_AVR_LEONARDO) || defined (ARDUINO_AVR_MICRO) || defined(ARDUINO_AVR_ROBOT_CONTROL) || defined(ARDUINO_AVR_ROBOT_MOTOR) || defined (ARDUINO_AVR_YUN)
   // check ports settings for your platform
@@ -295,7 +295,7 @@ const byte port_mode[PORTS_NUM] = {
   B00000000, // not a port
   B00000000, // not a port
   // Bits 6, 7 have not correspondented pins in Arduino Mini Pro / Freeduino 2009
-  B00111111, /*     PORTB        
+  B00111110, /*     PORTB        
 D13 -^    ^- D8    <- pins   */
   B11111110, /*     PORTC 
    ^-A7   ^-A0   <- pins    */
@@ -346,7 +346,7 @@ const byte port_pullup[PORTS_NUM] = {
   B00000000, // not a port
   B00000000, // not a port
   // Bits 6, 7 have not correspondented pins in Arduino Mini Pro / Freeduino 2009
-  B00000000, /*     PORTB        
+  B00000001, /*     PORTB        
 D13 -^    ^- D8    <- pins   */
   B00000000, /*     PORTC 
    ^-A7   ^-A0   <- pins    */
