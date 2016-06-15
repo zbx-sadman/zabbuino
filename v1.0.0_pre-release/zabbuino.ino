@@ -1,15 +1,5 @@
-#include "zabbuino.h"
-#include "avr_cpunames.h"
-// "platforms.h" must be included after "zabbuino.h"
-#include "platforms.h"
-
-// Wire lib for I2C sensors
-#include <Wire.h>
-// OneWire lib for Dallas sensors
-#include <OneWire.h>
-#include <EEPROM.h>
-#include <avr/pgmspace.h>
-#include <avr/wdt.h>
+// My Freeduino is not listed, but is analogue to ARDUINO_AVR_DUEMILANOVE
+#define ARDUINO_AVR_DUEMILANOVE
 
 /* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
                                                              !!! WizNet W5xxx users !!!
@@ -33,8 +23,8 @@
     Tested on UIPEthernet v1.09
     
     When UIPEthernet's fix_errata12 brahch did not help to add stability, you can buy W5100 shield.
-    Also u can try uncomment USE_DIRTY_HACK_AND_REBOOT_ENC28J60_IF_ITS_SEEMS_FREEZE (EIR.TXERIF and EIR.RXERIF is 1), but you eed to do one change in 
-    UIPEthernet\utility\Enc28J60Network.h :
+    Also u can try uncomment USE_DIRTY_HACK_AND_REBOOT_ENC28J60_IF_ITS_SEEMS_FREEZE declaration (then ENC will be periodically re-intit if EIR.TXERIF and EIR.RXERIF is 1), 
+    but you eed to do one change in UIPEthernet\utility\Enc28J60Network.h :
          private:
             ...    
             static uint8_t readReg(uint8_t address);  // << move its to __public__ section
@@ -47,9 +37,23 @@
 //#include <UIPEthernet.h>
 //#define USE_DIRTY_HACK_AND_REBOOT_ENC28J60_IF_ITS_SEEMS_FREEZE
 
+
+#include "zabbuino.h"
+
+// Wire lib for I2C sensors
+#include <Wire.h>
+// OneWire lib for Dallas sensors
+#include <OneWire.h>
+#include <EEPROM.h>
+#include <avr/pgmspace.h>
+#include <avr/wdt.h>
+
 /* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
                                                                  PROGRAMM FEATURES SECTION
                                                   (Please refer to the zabbuino.h file for more Zabbuino tuning)
+
+        if connected sensors seems not work - first check setting in port_protect[], port_mode[], port_pullup[] arrays in I/O PORTS SETTING SECTION
+
 */
 
 // Uncomment to enable AVR watchdog
@@ -94,7 +98,7 @@
 //#define FEATURE_BMP085_ENABLE
 
 // Uncomment to enable BH1750 light sensors functions: BH1750.*[] commands
-#define FEATURE_BH1750_ENABLE
+//#define FEATURE_BH1750_ENABLE
 
 // Uncomment to view the debug messages on the Serial Monitor
 #define FEATURE_DEBUG_TO_SERIAL
@@ -208,6 +212,8 @@ void setup() {
   SerialPrint_P(PSTR("MAC     : ")); printArray(netConfig.macAddress, sizeof(netConfig.macAddress), DBG_PRINT_AS_MAC);
   SerialPrint_P(PSTR("Hostname: ")); Serial.println(netConfig.hostname);
   SerialPrint_P(PSTR("IP      : ")); Serial.println(Ethernet.localIP());
+  SerialPrint_P(PSTR("Subnet  : ")); Serial.println(Ethernet.subnetMask());
+  SerialPrint_P(PSTR("Gateway : ")); Serial.println(Ethernet.gatewayIP());
   SerialPrint_P(PSTR("Password: ")); Serial.println(netConfig.password);
   // Block is compiled if UIPethernet.h is included
 #ifdef UIPETHERNET_H
@@ -439,7 +445,8 @@ uint8_t analyzeStream(char charFromClient) {
 void executeCommand()
 {
   uint8_t enableAction;
-  uint32_t result = RESULT_IN_BUFFER;
+  int32_t result = RESULT_IS_FAIL;
+  // duration  in tone[] - ulong
   uint32_t arg[ARGS_NUM];
   
   sysMetrics[SYS_METRC_IDX_CMDCOUNT]++;
@@ -451,7 +458,10 @@ void executeCommand()
   // batch convert args to number values
   for (byte i = 0; i < ARGS_NUM; i++)
   {
-     arg[i] = ('\0' == cBuffer[argOffset[i]]) ? 0 : atol(&cBuffer[argOffset[i]]);
+//     arg[i] = ('\0' == cBuffer[argOffset[i]]) ? 0 : atol(&cBuffer[argOffset[i]]);
+//     arg[i] = ('\0' == cBuffer[argOffset[i]]) ? 0 : argToLongInt(&cBuffer[argOffset[i]]);
+     arg[i] = ('\0' == cBuffer[argOffset[i]]) ? 0 : strtoul(&cBuffer[argOffset[i]], NULL,0);
+
 #ifdef FEATURE_DEBUG_TO_SERIAL
      SerialPrint_P(PSTR("arg[")); Serial.print(i); SerialPrint_P(PSTR("] => \"")); 
      if ('\0' == cBuffer[argOffset[i]]) {
@@ -489,12 +499,14 @@ void executeCommand()
     // Результат: возвращается имя узла
     // strcpy_P(cBuffer, PSTR(ZBX_HOSTNAME));
      strcpy(cBuffer, netConfig.hostname);
+     result = RESULT_IN_BUFFER;
 
   } else if (0 == strcmp_P(cBuffer, PSTR(CMD_ZBX_AGENT_VERSION))) {
     // Команда: agent.version
     // Параметры: не требуются
     // Результат: возвращается версия агента
     strcpy_P(cBuffer, PSTR(ZBX_AGENT_VERISON));
+    result = RESULT_IN_BUFFER;
 
 #ifdef DEBUG_COMMANDS_ENABLE
 
@@ -521,6 +533,15 @@ void executeCommand()
     // Параметры: не требуются.
     // Результат: возвращается мнемоническое имя микроконтроллера
     strcpy_P(cBuffer, PSTR(_AVR_CPU_NAME_));
+    result = RESULT_IN_BUFFER;
+
+  } else if (0 == strcmp_P(cBuffer, PSTR(CMD_SYS_NETMODULE))) {
+    // Команда: sys.netmodule
+    // Параметры: не требуются.
+    // Результат: возвращается мнемоническое имя network modile
+    strcpy_P(cBuffer, PSTR(NET_MODULE_NAME));
+    result = RESULT_IN_BUFFER;
+
 #endif
 
 #ifdef FEATURE_EEPROM_ENABLE
@@ -531,7 +552,6 @@ void executeCommand()
     // Результат: изменяется имя узла при условии совпадения параметра password с системным пароля и заполненения параметра hostname, происходит возврат значения '1'. 
     //            В противном случае возвращается значение '0';
     // Примечание: Проверка пароля происходит только при установленном в значение 1 конфигурационного параметра netConfig.useProtection (см команду setprotection[]).
-    result = RESULT_IS_FAIL;
     if (enableAction) {
        // need check for arg existsience?
        // cBuffer[argOffset[1]] != \0 if argument #2 given
@@ -552,7 +572,6 @@ void executeCommand()
     // Результат: изменяется пароль при условии совпадения параметра oldPassword с системным пароля и заполненения параметра newPassword, производится запись в EEPROM,
     //            происходит возврат значения '1'. В противном случае возвращается значение '0'. 
     // Примечание: Проверка пароля происходит только при установленном в значение 1 конфигурационного параметра netConfig.useProtection (см команду setprotection[]).
-    result = RESULT_IS_FAIL;
     if (enableAction) {
        if (cBuffer[argOffset[1]]) {
           // take new password from argument #2
@@ -569,7 +588,6 @@ void executeCommand()
    // Результат: изменяется значение конфигурационного параметра netConfig.useProtection, , производится запись в EEPROM, происходит возврат значения '1'. 
    //            В случае неудачи возвращается значение '0'.
    // Примечание: Проверка пароля происходит только при установленном в значение 1 конфигурационного параметра netConfig.useProtection (см команду setprotection[]).
-     result = RESULT_IS_FAIL;
     if (enableAction) {
        if (cBuffer[argOffset[1]]) {
           // take new password from argument #2
@@ -590,7 +608,6 @@ void executeCommand()
      // Результат: изменяются сетевые настройки, производится запись в EEPROM, происходит возврат значения '1'. 
      //            В случае неудачи возвращается значение '0'.
      // Примечание: Проверка пароля происходит только при установленном в значение 1 конфигурационного параметра netConfig.useProtection (см команду setprotection[]).
-     result = RESULT_IS_FAIL;
 
      if (enableAction) {
        uint8_t ip[4], mac[6], success = 1;
@@ -630,7 +647,6 @@ void executeCommand()
      // Результат: система начинает выполнять программу заново, с адреса 0 (мягкая перезагрузка), происходит возврат значения '1'. 
      //            В случае неудачи возвращается значение '0'.
      // Примечание: Проверка пароля происходит только при установленном в значение 1 конфигурационного параметра netConfig.useProtection (см команду setprotection[]).
-     result = RESULT_IS_FAIL;
      if (enableAction) {
         ethClient.println("1");
         // hang-up if no delay
@@ -691,7 +707,6 @@ void executeCommand()
     // Примечание: команда является оберткой функции analogWrite() http://www.arduino.cc/en/Reference/AnalogWrite
     // Состояние OUTPUT для пина должно быть задано в коде скетча. Если пин защищен, изменения режима не происходит. Если пин не является PWM-совместимым, на нем выставляется значение HIGH.
     // Внимание! Функция analogWrite() самостоятельно устанавливает пин в режим работы OUTPUT
-    result = RESULT_IS_FAIL;
     if (isSafePin(arg[0])) {
       analogWrite(arg[0], arg[1]);
       result = RESULT_IS_OK;
@@ -721,7 +736,6 @@ void executeCommand()
     // Результат: изменяется состояние пина. Удачное выполнение команды влечет за собой возврат значения '1', неудачное - значения '0'.
     // Примечание: команда является оберткой функции digitalWrite() www.arduino.cc/en/Reference/DigitalWrite
     // Состояние OUTPUT для пина должно быть задано в коде скетча. Если пин защищен, изменения режима не происходит.    
-    result = RESULT_IS_FAIL;
     if (isSafePin(arg[0])) {
       digitalWrite(arg[0], arg[1]);
       result = RESULT_IS_OK;
@@ -743,7 +757,6 @@ void executeCommand()
     // Результат: начинается генерация на указанном пине сигнала "прямоугольная волна" заданной частоты.
     // Примечание: команда является оберткой функции tone() http://www.arduino.cc/en/Reference/Tone
     // Состояние OUTPUT для пина должно быть задано в коде скетча. Если пин защищен, изменения режима не происходит.
-    result = RESULT_IS_FAIL;
     if (isSafePin(arg[0])) {
       tone(arg[0], arg[1], arg[2]);
       result = RESULT_IS_OK;
@@ -755,7 +768,6 @@ void executeCommand()
     // Результат: завершается генерация на указанном пине сигнала "прямоугольная волна"
     // Примечание: команда является оберткой функции noTone() http://www.arduino.cc/en/Reference/NoTone
     // Состояние OUTPUT для пина должно быть задано в коде скетча. Если пин защищен, изменения режима не происходит.
-    result = RESULT_IS_FAIL;
     if (isSafePin(arg[0])) {
       noTone(arg[0]);
       result = RESULT_IS_OK;
@@ -777,7 +789,6 @@ void executeCommand()
     // В противном случае защелкивания сдвигового регистра не производится.
     // enableAction used asal latchPinDefined
     enableAction = ('\0' != arg[2]) && isSafePin(arg[2]);   // << корректный способ проверки или нет?  
-    result = RESULT_IS_FAIL;
     if (isSafePin(arg[0]) &&  isSafePin(arg[1])) {
        if (enableAction) { digitalWrite(arg[2], LOW); }
        advShiftOut(arg[0], arg[1], arg[3], &cBuffer[argOffset[4]]);
@@ -810,7 +821,6 @@ void executeCommand()
     // Параметры: pin - цифровое обозначение пина, к которому подключен цифровой термометр DS18x20. 
     // Результат: производится поиск первого цифрового термометра функцией OneWire.Search, его идентификатор в шестнадцатеричном виде возвращается пользователю. 
     //            При отсутствии результатов поиска - возвращается '0';
-    result = RESULT_IS_FAIL;
     if (isSafePin(arg[0])) {
         uint8_t dsAddr[8];
         OneWire ow(arg[0]);
@@ -865,45 +875,54 @@ void executeCommand()
 
 #ifdef FEATURE_BMP085_ENABLE
   } else if (0 == strcmp_P(cBuffer, PSTR(CMD_BMP_TEMPERATURE))) {
-    // Команда: BMP.Temperature[sdaPin, sclPin]
+    // Команда: BMP.Temperature[sdaPin, sclPin, i2cAddress]
     // Параметры: sdaPin, sclPin - цифровые обозначение пинов, к которым подключена шина I2C.
+    //            i2cAddress - адрес датчика на шине I2C (адрес по умолчанию: 0x77) 
     // Результат: с цифрового датчика BMP085/BMP180 считывается температура и значение в градусах цельсия возвращается пользователю.
     // Примечание: Точность датчика - 0,1C.
     //             sdaPin, sclPin на данный момент не применяются (используются стандартные пины для I2C подключения) и зарезервированы для внедрения SoftTWI интерфейсов.
-    //if (isSafePin(arg[0]) && isSafePin(arg[1])) {
-      result = BMP085Read(arg[0], arg[1], arg[2], SENS_READ_TEMP, cBuffer);
-    //}
+    if (isSafePin(arg[0]) && isSafePin(arg[1])) {
+       // (int8_t) arg[2] is i2c address, 7 bytes size
+       result = BMP085Read(arg[0], arg[1], (int8_t) arg[2], arg[3], SENS_READ_TEMP, cBuffer);
+    }
 
   } else if (0 == strcmp_P(cBuffer, PSTR(CMD_BMP_PRESSURE))) {
-    // Команда: BMP.Pressure[sdaPin, sclPin, overSampling]
+    // Команда: BMP.Pressure[sdaPin, sclPin, i2cAddress, overSampling]
     // Параметры: sdaPin, sclPin - цифровые обозначение пинов, к которым подключена шина I2C.
+    //            i2cAddress - адрес датчика на шине I2C (адрес по умолчанию: 0x77) 
     //            overSampling - значение, определяющее точность и длительность измерения.
     //            0 - ultra low power, RMS noise = 6Pa, conversion time = 4,5ms ... 3 - ultra high resolution, RMS noise = 3Pa, conversion time = 25,5ms
     // Результат: с цифрового датчика считывается величина атмосферного давления и значение в Паскалях возвращается пользователю.
     // Примечание: sdaPin, sclPin на данный момент не применяются (используются стандартные пины для I2C подключения) и зарезервированы для внедрения SoftTWI интерфейсов.
-    //  if (isSafePin(arg[0]) && isSafePin(arg[1])) {
-      result = BMP085Read(arg[0], arg[1], arg[2], SENS_READ_PRSS, cBuffer);
-    //  }
+      if (isSafePin(arg[0]) && isSafePin(arg[1])) {
+         // (int8_t) arg[2] is i2c address, 7 bytes size
+         result = BMP085Read(arg[0], arg[1], (int8_t) arg[2], arg[3], SENS_READ_PRSS, cBuffer);
+      }
 #endif
 
 #ifdef FEATURE_BH1750_ENABLE
-  } else if (0 == strcmp_P(cBuffer, PSTR(CMD_BH1750_RAW))) {
-    // Команда: BH1750.raw[sdaPin, sclPin, mode]
-    // mode:  32 - (0x20) BH1750_ONE_TIME_HIGH_RES_MODE 
-    //        33 - (0x21) BH1750_ONE_TIME_HIGH_RES_MODE_2
-    //        35 - (0x23) BH1750_ONE_TIME_LOW_RES_MODE
+  } else if (0 == strcmp_P(cBuffer, PSTR(CMD_BH1750_LIGHT))) {
+    // Команда: BH1750.lux[sdaPin, sclPin, i2cAddress, mode]
+    // Параметры: sdaPin, sclPin - цифровые обозначение пинов, к которым подключена шина I2C.
+    //            i2cAddress - адрес датчика на шине I2C (адрес по умолчанию: 0x23) 
+    //            mode:  32 - (0x20) BH1750_ONE_TIME_HIGH_RES_MODE 
+    //                   33 - (0x21) BH1750_ONE_TIME_HIGH_RES_MODE_2
+    //                   35 - (0x23) BH1750_ONE_TIME_LOW_RES_MODE
     // Примечание: sdaPin, sclPin на данный момент не применяются (используются стандартные пины для I2C подключения) и зарезервированы для внедрения SoftTWI интерфейсов.
-    result = BH1750Read(arg[0], arg[1], arg[2], SENS_READ_RAW, cBuffer);
-
-  } else if (0 == strcmp_P(cBuffer, PSTR(CMD_BH1750_LUX))) {
-    // Команда: BH1750.lux[sdaPin, sclPin, mode]
-    // mode:  32 - (0x20) BH1750_ONE_TIME_HIGH_RES_MODE 
-    //        33 - (0x21) BH1750_ONE_TIME_HIGH_RES_MODE_2
-    //        35 - (0x23) BH1750_ONE_TIME_LOW_RES_MODE
-    // Примечание: sdaPin, sclPin на данный момент не применяются (используются стандартные пины для I2C подключения) и зарезервированы для внедрения SoftTWI интерфейсов.
-    result = BH1750Read(arg[0], arg[1], arg[2], SENS_READ_LUX, cBuffer);
-
+    if (isSafePin(arg[0]) && isSafePin(arg[1])) {
+    // (int8_t) arg[2] is i2c address, 7 bytes size
+       result = BH1750Read(arg[0], arg[1], (int8_t) arg[2], arg[3], SENS_READ_LUX, cBuffer);
+    }
 #endif
+
+  } else if (0 == strcmp_P(cBuffer, PSTR(CMD_I2C_SCAN))) {
+    // Команда: I2C.Scan[sdaPin, sclPin]
+    // Параметры: sdaPin, sclPin - цифровые обозначение пинов, к которым подключена шина I2C.
+    // Примечание: sdaPin, sclPin на данный момент не применяются (используются стандартные пины для I2C подключения) и зарезервированы для внедрения SoftTWI интерфейсов.
+    if (isSafePin(arg[0]) && isSafePin(arg[1])) {
+    // (int8_t) arg[2] is i2c address, 7 bytes size
+       result = i2CScan();
+    }
 
 
   } else {

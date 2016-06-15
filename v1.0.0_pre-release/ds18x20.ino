@@ -33,7 +33,7 @@
 #define SCRATCHPAD_CRC  8
 
 /*
-int16_t DS18X20Discovery(uint8_t _pin)
+int32_t DS18X20Discovery(uint8_t _pin)
 {
   uint8_t i, dsAddr[8],;
 
@@ -70,7 +70,7 @@ uint8_t DS18X20GetFirstID(OneWire _ow, uint8_t *_addr)
 *   Probably you can meet problems with the correct calculation of temperature due to incorrect 'tRaw' adjustment 
 *
 **************************************************************************************************************************** */
-int16_t DS18X20Read(uint8_t _pin, uint8_t _resolution, char* _id, char* _outBuffer)
+int32_t DS18X20Read(uint8_t _pin, uint8_t _resolution, char* _id, char* _outBuffer)
 {
   uint8_t i, signBit, dsAddr[8], scratchPad[9], parasitePowerUsed;
   int16_t conversionTimeout;
@@ -83,7 +83,7 @@ int16_t DS18X20Read(uint8_t _pin, uint8_t _resolution, char* _id, char* _outBuff
 
   // Convert sensor ID (if its given) from HEX string to byte array (DeviceAddress structure). 
   // Sensor ID is equal DeviceAddress.
-  if ('\0' != _id[0] && isHexString(_id)) {
+  if ('\0' != _id[0] && haveHexPrefix(_id)) {
     _id+=2;
     for (i = 0; i < 8; i++) {
       dsAddr[i] = htod(*_id++) << 4;

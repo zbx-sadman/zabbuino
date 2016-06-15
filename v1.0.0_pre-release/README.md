@@ -1,10 +1,28 @@
 # Zabbuino 1.0.0 (pre-release)
 
+####15 Jun 2016
+
+Fixes:
+- _analogRead[]_ command work was blocked by measureVoltage procedure.
+
+Changes:
+- _agent.cmdcount_ renamed to _sys.cmdcount_, because original Zabbix agent haven't _agent.cmdcount_ command.
+- To I2C sensors command added I2CAddress field. That need for 2-addresses devices like BH1750. Now _BMP's_ commands is: 
+  - _BMP.Temperature[sdaPin, sclPin, i2cAddress]_, 
+  - _BMP.Pressure[sdaPin, sclPin, i2cAddress, overSampling]_;
+
+New commands:
+- _bh1750.light[sdaPin, sclPin, i2cAddress, mode]_ - return light intensity in _lux_. i2cAddress - 0x23 or 0x5C, mode: 0x20 - ONE_TIME_HIGH_RES_MODE, 0x21 - ONE_TIME_HIGH_RES_MODE_2, 0x23 - ONE_TIME_LOW_RES_MODE (refer to datasheet for more details);  
+- _i2c.scan[sdaPin, sclPin]_ - return addresses of devices that will be found on I2C bus; 
+- _sys.netmodule_ - return netmodule name, that depends on #included library: _W5xxx_ or _ENC28J60_. 
+
+*Note* _bh1750.light_ command do not full tested with real hardware; 
+
 ####13 Jun 2016
 
 Seems that no dirty hacks with ENC28J60 need. UIPEthernet library have https://github.com/ntruchsess/arduino_uip/tree/fix_errata12 brahch. Its newer that _master_-branch and fix some freezes (may be all?).
 
-Fixes:
+Fixed:
 - _analogRead[]_ command work was blocked by measureVoltage procedure.
 
 New commands:

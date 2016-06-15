@@ -1,5 +1,10 @@
+#ifndef Zabbuino_h
+#define Zabbuino_h
+
 #include <Arduino.h>
 #include <IPAddress.h>
+#include "avr_cpunames.h"
+#include "platforms.h"
 
 /* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
                                                                ALARM SECTION 
@@ -31,6 +36,12 @@
 #define NET_DHCP_RENEW_PERIOD       	30000UL  // 30 sec
 // How often do renew DHCP lease
 #define NET_STABILIZATION_DELAY     	100L     // 0.1 sec
+
+#ifdef ethernet_h
+#define NET_MODULE_NAME         	"WizNet 5xxx"
+#elif defined UIPETHERNET_H
+#define NET_MODULE_NAME         	"Microchip ENC28J60"
+#endif
 
 /* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
                                                          SYSTEM CONFIGURATION SECTION 
@@ -79,6 +90,7 @@
 #define CMD_SYS_CMDCOUNT             	"sys.cmdcount"
 #define CMD_SYS_CPUNAME              	"sys.cpuname"
 #define CMD_SYS_FREERAM              	"sys.freeram"
+#define CMD_SYS_NETMODULE           	"sys.netmodule"
 #define CMD_SYS_GET_VCCMIN           	"sys.vccmin"
 #define CMD_SYS_GET_VCC              	"sys.vcc"
 #define CMD_SYS_GET_VCCMAX           	"sys.vccmax"
@@ -116,8 +128,10 @@
 #define CMD_BMP_TEMPERATURE          	"bmp.temperature"
 
 // BH1750 light sensors commands
-#define CMD_BH1750_RAW             	"bh1750.raw"
-#define CMD_BH1750_LUX             	"bh1750.lux"
+#define CMD_BH1750_LIGHT           	"bh1750.light"
+
+// I2C commands
+#define CMD_I2C_SCAN            	"i2c.scan"
 
 /* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
                                                            VARIOUS DEFINES SECTION 
@@ -237,10 +251,10 @@ const byte port_protect[PORTS_NUM] = {
   // Bits 6, 7 have not correspondented pins in Arduino Mini Pro / Freeduino 2009
   B11111100, /*     PORTB        
 D13 -^    ^- D8    <- pins   */
-  B11111110, /*     PORTC 
+  B00000000, /*     PORTC 
    ^-A7   ^-A0   <- pins    */
   // Pins D0, D1 is protected by settings 0, 1 bits, due its used to RX/TX lines of UART and make it possible to transmit data to Serial Monitor  
-  B11111111  /*     PORTD 
+  B00000011  /*     PORTD 
    ^-D7   ^-D0   <- pins    */
 #elif defined(ARDUINO_AVR_LEONARDO) || defined (ARDUINO_AVR_MICRO) || defined(ARDUINO_AVR_ROBOT_CONTROL) || defined(ARDUINO_AVR_ROBOT_MOTOR) || defined (ARDUINO_AVR_YUN)
   // check ports settings for your platform
@@ -295,7 +309,7 @@ const byte port_mode[PORTS_NUM] = {
   B00000000, // not a port
   B00000000, // not a port
   // Bits 6, 7 have not correspondented pins in Arduino Mini Pro / Freeduino 2009
-  B00111111, /*     PORTB        
+  B00111110, /*     PORTB        
 D13 -^    ^- D8    <- pins   */
   B11111110, /*     PORTC 
    ^-A7   ^-A0   <- pins    */
@@ -346,7 +360,7 @@ const byte port_pullup[PORTS_NUM] = {
   B00000000, // not a port
   B00000000, // not a port
   // Bits 6, 7 have not correspondented pins in Arduino Mini Pro / Freeduino 2009
-  B00000000, /*     PORTB        
+  B00000001, /*     PORTB        
 D13 -^    ^- D8    <- pins   */
   B00000000, /*     PORTC 
    ^-A7   ^-A0   <- pins    */
@@ -378,7 +392,4 @@ D13 -^    ^- D8    <- pins   */
   B00000000  // PORTL
 #endif
 };
-
-
-
-
+#endif

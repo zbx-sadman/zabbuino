@@ -1,5 +1,5 @@
 
-int16_t MeasureVoltage(uint8_t _analogChannel) {  
+int32_t MeasureVoltage(uint8_t _analogChannel) {  
   uint8_t i, oldADCSRA;
   uint32_t avgADC=0;
   

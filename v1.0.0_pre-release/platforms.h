@@ -1,3 +1,6 @@
+#ifndef platforms_h
+#define platforms_h
+
 #if defined(TEENSYDUINO) 
 
     //  --------------- Teensy -----------------
@@ -73,4 +76,5 @@
        #error "Unknown board"
     #endif
 
+#endif
 #endif

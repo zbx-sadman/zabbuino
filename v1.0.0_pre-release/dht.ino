@@ -10,7 +10,7 @@
 *   Read temperature or humidity from digital sensor DHT11/DHT21/DHT22/AM2301/AM2302
 *
 **************************************************************************************************************************** */
-int16_t DHTRead(uint8_t _pin, uint8_t _sensorModel, uint8_t _metric, char* _outBuffer)
+int32_t DHTRead(uint8_t _pin, uint8_t _sensorModel, uint8_t _metric, char* _outBuffer)
 {
   uint8_t data[6];
   uint8_t lastState = HIGH;

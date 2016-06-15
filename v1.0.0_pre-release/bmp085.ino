@@ -1,11 +1,11 @@
-#define BMP085_I2C_ADDRESS 0x77  // I2C address of BMP085
+#define BMP085_I2C_FIRST_ADDRESS       0x77  // I2C address of BMP085
 
 /* ****************************************************************************************************************************
 *
 *  Read temperature or pressure from digital sensor BMP085(BMP180);
 *
 **************************************************************************************************************************** */
-int16_t BMP085Read(uint8_t _sdaPin, uint8_t _sclPin, uint8_t _oversampling, uint8_t _metric, char* _outBuffer)
+int32_t BMP085Read(uint8_t _sdaPin, uint8_t _sclPin, uint8_t _i2cAddress, int8_t _oversampling, uint8_t _metric, char* _outBuffer)
 {
   // Calibration values
   int16_t ac1, ac2, ac3;
@@ -17,22 +17,29 @@ int16_t BMP085Read(uint8_t _sdaPin, uint8_t _sclPin, uint8_t _oversampling, uint
   uint32_t b4, b7;
   uint8_t msb, lsb, xlsb;
 
-  ac1 = bmp085ReadInt(0xAA);
-  ac2 = bmp085ReadInt(0xAC);
-  ac3 = bmp085ReadInt(0xAE);
-  ac4 = bmp085ReadInt(0xB0);
-  ac5 = bmp085ReadInt(0xB2);
-  ac6 = bmp085ReadInt(0xB4);
-  b1 = bmp085ReadInt(0xB6);
-  b2 = bmp085ReadInt(0xB8);
-  mb = bmp085ReadInt(0xBA);
-  mc = bmp085ReadInt(0xBC);
-  md = bmp085ReadInt(0xBE);
+ switch (_i2cAddress) {
+    case BMP085_I2C_FIRST_ADDRESS:
+      break;
+    default:  
+       _i2cAddress = BMP085_I2C_FIRST_ADDRESS;
+  }
+  
+  ac1 = bmp085ReadInt(0xAA, _i2cAddress);
+  ac2 = bmp085ReadInt(0xAC, _i2cAddress);
+  ac3 = bmp085ReadInt(0xAE, _i2cAddress);
+  ac4 = bmp085ReadInt(0xB0, _i2cAddress);
+  ac5 = bmp085ReadInt(0xB2, _i2cAddress);
+  ac6 = bmp085ReadInt(0xB4, _i2cAddress);
+  b1 = bmp085ReadInt(0xB6, _i2cAddress);
+  b2 = bmp085ReadInt(0xB8, _i2cAddress);
+  mb = bmp085ReadInt(0xBA, _i2cAddress);
+  mc = bmp085ReadInt(0xBC, _i2cAddress);
+  md = bmp085ReadInt(0xBE, _i2cAddress);
 
   // ******** Get Temperature ********
   // Write 0x2E into Register 0xF4
   // This requests a temperature reading
-  Wire.beginTransmission(BMP085_I2C_ADDRESS);
+  Wire.beginTransmission(_i2cAddress);
   Wire.write(0xF4);
   Wire.write(0x2E);
   Wire.endTransmission();
@@ -41,7 +48,7 @@ int16_t BMP085Read(uint8_t _sdaPin, uint8_t _sclPin, uint8_t _oversampling, uint
   delay(5);
 
   // Read two bytes from registers 0xF6 and 0xF7
-  ut = bmp085ReadInt(0xF6);
+  ut = bmp085ReadInt(0xF6, _i2cAddress);
 
   x1 = (((long)ut - (long)ac6) * (long)ac5) >> 15;
   x2 = ((long)mc << 11) / (x1 + md);
@@ -59,7 +66,7 @@ int16_t BMP085Read(uint8_t _sdaPin, uint8_t _sclPin, uint8_t _oversampling, uint
 
     // Write 0x34+(_oversampling<<6) into register 0xF4
     // Request a pressure reading w/ oversampling setting
-    Wire.beginTransmission(BMP085_I2C_ADDRESS);
+    Wire.beginTransmission(_i2cAddress);
     Wire.write(0xF4);
     Wire.write(0x34 + (_oversampling << 6));
     Wire.endTransmission();
@@ -68,14 +75,13 @@ int16_t BMP085Read(uint8_t _sdaPin, uint8_t _sclPin, uint8_t _oversampling, uint
     delay(2 + (3 << _oversampling));
 
     // Read register 0xF6 (MSB), 0xF7 (LSB), and 0xF8 (XLSB)
-    Wire.beginTransmission(BMP085_I2C_ADDRESS);
+    Wire.beginTransmission(_i2cAddress);
     Wire.write(0xF6);
     Wire.endTransmission();
-    Wire.requestFrom(BMP085_I2C_ADDRESS, 3);
+    Wire.requestFrom(_i2cAddress, 2);
 
     // Wait for data to become available
-    while (Wire.available() < 3)
-      ;
+    while (Wire.available() < 3) { ; }
     msb = Wire.read();
     lsb = Wire.read();
     xlsb = Wire.read();
@@ -124,15 +130,14 @@ int16_t BMP085Read(uint8_t _sdaPin, uint8_t _sclPin, uint8_t _oversampling, uint
 // Read 2 bytes from the BMP085
 // First byte will be from 'address'
 // Second byte will be from 'address'+1
-int16_t  bmp085ReadInt(unsigned char address)
+int16_t  bmp085ReadInt(unsigned char _address, int8_t _i2cAddress)
 {
   uint8_t msb, lsb;
 
-  Wire.beginTransmission(BMP085_I2C_ADDRESS);
-  Wire.write(address);
+  Wire.beginTransmission(_i2cAddress);
+  Wire.write(_address);
   Wire.endTransmission();
-
-  Wire.requestFrom(BMP085_I2C_ADDRESS, 2);
+  Wire.requestFrom(_i2cAddress, 2);
   while (Wire.available() < 2)
     ;
   msb = Wire.read();

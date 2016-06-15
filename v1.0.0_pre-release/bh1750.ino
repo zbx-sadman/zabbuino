@@ -1,4 +1,10 @@
-#define BH1750_I2C_ADDRESS                  0x23
+#define BH1750_I2C_FIRST_ADDRESS                  0x23
+#define BH1750_I2C_SECOND_ADDRESS                 0x5C
+
+/*
+
+  Datasheet: http://rohmfs.rohm.com/en/products/databook/datasheet/ic/sensor/light/bh1750fvi-e.pdf
+*/
 
 // No active state
 #define BH1750_POWER_DOWN                   0x00
@@ -18,14 +24,14 @@
 // Start measurement at 0.5lx resolution. Measurement time is approx 120ms.
 // Device is automatically set to Power Down after measurement.
 #define BH1750_ONE_TIME_HIGH_RES_MODE_2      0x21
-// Start measurement at 1lx resolution. Measurement time is approx 120ms.
+// Start measurement at 4lx resolution. Measurement time is approx 16ms.
 // Device is automatically set to Power Down after measurement.
 #define BH1750_ONE_TIME_LOW_RES_MODE         0x23
 
 
-int16_t BH1750Read(uint8_t _sdaPin, uint8_t _sclPin, uint8_t _mode, uint8_t _metric, char* _outBuffer)
+int32_t BH1750Read(uint8_t _sdaPin, uint8_t _sclPin, uint8_t _i2cAddress, uint8_t _mode, uint8_t _metric, char* _outBuffer)
 {
-   uint16_t result;
+   int32_t result;
 
   // Need call begin()? 
   // Wire.begin();
@@ -38,13 +44,32 @@ int16_t BH1750Read(uint8_t _sdaPin, uint8_t _sclPin, uint8_t _mode, uint8_t _met
      default:  
        _mode = BH1750_ONE_TIME_LOW_RES_MODE;
   }
-  Wire.beginTransmission(BH1750_I2C_ADDRESS);
+
+  switch (_i2cAddress) {
+    case BH1750_I2C_FIRST_ADDRESS:
+    case BH1750_I2C_SECOND_ADDRESS: 
+      break;
+    default:  
+       _i2cAddress = BH1750_I2C_FIRST_ADDRESS;
+  }
+
+  Wire.beginTransmission(_i2cAddress);
+  Wire.write(BH1750_POWER_ON);
+  Wire.endTransmission();
+  _delay_ms(10);
+
+  Wire.beginTransmission(_i2cAddress);
+  Wire.write(BH1750_RESET);
+  Wire.endTransmission();
+  _delay_ms(10);
+
+  Wire.beginTransmission(_i2cAddress);
   Wire.write(_mode);
   Wire.endTransmission();
   _delay_ms(10);
 
-  Wire.beginTransmission(BH1750_I2C_ADDRESS);
-  Wire.requestFrom(BH1750_I2C_ADDRESS, 2);
+  Wire.beginTransmission(_i2cAddress);
+  Wire.requestFrom(_i2cAddress, 2);
   result = Wire.read();
   result <<= 8;
   result |= Wire.read();
@@ -63,3 +88,4 @@ int16_t BH1750Read(uint8_t _sdaPin, uint8_t _sclPin, uint8_t _mode, uint8_t _met
 
   return RESULT_IN_BUFFER;
 }
+

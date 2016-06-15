@@ -1,3 +1,6 @@
+#ifndef avr_cpunames_h
+#define avr_cpunames_h
+
 //**************************************************************************************************
 //*
 //*	Atmel AVR CPU name strings
@@ -186,4 +189,5 @@
 
 #if !defined (_AVR_CPU_NAME_)
 //	#define	_AVR_CPU_NAME_	"UNKNOWN"
+#endif
 #endif

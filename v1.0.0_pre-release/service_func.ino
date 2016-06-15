@@ -1,6 +1,25 @@
+int32_t i2CScan()
+{
+  int8_t i2cAddress;
+
+  for(i2cAddress = 1; i2cAddress < 0x7F; i2cAddress++ ) {
+    // The i2c_scanner uses the return value of
+    // the Write.endTransmisstion to see if
+    // a device did acknowledge to the address.
+    Wire.beginTransmission(i2cAddress);
+   if (0 == Wire.endTransmission()) {
+      ethClient.print("0x");
+      if (i2cAddress<16){ ethClient.print("0"); }
+      ethClient.println(i2cAddress, HEX);
+    }
+  } 
+  // what is 4 == Wire.endTransmission() - wrong answer from existing device?
+
+  return RESULT_IS_PRINTED;
+}
+
 void gatherMetrics(){
   correctVCCMetrics(MeasureVoltage(ANALOG_CHAN_VBG));
-//  correctVCCMetrics(0);
 }
 
 void correctVCCMetrics(uint32_t _currVCC) {
@@ -36,11 +55,38 @@ void sethostname(char* _dest, const char* _src){
 
 }
 
+// convert hex string to unsigned long
+// unchecked
+uint32_t hstoul(const char* _data)
+{
+  uint16_t result = 0;  
+   while (_data)  {
+     result = (result << 4) + htod(*_data);
+     _data++;
+    }
+  return result;
+  
+}
+
+
+// convert hex string to long
+// unchecked
+uint32_t argToLongInt(const char* _data)
+{
+  uint16_t result = 0;  
+  if (!haveHexPrefix(_data)) { return atol(_data) ; 
+  } else {
+    _data += 2;
+    return hstoul(_data);
+  
+  }  
+}
+
 // convert _len chars (exclude 0x prefix) of hex string to byte array
 uint8_t hstoba(uint8_t* _array, const char* _data, uint8_t _len)
 {
   // don't fill _array and return false if mailformed string detected
-  if (!isHexString(_data)) { return false; }
+  if (!haveHexPrefix(_data)) { return false; }
   // skip prefix
   _data += 2;
   // for all bytes do...
@@ -54,7 +100,7 @@ uint8_t hstoba(uint8_t* _array, const char* _data, uint8_t _len)
 }
 
 // 
-uint8_t isHexString(const char* _source) 
+uint8_t haveHexPrefix(const char* _source) 
 {
   if (_source[0] == '0' && _source[1] == 'x') { return true; }
   return false;

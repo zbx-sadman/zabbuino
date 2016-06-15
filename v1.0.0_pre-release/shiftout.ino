@@ -25,8 +25,7 @@ void advShiftOut(uint8_t _dataPin, uint8_t _clockPin, uint8_t _bitOrder, char* _
   */
 
   // Do special procedure if incoming data is the hexadecimal string 
-//  if (_dataBuffer[0] == '0' && _dataBuffer[1] == 'x')
-  if (isHexString(_dataBuffer)) {
+  if (haveHexPrefix(_dataBuffer)) {
     // Skip "0x"
     _dataBuffer += 2; 
     // "Least Significant Bit First" bit order must be used? 
