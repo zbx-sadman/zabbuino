@@ -2,12 +2,9 @@
 
 ####15 Jun 2016
 
-Fixes:
-- _analogRead[]_ command work was blocked by measureVoltage procedure.
-
 Changes:
 - _agent.cmdcount_ renamed to _sys.cmdcount_, because original Zabbix agent haven't _agent.cmdcount_ command.
-- To I2C sensors command added I2CAddress field. That need for 2-addresses devices like BH1750. Now _BMP's_ commands is: 
+- To I2C sensors command added _I2CAddress_ field. That need for 2-addresses devices like BH1750. Now _BMP's_ commands is: 
   - _BMP.Temperature[sdaPin, sclPin, i2cAddress]_; 
   - _BMP.Pressure[sdaPin, sclPin, i2cAddress, overSampling]_;
 
