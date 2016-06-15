@@ -1,5 +1,10 @@
 #define BH1750_I2C_ADDRESS                  0x23
 
+/*
+
+  Datasheet: http://rohmfs.rohm.com/en/products/databook/datasheet/ic/sensor/light/bh1750fvi-e.pdf
+*/
+
 // No active state
 #define BH1750_POWER_DOWN                   0x00
 // Wating for measurment command
@@ -18,7 +23,7 @@
 // Start measurement at 0.5lx resolution. Measurement time is approx 120ms.
 // Device is automatically set to Power Down after measurement.
 #define BH1750_ONE_TIME_HIGH_RES_MODE_2      0x21
-// Start measurement at 1lx resolution. Measurement time is approx 120ms.
+// Start measurement at 4lx resolution. Measurement time is approx 16ms.
 // Device is automatically set to Power Down after measurement.
 #define BH1750_ONE_TIME_LOW_RES_MODE         0x23
 
@@ -38,6 +43,17 @@ int16_t BH1750Read(uint8_t _sdaPin, uint8_t _sclPin, uint8_t _mode, uint8_t _met
      default:  
        _mode = BH1750_ONE_TIME_LOW_RES_MODE;
   }
+
+  Wire.beginTransmission(BH1750_I2C_ADDRESS);
+  Wire.write(BH1750_POWER_ON);
+  Wire.endTransmission();
+  _delay_ms(10);
+
+  Wire.beginTransmission(BH1750_I2C_ADDRESS);
+  Wire.write(BH1750_RESET);
+  Wire.endTransmission();
+  _delay_ms(10);
+
   Wire.beginTransmission(BH1750_I2C_ADDRESS);
   Wire.write(_mode);
   Wire.endTransmission();
@@ -63,3 +79,4 @@ int16_t BH1750Read(uint8_t _sdaPin, uint8_t _sclPin, uint8_t _mode, uint8_t _met
 
   return RESULT_IN_BUFFER;
 }
+
