@@ -4,7 +4,8 @@
 
 Changes:
 - _agent.cmdcount_ renamed to _sys.cmdcount_, because original Zabbix agent haven't _agent.cmdcount_ command.
-- To I2C sensors command added _I2CAddress_ field. That need for 2-addresses devices like BH1750. Now _BMP's_ commands is: 
+- numeric arguments can be digital, hexadecimal (C++ _strtoul()_ function was used now for converting); 
+- To I2C sensors command added _I2CAddress_ argument. That need for 2-addresses devices like BH1750. Now _BMP's_ commands is: 
   - _BMP.Temperature[sdaPin, sclPin, i2cAddress]_; 
   - _BMP.Pressure[sdaPin, sclPin, i2cAddress, overSampling]_;
 
@@ -15,7 +16,7 @@ New commands:
 - _i2c.scan[sdaPin, sclPin]_ - return addresses of devices that will be found on I2C bus; 
 - _sys.netmodule_ - return netmodule name, that depends on #included library: _W5xxx_ or _ENC28J60_. 
 
-*Note* _bh1750.light_  do not tested with real hardware; 
+**Note** _bh1750.light_  do not tested with real hardware; 
 
 ####13 Jun 2016
 
