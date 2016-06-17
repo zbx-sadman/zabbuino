@@ -37,7 +37,8 @@ int32_t MeasureVoltage(uint8_t _analogChannel) {
   oldADCSRA = ADCSRA;
   ADCSRA |= (1 << ADPS2) | (1 << ADPS1) | (1 << ADPS0); 
   ADCSRA |= (1 << ADEN);
-  delay(2); // Wait for Vref to settle
+  // Wait for Vref to settle. No delay() used because sub can be called from interrupt
+  delayMicroseconds(2000);
 
   // get 255 samples
   for (i = 0; i < 255; i++ ) {
@@ -50,7 +51,8 @@ int32_t MeasureVoltage(uint8_t _analogChannel) {
 
   //  restore ADCSRA register
   ADCSRA = oldADCSRA;
-  delay(2); 
+  // No delay() used because sub can be called from interrupt
+  delayMicroseconds(2000);
   avgADC = 1125300L / avgADC; // Calculate Vcc (in mV); 1125300 = 1.1*1023*1000
 
   return avgADC;

@@ -1,5 +1,22 @@
 # Zabbuino 1.0.0 (pre-release)
 
+####17 Jun 2016
+
+Changes:
+- System (internal) metrics (like _sys.vccmin_ / _sys.vccmax_ ) gathering process can be use timer interrupt instead calling sub on every loop. I think this will help to get more reliable results of VCC rising/falling (for example) with sensors that have long-time conversion (like DS18x20). So, that feature may be do system unstable when PWM is used (with _analogWrite[]_ command);
+- Code reorganized;
+
+New command:
+- _interrupt.count[intPin, intNumber, mode]_. This command allow to get unsigned long counter, that was increased by external interrupt. It's can be used in DYI anemometer projects, for example. On first (after power on) call of _interrupt.count_ command _intPin_ will be switched to INPUT_PULLUP mode and attached to interrupt. On next call number of rising/failing/changing will be returned. If _mode_ is changed for _intPin_, that already used by interrupt - counter will be reset and interrupt will be reattached on new _mode_;
+  - _intPin_ - which pin used to interrupt catching. For ATMega328p this can be 2 or 3 (refer to https://www.arduino.cc/en/Reference/AttachInterrupt );
+  - _intNumber_ - not used at this time, reserved for future;
+  - _mode_ - defines when the interrupt should be triggered. Four constants are predefined as valid values: 0 - LOW, 1 - CHANGE, 2 - FALLING, 3 - RISING
+
+I'm not sure that _interrupt.count_ will be run stable and properly, due not test it in production, but i hope for it.
+
+**Note** You can get unexpected growing of _interrupt.count_ value. It's can be 'button bounce' or 'bad electrical contact' problem.
+
+
 ####15 Jun 2016
 
 Changes:
@@ -16,7 +33,7 @@ New commands:
 - _i2c.scan[sdaPin, sclPin]_ - return addresses of devices that will be found on I2C bus; 
 - _sys.netmodule_ - return netmodule name, that depends on #included library: _W5xxx_ or _ENC28J60_. 
 
-**Note** _bh1750.light_  do not tested with real hardware; 
+**Note** _bh1750.light_  do not tested with real hardware.
 
 ####13 Jun 2016
 

@@ -1,3 +1,42 @@
+/* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
+                                                                     COMMON OneWire SECTION
+*/
+
+/*
+int32_t DS18X20Discovery(uint8_t _pin)
+{
+  uint8_t i, dsAddr[8],;
+
+  // Создание нового объекта OneWire
+  OneWire ow(_pin);
+  ethClient.print("{\"data\":[");
+
+  ow.reset_search();
+  ow.reset();
+  i=0;
+  while (!ow.search(dsAddr))
+  {
+    i++;
+    ethClient.print("{\"{#INDEX}\":\""); ethClient.print(i); ethClient.print("\",")
+    ethClient.print("\"{#ID}\":\""); ethClient.print(dsAddr[0]); ethClient.print("\",")
+    ethClient.print("\"{#ADDR}\":\""); ethClient.print(addr-to-str(dsAddr[0])); ethClient.print("\"},")
+  }
+  ethClient.println("]}");
+}
+*/
+
+uint8_t DS18X20GetFirstID(OneWire _ow, uint8_t *_addr)
+{
+    _ow.reset_search();
+    _ow.reset();
+    return _ow.search(_addr);
+}
+
+
+/* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
+                                                                     DS18x20 SECTION
+*/
+
 // Model IDs
 #define DS18S20MODEL 	0x10  // also DS1820
 #define DS18B20MODEL 	0x28
@@ -32,35 +71,6 @@
 #define COUNT_PER_C     7
 #define SCRATCHPAD_CRC  8
 
-/*
-int32_t DS18X20Discovery(uint8_t _pin)
-{
-  uint8_t i, dsAddr[8],;
-
-  // Создание нового объекта OneWire
-  OneWire ow(_pin);
-  ethClient.print("{\"data\":[");
-
-  ow.reset_search();
-  ow.reset();
-  i=0;
-  while (!ow.search(dsAddr))
-  {
-    i++;
-    ethClient.print("{\"{#INDEX}\":\""); ethClient.print(i); ethClient.print("\",")
-    ethClient.print("\"{#ID}\":\""); ethClient.print(dsAddr[0]); ethClient.print("\",")
-    ethClient.print("\"{#ADDR}\":\""); ethClient.print(addr-to-str(dsAddr[0])); ethClient.print("\"},")
-  }
-  ethClient.println("]}");
-}
-*/
-
-uint8_t DS18X20GetFirstID(OneWire _ow, uint8_t *_addr)
-{
-    _ow.reset_search();
-    _ow.reset();
-    return _ow.search(_addr);
-}
 
 /* ****************************************************************************************************************************
 *

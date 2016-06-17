@@ -1,25 +1,16 @@
-int32_t i2CScan()
-{
-  int8_t i2cAddress;
-
-  for(i2cAddress = 1; i2cAddress < 0x7F; i2cAddress++ ) {
-    // The i2c_scanner uses the return value of
-    // the Write.endTransmisstion to see if
-    // a device did acknowledge to the address.
-    Wire.beginTransmission(i2cAddress);
-   if (0 == Wire.endTransmission()) {
-      ethClient.print("0x");
-      if (i2cAddress<16){ ethClient.print("0"); }
-      ethClient.println(i2cAddress, HEX);
-    }
-  } 
-  // what is 4 == Wire.endTransmission() - wrong answer from existing device?
-
-  return RESULT_IS_PRINTED;
-}
-
 void gatherMetrics(){
-  correctVCCMetrics(MeasureVoltage(ANALOG_CHAN_VBG));
+  // = 1 to skip "gathering" SYS_METRIC_IDX_CMDCOUNT 
+  static uint8_t metricIdx = 1;
+  // Gather only one metric at once to leave CPU time to other important procedures
+  switch (metricIdx) {
+    case SYS_METRIC_IDX_VCCMIN:
+      sysMetrics[SYS_METRIC_IDX_VCCMIN] = min(MeasureVoltage(ANALOG_CHAN_VBG), sysMetrics[SYS_METRIC_IDX_VCCMIN]); break;
+    case SYS_METRIC_IDX_VCCMAX:
+      sysMetrics[SYS_METRIC_IDX_VCCMAX] = max(MeasureVoltage(ANALOG_CHAN_VBG), sysMetrics[SYS_METRIC_IDX_VCCMAX]); break;
+  }
+  metricIdx++;
+  // = 1 to skip "gathering" SYS_METRIC_IDX_CMDCOUNT 
+  if (SYS_METRICS_MAX <= metricIdx) { metricIdx = 1; }
 }
 
 void correctVCCMetrics(uint32_t _currVCC) {
