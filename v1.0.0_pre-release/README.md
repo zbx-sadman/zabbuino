@@ -14,7 +14,7 @@ New command:
 
 I'm not sure that _interrupt.count_ will be run stable and properly, due not test it in production, but i hope for it.
 
-**Note** You can get unexpected growing of _interrupt.count_ value. It's can be 'button bounce' or 'bad electrical contact' problem.
+**Note** You can see unexpected growing of _interrupt.count_ value. It's can be 'button bounce' or 'bad electrical contact' problem.
 
 
 ####15 Jun 2016
