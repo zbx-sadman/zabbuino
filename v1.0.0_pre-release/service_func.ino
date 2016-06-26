@@ -1,41 +1,132 @@
+/* ****************************************************************************************************************************
+*
+*   Convert int32_t _number to char[]  with decimal point on _num_after_dot position 
+*   _number / (10 * _num_after_dot position) => char[]
+*
+**************************************************************************************************************************** */
+void ltoaf(int32_t _number, char* _dst, uint8_t _num_after_dot)
+{
+  uint8_t i, skipLeadingZeros = true;
+  char currChar;
+  uint32_t value = _number;
+  const uint8_t maxStringLen = 10;
+  const uint32_t dividers[maxStringLen]={1000000000, 100000000, 10000000, 1000000, 100000, 10000, 1000, 100, 10, 1};
+  
+  // If Zero given - Zero returned without long processing 
+  if (0 == value) { _dst[0] = '0';  _dst[1] = '\0'; return;} 
+ 
+  // negative value testing and write '-' to output buffer
+  if (0 > value) { value = 0 - value; *_dst = '-'; _dst++;} 
+  
+  // Use all dividers 
+  for (i = 0; i < maxStringLen; i++) {
+    // Its _num_after_dot-th position ?
+    if ((maxStringLen - i) == _num_after_dot) {
+        // If non-zero character has not yet processeed - push '0' before decimal point
+        if (skipLeadingZeros) {*_dst = '0'; _dst++;}
+        // push decimal point
+        *_dst = '.'; _dst++; 
+        // Need to process all next zeros
+        skipLeadingZeros = false;
+    }
+    // Init character value
+    currChar = '0';
+    // If divider more than digit in current 'position' 
+    // 100 <= 6xx
+    while (dividers[i] <= value) {
+      // Decrease that digit to next comparison (6xx, 5xx, 4xx, 3xx, 2xx, 1xx, 0xx)
+      value -= dividers[i];
+      // Increase character value
+      currChar++;
+    }
+    // When the 'while' cycle is completed, the value of currChar will be increased N-th times
+    // ('0', '1', '2', '3', '4', '5', '6') and currChar wil be represent digit that placed into
+    // tested position.
+
+    // All leadings Zeros must be skipped and do not written to output buffer
+    if (currChar == '0' and skipLeadingZeros) { continue; }
+    // Any non-zero sign processed - all following Zeros must be written to output buffer
+    skipLeadingZeros = false; 
+    // Push currChar to buffer
+    *_dst = currChar;
+    _dst++;
+  }
+  *_dst = '\0';
+}
+
+/* ****************************************************************************************************************************
+*
+*   Gathering internal metrics and save its to global array
+*
+**************************************************************************************************************************** */
 void gatherMetrics(){
-  // = 1 to skip "gathering" SYS_METRIC_IDX_CMDCOUNT 
-  static uint8_t metricIdx = 1;
+  // = IDX_METRICS_FIRST_CRONNED to skip "gathering" uncronned metric (IDX_METRIC_SYS_CMD_COUNT and so) 
+  static uint8_t metricIdx = IDX_METRICS_FIRST_CRONNED;
   // Gather only one metric at once to leave CPU time to other important procedures
+
+#ifdef FEATURE_DEBUG_COMMANDS_ENABLE
   switch (metricIdx) {
-    case SYS_METRIC_IDX_VCCMIN:
-      sysMetrics[SYS_METRIC_IDX_VCCMIN] = min(MeasureVoltage(ANALOG_CHAN_VBG), sysMetrics[SYS_METRIC_IDX_VCCMIN]); break;
-    case SYS_METRIC_IDX_VCCMAX:
-      sysMetrics[SYS_METRIC_IDX_VCCMAX] = max(MeasureVoltage(ANALOG_CHAN_VBG), sysMetrics[SYS_METRIC_IDX_VCCMAX]); break;
+    case IDX_METRIC_SYS_VCCMIN:
+    case IDX_METRIC_SYS_VCCMAX:
+      correctVCCMetrics(MeasureVoltage(ANALOG_CHAN_VBG));
+      metricIdx++; // Two metrics taken at once  
+      break;
+    case IDX_METRIC_SYS_RAM_FREE:
+    case IDX_METRIC_SYS_RAM_FREEMIN:
+      sysMetrics[IDX_METRIC_SYS_RAM_FREE] = (int32_t) ramFree(); 
+      correctMemoryMetrics(sysMetrics[IDX_METRIC_SYS_RAM_FREE]);
+      metricIdx++; // Two metrics taken at once  
+      break;
+    default:
+      ;
   }
   metricIdx++;
-  // = 1 to skip "gathering" SYS_METRIC_IDX_CMDCOUNT 
-  if (SYS_METRICS_MAX <= metricIdx) { metricIdx = 1; }
+  // = 1 to skip "gathering" IDX_METRIC_SYS_CMD_COUNT 
+  if (IDX_METRICS_MAX <= metricIdx) { metricIdx = IDX_METRICS_FIRST_CRONNED; }
+#endif
 }
 
+/* ****************************************************************************************************************************
+*
+*   Correct minmem metric when FreeMem just taken
+*
+**************************************************************************************************************************** */
+void correctMemoryMetrics(uint32_t _currMemFree) {
+  sysMetrics[IDX_METRIC_SYS_RAM_FREEMIN] = min(_currMemFree, sysMetrics[IDX_METRIC_SYS_RAM_FREEMIN]);
+}           
+      
+
+/* ****************************************************************************************************************************
+*
+*   Correct minvcc/maxvcc metrics when VCC just taken
+*
+**************************************************************************************************************************** */
 void correctVCCMetrics(uint32_t _currVCC) {
-  sysMetrics[SYS_METRIC_IDX_VCCMIN] = min(_currVCC, sysMetrics[SYS_METRIC_IDX_VCCMIN]);
-  sysMetrics[SYS_METRIC_IDX_VCCMAX] = max(_currVCC, sysMetrics[SYS_METRIC_IDX_VCCMAX]);
+  sysMetrics[IDX_METRIC_SYS_VCCMIN] = min(_currVCC, sysMetrics[IDX_METRIC_SYS_VCCMIN]);
+  sysMetrics[IDX_METRIC_SYS_VCCMAX] = max(_currVCC, sysMetrics[IDX_METRIC_SYS_VCCMAX]);
 }
 
+/* ****************************************************************************************************************************
+*
+*   Set default values of network configuration
+*
+**************************************************************************************************************************** */
 void setDefaults(netconfig_t& _configStruct)
 {
   char hostname[] = ZBX_AGENT_DEFAULT_HOSTNAME;  
   //  memcpy(_configStruct.hostname, hostname, ZBX_AGENT_HOSTNAME_MAXLEN-1);
   //_configStruct.hostname[ZBX_AGENT_HOSTNAME_MAXLEN]='\0';
   sethostname(_configStruct.hostname, hostname);
-  uint8_t mac[] = SYS_DEFAULT_MAC_ADDRESS;
+  uint8_t mac[] = NET_DEFAULT_MAC_ADDRESS;
   memcpy(_configStruct.macAddress, mac, sizeof(netConfig.macAddress));
-  _configStruct.useDHCP = SYS_DEFAULT_USE_DHCP;
-  _configStruct.ipAddress = IPAddress(SYS_DEFAULT_IP_ADDRESS);
-  _configStruct.ipNetmask = IPAddress(SYS_DEFAULT_NETMASK);
-  _configStruct.ipGateway = IPAddress(SYS_DEFAULT_GATEWAY);
+  _configStruct.useDHCP = NET_DEFAULT_USE_DHCP;
+  _configStruct.ipAddress = IPAddress(NET_DEFAULT_IP_ADDRESS);
+  _configStruct.ipNetmask = IPAddress(NET_DEFAULT_NETMASK);
+  _configStruct.ipGateway = IPAddress(NET_DEFAULT_GATEWAY);
 //#ifdef PASSWORD_PROTECTION_FEATURE_ENABLE
   _configStruct.password = SYS_DEFAULT_PASSWORD;
   _configStruct.useProtection = SYS_DEFAULT_PROTECTION;
 //#endif
-
-   //printArray(_configStruct.macAddress,6,1);
 }
 
 
@@ -46,34 +137,12 @@ void sethostname(char* _dest, const char* _src){
 
 }
 
-// convert hex string to unsigned long
-// unchecked
-uint32_t hstoul(const char* _data)
-{
-  uint16_t result = 0;  
-   while (_data)  {
-     result = (result << 4) + htod(*_data);
-     _data++;
-    }
-  return result;
-  
-}
 
-
-// convert hex string to long
-// unchecked
-uint32_t argToLongInt(const char* _data)
-{
-  uint16_t result = 0;  
-  if (!haveHexPrefix(_data)) { return atol(_data) ; 
-  } else {
-    _data += 2;
-    return hstoul(_data);
-  
-  }  
-}
-
-// convert _len chars (exclude 0x prefix) of hex string to byte array
+/* ****************************************************************************************************************************
+*
+*  Convert _len chars (exclude 0x prefix) of hex string to byte array
+*
+**************************************************************************************************************************** */
 uint8_t hstoba(uint8_t* _array, const char* _data, uint8_t _len)
 {
   // don't fill _array and return false if mailformed string detected
@@ -90,173 +159,13 @@ uint8_t hstoba(uint8_t* _array, const char* _data, uint8_t _len)
   return true;
 }
 
-// 
-uint8_t haveHexPrefix(const char* _source) 
-{
-  if (_source[0] == '0' && _source[1] == 'x') { return true; }
-  return false;
-}
-
-
-
 /* ****************************************************************************************************************************
 *
-*  Функция преобразования шестнадцатеричного символа (lowcase) в десятичное число
+*   Compute a Dallas Semiconductor 8 bit CRC directly. This is much slower, but much smaller, than the lookup table.
+*
+*   This function placed here to aviod compilation error when OneWire library is not #included
 *
 **************************************************************************************************************************** */
-uint8_t htod(int8_t _hex)
-{
-  if (_hex >= 'a' && _hex <= 'f')
-  {
-    return (10 + _hex - 'a');
-  } else if (_hex >= '0' && _hex <= '9')
-  {
-    return (_hex - '0');
-  } else {
-    return 0;
-  }
-}
-
-
-/* ****************************************************************************************************************************
-*
-*  Функция преобразования 32-битного (long) числа в строку с десятичным разделителем на заданном месте
-*
-**************************************************************************************************************************** */
-char* ltoaf(int32_t _number, char* _dst, uint8_t _num_after_dot)
-//  _number is long because may contain int*2 => [-]int.int
-{
-  int8_t k, r;
-  uint8_t s, dp, bp, ep, o, sl;
-
-#ifdef DEBUG_MSG_TO_ETHCLIENT
-  ethClient.print("number:");
-  ethClient.println(_number);
-  ethClient.print("num_after_dot:");
-  ethClient.println(_num_after_dot);
-#endif
-  ltoa(_number, _dst, 10);
-
-  sl = strlen(_dst);
-  // offset =1 for shifting with making one free cell in char array where will be placed '.'
-  o = 1;
-
-  // check for negative sign is exist
-  s = 0;
-  if (_dst[0] == '-') s = 1;
-
-  k = sl - _num_after_dot;
-  // Begin position of shifted part is (0 + neg_sign_len) if need to shift right all string except neg. sigh (
-  // or (str_num_len - future_fract_part_len)
-  //
-  bp = max(s, k);
-  // dot position is begin position of shift part. Dot is replace shifted to right symb.
-  dp = bp;
-  // if need to shift right more that string length (-1234 -> -0.1234) begin pos always eq lengt of neg. sign
-  // is calculated in max() func.
-  // if (k <= s )
-  if (bp == s )
-  {
-    //printf("sl <= num\n");
-    // shift offset is more that one cell, because need to insert "0.[0]" to new string
-    // offset is lengt of "0." + number of zeroes which filled gap:
-    //                         1 + 1 + neg_sign_len + (future_fract_part_len - str_num_len)
-    o += 1 + s + (_num_after_dot - sl);
-    // Correction of dot position because need to insert additional "0" before dot.
-    // if this block is executed, bp = b =s
-    dp += 1;
-  }
-
-  // end of new string eq length_of_old_string + length of appended part (just '.' or "0.[0]")
-  ep = sl + o;
-
-  // Use neg sign flag as symbols counter, which corrected for exepting neg symbol length
-  //i=s;
-
-#ifdef DEBUG_MSG_TO_ETHCLIENT
-  ethClient.print("bp: ");
-  ethClient.println(bp);
-  ethClient.print("ep: ");
-  ethClient.println(ep);
-  ethClient.print("sl: ");
-  ethClient.println(sl);
-  ethClient.print("s: ");
-  ethClient.println(s);
-  ethClient.print("o: ");
-  ethClient.println(o);
-  ethClient.print("dp: ");
-  ethClient.println(dp);
-  ethClient.print("dst: ");
-  ethClient.println(_dst);
-#endif
-
-  // Shift strings symbols by going from end to begin (reverse move) and fill current cell with value from
-  // previous cell, which placed on Offset distantion.
-  for (r = ep; r >= bp ; r--)
-  {
-    // if not all symbols from unshifted string was copied - to that
-    // if (i <= sl)
-    if (s <= sl)
-    {
-      _dst[r] = _dst[r - o];
-    }
-    // otherwise just fill cells by '0'
-    else
-    {
-      _dst[r] = '0';
-    }
-    // count how much symbols copied
-    //i++;
-    s++;
-  }
-  // place Dot on this position
-  _dst[dp] = '.';
-  // finalize string
-  // finalized by ltoa()
-  //_dst[ep]='\0';
-
-  return _dst;
-}
-
-/* ****************************************************************************************************************************
-*
-*  Convert dec number to hex char
-*
-**************************************************************************************************************************** */
-char dtoh(uint8_t _dec)
-{
-//  if (_dec > 0xF) {return '0';}
-  if (_dec > 0x9) {return 'A'+_dec-0xA;}
-  return '0'+_dec;
-}
-
-/* ****************************************************************************************************************************
-*
-*  Convert N bytes from Source to HEX chars and put its to Destination
-*
-**************************************************************************************************************************** */
-// pointer => hex string
-void ptonhs(char *_dstptr, uint8_t *_srcptr, uint8_t _len) {
-  // write to destination prefix 0x 
-  _dstptr[0] = '0'; _dstptr[1] = 'x';  
-  // move pointer to begin+2
-  _dstptr+=2;
-  // count _len bytes of memory pointed with _srcptr
-  while (_len--) {
-    // Take high nibble and convert to hex char
-    *_dstptr++ = dtoh(*_srcptr >> 4); 
-    // Take low nibble and convert to hex char, increase source pointer to 1;
-    *_dstptr++ = dtoh(*_srcptr++ & 0x0F);
-  }
-  // terminate C-string
-  *_dstptr='\0'; 
-}
-
-//
-// Compute a Dallas Semiconductor 8 bit CRC directly.
-// this is much slower, but much smaller, than the lookup table.
-//
-// This function placed here to aviod compilation error for "no OneWire devices used" case
 uint8_t dallas_crc8(const uint8_t *addr, uint8_t len)
 {
 	uint8_t crc = 0;
@@ -273,18 +182,33 @@ uint8_t dallas_crc8(const uint8_t *addr, uint8_t len)
 	return crc;
 }
 
+/* ****************************************************************************************************************************
+*
+*  Print string stored in PROGMEM to Serial 
+*
+**************************************************************************************************************************** */
 void SerialPrint_P (const char* _src) {
   char currChar;
   while ((currChar = pgm_read_byte(_src++)) != 0)
   Serial.print(currChar);
 }
+
+/* ****************************************************************************************************************************
+*
+*  Print string stored in PROGMEM to Serial + Line Feed
+*
+**************************************************************************************************************************** */
 void SerialPrintln_P (const char* _src) {
   SerialPrint_P(_src);
   Serial.println();
 }
 
 
-// pointer-lenght array of char to uint32_t variable
+/* ****************************************************************************************************************************
+*
+*   Convert array of char with given lenght to uint32_t variable
+*
+**************************************************************************************************************************** */
 uint32_t pl_atol(char const *_src, uint8_t _len) {
   long result = 0;
   uint8_t i;
@@ -308,6 +232,11 @@ uint32_t pl_atol(char const *_src, uint8_t _len) {
 }
 
 
+/* ****************************************************************************************************************************
+*
+*  Print array to Serial as MAC or IP or other string with sign-separated parts
+*
+**************************************************************************************************************************** */
 void printArray(uint8_t *_src, uint8_t _len, uint8_t _type)
 {
   while (_len--) {
@@ -323,30 +252,12 @@ void printArray(uint8_t *_src, uint8_t _len, uint8_t _type)
   Serial.println();
 }
 
-/*
-uint32_t pton(const char* _ipString) 
+void blinkMore(uint8_t _times, uint16_t _onTime, uint16_t _offTime) 
 {
-  uint8_t i = 0, k = 0, n = 0;
-  char* buff = "\1\2\3\4";
-  uint32_t currentOctet, result = 0;
-  do {
-    buff[k] = _ipString[i];
-    if ('.' == _ipString[i] || '\0' == _ipString[i]) {
-       buff[k]='\0';
-       currentOctet = atoi(buff);
-       result += currentOctet << n;
-       // every new octet must be shift to right for n*8 bytes
-       n += 8;
-       k = 0;
-       if ('\0' == _ipString[i]) {break;}
-    } else { 
-       k++;
-    }
-    i++;
-  } while (true);
-  return result;
+  for (byte i=0; i < _times ; i++) {
+    digitalWrite(PIN_STATE_LED, HIGH);   // turn the LED on (HIGH is the voltage level)
+    delay(_onTime);              // wait for a second
+    digitalWrite(PIN_STATE_LED, LOW);   // turn the LED on (HIGH is the voltage level)
+    delay(_offTime);              // wait for a second
+  }
 }
-
-
-*/
-

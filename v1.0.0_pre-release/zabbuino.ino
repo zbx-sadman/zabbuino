@@ -1,15 +1,16 @@
 // My Freeduino is not listed, but is analogue to ARDUINO_AVR_DUEMILANOVE
 #define ARDUINO_AVR_DUEMILANOVE
+// Just for compilation with various default network configs
+//#define USE_NETWORK_192_168_0_1
 
 /* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
                                                              !!! WizNet W5xxx users !!!
 
     1. Comment #include <UIPEthernet.h>
-    2. Comment #define __ETH_ENC28J60__
-    3. Uncomment #include <Ethernet.h> and <SPI.h> headers
+    2. Uncomment #include <Ethernet.h> and <SPI.h> headers
 */
-#include <Ethernet.h>
-#include <SPI.h>
+//#include <Ethernet.h>
+//#include <SPI.h>
 
 /* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
                                                                 !!! ENC28J60 users !!!
@@ -18,7 +19,6 @@
     
     1. Comment #include <Ethernet.h> and <SPI.h> headers
     2. Uncomment #include <UIPEthernet.h> 
-    3. Uncomment #define __ETH_ENC28J60__ to use specific ENC28J60 functions 
     
     Tested on UIPEthernet v1.09
     
@@ -34,7 +34,7 @@
              ...
     
 */
-//#include <UIPEthernet.h>
+#include <UIPEthernet.h>
 //#define USE_DIRTY_HACK_AND_REBOOT_ENC28J60_IF_ITS_SEEMS_FREEZE
 
 
@@ -47,16 +47,65 @@
 #include <EEPROM.h>
 #include <avr/pgmspace.h>
 #include <avr/wdt.h>
-// for interrupts-related macroses
+// used by interrupts-related macroses
 #include <wiring_private.h>
 
 /* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
                                                                  PROGRAMM FEATURES SECTION
-                                                  (Please refer to the zabbuino.h file for more Zabbuino tuning)
+                   (Please refer to the zabbuino.h file for more Zabbuino tuning like set State LED pin, network addresses, agent hostname and so)
 
         if connected sensors seems not work - first check setting in port_protect[], port_mode[], port_pullup[] arrays in I/O PORTS SETTING SECTION
 
 */
+
+/****       Network      ****/
+
+// Uncomment to use DHCP address obtaining
+//#define FEATURE_NET_DHCP_ENABLE
+
+// Uncomment to force using DHCP even netConfig.useDHCP = false
+//#define FEATURE_NET_DHCP_FORCE
+
+/****       Arduino      ****/
+
+// Uncomment to enable Arduino's tone[], noTone[] commands
+//#define FEATURE_TONE_ENABLE
+
+// Uncomment to enable Arduino's randomSeed, random[] commands
+//#define FEATURE_RANDOM_ENABLE
+
+// Uncomment to enable shiftOut[] command
+//#define FEATURE_SHIFTOUT_ENABLE
+
+/****      1-Wire bus      ****/
+
+// Uncomment to enable 1-Wire functions
+#define FEATURE_OW_ENABLE
+
+// Uncomment to enable Dallas DS18x20 family functions: DS18x20.*[] commands
+#define FEATURE_DS18X20_ENABLE
+
+/****        I2C bus       ****/
+
+// Note #1: I2C library (Wire.h) takes at least 32bytes of memory for internal buffers
+// Note #2: I2C library (Wire.h) activate internal pullups for SDA & SCL pins when Wire.begin() called
+
+// Uncomment to enable I2C functions
+#define FEATURE_I2C_ENABLE
+
+// Uncomment to enable BMP pressure sensors functions: BMP.*[] commands
+#define FEATURE_BMP085_ENABLE
+
+// Uncomment to enable BH1750 light sensors functions: BH1750.*[] commands
+//#define FEATURE_BH1750_ENABLE
+
+/****    DHT/AM family    ****/
+
+// Uncomment to enable DHT/AM humidity sensors functions: DHT.*[] commands
+//#define FEATURE_DHT_ENABLE
+
+
+/****      System        ****/
 
 // Uncomment to enable AVR watchdog
 //                                                                     !!! BEWARE !!!
@@ -67,52 +116,23 @@
 // Note: watchdog timeout may be vary for many controllers, see comments to macro WTD_TIMEOUT in zabbuino.h
 //#define FEATURE_WATCHDOG_ENABLE
 
-// Uncomment to use DHCP address obtaining
-// #define FEATURE_NET_DHCP_ENABLE
-// Uncomment to force using DHCP even netConfig.useDHCP = false
-// #define FEATURE_NET_DHCP_FORCE
-
 // Uncomment to be able to store runtime settings in EEPROM and use its on start
 #define FEATURE_EEPROM_ENABLE
 
 // Uncomment to force protect (enable even netConfig.useProtection is true) your system from illegal access for change runtime settings and reboots 
 //#define FEATURE_PASSWORD_PROTECTION_FORCE
 
-// Uncomment to enable Arduino's tone[], noTone[] commands
-//#define FEATURE_TONE_ENABLE
-
-// Uncomment to enable Arduino's randomSeed, random[] commands
-//#define FEATURE_RANDOM_ENABLE
-
-// Uncomment to enable system's command which can be used in system debug process: cmdCount, sys.freeRAM and so
-//#define DEBUG_COMMANDS_ENABLE
-
-// Uncomment to enable shiftOut[] command
-//#define FEATURE_SHIFTOUT_ENABLE
-
-// Uncomment to enable Dallas DS18x20 family functions: DS18x20.*[] commands
-//#define FEATURE_DS18X20_ENABLE
-
-// Uncomment to enable DHT/AM humidity sensors functions: DHT.*[] commands
-//#define FEATURE_DHT_ENABLE
-
-// Uncomment to enable BMP pressure sensors functions: BMP.*[] commands
-//#define FEATURE_BMP085_ENABLE
-
-// Uncomment to enable BH1750 light sensors functions: BH1750.*[] commands
-//#define FEATURE_BH1750_ENABLE
+// Uncomment to enable system's command which can be used in system debug process: cmdCount, sys.ramFree and so
+#define FEATURE_DEBUG_COMMANDS_ENABLE
 
 // Uncomment to view the debug messages on the Serial Monitor
 //#define FEATURE_DEBUG_TO_SERIAL
-
-// Uncomment for get debug messages in TCP session - implementation not finished
-//#define DEBUG_MSG_TO_ETHCLIENT
 
 // Uncomment to enable using time+interrupt for internal metric gathering
 #define GATHER_METRIC_USING_TIMER_INTERRUPT
 
 // Uncomment to enable external interrupts handling: interrupt.*[] commands
-#define FEATURE_EXTERNAL_INTERRUPT_ENABLE
+//#define FEATURE_EXTERNAL_INTERRUPT_ENABLE
 
 /* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
                                                                  GLOBAL VARIABLES SECTION
@@ -128,17 +148,40 @@ EthernetServer ethServer(10050);
 EthernetClient ethClient;
 
 char cBuffer[BUFFER_SIZE];
-int argOffset[ARGS_MAX];
-long sysMetrics[SYS_METRICS_MAX];
+int16_t argOffset[ARGS_MAX];
+int32_t sysMetrics[IDX_METRICS_MAX];
 
 /* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
                                                                       STARTUP SECTION
 */
 
+// Enable I2C functions if user forget it
+#if defined(FEATURE_BH1750_ENABLE) || defined(FEATURE_BMP085_ENABLE)
+#define FEATURE_I2C_ENABLE
+#endif
+
+// Enable 1-Wire functions if user forget it
+#if defined(FEATURE_DS18X20_ENABLE)
+#define FEATURE_OW_ENABLE
+#endif
+
+
 void setup() {
   uint8_t i;
+
+#ifdef ADVANCED_BLINKING
+  // blink on start
+  blinkMore(6, 50, 500);
+#endif
+
+  // Init metrics
+  sysMetrics[IDX_METRIC_SYS_VCCMIN] = sysMetrics[IDX_METRIC_SYS_VCCMAX] = MeasureVoltage(ANALOG_CHAN_VBG);
+  sysMetrics[IDX_METRIC_SYS_RAM_FREE] = sysMetrics[IDX_METRIC_SYS_RAM_FREEMIN] = (int32_t) ramFree();
+  sysMetrics[IDX_METRIC_SYS_CMD_COUNT] = sysMetrics[IDX_METRIC_SYS_CMD_TIMEMAX] = 0;
+  
 #ifdef FEATURE_DEBUG_TO_SERIAL
   Serial.begin(9600);
+  while (!Serial);             // Leonardo: wait for serial monitor
 #endif
 
 #ifdef FEATURE_EEPROM_ENABLE
@@ -272,6 +315,15 @@ void setup() {
    timerOneInit(SYS_METRIC_RENEW_PERIOD);
 #endif
 
+#ifdef FEATURE_I2C_ENABLE
+Wire.begin();
+#endif
+
+#ifdef ADVANCED_BLINKING
+  // blink on init end
+  blinkMore(2, 1000, 1000);
+#endif
+
 }
 
 
@@ -279,21 +331,14 @@ void setup() {
                                                                       RUN SECTION
 */
 void loop() {
-  uint32_t nowTime, dhcpRenewTime, encReInitTime, netProblemTime, sysMetricGatherTime;
-  uint8_t errorCode, blinkType = BLINK_NOPE;
-  
-  // Init metrics
-  sysMetrics[SYS_METRIC_IDX_VCCMIN] = sysMetrics[SYS_METRIC_IDX_VCCMAX] = MeasureVoltage(ANALOG_CHAN_VBG);
-  sysMetrics[SYS_METRIC_IDX_CMDCOUNT] = 0;
-  
+  uint32_t nowTime, processStartTime, processEndTime;
+  uint32_t prevDHCPRenewTime, prevENCReInitTime, prevNetProblemTime, prevSysMetricGatherTime;
+  uint8_t errorCode, blinkType = (uint8_t) BLINK_NOPE;
+    
   // Correcting timestamps
-  dhcpRenewTime = encReInitTime = netProblemTime = sysMetricGatherTime = millis();
-  dhcpRenewTime += NET_DHCP_RENEW_PERIOD;
-  netProblemTime += NET_IDLE_TIMEOUT;
-  sysMetricGatherTime += SYS_METRIC_RENEW_PERIOD;
-  encReInitTime += NET_ENC28J60_REINIT_PERIOD;
 
-  //!!!!!!!!!!!!!  need to check code for "mills() after 50 days" problem avoid
+  prevDHCPRenewTime = prevENCReInitTime = prevNetProblemTime = prevSysMetricGatherTime = millis();
+
   // if no exist while() here - netProblemTime must be global or static - its will be 0 every loop() and time-related cases will be processeed abnormally
   // ...and while save some cpu ticks because do not call everytime from "hidden main()" subroutine, and do not init var, and so.
   while (true) { 
@@ -302,23 +347,22 @@ void loop() {
 #ifndef GATHER_METRIC_USING_TIMER_INTERRUPT
     // Gather internal metrics periodically
     // may be do it with interrupt?
-    if (nowTime > sysMetricGatherTime) { gatherMetrics(); sysMetricGatherTime = nowTime + SYS_METRIC_RENEW_PERIOD; }
+    if (SYS_METRIC_RENEW_PERIOD <= (uint32_t) (nowTime - prevSysMetricGatherTime)) { gatherMetrics(); prevSysMetricGatherTime = nowTime; }
 #endif 
 
 #ifdef FEATURE_NET_DHCP_ENABLE
     // DHCP used in this session and time to renew lease?
-    if (true == netConfig.useDHCP && nowTime > dhcpRenewTime) {
+    if (true == netConfig.useDHCP && (NET_DHCP_RENEW_PERIOD <= (uint32_t) (nowTime - prevDHCPRenewTime))) {
        // Ethernet library's manual say that Ethernet.maintain() can be called every loop for DHCP renew, but i won't do this so often
        errorCode = Ethernet.maintain();
        // Renew procedure finished with success
        if (DHCP_CHECK_RENEW_OK == errorCode || DHCP_CHECK_REBIND_OK  == errorCode) { 
           // No alarm blink  need, network activity registred, renewal period restarted
-          blinkType = BLINK_NOPE;
-          netProblemTime = nowTime + NET_IDLE_TIMEOUT; 
-          dhcpRenewTime = nowTime + NET_DHCP_RENEW_PERIOD;
+          blinkType = (uint8_t) BLINK_NOPE;
+          prevDHCPRenewTime = prevNetProblemTime = nowTime;
        } else {
           // Got some errors - blink with "DHCP problem message"
-          blinkType = BLINK_DHCP_PROBLEM;
+          blinkType = (uint8_t) BLINK_DHCP_PROBLEM;
 #ifdef FEATURE_DEBUG_TO_SERIAL
 //            SerialPrintln_P(PSTR("DHCP renew problem occured"));
 #endif 
@@ -327,16 +371,16 @@ void loop() {
 #endif // FEATURE_NET_DHCP_ENABLE
 
     // No DHCP problem found but no data recieved or network activity for a long time
-    if (BLINK_NOPE == blinkType && (nowTime > netProblemTime)) { 
+    if (BLINK_NOPE == blinkType && (NET_IDLE_TIMEOUT <= (uint32_t) (nowTime - prevNetProblemTime))) { 
 #ifdef FEATURE_DEBUG_TO_SERIAL
 //            SerialPrintln_P(PSTR("No data recieved for a long time"));
 #endif 
-       blinkType = BLINK_NET_PROBLEM; 
+       blinkType =(uint8_t) BLINK_NET_PROBLEM; 
     }
 
 #ifdef USE_DIRTY_HACK_AND_REBOOT_ENC28J60_IF_ITS_SEEMS_FREEZE
     // Time to reinit ENC28J60?
-    if (nowTime > encReInitTime) {
+    if (NET_ENC28J60_REINIT_PERIOD <= (uint32_t) (nowTime - prevENCReInitTime)) {
        // if EIR.TXERIF or EIR.RXERIF is set - ENC28J60 detect error, re-init module 
        if (Enc28J60.readReg(EIR) & (EIR_TXERIF | EIR_RXERIF)) {
 #ifdef FEATURE_DEBUG_TO_SERIAL
@@ -345,7 +389,8 @@ void loop() {
           Enc28J60.init(netConfig.macAddress); 
           delay(NET_STABILIZATION_DELAY);
        } 
-       encReInitTime = nowTime + NET_ENC28J60_REINIT_PERIOD;
+         prevENCReInitTime = nowTime;
+
     }
 #endif // USE_DIRTY_HACK_AND_REBOOT_ENC28J60_IF_ITS_SEEMS_FREEZE
 
@@ -377,18 +422,21 @@ void loop() {
              digitalWrite(PIN_STATE_LED, HIGH);
              //
              // may be need test for client.connected()? 
+             processStartTime = millis();
              executeCommand();
+             processEndTime = millis();
+             // use processEndTime as processDurationTime
+             processEndTime = (processStartTime <= processEndTime) ? (processEndTime - processStartTime) : (4294967295UL - processStartTime + processEndTime);
+             sysMetrics[IDX_METRIC_SYS_CMD_TIMEMAX] = max(sysMetrics[IDX_METRIC_SYS_CMD_TIMEMAX], processEndTime);
+
              // Wait some time to finishing answer send
              delay(NET_STABILIZATION_DELAY);
              // close connection           
              ethClient.stop(); 
           }
-          // ethClient.flush(); ethClient.println(nowTime); ethClient.println(" - bye");  delay(100); ethClient.stop(); 
           // Restart network activity control cycle
-          encReInitTime = netProblemTime = millis();
-          encReInitTime +=  NET_ENC28J60_REINIT_PERIOD; 
-          netProblemTime += NET_IDLE_TIMEOUT; 
-          blinkType = BLINK_NOPE;
+          prevENCReInitTime = prevNetProblemTime = millis();
+          blinkType = (uint8_t) BLINK_NOPE;
        }
     } else {
        // Active session is not exist. Try to take new for processing.
@@ -404,9 +452,8 @@ void loop() {
 
 /* ****************************************************************************************************************************
 *
-*  Функция анализа потока данных.
-*  Помещает байты считанные из буфера Ethernet, в рабочий буфер, принимает решение о типе пакета,
-*  инициирует выполнение принятой команды
+*  Stream analyzing subroutine
+*  Detect Zabbix packets, on-fly spit incoming stream to command, arguments
 *
 **************************************************************************************************************************** */
 uint8_t analyzeStream(char charFromClient) {
@@ -472,6 +519,11 @@ uint8_t analyzeStream(char charFromClient) {
   return true;
 }
 
+/* ****************************************************************************************************************************
+*
+*  Command execution subroutine
+*  
+**************************************************************************************************************************** */
 void executeCommand()
 {
   uint8_t AccessGranted, i;
@@ -480,7 +532,7 @@ void executeCommand()
   uint32_t arg[ARGS_MAX];
   int16_t cmdIdx = -1;
   
-  sysMetrics[SYS_METRIC_IDX_CMDCOUNT]++;
+  sysMetrics[IDX_METRIC_SYS_CMD_COUNT]++;
 
   for (i = 0; i < CMD_MAX; i++)
   {
@@ -499,7 +551,7 @@ void executeCommand()
 #ifdef FEATURE_DEBUG_TO_SERIAL
      SerialPrint_P(PSTR("arg[")); Serial.print(i); SerialPrint_P(PSTR("] => \"")); 
      if ('\0' == cBuffer[argOffset[i]]) {
-        Serial.print("<null>"); 
+        SerialPrint_P(PSTR("<null>")); 
      } else {
         Serial.print(&cBuffer[argOffset[i]]); 
      }
@@ -544,7 +596,7 @@ void executeCommand()
       result = RESULT_IN_BUFFER;
       break;
 
-#ifdef DEBUG_COMMANDS_ENABLE
+#ifdef FEATURE_DEBUG_COMMANDS_ENABLE
 
     case CMD_SYS_UPTIME:
       // Команда: agent.uptime
@@ -553,21 +605,37 @@ void executeCommand()
       result = millis() / 1000;
       break;
    
-    case CMD_SYS_CMDCOUNT:
+    case CMD_SYS_CMD_COUNT:
       // Команда: agent.cmdCount
       // Параметры: не требуются
       // Результат: возвращается количество обработанных команд
-      result = sysMetrics[SYS_METRIC_IDX_CMDCOUNT];
+      if (arg[0]) { sysMetrics[IDX_METRIC_SYS_CMD_COUNT] = 0; } 
+      result = sysMetrics[IDX_METRIC_SYS_CMD_COUNT];
+      break;
+
+    case CMD_SYS_CMD_TIMEMAX:
+      // Команда: 
+      // Параметры: не требуются.
+      // Результат:
+      if (arg[0]) { sysMetrics[IDX_METRIC_SYS_CMD_TIMEMAX] = 0; } 
+      result = sysMetrics[IDX_METRIC_SYS_CMD_TIMEMAX];
       break;
    
-    case CMD_SYS_FREERAM:
-      // Команда: sys.freeRAM
+    case CMD_SYS_RAM_FREE:
+      // Команда: sys.ramFree
       // Параметры: не требуются.
       // Результат: возвращается объем свободной оперативной памяти контроллера.
-      result = (long) freeRam();
+      result = sysMetrics[IDX_METRIC_SYS_RAM_FREE];
+      break;
+
+    case CMD_SYS_RAM_FREEMIN:
+      // Команда: sys.memmin
+      // Параметры: не требуются.
+      // Результат: возвращается зафиксированный в процессе периодических измерений минимальный объем свободной оперативной памяти контроллера.
+      result = sysMetrics[IDX_METRIC_SYS_RAM_FREEMIN];
       break;
    
-    case CMD_SYS_CPUNAME:
+    case CMD_SYS_MCU_NAME:
       // Команда: sys.cpuName
       // Параметры: не требуются.
       // Результат: возвращается мнемоническое имя микроконтроллера
@@ -575,7 +643,7 @@ void executeCommand()
       result = RESULT_IN_BUFFER;
       break;
    
-    case CMD_SYS_NETMODULE:
+    case CMD_SYS_NET_MODULE:
       // Команда: sys.netmodule
       // Параметры: не требуются.
       // Результат: возвращается мнемоническое имя network modile
@@ -584,9 +652,8 @@ void executeCommand()
       break;
 #endif
 
-
 #ifdef FEATURE_EEPROM_ENABLE
-    case CMD_SYS_SET_HOSTNAME:
+    case CMD_SET_HOSTNAME:
       // Команда: sethostname[password, hostname]
       // Параметры: password - пароль, используемый для изменения свойств системы,
       //            hostname - новое имя узла.
@@ -607,7 +674,7 @@ void executeCommand()
       }
       break;
   
-    case CMD_SYS_SET_PASSWORD:
+    case CMD_SET_PASSWORD:
       // Команда: setpassword[oldPassword, newPassword]
       // Параметры: oldPassword - пароль, используемый для изменения свойств системы,
       //            newPassword - вновьустанавливаемый пароль.
@@ -624,7 +691,7 @@ void executeCommand()
       }
       break;
   
-    case CMD_SYS_SET_PROTECTION:
+    case CMD_SET_SYSPROTECT:
       // Команда: setprotection[password, protection]
       // Параметры: password - пароль, используемый для изменения свойств системы,
       //            protection - флаг установки защиты паролем: 1 - защита включена, любое иное - защита отменена, 
@@ -641,7 +708,7 @@ void executeCommand()
       }
       break;
    
-    case CMD_SYS_SET_NETWORK:
+    case CMD_SET_NETWORK:
       // Команда: setnetwork[password, useDHCP, macAddress, ipAddress, ipNetmask, ipGateway]
       // Параметры: password - пароль, используемый для изменения свойств системы,
       //            useDHCP - 1 enable, 0 - disable
@@ -706,7 +773,7 @@ void executeCommand()
       }
       break;
 
-    case CMD_SYS_GET_VCC:
+    case CMD_SYS_VCC:
       // Команда: sys.vcc
       // Параметры: не требуются
       // Результат: производится "замер" напряжения на входе VCC микроконтроллера, его значение в mV возвращается пользователю. 
@@ -717,18 +784,18 @@ void executeCommand()
       correctVCCMetrics(result);
        break;
   
-    case CMD_SYS_GET_VCCMIN:
+    case CMD_SYS_VCCMIN:
       // Команда: sys.minvcc
       // Параметры: не требуются
       // Результат: пользователю возвращается значение минимального значения напряжения в mV на входе VCC микроконтроллера с момента подачи питания.
-      result = sysMetrics[SYS_METRIC_IDX_VCCMIN];
+      result = sysMetrics[IDX_METRIC_SYS_VCCMIN];
        break;
   
-    case CMD_SYS_GET_VCCMAX:
+    case CMD_SYS_VCCMAX:
       // Команда: sys.maxvcc
       // Параметры: не требуются
       // Результат: пользователю возвращается значение максимального значения напряжения в mV на входе VCC микроконтроллера с момента подачи питания.
-      result = sysMetrics[SYS_METRIC_IDX_VCCMAX];
+      result = sysMetrics[IDX_METRIC_SYS_VCCMAX];
        break;
   
     case CMD_ARDUINO_DELAY:
@@ -878,24 +945,20 @@ void executeCommand()
       break;
 #endif // FEATURE_RANDOM_ENABLE
 
-#ifdef FEATURE_DS18X20_ENABLE
-    case CMD_DS18X20_SEARCH:
-      // Команда: DS18x20.Search[pin]
-      // Параметры: pin - цифровое обозначение пина, к которому подключен цифровой термометр DS18x20. 
-      // Результат: производится поиск первого цифрового термометра функцией OneWire.Search, его идентификатор в шестнадцатеричном виде возвращается пользователю. 
+
+#ifdef FEATURE_OW_ENABLE
+    case CMD_OW_SCAN:
+      // Команда: OW.Scan[pin]
+      // Параметры: pin - цифровое обозначение пина, к которому подключена шина 1-Wire. 
+      // Результат: производится поиск всех устройств 1-Wire, список их идентификаторов в шестнадцатеричном виде возвращается пользователю. 
       //            При отсутствии результатов поиска - возвращается '0';
       if (isSafePin(arg[0])) {
-          uint8_t dsAddr[8];
-          OneWire ow(arg[0]);
-          // Any DS-s found?
-          if (DS18X20GetFirstID(ow, dsAddr)){ 
-              // Move ID to buffer;
-              ptonhs(cBuffer, (uint8_t*) dsAddr, sizeof(dsAddr));
-              result = RESULT_IN_BUFFER;
-          }
+         result = oneWireScan(arg[0]);
       }
       break;
-  
+
+
+#ifdef FEATURE_DS18X20_ENABLE
     case CMD_DS18X20_TEMPERATURE:
       // Команда: DS18x20.Temperature[pin, resolution, id]
       // Параметры: pin - цифровое обозначение пина, к которому подключен цифровой термометр DS18x20. resolution - разрешение термометра 9..12бит,
@@ -910,8 +973,8 @@ void executeCommand()
          result = DS18X20Read(arg[0], arg[1], &cBuffer[argOffset[2]], cBuffer);
       }
       break;
-  
 #endif // FEATURE_DS18X20_ENABLE
+#endif // FEATURE_ONEWIRE_ENABLE
 
 #ifdef FEATURE_DHT_ENABLE
     case CMD_DHT_TEMPERATURE:
@@ -941,6 +1004,19 @@ void executeCommand()
       break;
 #endif // FEATURE_DHT_ENABLE
 
+#ifdef FEATURE_I2C_ENABLE
+    case CMD_I2C_SCAN:
+      // Команда: I2C.Scan[sdaPin, sclPin]
+      // Параметры: sdaPin, sclPin - цифровые обозначение пинов, к которым подключена шина I2C.
+      // Результат: производится поиск всех устройств на шине I2C, список ихадресов в шестнадцатеричном виде возвращается пользователю. 
+      //            При отсутствии результатов поиска - возвращается '0';
+      // Примечание: sdaPin, sclPin на данный момент не применяются (используются стандартные пины для I2C подключения) и зарезервированы для внедрения SoftTWI интерфейсов.
+      if (isSafePin(arg[0]) && isSafePin(arg[1])) {
+         // (int8_t) arg[2] is i2c address, 7 bytes size
+         result = i2CScan();
+      }
+      break;
+       
 #ifdef FEATURE_BMP085_ENABLE
     case CMD_BMP_TEMPERATURE:
       // Команда: BMP.Temperature[sdaPin, sclPin, i2cAddress]
@@ -951,7 +1027,7 @@ void executeCommand()
       //             sdaPin, sclPin на данный момент не применяются (используются стандартные пины для I2C подключения) и зарезервированы для внедрения SoftTWI интерфейсов.
       if (isSafePin(arg[0]) && isSafePin(arg[1])) {
          // (int8_t) arg[2] is i2c address, 7 bytes size
-         result = BMP085Read(arg[0], arg[1], (int8_t) arg[2], arg[3], SENS_READ_TEMP, cBuffer);
+         result = BMP085Read(arg[0], arg[1], arg[2], arg[3], SENS_READ_TEMP, cBuffer);
       }
       break;
   
@@ -964,13 +1040,12 @@ void executeCommand()
       // Результат: с цифрового датчика считывается величина атмосферного давления и значение в Паскалях возвращается пользователю.
       // Примечание: sdaPin, sclPin на данный момент не применяются (используются стандартные пины для I2C подключения) и зарезервированы для внедрения SoftTWI интерфейсов.
       if (isSafePin(arg[0]) && isSafePin(arg[1])) {
-         // (int8_t) arg[2] is i2c address, 7 bytes size
-         result = BMP085Read(arg[0], arg[1], (int8_t) arg[2], arg[3], SENS_READ_PRSS, cBuffer);
+          // (int8_t) arg[2] is i2c address, 7 bytes size
+         result = BMP085Read(arg[0], arg[1], arg[2], arg[3], SENS_READ_PRSS, cBuffer);
       }
       break;
   
 #endif // FEATURE_BMP085_ENABLE
-
 
 #ifdef FEATURE_BH1750_ENABLE
     case CMD_BH1750_LIGHT:
@@ -980,6 +1055,8 @@ void executeCommand()
       //            mode:  32 - (0x20) BH1750_ONE_TIME_HIGH_RES_MODE 
       //                   33 - (0x21) BH1750_ONE_TIME_HIGH_RES_MODE_2
       //                   35 - (0x23) BH1750_ONE_TIME_LOW_RES_MODE
+      // Рекомендация от производителя: применяйте измерение в режиме высокого разрешения, так как в этом режиме отсекаются помехи (включая шум на частоте 50Hz/60Hz).
+      // Режимы высокого разрешения могут быть применены для определения темноты (освещенность менее 10 Lx).
       // Примечание: sdaPin, sclPin на данный момент не применяются (используются стандартные пины для I2C подключения) и зарезервированы для внедрения SoftTWI интерфейсов.
       if (isSafePin(arg[0]) && isSafePin(arg[1])) {
          // (int8_t) arg[2] is i2c address, 7 bytes size
@@ -987,19 +1064,10 @@ void executeCommand()
       }
       break;
 #endif // FEATURE_BH1750_ENABLE
+#endif // FEATURE_I2C_ENABLE
 
-    case CMD_I2C_SCAN:
-      // Команда: I2C.Scan[sdaPin, sclPin]
-      // Параметры: sdaPin, sclPin - цифровые обозначение пинов, к которым подключена шина I2C.
-      // Примечание: sdaPin, sclPin на данный момент не применяются (используются стандартные пины для I2C подключения) и зарезервированы для внедрения SoftTWI интерфейсов.
-      if (isSafePin(arg[0]) && isSafePin(arg[1])) {
-      // (int8_t) arg[2] is i2c address, 7 bytes size
-         result = i2CScan();
-      }
-      break;
-       
 #ifdef FEATURE_EXTERNAL_INTERRUPT_ENABLE
-    case CMD_INTERRUPT_COUNT:
+    case CMD_EXTINT_COUNT:
       // Команда: interrupt.count[intPin, intNumber, mode]
       // Параметры: intPin - цифровые обозначение пинов, на которое назначено (или будет назначено) внешнее прерывание.
       //            intNumber - номер прерывания. Номера прерываний зависят от используемой платформы, обратитесь к ее описанию для уточнения.
@@ -1084,7 +1152,7 @@ void executeCommand()
       // В любом ином случае команда считается неопределенной.
       strcpy(cBuffer, ZBX_NOTSUPPORTED_MSG);
       // Прирощенный ранее счетчик сматывается
-      sysMetrics[SYS_METRIC_IDX_CMDCOUNT]--;
+      sysMetrics[IDX_METRIC_SYS_CMD_COUNT]--;
       result = RESULT_IN_BUFFER;
    }
 

@@ -15,8 +15,10 @@
 #define PIN_STATE_LED              	9
 // State LED must blink or just be turned on?
 #define ON_ALARM_STATE_BLINK            
-// Turn off state LED blink (no errors found)
+// Use more blinks to runtime stage indication
+//#define ADVANCED_BLINKING
 
+// Turn off state LED blink (no errors found)
 // State LED no blink type
 #define BLINK_NOPE                 	0
 // State LED blink type with DHCP problem reached (no renew lease or more)
@@ -29,6 +31,19 @@
                                                             NETWORK MODULE SECTION 
 */
 
+#define NET_DEFAULT_USE_DHCP        	false
+#define NET_DEFAULT_MAC_ADDRESS     	{0xDE,0xAD,0xBE,0xEF,0xFE,0xF5}
+
+#ifdef USE_NETWORK_192_168_0_1
+  #define NET_DEFAULT_IP_ADDRESS      	{192,168,0,228}
+  #define NET_DEFAULT_GATEWAY         	{192,168,0,1}
+#else
+  #define NET_DEFAULT_IP_ADDRESS      	{172,16,100,228}
+  #define NET_DEFAULT_GATEWAY         	{172,16,100,254}
+#endif
+
+#define NET_DEFAULT_NETMASK         	{255,255,255,0}
+
 // How often do ENC28J60 module reinit for more stable network
 #define NET_ENC28J60_REINIT_PERIOD  	10000UL  // 10 sec
 // Network activity timeout (for which no packets processed or no DHCP lease renews finished with success)
@@ -39,29 +54,18 @@
 #define NET_STABILIZATION_DELAY     	100L     // 0.1 sec
 
 #ifdef ethernet_h
-#define NET_MODULE_NAME         	"WizNet 5xxx"
+#define NET_MODULE_NAME         	"W5xxx"
 #elif defined UIPETHERNET_H
-#define NET_MODULE_NAME         	"Microchip ENC28J60"
+#define NET_MODULE_NAME         	"ENC28J60"
 #endif
 
 /* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
                                                          SYSTEM CONFIGURATION SECTION 
 */
 
-#define SYS_DEFAULT_USE_DHCP        	false
-#define SYS_DEFAULT_MAC_ADDRESS     	{0xDE,0xAD,0xBE,0xEF,0xFE,0xF5}
-//#define SYS_DEFAULT_IP_ADDRESS      	{192,168,0,228}
-#define SYS_DEFAULT_IP_ADDRESS      	{172,16,100,228}
-#define SYS_DEFAULT_NETMASK         	{255,255,255,0}
-//#define SYS_DEFAULT_GATEWAY         	{192,168,0,1}
-#define SYS_DEFAULT_GATEWAY         	{172,16,100,254}
+#define SYS_DEFAULT_PROTECTION      	true
 // It's just number of "long int" type. Surprise!
 #define SYS_DEFAULT_PASSWORD        	0x000
-#define SYS_DEFAULT_PROTECTION      	true
-
-#define ZBX_AGENT_DEFAULT_HOSTNAME  	"zabbuino.local.net"
-// How much bytes will allocated to hostname store
-#define ZBX_AGENT_HOSTNAME_MAXLEN   	25
 
 // Digital pin which must shorted on the GND for HOLD_TIME_TO_FACTORY_RESET time to save default system setting into EEPROM
 #define PIN_FACTORY_RESET           	8 
@@ -75,179 +79,34 @@
 // WDTO_8S - not for all controllers (please reference to avr/wdt.h)
 #define WTD_TIMEOUT                   	WDTO_8S 
 
-#define SYS_METRICS_MAX            	3
-#define SYS_METRIC_IDX_CMDCOUNT        	0
-#define SYS_METRIC_IDX_VCCMIN         	1
-#define SYS_METRIC_IDX_VCCMAX         	2
 #define SYS_METRIC_RENEW_PERIOD        	1000L // 1 sec
-
-/* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
-                                                            COMMAND NAMES SECTION 
-*/
-// Increase this if add new command 
-#define CMD_MAX 0x25
-
-// Add command macro with new sequental number
-#define CMD_ZBX_AGENT_PING           	0x00
-#define CMD_ZBX_AGENT_HOSTNAME       	0x01
-#define CMD_ZBX_AGENT_VERSION        	0x02
-#define CMD_SYS_CMDCOUNT             	0x03
-#define CMD_SYS_CPUNAME              	0x04
-#define CMD_SYS_FREERAM              	0x05
-#define CMD_SYS_NETMODULE           	0x06
-#define CMD_SYS_GET_VCCMIN           	0x07
-#define CMD_SYS_GET_VCC              	0x08
-#define CMD_SYS_GET_VCCMAX           	0x09
-#define CMD_SYS_UPTIME               	0x0A
-#define CMD_SYS_PORTWRITE            	0x0B
-#define CMD_SYS_REBOOT               	0x0C
-#define CMD_SYS_SET_HOSTNAME         	0x0D
-#define CMD_SYS_SET_PASSWORD         	0x0E
-#define CMD_SYS_SET_PROTECTION       	0x0F
-#define CMD_SYS_SET_NETWORK          	0x10
-#define CMD_SYS_SHIFTOUT             	0x11
-#define CMD_ARDUINO_ANALOGREAD		0x12
-#define CMD_ARDUINO_ANALOGWRITE        	0x13
-#define CMD_ARDUINO_ANALOGREFERENCE    	0x14
-#define CMD_ARDUINO_DELAY              	0x15
-#define CMD_ARDUINO_DIGITALREAD        	0x16
-#define CMD_ARDUINO_DIGITALWRITE       	0x17
-#define CMD_ARDUINO_NOTONE           	0x18
-#define CMD_ARDUINO_TONE             	0x19
-#define CMD_ARDUINO_RANDOM           	0x1A
-#define CMD_ARDUINO_RANDOMSEED       	0x1B
-#define CMD_DS18X20_SEARCH           	0x1C
-#define CMD_DS18X20_TEMPERATURE      	0x1D
-#define CMD_DHT_HUMIDITY             	0x1E
-#define CMD_DHT_TEMPERATURE          	0x1F
-#define CMD_BMP_PRESSURE             	0x20
-#define CMD_BMP_TEMPERATURE          	0x21
-#define CMD_BH1750_LIGHT           	0x22
-#define CMD_I2C_SCAN            	0x23
-#define CMD_INTERRUPT_COUNT            	0x24
-
-// add new command as "const char command_<COMMAND_MACRO> PROGMEM". Only 'const' push string to PROGMEM. Tanx, Arduino.
-const char command_CMD_ZBX_AGENT_PING[] 		PROGMEM	= "agent.ping";
-const char command_CMD_ZBX_AGENT_HOSTNAME[] 		PROGMEM = "agent.hostname";
-const char command_CMD_ZBX_AGENT_VERSION[] 		PROGMEM = "agent.version";
-const char command_CMD_SYS_CMDCOUNT[] 			PROGMEM = "sys.cmdcount";
-const char command_CMD_SYS_CPUNAME[] 			PROGMEM = "sys.cpuname";
-const char command_CMD_SYS_FREERAM[] 			PROGMEM = "sys.freeram";
-const char command_CMD_SYS_NETMODULE[] 			PROGMEM = "sys.netmodule";
-const char command_CMD_SYS_GET_VCCMIN[] 		PROGMEM = "sys.vccmin";
-const char command_CMD_SYS_GET_VCC[] 			PROGMEM = "sys.vcc";
-const char command_CMD_SYS_GET_VCCMAX[] 		PROGMEM = "sys.vccmax";
-const char command_CMD_SYS_UPTIME[] 			PROGMEM = "sys.uptime";
-const char command_CMD_SYS_PORTWRITE[] 			PROGMEM = "portwrite";
-const char command_CMD_SYS_REBOOT[] 			PROGMEM = "reboot";              
-const char command_CMD_SYS_SET_HOSTNAME[] 		PROGMEM = "sethostname";
-const char command_CMD_SYS_SET_PASSWORD[] 		PROGMEM = "setpassword";        
-const char command_CMD_SYS_SET_PROTECTION[] 		PROGMEM = "setprotection";
-const char command_CMD_SYS_SET_NETWORK[] 		PROGMEM = "setnetwork";
-const char command_CMD_SYS_SHIFTOUT[] 			PROGMEM = "shiftout";            
-const char command_CMD_ARDUINO_ANALOGREAD[] 		PROGMEM = "analogread";
-const char command_CMD_ARDUINO_ANALOGWRITE[] 		PROGMEM = "analogwrite";         
-const char command_CMD_ARDUINO_ANALOGREFERENCE[] 	PROGMEM	= "analogreference";
-const char command_CMD_ARDUINO_DELAY[] 			PROGMEM = "delay";
-const char command_CMD_ARDUINO_DIGITALREAD[] 		PROGMEM = "digitalread"; 
-const char command_CMD_ARDUINO_DIGITALWRITE[] 		PROGMEM = "digitalwrite";
-const char command_CMD_ARDUINO_NOTONE[] 		PROGMEM = "notone";
-const char command_CMD_ARDUINO_TONE[] 			PROGMEM = "tone";
-const char command_CMD_ARDUINO_RANDOM[] 		PROGMEM = "random";
-const char command_CMD_ARDUINO_RANDOMSEED[] 		PROGMEM = "randomseed";
-const char command_CMD_DS18X20_SEARCH[] 		PROGMEM = "ds18x20.search";
-const char command_CMD_DS18X20_TEMPERATURE[] 		PROGMEM	= "ds18x20.temperature";
-const char command_CMD_DHT_HUMIDITY[] 			PROGMEM = "dht.humidity";
-const char command_CMD_DHT_TEMPERATURE[] 		PROGMEM = "dht.temperature";
-const char command_CMD_BMP_PRESSURE[] 			PROGMEM = "bmp.pressure";
-const char command_CMD_BMP_TEMPERATURE[] 		PROGMEM = "bmp.temperature";
-const char command_CMD_BH1750_LIGHT[] 			PROGMEM = "bh1750.light";
-const char command_CMD_I2C_SCAN[] 			PROGMEM = "i2c.scan";
-const char command_CMD_INTERRUPT_COUNT[] 		PROGMEM = "interrupt.count";
-
-// do not insert new command to any position without syncing indexes. Tanx, Arduino, for this method of string array pushing to PROGMEM
-const char* const commands[] PROGMEM = {
-  command_CMD_ZBX_AGENT_PING, 		
-  command_CMD_ZBX_AGENT_HOSTNAME,
-  command_CMD_ZBX_AGENT_VERSION, 		
-  command_CMD_SYS_CMDCOUNT, 			
-  command_CMD_SYS_CPUNAME, 			
-  command_CMD_SYS_FREERAM, 			
-  command_CMD_SYS_NETMODULE, 			
-  command_CMD_SYS_GET_VCCMIN, 		
-  command_CMD_SYS_GET_VCC, 			
-  command_CMD_SYS_GET_VCCMAX, 		
-  command_CMD_SYS_UPTIME, 			
-  command_CMD_SYS_PORTWRITE, 			
-  command_CMD_SYS_REBOOT, 			
-  command_CMD_SYS_SET_HOSTNAME, 		
-  command_CMD_SYS_SET_PASSWORD, 		
-  command_CMD_SYS_SET_PROTECTION, 		
-  command_CMD_SYS_SET_NETWORK, 		
-  command_CMD_SYS_SHIFTOUT, 			
-  command_CMD_ARDUINO_ANALOGREAD, 		
-  command_CMD_ARDUINO_ANALOGWRITE, 		
-  command_CMD_ARDUINO_ANALOGREFERENCE, 	
-  command_CMD_ARDUINO_DELAY, 			
-  command_CMD_ARDUINO_DIGITALREAD, 		
-  command_CMD_ARDUINO_DIGITALWRITE, 		
-  command_CMD_ARDUINO_NOTONE, 		
-  command_CMD_ARDUINO_TONE, 			
-  command_CMD_ARDUINO_RANDOM, 		
-  command_CMD_ARDUINO_RANDOMSEED, 		
-  command_CMD_DS18X20_SEARCH, 		
-  command_CMD_DS18X20_TEMPERATURE, 		
-  command_CMD_DHT_HUMIDITY, 			
-  command_CMD_DHT_TEMPERATURE, 		
-  command_CMD_BMP_PRESSURE, 			
-  command_CMD_BMP_TEMPERATURE, 		
-  command_CMD_BH1750_LIGHT, 			
-  command_CMD_I2C_SCAN, 			
-  command_CMD_INTERRUPT_COUNT
-};
-
-/* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
-                                                           VARIOUS DEFINES SECTION 
-*/
-
-#define EXTERNAL_INTERRUPTS_MAX        2
 
 // Number of expected arguments of the command
 #define ARGS_MAX                    	6
 // Size of buffer's argument part. All separators and delimiters must be taken into account
-#define BUFFER_ARGS_PART_SIZE         	50
+#define ARGS_PART_SIZE         	        50
 // Size of buffer's command part
-#define BUFFER_CMD_PART_SIZE          	25
+#define CMD_PART_SIZE          	        25
 // The total size of the buffer
-#define BUFFER_SIZE                   	BUFFER_CMD_PART_SIZE + BUFFER_ARGS_PART_SIZE
+#define BUFFER_SIZE                   	CMD_PART_SIZE + ARGS_PART_SIZE
 
-// Zabbix v2.x header prefix ('ZBXD\x01')
-#define ZBX_HEADER_PREFIX             	"zbxd\1"
-// sizeof() give wrong result -> 6
-#define ZBX_HEADER_PREFIX_LENGTH      	5
-// Zabbix v2.x header length
-#define ZBX_HEADER_LENGTH             	12
+/* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
+                                                          AGENT CONFIGURATION SECTION 
+*/
+
+#define ZBX_AGENT_DEFAULT_HOSTNAME  	"zabbuino.local.net"
+
+// How much bytes will be allocated to hostname store
+#define ZBX_AGENT_HOSTNAME_MAXLEN   	25
 
 #define ZBX_NOTSUPPORTED_MSG          	"ZBX_NOTSUPPORTED"
 
 #define ZBX_AGENT_VERISON             	"Zabbuino 1.0.0"
 
-#define SENS_READ_TEMP 			0x01
-#define SENS_READ_HUMD 			0x02
-#define SENS_READ_PRSS 			0x03
-#define SENS_READ_LUX                   0x04
 
-#define SENS_READ_RAW 			0xFF
-
-#define RESULT_IS_FAIL                	-0xFFAL
-#define RESULT_IS_OK                  	-0xFFBL
-#define RESULT_IN_BUFFER              	-0xFFCL
-#define RESULT_IS_PRINTED             	-0xFFDL
-
-// Error Codes
-#define DEVICE_DISCONNECTED_C         	-127
-#define DEVICE_DISCONNECTED_F         	-196.6
-#define DEVICE_DISCONNECTED_RAW       	-7040
+/* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
+                                                          I/O PORTS/PINS PRE-CONFIGURATION SECTION 
+*/
 
 // see below: const byte port_protect[PORTS_NUM] = {...}
 #if defined (ARDUINO_AVR_DUEMILANOVE) || defined (ARDUINO_AVR_MINI) || defined (ARDUINO_AVR_NANO) || defined (ARDUINO_AVR_NG) || defined (ARDUINO_AVR_PRO) || defined (ARDUINO_AVR_ETHERNET)
@@ -260,55 +119,6 @@ const char* const commands[] PROGMEM = {
 #define PORTS_NUM 5
 #define ARDUINO_AVR_DUEMILANOVE
 #endif
-
-
-/*
-ADC channels 
-
-     • Bits 3:0 – MUX[3:0]: Analog Channel Selection Bits
-       The value of these bits selects which analog inputs are connected to the ADC. See Table 24-4 for details. If
-       these bits are changed during a conversion, the change will not go in effect until this conversion is complete
-       (ADIF in ADCSRA is set).
-
-       Table 24-4. Input Channel Selections
-       MUX3..0  Single Ended Input
-       1110     1.1V (VBG)
-       1111     0V (GND)       - noise level measurement possible
-*/
-#define ANALOG_CHAN_VBG 		0xE // B1110
-#define ANALOG_CHAN_GND 		0xF // B1111
-
-#define DBG_PRINT_AS_MAC 		0x1
-#define DBG_PRINT_AS_IP  		0x2
-
-
-/* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
-                                                         PROGRAMM STRUCTURES SECTION 
-*/
-// Note: netconfig_t size must be no more ___uint8_t___ bytes, because readConfig()'s read cycle use uint8_t counter. 
-// Change the index's variable type if bigger size need
-typedef struct {
-  uint8_t useDHCP;         			// 1 byte
-  uint8_t macAddress[6];   			// 6 byte 
-  IPAddress ipAddress;     			// 6 byte (uint8_t[])
-  IPAddress ipNetmask;     			// 6 byte (uint8_t[])
-  IPAddress ipGateway;     			// 6 byte (uint8_t[])
-  char hostname[ZBX_AGENT_HOSTNAME_MAXLEN];  	// 255 - (1 + 6*4 + 4 + 1) = 225 bytes max
-  // #ifdef ... #elif ... #endif does not work with struct operator
-  uint32_t password;        			// 4 byte
-  uint8_t useProtection;    			// 1 byte
-} netconfig_t ;
-
-
-typedef struct {
-  uint32_t count;        			// 4 byte
-  // mode == -1 => Interrupt is not attached
-  int8_t mode;         			        // 1 byte 
-} extInterrupt_t ;
-
-/* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
-                                                         I/O PORTS SETTING SECTION 
-*/
 
 /*
   Защитные маски портов ввода/вывода.
@@ -474,3 +284,271 @@ D13 -^    ^- D8    <- pins   */
 #endif
 };
 #endif
+
+
+/* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
+                                                            COMMAND NAMES SECTION 
+*/
+// Increase this if add new command 
+#define CMD_MAX 0x27
+
+// Add command macro with new sequental number
+#define CMD_ZBX_AGENT_PING           	0x00
+#define CMD_ZBX_AGENT_HOSTNAME       	0x01
+#define CMD_ZBX_AGENT_VERSION        	0x02
+
+#define CMD_ARDUINO_ANALOGREAD		0x03
+#define CMD_ARDUINO_ANALOGWRITE        	0x04
+#define CMD_ARDUINO_ANALOGREFERENCE    	0x05
+#define CMD_ARDUINO_DELAY              	0x06
+#define CMD_ARDUINO_DIGITALREAD        	0x07
+#define CMD_ARDUINO_DIGITALWRITE       	0x08
+#define CMD_ARDUINO_NOTONE           	0x09
+#define CMD_ARDUINO_TONE             	0x0A
+#define CMD_ARDUINO_RANDOM           	0x0B
+#define CMD_ARDUINO_RANDOMSEED       	0x0C
+
+#define CMD_SET_HOSTNAME         	0x0D
+#define CMD_SET_PASSWORD         	0x0E
+#define CMD_SET_SYSPROTECT       	0x0F
+#define CMD_SET_NETWORK          	0x10
+
+#define CMD_SYS_PORTWRITE            	0x11
+#define CMD_SYS_SHIFTOUT             	0x12
+#define CMD_SYS_REBOOT               	0x13
+
+#define CMD_SYS_MCU_NAME              	0x14
+#define CMD_SYS_NET_MODULE           	0x15
+#define CMD_SYS_UPTIME               	0x16
+
+#define CMD_SYS_CMD_COUNT             	0x17
+#define CMD_SYS_CMD_TIMEMAX             0x18
+
+#define CMD_SYS_RAM_FREE              	0x19
+#define CMD_SYS_RAM_FREEMIN           	0x1A
+
+#define CMD_SYS_VCC              	0x1B
+#define CMD_SYS_VCCMIN           	0x1C
+#define CMD_SYS_VCCMAX           	0x1D
+
+#define CMD_EXTINT_COUNT            	0x1E
+
+#define CMD_OW_SCAN             	0x1F
+#define CMD_I2C_SCAN            	0x20
+
+#define CMD_DS18X20_TEMPERATURE      	0x21
+
+#define CMD_DHT_HUMIDITY             	0x22
+#define CMD_DHT_TEMPERATURE          	0x23
+
+#define CMD_BMP_PRESSURE             	0x24 
+#define CMD_BMP_TEMPERATURE          	0x25
+
+#define CMD_BH1750_LIGHT           	0x26
+
+// add new command as "const char command_<COMMAND_MACRO> PROGMEM". Only 'const' push string to PROGMEM. Tanx, Arduino.
+const char command_CMD_ZBX_AGENT_PING[] 		PROGMEM	= "agent.ping";
+const char command_CMD_ZBX_AGENT_HOSTNAME[] 		PROGMEM = "agent.hostname";
+const char command_CMD_ZBX_AGENT_VERSION[] 		PROGMEM = "agent.version";
+
+const char command_CMD_ARDUINO_ANALOGREAD[] 		PROGMEM = "analogread";
+const char command_CMD_ARDUINO_ANALOGWRITE[] 		PROGMEM = "analogwrite";         
+const char command_CMD_ARDUINO_ANALOGREFERENCE[] 	PROGMEM	= "analogreference";
+const char command_CMD_ARDUINO_DELAY[] 			PROGMEM = "delay";
+const char command_CMD_ARDUINO_DIGITALREAD[] 		PROGMEM = "digitalread"; 
+const char command_CMD_ARDUINO_DIGITALWRITE[] 		PROGMEM = "digitalwrite";
+const char command_CMD_ARDUINO_NOTONE[] 		PROGMEM = "notone";
+const char command_CMD_ARDUINO_TONE[] 			PROGMEM = "tone";
+const char command_CMD_ARDUINO_RANDOM[] 		PROGMEM = "random";
+const char command_CMD_ARDUINO_RANDOMSEED[] 		PROGMEM = "randomseed";
+
+const char command_CMD_SET_HOSTNAME[] 		        PROGMEM = "set.hostname";
+const char command_CMD_SET_PASSWORD[] 		        PROGMEM = "set.password";        
+const char command_CMD_SET_SYSPROTECT[] 		PROGMEM = "set.sysprotect";
+const char command_CMD_SET_NETWORK[] 		        PROGMEM = "set.network";
+
+const char command_CMD_SYS_PORTWRITE[] 			PROGMEM = "portwrite";
+const char command_CMD_SYS_SHIFTOUT[] 			PROGMEM = "shiftout";            
+const char command_CMD_SYS_REBOOT[] 			PROGMEM = "reboot";              
+
+const char command_CMD_SYS_MCU_NAME[] 			PROGMEM = "sys.mcu.name";
+const char command_CMD_SYS_NET_MODULE[] 		PROGMEM = "sys.net.module";
+const char command_CMD_SYS_UPTIME[] 			PROGMEM = "sys.uptime";
+
+const char command_CMD_SYS_CMD_COUNT[] 			PROGMEM = "sys.cmd.count";
+const char command_CMD_SYS_CMD_TIMEMAX[] 		PROGMEM = "sys.cmd.timemax";
+
+const char command_CMD_SYS_RAM_FREE[] 			PROGMEM = "sys.ram.free";
+const char command_CMD_SYS_RAM_FREEMIN[] 		PROGMEM = "sys.ram.freemin";
+
+const char command_CMD_SYS_VCC[] 			PROGMEM = "sys.vcc";
+const char command_CMD_SYS_VCCMIN[] 		        PROGMEM = "sys.vccmin";
+const char command_CMD_SYS_VCCMAX[] 		        PROGMEM = "sys.vccmax";
+
+const char command_CMD_EXTINT_COUNT[] 		        PROGMEM = "extint.count";
+
+const char command_CMD_OW_SCAN[]         		PROGMEM = "ow.scan";
+const char command_CMD_I2C_SCAN[] 			PROGMEM = "i2c.scan";
+
+const char command_CMD_DS18X20_TEMPERATURE[] 		PROGMEM	= "ds18x20.temperature";
+
+const char command_CMD_DHT_HUMIDITY[] 			PROGMEM = "dht.humidity";
+const char command_CMD_DHT_TEMPERATURE[] 		PROGMEM = "dht.temperature";
+
+const char command_CMD_BMP_PRESSURE[] 			PROGMEM = "bmp.pressure";
+const char command_CMD_BMP_TEMPERATURE[] 		PROGMEM = "bmp.temperature";
+
+const char command_CMD_BH1750_LIGHT[] 			PROGMEM = "bh1750.light";
+
+// do not insert new command to any position without syncing indexes. Tanx, Arduino, for this method of string array pushing to PROGMEM
+const char* const commands[] PROGMEM = {
+  command_CMD_ZBX_AGENT_PING, 		
+  command_CMD_ZBX_AGENT_HOSTNAME,
+  command_CMD_ZBX_AGENT_VERSION, 		
+
+  command_CMD_ARDUINO_ANALOGREAD, 		
+  command_CMD_ARDUINO_ANALOGWRITE, 		
+  command_CMD_ARDUINO_ANALOGREFERENCE, 	
+  command_CMD_ARDUINO_DELAY, 			
+  command_CMD_ARDUINO_DIGITALREAD, 		
+  command_CMD_ARDUINO_DIGITALWRITE, 		
+  command_CMD_ARDUINO_NOTONE, 		
+  command_CMD_ARDUINO_TONE, 			
+  command_CMD_ARDUINO_RANDOM, 		
+  command_CMD_ARDUINO_RANDOMSEED, 		
+
+  command_CMD_SET_HOSTNAME, 		
+  command_CMD_SET_PASSWORD, 		
+  command_CMD_SET_SYSPROTECT, 		
+  command_CMD_SET_NETWORK, 		
+
+  command_CMD_SYS_PORTWRITE, 			
+  command_CMD_SYS_SHIFTOUT, 			
+  command_CMD_SYS_REBOOT, 			
+
+  command_CMD_SYS_MCU_NAME, 			
+  command_CMD_SYS_NET_MODULE, 			
+  command_CMD_SYS_UPTIME, 			
+
+  command_CMD_SYS_CMD_COUNT, 			
+  command_CMD_SYS_CMD_TIMEMAX,
+  
+  command_CMD_SYS_RAM_FREE, 			
+  command_CMD_SYS_RAM_FREEMIN, 			
+  
+  command_CMD_SYS_VCC, 			
+  command_CMD_SYS_VCCMIN, 		
+  command_CMD_SYS_VCCMAX, 		
+
+  command_CMD_EXTINT_COUNT,
+
+  command_CMD_OW_SCAN,
+  command_CMD_I2C_SCAN,
+
+  command_CMD_DS18X20_TEMPERATURE, 		
+
+  command_CMD_DHT_HUMIDITY,
+  command_CMD_DHT_TEMPERATURE,
+
+  command_CMD_BMP_PRESSURE,
+  command_CMD_BMP_TEMPERATURE,
+
+  command_CMD_BH1750_LIGHT
+};
+/*
+/* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
+                                                           VARIOUS DEFINES SECTION 
+*/
+
+#define IDX_METRICS_MAX            	6
+#define IDX_METRICS_FIRST_CRONNED       2
+
+#define IDX_METRIC_SYS_CMD_COUNT       	0
+#define IDX_METRIC_SYS_CMD_TIMEMAX      1
+
+#define IDX_METRIC_SYS_VCCMIN         	2
+#define IDX_METRIC_SYS_VCCMAX         	3
+#define IDX_METRIC_SYS_RAM_FREE        	4
+#define IDX_METRIC_SYS_RAM_FREEMIN      5
+
+// Zabbix v2.x header prefix ('ZBXD\x01')
+#define ZBX_HEADER_PREFIX             	"zbxd\1"
+// sizeof() give wrong result -> 6
+#define ZBX_HEADER_PREFIX_LENGTH      	5
+// Zabbix v2.x header length
+#define ZBX_HEADER_LENGTH             	12
+
+#define SENS_READ_TEMP 			0x01
+#define SENS_READ_HUMD 			0x02
+#define SENS_READ_PRSS 			0x03
+#define SENS_READ_LUX                   0x04
+
+#define SENS_READ_RAW 			0xFF
+
+#define RESULT_IS_FAIL                	-0xFFAL
+#define RESULT_IS_OK                  	-0xFFBL
+#define RESULT_IN_BUFFER              	-0xFFCL
+#define RESULT_IS_PRINTED             	-0xFFDL
+
+// Error Codes
+#define DEVICE_DISCONNECTED_C         	-127
+#define DEVICE_DISCONNECTED_F         	-196.6
+#define DEVICE_DISCONNECTED_RAW       	-7040
+
+/*
+ADC channels 
+
+     • Bits 3:0 – MUX[3:0]: Analog Channel Selection Bits
+       The value of these bits selects which analog inputs are connected to the ADC. See Table 24-4 for details. If
+       these bits are changed during a conversion, the change will not go in effect until this conversion is complete
+       (ADIF in ADCSRA is set).
+
+       Table 24-4. Input Channel Selections
+       MUX3..0  Single Ended Input
+       1110     1.1V (VBG)
+       1111     0V (GND)       - noise level measurement possible
+*/
+#define ANALOG_CHAN_VBG 		0xE // B1110
+#define ANALOG_CHAN_GND 		0xF // B1111
+
+#define DBG_PRINT_AS_MAC 		0x1
+#define DBG_PRINT_AS_IP  		0x2
+
+
+/* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
+                                                         PROGRAMM STRUCTURES SECTION 
+*/
+// Note: netconfig_t size must be no more ___uint8_t___ bytes, because readConfig()'s read cycle use uint8_t counter. 
+// Change the index's variable type if bigger size need
+typedef struct {
+  uint8_t useDHCP;         			// 1 byte
+  uint8_t macAddress[6];   			// 6 byte 
+  IPAddress ipAddress;     			// 6 byte (uint8_t[])
+  IPAddress ipNetmask;     			// 6 byte (uint8_t[])
+  IPAddress ipGateway;     			// 6 byte (uint8_t[])
+  char hostname[ZBX_AGENT_HOSTNAME_MAXLEN];  	// 255 - (1 + 6*4 + 4 + 1) = 225 bytes max
+  // #ifdef ... #elif ... #endif does not work with struct operator
+  uint32_t password;        			// 4 byte
+  uint8_t useProtection;    			// 1 byte
+} netconfig_t ;
+
+
+typedef struct {
+  uint32_t count;        			// 4 byte
+  // mode == -1 => Interrupt is not attached
+  int8_t mode;         			        // 1 byte 
+} extInterrupt_t ;
+
+/* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
+                                                         INLINE FUNCTIONS SECTION 
+*/
+
+// HEX char to number
+#define htod(_hex) ( (_hex >= 'a' && _hex <= 'f') ? (10 + _hex - 'a') : ( (_hex >= '0' && _hex <= '9') ? (_hex - '0') : 0)) 
+
+// Convert dec number to hex char
+#define dtoh(_dec) ( (_dec > 9) ? ('A' - 10 + _dec) : ('0' + _dec) )
+
+// if _source have hex prefix - return true
+#define haveHexPrefix(_source) ( (_source[0] == '0' && _source[1] == 'x') )
+

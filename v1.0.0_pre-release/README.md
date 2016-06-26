@@ -1,5 +1,39 @@
 # Zabbuino 1.0.0 (pre-release)
 
+####26 Jun 2016
+
+At first words: command names is not case sensitive, you can write them in your own style (_SyS.CmDCouNT_, for example).
+
+Fixes:
+- _BMP.Pressure[]_ command can be hang up system. 
+- "millis() overflow after 50 days runtime" case now is handled well. 
+
+Changes:
+- Some commands is reorganized to achieve a more structured: 
+  - _sys.CmdCount_ -> _sys.cmd.count_;
+  - _sys.CPUname_  -> _sys.MCU.name_;
+  - _sys.NetModule_ -> _sys.net.module_;
+  - _sys.FreeRAM_ -> _sys.RAM.free_;
+  - _interrupt.count_ -> _extInt.count_;
+  - _DS18x20.Search_ -> _OW.scan_;
+  - _sethostname_ -> _set.hostname_; 
+  - _setnetwork_ -> _set.network_; 
+  - _setpassword_ -> _set.password_; 
+  - _setprotection_ -> _set.sysprotect_
+- _OW.scan_ (was _DS18x20.Search_) now return list of Devices ID's (first found ID was returned early), which have been found on specified by _pin_ OneWire bus;
+- _sys.RAM.free_ now gather periodically (~ every 2 sec) like _sys.VCC[]_ metrics;
+
+New commands:
+- _sys.RAM.freeMin_ - minimal size of "RAM" (free space between the data area and stack: .DATA => | free RAM | <= .STACK ), registred since device is powered on. Gather at the same time with _sys.RAM.free_ metric;
+- _sys.cmd.timeMax_ - maximal time of command execution in _ms_. Exclude network library and Zabbix key parsing overheads.
+
+Improvements:
+- Now you can use more blinks to runtime stage (refer to source code, please) indication. Just uncomment _#define ADVANCED_BLINKING_ in _zabbuino.h_
+
+*Note* To avoid gaps on Zabbix graphs try to increase _Timeout_ directive in _zabbix_server.conf_. Try 10 sec for example. Or you can decrease number of Data Items. Choose one or both.
+
+So, you can import [zabbuino.xml](https://github.com/zbx-sadman/Zabbuino/tree/master/v1.0.0_pre-release/zabbuino.xml) to your Zabbix Server (v2.4 min) to see Data Items examples.
+
 ####17 Jun 2016
 
 Changes:
@@ -7,15 +41,14 @@ Changes:
 - Code reorganized;
 
 New command:
-- _interrupt.count[intPin, intNumber, mode]_. This command allow to get unsigned long counter, that was increased by external interrupt. It's can be used in DYI anemometer projects, for example. On first (after power on) call of _interrupt.count_ command _intPin_ will be switched to INPUT_PULLUP mode and attached to interrupt. On next call number of RISING/FALLING/CHANGE/LOW events will be returned. If _mode_ is changed for _intPin_, that already used by interrupt - counter will be reset and interrupt will be reattached on new _mode_;
+- _interrupt.count[intPin, intNumber, mode]_. This command allow to get unsigned long counter, that was increased by external interrupt. It's can be used in DYI anemometer projects, for example. On first (after power on) call of _interrupt.count_ command _intPin_ will be switched to INPUT_PULLUP mode and attached to interrupt. On next call number of rising/failing/changing will be returned. If _mode_ is changed for _intPin_, that already used by interrupt - counter will be reset and interrupt will be reattached on new _mode_;
   - _intPin_ - which pin used to interrupt catching. For ATMega328p this can be 2 or 3 (refer to https://www.arduino.cc/en/Reference/AttachInterrupt );
   - _intNumber_ - not used at this time, reserved for future;
   - _mode_ - defines when the interrupt should be triggered. Four constants are predefined as valid values: 0 - LOW, 1 - CHANGE, 2 - FALLING, 3 - RISING
 
 I'm not sure that _interrupt.count_ will be run stable and properly, due not test it in production, but i hope for it.
 
-**Note** You can see unexpected growing of _interrupt.count_ value. It's can be 'button bounce' or 'bad electrical contact' problem.
-**Note** Name of _interrupt.count_ can be changed before Zabbuino releasing.
+**Note** You can get unexpected growing of _interrupt.count_ value. It's can be 'button bounce' or 'bad electrical contact' problem.
 
 
 ####15 Jun 2016
@@ -40,7 +73,7 @@ New commands:
 
 Seems that no dirty hacks with ENC28J60 need. UIPEthernet library have https://github.com/ntruchsess/arduino_uip/tree/fix_errata12 brahch. Its newer that _master_-branch and fix some freezes (may be all?).
 
-Fixed:
+Fixes:
 - _analogRead[]_ command work was blocked by measureVoltage procedure.
 
 New commands:

@@ -1,3 +1,9 @@
+/* ****************************************************************************************************************************
+*
+*   Save config structure to EEPROM
+*
+**************************************************************************************************************************** */
+
 uint8_t saveConfig(netconfig_t* _configStruct)
 {
   uint8_t index, calculatedCRC, *p_configStruct = (uint8_t*) _configStruct;
@@ -11,6 +17,12 @@ uint8_t saveConfig(netconfig_t* _configStruct)
   // Store its to EEPROM at next position
   EEPROM[index+1]=calculatedCRC;
 }
+
+/* ****************************************************************************************************************************
+*
+*   Read config structure from EEPROM
+*
+**************************************************************************************************************************** */
 
 uint8_t loadConfig(netconfig_t* _configStruct)
 {

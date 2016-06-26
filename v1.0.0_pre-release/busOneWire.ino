@@ -7,7 +7,6 @@ int32_t DS18X20Discovery(uint8_t _pin)
 {
   uint8_t i, dsAddr[8],;
 
-  // Создание нового объекта OneWire
   OneWire ow(_pin);
   ethClient.print("{\"data\":[");
 
@@ -25,11 +24,29 @@ int32_t DS18X20Discovery(uint8_t _pin)
 }
 */
 
-uint8_t DS18X20GetFirstID(OneWire _ow, uint8_t *_addr)
+
+/* ****************************************************************************************************************************
+*
+*   Scan 1-Wire bus and print to ethernet client all detected ID's (Addresses)
+*
+**************************************************************************************************************************** */
+int32_t oneWireScan(uint8_t _pin)
 {
-    _ow.reset_search();
-    _ow.reset();
-    return _ow.search(_addr);
+   uint8_t dsAddr[8], numDevices = 0, i;
+   OneWire ow(_pin);
+   ow.reset_search();
+   delay(250);
+   ow.reset();
+   while (ow.search(dsAddr)) {
+     numDevices++;
+     ethClient.print("0x");
+     for (i = 0; i < sizeof(dsAddr); i++ ) {
+       if (dsAddr[i] < 0x0F){ ethClient.print("0"); }
+       ethClient.print(dsAddr[i], HEX);
+     }
+     ethClient.println();
+   }
+   return ((0 < numDevices)  ? RESULT_IS_PRINTED : RESULT_IS_FAIL);
 }
 
 
@@ -91,17 +108,19 @@ int32_t DS18X20Read(uint8_t _pin, uint8_t _resolution, char* _id, char* _outBuff
 
   OneWire ow(_pin);
 
-  // Convert sensor ID (if its given) from HEX string to byte array (DeviceAddress structure). 
-  // Sensor ID is equal DeviceAddress.
-  if ('\0' != _id[0] && haveHexPrefix(_id)) {
-    _id+=2;
-    for (i = 0; i < 8; i++) {
-      dsAddr[i] = htod(*_id++) << 4;
-      dsAddr[i] += htod(*_id++);
-    }
+  if ('\0' == _id[0]) {
+     // If ID not valid - search any sensor on OneWire bus and use its. Or return error when no devices found.    
+     ow.reset_search();
+     if (!ow.search(dsAddr)) {return DEVICE_DISCONNECTED_C;}
   } else {
-    // If ID not valid - search any sensor on OneWire bus and use its. Or return error when no devices found.    
-    if (!DS18X20GetFirstID(ow, dsAddr)) {return DEVICE_DISCONNECTED_C;};
+     if (!haveHexPrefix(_id)) {return DEVICE_DISCONNECTED_C;}
+     // Convert sensor ID (if its given) from HEX string to byte array (DeviceAddress structure). 
+     // Sensor ID is equal DeviceAddress.
+     _id+=2;
+     for (i = 0; i < 8; i++) {
+        dsAddr[i] = htod(*_id) << 4; _id++;
+        dsAddr[i] += htod(*_id); _id++;
+     }
   }
 
   // Validate sensor. Model id saved in first byte of DeviceAddress (sensor ID).
@@ -169,32 +188,31 @@ int32_t DS18X20Read(uint8_t _pin, uint8_t _resolution, char* _id, char* _outBuff
   ow.reset();
   ow.select(dsAddr);
   ow.write(STARTCONVO, 1);         // start conversion, with parasite power on at the end
-  // Время ожидания окончания конвертации зависит от выбранного разрешения
+  // Wait to end conversion
   delay(conversionTimeout);
 
-  // Чтение ScratchPad термометра с целью получения показаний температуры
-  // В случае неудачного чтения (несовпадение контрольного кода пакета) - выход из подпрограммы
+  // Read data from DS's ScratchPad or return 'Error' on failure
   if (!DS18X20ReadScratchPad(ow, dsAddr, scratchPad))
     return DEVICE_DISCONNECTED_C;
 
-  // Вычисление температуры
-  //...
-  tRaw = (((int16_t)scratchPad[TEMP_MSB]) << 8) | scratchPad[TEMP_LSB];
+  // Temperature calculation
+  tRaw = (((int16_t) scratchPad[TEMP_MSB]) << 8) | scratchPad[TEMP_LSB];
 
-  // Коррекция полученного с трмометра значения в зависимости от модели термометра.
+  // For some DS's models temperature value must be corrected additional 
   if (DS18S20MODEL == dsAddr[0])
   {
-    // DS18S20 и DS1820 имеют разрешение 9 бит, незначащие биты можно сбросить
+    // DS18S20 & DS1820 have no more 9 bit resolution, higher bits can be dropped
     tRaw = tRaw << 3;
-    // В регистре COUNT_PER_C термометра DS18S20 жестко прошито значение 0x10. Ориентировка на него.
+    // DS18S20 have 0x10 in COUNT_PER_C register. Test its for DS18S20 detecting.
     if (scratchPad[COUNT_PER_C] == 0x10) {
-      // Довычисление значения tRaw до 12-битного разрешения  производится через доп. регистры
+      // Additional bits will be used in temperature calculation with 12-bit resolution
+      // if (TEMP_12_BIT == _resolution) ???
       tRaw = (tRaw & 0xFFF0) + 12 - scratchPad[COUNT_REMAIN];
     }
   }
   else
   {
-    // Сброс незначащих ("мусорных") битов в температуре для DS18B20 в зависимости от разрешения термометра
+    // Drop unused (noise) bits for DS18B20
     switch (scratchPad[CONFIGURATION])
     {
       case TEMP_9_BIT:
@@ -212,20 +230,18 @@ int32_t DS18X20Read(uint8_t _pin, uint8_t _resolution, char* _id, char* _outBuff
     }
   }
 
-  //  ethClient.print("tRaw: "); ethClient.println(tRaw);
-  // Проверка бита знака (бит 15). Если он установлен, температура отрицательна
+  // Negative value of temperature testing
   // if (signBit) ...
   signBit = false;
   if (tRaw & 0x8000)
   {
     signBit = true;
-    // Необходима небольшая магия для последующего правильно вычисления температуры
-    // См. DS18B20's datasheet,  Table 1. Temperature/Data Relationship
+    // Some magic passes are need to get correct temperature value
+    // Refer to DS18B20's datasheet,  Table 1. Temperature/Data Relationship
     tRaw = (tRaw ^ 0xffff) + 1; // 2's comp
-    //    strcat(tStr, "-");
   }
 
-  // Полученное значение должно быть умножено на 0.0625 (1/16 C)
+  // Do 'unfloat' procedure for using number with my ltoaf() subroutine: multiply temp to 0.0625 (1/16 C)
   tRaw *= 100;
   tRaw = ((tRaw * 6) + (tRaw / 4));
 

@@ -3,10 +3,10 @@
 *  Return "Free" memory size
 *
 **************************************************************************************************************************** */
-int16_t freeRam(void) {
+uint32_t ramFree(void) {
   extern uint16_t __heap_start, *__brkval;
   uint16_t v;
-  return (uint16_t) &v - (__brkval == 0 ? (uint16_t) &__heap_start : (uint16_t) __brkval);
+  return (uint32_t) &v - (__brkval == 0 ? (uint32_t) &__heap_start : (uint32_t) __brkval);
 }
 
 
