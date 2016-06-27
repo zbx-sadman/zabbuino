@@ -7,6 +7,10 @@ New command:
 
 For example - you can use _MAX7219.write[]_ to indicate via Zabbix Action (Operation type: Remote command && Execute on: Zabbix Server && a little shell script) your's Zabbix server mood - a smiling or sad. Also, with using Zabbix API yo can get number of triggers with various severety and draw a hystogram. Or send mystic sign to display in the remote VPN'ed office. Or do something more fun.
 
+Example scripts: 
+- [send smiled robot's face if no active triggers exist and sad robot's face if any trigger active](https://github.com/zbx-sadman/Zabbuino/tree/master/v1.0.0_pre-release/examples/smileWithZabbuino.sh)
+- [draw hystogram that represent on led matrix the number of active triggers](https://github.com/zbx-sadman/Zabbuino/tree/master/v1.0.0_pre-release/examples/sendHystogrammToZabbuino.pl)
+
 
 ####26 Jun 2016
 
