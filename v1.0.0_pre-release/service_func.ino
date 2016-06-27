@@ -1,5 +1,36 @@
 /* ****************************************************************************************************************************
 *
+*   Set default values of network configuration
+*
+**************************************************************************************************************************** */
+void setDefaults(netconfig_t& _configStruct)
+{
+  char hostname[] = ZBX_AGENT_DEFAULT_HOSTNAME;  
+  //  memcpy(_configStruct.hostname, hostname, ZBX_AGENT_HOSTNAME_MAXLEN-1);
+  //_configStruct.hostname[ZBX_AGENT_HOSTNAME_MAXLEN]='\0';
+  sethostname(_configStruct.hostname, hostname);
+  uint8_t mac[] = NET_DEFAULT_MAC_ADDRESS;
+  memcpy(_configStruct.macAddress, mac, sizeof(netConfig.macAddress));
+  _configStruct.useDHCP = NET_DEFAULT_USE_DHCP;
+  _configStruct.ipAddress = IPAddress(NET_DEFAULT_IP_ADDRESS);
+  _configStruct.ipNetmask = IPAddress(NET_DEFAULT_NETMASK);
+  _configStruct.ipGateway = IPAddress(NET_DEFAULT_GATEWAY);
+//#ifdef PASSWORD_PROTECTION_FEATURE_ENABLE
+  _configStruct.password = SYS_DEFAULT_PASSWORD;
+  _configStruct.useProtection = SYS_DEFAULT_PROTECTION;
+//#endif
+}
+
+
+void sethostname(char* _dest, const char* _src){
+   strncpy(_dest, _src, ZBX_AGENT_HOSTNAME_MAXLEN-1);
+   _dest[ZBX_AGENT_HOSTNAME_MAXLEN]='\0';
+//   return _dest;
+
+}
+
+/* ****************************************************************************************************************************
+*
 *   Convert int32_t _number to char[]  with decimal point on _num_after_dot position 
 *   _number / (10 * _num_after_dot position) => char[]
 *
@@ -53,90 +84,6 @@ void ltoaf(int32_t _number, char* _dst, uint8_t _num_after_dot)
   }
   *_dst = '\0';
 }
-
-/* ****************************************************************************************************************************
-*
-*   Gathering internal metrics and save its to global array
-*
-**************************************************************************************************************************** */
-void gatherMetrics(){
-  // = IDX_METRICS_FIRST_CRONNED to skip "gathering" uncronned metric (IDX_METRIC_SYS_CMD_COUNT and so) 
-  static uint8_t metricIdx = IDX_METRICS_FIRST_CRONNED;
-  // Gather only one metric at once to leave CPU time to other important procedures
-
-#ifdef FEATURE_DEBUG_COMMANDS_ENABLE
-  switch (metricIdx) {
-    case IDX_METRIC_SYS_VCCMIN:
-    case IDX_METRIC_SYS_VCCMAX:
-      correctVCCMetrics(MeasureVoltage(ANALOG_CHAN_VBG));
-      metricIdx++; // Two metrics taken at once  
-      break;
-    case IDX_METRIC_SYS_RAM_FREE:
-    case IDX_METRIC_SYS_RAM_FREEMIN:
-      sysMetrics[IDX_METRIC_SYS_RAM_FREE] = (int32_t) ramFree(); 
-      correctMemoryMetrics(sysMetrics[IDX_METRIC_SYS_RAM_FREE]);
-      metricIdx++; // Two metrics taken at once  
-      break;
-    default:
-      ;
-  }
-  metricIdx++;
-  // = 1 to skip "gathering" IDX_METRIC_SYS_CMD_COUNT 
-  if (IDX_METRICS_MAX <= metricIdx) { metricIdx = IDX_METRICS_FIRST_CRONNED; }
-#endif
-}
-
-/* ****************************************************************************************************************************
-*
-*   Correct minmem metric when FreeMem just taken
-*
-**************************************************************************************************************************** */
-void correctMemoryMetrics(uint32_t _currMemFree) {
-  sysMetrics[IDX_METRIC_SYS_RAM_FREEMIN] = min(_currMemFree, sysMetrics[IDX_METRIC_SYS_RAM_FREEMIN]);
-}           
-      
-
-/* ****************************************************************************************************************************
-*
-*   Correct minvcc/maxvcc metrics when VCC just taken
-*
-**************************************************************************************************************************** */
-void correctVCCMetrics(uint32_t _currVCC) {
-  sysMetrics[IDX_METRIC_SYS_VCCMIN] = min(_currVCC, sysMetrics[IDX_METRIC_SYS_VCCMIN]);
-  sysMetrics[IDX_METRIC_SYS_VCCMAX] = max(_currVCC, sysMetrics[IDX_METRIC_SYS_VCCMAX]);
-}
-
-/* ****************************************************************************************************************************
-*
-*   Set default values of network configuration
-*
-**************************************************************************************************************************** */
-void setDefaults(netconfig_t& _configStruct)
-{
-  char hostname[] = ZBX_AGENT_DEFAULT_HOSTNAME;  
-  //  memcpy(_configStruct.hostname, hostname, ZBX_AGENT_HOSTNAME_MAXLEN-1);
-  //_configStruct.hostname[ZBX_AGENT_HOSTNAME_MAXLEN]='\0';
-  sethostname(_configStruct.hostname, hostname);
-  uint8_t mac[] = NET_DEFAULT_MAC_ADDRESS;
-  memcpy(_configStruct.macAddress, mac, sizeof(netConfig.macAddress));
-  _configStruct.useDHCP = NET_DEFAULT_USE_DHCP;
-  _configStruct.ipAddress = IPAddress(NET_DEFAULT_IP_ADDRESS);
-  _configStruct.ipNetmask = IPAddress(NET_DEFAULT_NETMASK);
-  _configStruct.ipGateway = IPAddress(NET_DEFAULT_GATEWAY);
-//#ifdef PASSWORD_PROTECTION_FEATURE_ENABLE
-  _configStruct.password = SYS_DEFAULT_PASSWORD;
-  _configStruct.useProtection = SYS_DEFAULT_PROTECTION;
-//#endif
-}
-
-
-void sethostname(char* _dest, const char* _src){
-   strncpy(_dest, _src, ZBX_AGENT_HOSTNAME_MAXLEN-1);
-   _dest[ZBX_AGENT_HOSTNAME_MAXLEN]='\0';
-//   return _dest;
-
-}
-
 
 /* ****************************************************************************************************************************
 *

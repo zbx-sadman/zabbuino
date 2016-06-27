@@ -9,8 +9,8 @@
     1. Comment #include <UIPEthernet.h>
     2. Uncomment #include <Ethernet.h> and <SPI.h> headers
 */
-//#include <Ethernet.h>
-//#include <SPI.h>
+#include <Ethernet.h>
+#include <SPI.h>
 
 /* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
                                                                 !!! ENC28J60 users !!!
@@ -34,7 +34,7 @@
              ...
     
 */
-#include <UIPEthernet.h>
+//#include <UIPEthernet.h>
 //#define USE_DIRTY_HACK_AND_REBOOT_ENC28J60_IF_ITS_SEEMS_FREEZE
 
 
@@ -91,13 +91,18 @@
 // Note #2: I2C library (Wire.h) activate internal pullups for SDA & SCL pins when Wire.begin() called
 
 // Uncomment to enable I2C functions
-#define FEATURE_I2C_ENABLE
+//#define FEATURE_I2C_ENABLE
 
 // Uncomment to enable BMP pressure sensors functions: BMP.*[] commands
-#define FEATURE_BMP085_ENABLE
+//#define FEATURE_BMP085_ENABLE
 
 // Uncomment to enable BH1750 light sensors functions: BH1750.*[] commands
 //#define FEATURE_BH1750_ENABLE
+
+/****        MicroWire bus       ****/
+
+// Uncomment to enable MAX7219 8x8 led matrix functions: MAX7219.*[] commands
+#define FEATURE_MAX7219_ENABLE
 
 /****    DHT/AM family    ****/
 
@@ -1049,7 +1054,7 @@ void executeCommand()
 
 #ifdef FEATURE_BH1750_ENABLE
     case CMD_BH1750_LIGHT:
-      // Команда: BH1750.lux[sdaPin, sclPin, i2cAddress, mode]
+      // Команда: BH1750.light[sdaPin, sclPin, i2cAddress, mode]
       // Параметры: sdaPin, sclPin - цифровые обозначение пинов, к которым подключена шина I2C.
       //            i2cAddress - адрес датчика на шине I2C (адрес по умолчанию: 0x23) 
       //            mode:  32 - (0x20) BH1750_ONE_TIME_HIGH_RES_MODE 
@@ -1065,6 +1070,44 @@ void executeCommand()
       break;
 #endif // FEATURE_BH1750_ENABLE
 #endif // FEATURE_I2C_ENABLE
+
+
+#ifdef FEATURE_MAX7219_ENABLE
+    case CMD_MAX7219_WRITE:
+      // Команда: MAX7219.write[dataPin, clockPin, loadPin, intensity, value]
+      // Параметры: dataPin, clockPin, loadPin - цифровое обозначения пинов вывода данных, синхронизации, загрузки.
+      //            intensity - яркость свечения элементов индикатора (0..15), value значение для вывода.
+      // Результат: устанавливается соответствующее параметру value состояние элементов индикатора, подключенного к МС MAX7219. 
+      //            Удачное выполнение команды влечет за собой возврат значения `1`, неудачное - значения '0'.
+      // Примечание: на текущий момент команда оптимизирована для применения со светодиодной матрицей 8x8, подключенной к МС MAX7219.
+      //            Команда не производит очистку не затронутых значением value элементов индикатора.
+      //            Параметр value должен быть задан в шестнадцатеричной форме (с префиксом 0x), его длина ограничена размером внутреннего буфера.
+      // Cтроки матрицы заполняются последовательно, используя значения из value (например: 0x6666001818817E00) следующим образом: 
+      //            Строка 1  =>  0x66  =>  B01100110  =>  - + + - - + + -
+      //            Строка 2  =>  0x66  =>  B01100110  =>  - + + - - + + - 
+      //            Строка 3  =>  0x00  =>  B00000000  =>  - - - - - - - -
+      //            Строка 4  =>  0x18  =>  B00011000  =>  - - - + + - - -
+      //            Строка 5  =>  0x18  =>  B00011000  =>  - - - + + - - -
+      //            Строка 6  =>  0x81  =>  B10000001  =>  + - - - - - - +
+      //            Строка 7  =>  0x7E  =>  B01111110  =>  - + + + + + + -
+      //            Строка 8  =>  0x00  =>  B00000000  =>  - - - - - - - -
+      // Состояние OUTPUT для пинов должно быть задано в коде скетча. Если пины защищены, вызова соотвествующих функций не происходит.
+      if (isSafePin(arg[0]) && isSafePin(arg[1])  && isSafePin(arg[2])) {
+         max7219DrawOn8x8(arg[0], arg[1], arg[2], arg[3], &cBuffer[argOffset[4]]);
+         result = RESULT_IS_OK;
+      }
+      break;
+#endif // FEATURE_MAX7219_ENABLE
+
+      // Команда: shiftOut[dataPin, clockPin, latchPin, bitOrder, value]
+      // Параметры: dataPin, clockPin, latchPin - цифровое обозначения пинов вывода данных, синхронизации, защелкивания.
+      //            bitOrder - последовательность вывода бит, value значение для вывода.
+      // Примечание: команда является расширением функции shiftOut().
+      //            Параметр value может быть задан как в десятичной и шестнадцатеричной форме (с префиксом 0x).
+      //            Длина числа в шестнадцатеричной форме ограничена размером внутреннего буфера.
+      // Состояние OUTPUT для пинов должно быть задано в коде скетча. Если пины защищены, вызова соотвествующих функций не происходит.
+      // Для защелкивания сдвигового регистра перед использованием команды shiftout значение пина latch должно быть определено.
+      // В противном случае защелкивания сдвигового регистра не производится.
 
 #ifdef FEATURE_EXTERNAL_INTERRUPT_ENABLE
     case CMD_EXTINT_COUNT:
@@ -1173,6 +1216,9 @@ void executeCommand()
       }
       //  Буфер отдается клиенту
       ethClient.println(cBuffer);
+#ifdef FEATURE_DEBUG_TO_SERIAL
+     SerialPrint_P(PSTR("Result: ")); Serial.println(cBuffer); Serial.println(); 
+#endif
    }
 }
 

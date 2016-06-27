@@ -1,5 +1,12 @@
 # Zabbuino 1.0.0 (pre-release)
 
+####27 Jun 2016
+
+New command:
+- _MAX7219.write[dataPin, clockPin, loadPin, intensity, value]_ - draw on 8x8 led matrix which connected to MAX7219. You can change _intensity_ (0..15) and send _value_ as HEX string to switch on leds in line. Every two HEX char specify one line leds state. For example - 0x6666001818817E00 draw smile.
+
+
+
 ####26 Jun 2016
 
 At first words: command names is not case sensitive, you can write them in your own style (_SyS.CmDCouNT_, for example).

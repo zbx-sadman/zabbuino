@@ -290,7 +290,7 @@ D13 -^    ^- D8    <- pins   */
                                                             COMMAND NAMES SECTION 
 */
 // Increase this if add new command 
-#define CMD_MAX 0x27
+#define CMD_MAX 0x28
 
 // Add command macro with new sequental number
 #define CMD_ZBX_AGENT_PING           	0x00
@@ -346,6 +346,8 @@ D13 -^    ^- D8    <- pins   */
 
 #define CMD_BH1750_LIGHT           	0x26
 
+#define CMD_MAX7219_WRITE               0x27
+
 // add new command as "const char command_<COMMAND_MACRO> PROGMEM". Only 'const' push string to PROGMEM. Tanx, Arduino.
 const char command_CMD_ZBX_AGENT_PING[] 		PROGMEM	= "agent.ping";
 const char command_CMD_ZBX_AGENT_HOSTNAME[] 		PROGMEM = "agent.hostname";
@@ -400,6 +402,8 @@ const char command_CMD_BMP_TEMPERATURE[] 		PROGMEM = "bmp.temperature";
 
 const char command_CMD_BH1750_LIGHT[] 			PROGMEM = "bh1750.light";
 
+const char command_CMD_MAX7219_WRITE[] 			PROGMEM = "max7219.write";
+
 // do not insert new command to any position without syncing indexes. Tanx, Arduino, for this method of string array pushing to PROGMEM
 const char* const commands[] PROGMEM = {
   command_CMD_ZBX_AGENT_PING, 		
@@ -453,7 +457,9 @@ const char* const commands[] PROGMEM = {
   command_CMD_BMP_PRESSURE,
   command_CMD_BMP_TEMPERATURE,
 
-  command_CMD_BH1750_LIGHT
+  command_CMD_BH1750_LIGHT,
+
+  command_CMD_MAX7219_WRITE
 };
 /*
 /* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
