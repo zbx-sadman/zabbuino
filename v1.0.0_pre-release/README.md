@@ -3,8 +3,9 @@
 ####27 Jun 2016
 
 New command:
-- _MAX7219.write[dataPin, clockPin, loadPin, intensity, value]_ - draw on 8x8 led matrix which connected to MAX7219. You can change _intensity_ (0..15) and send _value_ as HEX string to switch on leds in line. Every two HEX char specify one line leds state. For example - 0x6666001818817E00 draw smile.
+- _MAX7219.write[dataPin, clockPin, loadPin, intensity, value]_ - draw on 8x8 led matrix which connected to MAX7219. You can change _intensity_ (0..15) and send _value_ as HEX string to switch on leds in line. Every two HEX char specify one line leds state. For example - _0x6666001818817E00_ will draw smile.
 
+For example - you can use MAX7219.write[] to indicate via Zabbix Action (Operation type: Remote command && Execute on: Zabbix Server && a little shell script) your's Zabbix server mood - a smiling or sad. Also, with using Zabbix API yo can get triggers number with various severety and draw a hystogram. Or send mystic sign to display in the remote VPN'ed office. Or do something more fun.
 
 
 ####26 Jun 2016
