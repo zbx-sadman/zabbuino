@@ -1,5 +1,20 @@
 # Zabbuino 1.0.0 (pre-release)
 
+####30 Jun 2016
+
+Fixes:
+- _extInt.count_ always attached with LOW mode. Silly typo;
+- float numbers in return values had unnecessary zeros after the decimal point.
+
+Changes:
+- _analogReferenceSource_ optional parameter added to _analogRead_ command. Now, if _analogReferenceSource_ specified, Zabbuino set source of the reference voltage before read from analog pin;
+- _duration_ parameter in _tone_ command now optional. If its not specified - tone generation can be stopped only with _noTone_ command. May be its evil, don't know.
+- _value_ parameter in _randomSeed_ command now optional. If its not specified - the pseudo-random number generator is initializes by _millis()_;
+- _min_ parameter in _random_ command now optional. If only one parameter in command _random_ is specified - called Arduino's _random(max)_ to get next number;
+
+[Russian manual](https://github.com/zbx-sadman/Zabbuino/wiki/Zabbuino-in-Russian) is almost finished, [English manual](https://github.com/zbx-sadman/Zabbuino/wiki/Zabbuino-in-Russian) partially translated using Google translator.
+
+
 ####27 Jun 2016
 
 New command:

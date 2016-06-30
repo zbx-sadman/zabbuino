@@ -108,7 +108,7 @@
                                                           I/O PORTS/PINS PRE-CONFIGURATION SECTION 
 */
 
-// see below: const byte port_protect[PORTS_NUM] = {...}
+// see below: const uint8_t port_protect[PORTS_NUM] = {...}
 #if defined (ARDUINO_AVR_DUEMILANOVE) || defined (ARDUINO_AVR_MINI) || defined (ARDUINO_AVR_NANO) || defined (ARDUINO_AVR_NG) || defined (ARDUINO_AVR_PRO) || defined (ARDUINO_AVR_ETHERNET)
 #define PORTS_NUM 5
 #elif defined(ARDUINO_AVR_LEONARDO) || defined (ARDUINO_AVR_MICRO) || defined(ARDUINO_AVR_ROBOT_CONTROL) || defined(ARDUINO_AVR_ROBOT_MOTOR) || defined (ARDUINO_AVR_YUN)
@@ -134,13 +134,14 @@
   в строке "B..... // PORTB" в значение '1'.
 */
 
-const byte port_protect[PORTS_NUM] = {
+const uint8_t port_protect[PORTS_NUM] = {
 #if defined (ARDUINO_AVR_DUEMILANOVE) || defined (ARDUINO_AVR_MINI) || defined (ARDUINO_AVR_NANO) || defined (ARDUINO_AVR_NG) || defined (ARDUINO_AVR_PRO) || defined (ARDUINO_AVR_ETHERNET)
   B00000000, // not a port
   B00000000, // not a port
   // Pins D10, D11, D12, D13 is protected by setting 2, 3, 4, 5 bits, due its used to SPI (ethernet shield)
+  // Pin D9 is used by Timer1 and can't be used for PWM (analogWrite) when system metric was gathered on Timer1 interrupt
   // Bits 6, 7 have not correspondented pins in Arduino Mini Pro / Freeduino 2009
-  B11111100, /*     PORTB        
+  B11111110, /*     PORTB        
 D13 -^    ^- D8    <- pins   */
   B00000000, /*     PORTC 
    ^-A7   ^-A0   <- pins    */
@@ -191,7 +192,7 @@ D13 -^    ^- D8    <- pins   */
 */
 
 
-const byte port_mode[PORTS_NUM] = {
+const uint8_t port_mode[PORTS_NUM] = {
  
   // All bits equal '0' cause setting corresponding pin to INPUT mode
   // All bits equal '1' cause setting corresponding pin to OUTPUT mode
@@ -242,7 +243,7 @@ D13 -^    ^- D8    <- pins   */
   Вы можете изменять как сами маски, так и их количество. Однако, количество элементов данного массива должно соответствовать параметру PORTS_NUM.
   Вычисление битов, соотвующих пинам аналогично способам, применяемым в port_protect и port_mode.
 */
-const byte port_pullup[PORTS_NUM] = {
+const uint8_t port_pullup[PORTS_NUM] = {
 
   // All bits equal '0' cause do not pull-up corresponding pin
   // All bits equal '1' cause pull-up corresponding pin

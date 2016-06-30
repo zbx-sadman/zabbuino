@@ -56,6 +56,10 @@
 
         if connected sensors seems not work - first check setting in port_protect[], port_mode[], port_pullup[] arrays in I/O PORTS SETTING SECTION
 
+
+
+                                  Comment #define's below to save RAM and Flash and uncomment to enable some feature 
+
 */
 
 /****       Network      ****/
@@ -75,7 +79,12 @@
 //#define FEATURE_RANDOM_ENABLE
 
 // Uncomment to enable shiftOut[] command
-//#define FEATURE_SHIFTOUT_ENABLE
+#define FEATURE_SHIFTOUT_ENABLE
+
+/****    Other   ****/
+
+// Uncomment to enable external interrupts handling: interrupt.*[] commands
+#define FEATURE_EXTERNAL_INTERRUPT_ENABLE
 
 /****      1-Wire bus      ****/
 
@@ -91,10 +100,10 @@
 // Note #2: I2C library (Wire.h) activate internal pullups for SDA & SCL pins when Wire.begin() called
 
 // Uncomment to enable I2C functions
-//#define FEATURE_I2C_ENABLE
+#define FEATURE_I2C_ENABLE
 
 // Uncomment to enable BMP pressure sensors functions: BMP.*[] commands
-//#define FEATURE_BMP085_ENABLE
+#define FEATURE_BMP085_ENABLE
 
 // Uncomment to enable BH1750 light sensors functions: BH1750.*[] commands
 //#define FEATURE_BH1750_ENABLE
@@ -102,12 +111,14 @@
 /****        MicroWire bus       ****/
 
 // Uncomment to enable MAX7219 8x8 led matrix functions: MAX7219.*[] commands
-#define FEATURE_MAX7219_ENABLE
+//#define FEATURE_MAX7219_ENABLE
 
 /****    DHT/AM family    ****/
 
 // Uncomment to enable DHT/AM humidity sensors functions: DHT.*[] commands
-//#define FEATURE_DHT_ENABLE
+#define FEATURE_DHT_ENABLE
+
+
 
 
 /****      System        ****/
@@ -136,8 +147,6 @@
 // Uncomment to enable using time+interrupt for internal metric gathering
 #define GATHER_METRIC_USING_TIMER_INTERRUPT
 
-// Uncomment to enable external interrupts handling: interrupt.*[] commands
-//#define FEATURE_EXTERNAL_INTERRUPT_ENABLE
 
 /* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
                                                                  GLOBAL VARIABLES SECTION
@@ -210,6 +219,7 @@ void setup() {
        setDefaults(netConfig);
        saveConfig(&netConfig);
     }
+    digitalWrite(PIN_STATE_LED, LOW);
   } // if (LOW == digitalRead(PIN_FACTORY_RESET))
 
 /* -=-=-=-=-=-=-=-=-=-=-=-
@@ -275,7 +285,7 @@ void setup() {
   SerialPrint_P(PSTR("IP      : ")); Serial.println(Ethernet.localIP());
   SerialPrint_P(PSTR("Subnet  : ")); Serial.println(Ethernet.subnetMask());
   SerialPrint_P(PSTR("Gateway : ")); Serial.println(Ethernet.gatewayIP());
-  SerialPrint_P(PSTR("Password: ")); Serial.println(netConfig.password);
+  SerialPrint_P(PSTR("Password: ")); Serial.println(netConfig.password, DEC);
   // Block is compiled if UIPethernet.h is included
 #ifdef UIPETHERNET_H
   SerialPrint_P(PSTR("ENC28J60: rev ")); Serial.println(Enc28J60.getrev());
@@ -357,14 +367,15 @@ void loop() {
 
 #ifdef FEATURE_NET_DHCP_ENABLE
     // DHCP used in this session and time to renew lease?
-    if (true == netConfig.useDHCP && (NET_DHCP_RENEW_PERIOD <= (uint32_t) (nowTime - prevDHCPRenewTime))) {
+      // how many overhead give Ethernet.maintain() ?
+//    if (true == netConfig.useDHCP && (NET_DHCP_RENEW_PERIOD <= (uint32_t) (nowTime - prevDHCPRenewTime))) {
        // Ethernet library's manual say that Ethernet.maintain() can be called every loop for DHCP renew, but i won't do this so often
        errorCode = Ethernet.maintain();
        // Renew procedure finished with success
        if (DHCP_CHECK_RENEW_OK == errorCode || DHCP_CHECK_REBIND_OK  == errorCode) { 
           // No alarm blink  need, network activity registred, renewal period restarted
           blinkType = (uint8_t) BLINK_NOPE;
-          prevDHCPRenewTime = prevNetProblemTime = nowTime;
+//          prevDHCPRenewTime = prevNetProblemTime = nowTime;
        } else {
           // Got some errors - blink with "DHCP problem message"
           blinkType = (uint8_t) BLINK_DHCP_PROBLEM;
@@ -372,7 +383,7 @@ void loop() {
 //            SerialPrintln_P(PSTR("DHCP renew problem occured"));
 #endif 
        }
-    }
+//    }
 #endif // FEATURE_NET_DHCP_ENABLE
 
     // No DHCP problem found but no data recieved or network activity for a long time
@@ -588,7 +599,6 @@ void executeCommand()
       // Команда: agent.hostname
       // Параметры: не требуются
       // Результат: возвращается имя узла
-      // strcpy_P(cBuffer, PSTR(ZBX_HOSTNAME));
       strcpy(cBuffer, netConfig.hostname);
       result = RESULT_IN_BUFFER;
       break;
@@ -601,57 +611,59 @@ void executeCommand()
       result = RESULT_IN_BUFFER;
       break;
 
-#ifdef FEATURE_DEBUG_COMMANDS_ENABLE
 
     case CMD_SYS_UPTIME:
-      // Команда: agent.uptime
+      // Команда: sys.uptime
       // Параметры: не требуются
-      // Результат: возвращается количество секунд, прошедших с момента включения
+      // Результат: возвращается количество секунд, прошедших с момента включения устройства
       result = millis() / 1000;
       break;
    
+#ifdef FEATURE_DEBUG_COMMANDS_ENABLE
     case CMD_SYS_CMD_COUNT:
-      // Команда: agent.cmdCount
+      // Команда: agent.cmd.count
       // Параметры: не требуются
-      // Результат: возвращается количество обработанных команд
+      // Результат: возвращается количество команд, обработанных (не возвративших ZBX_NOTSUPPORTED) с момента включения устройства
       if (arg[0]) { sysMetrics[IDX_METRIC_SYS_CMD_COUNT] = 0; } 
       result = sysMetrics[IDX_METRIC_SYS_CMD_COUNT];
       break;
 
     case CMD_SYS_CMD_TIMEMAX:
-      // Команда: 
-      // Параметры: не требуются.
-      // Результат:
-      if (arg[0]) { sysMetrics[IDX_METRIC_SYS_CMD_TIMEMAX] = 0; } 
+      // Команда: sys.cmd.timemax[resetCounter]
+      // Параметры: resetCounter - флаг сброса счетчика. 
+      // Результат: возвращается максимальное с момента включения устройства время выполнения команды. Временные затраты на обработку сетевых соединения и разбор запроса не учитываются.
+      //            При наличии параметра resetCounter отличного от пустой строки, производится сброс счётчика.
+      if (cBuffer[argOffset[0]]) { sysMetrics[IDX_METRIC_SYS_CMD_TIMEMAX] = 0; } 
       result = sysMetrics[IDX_METRIC_SYS_CMD_TIMEMAX];
       break;
    
     case CMD_SYS_RAM_FREE:
-      // Команда: sys.ramFree
+      // Команда: sys.ram.free
       // Параметры: не требуются.
-      // Результат: возвращается объем свободной оперативной памяти контроллера.
+      // Результат: возвращается объем свободной оперативной памяти микроконтроллера (размер области памяти, расположенной между концом кучи/heap и началом стека/stack), полученный при периодическом сборе системных метрик.
       result = sysMetrics[IDX_METRIC_SYS_RAM_FREE];
       break;
 
     case CMD_SYS_RAM_FREEMIN:
-      // Команда: sys.memmin
+      // Команда: sys.ram.freemin
       // Параметры: не требуются.
-      // Результат: возвращается зафиксированный в процессе периодических измерений минимальный объем свободной оперативной памяти контроллера.
+      // Результат: возвращается зафиксированный в процессе периодического сбора системных метрик минимальный объем свободной оперативной памяти микроконтроллера.
       result = sysMetrics[IDX_METRIC_SYS_RAM_FREEMIN];
       break;
    
     case CMD_SYS_MCU_NAME:
-      // Команда: sys.cpuName
+      // Команда: sys.mcu.name
       // Параметры: не требуются.
-      // Результат: возвращается мнемоническое имя микроконтроллера
+      // Результат: возвращается мнемоническое имя микроконтроллера. См. файл avr_cpunames.h
       strcpy_P(cBuffer, PSTR(_AVR_CPU_NAME_));
       result = RESULT_IN_BUFFER;
       break;
    
     case CMD_SYS_NET_MODULE:
-      // Команда: sys.netmodule
+      // Команда: sys.net.module
       // Параметры: не требуются.
-      // Результат: возвращается мнемоническое имя network modile
+      // Результат: возвращается мнемоническое имя сетевого модуля. Имя определяется на основе анализа подключенной библиотеки (Ethernet / UIPEthernet).
+      // Примечание: имя сетевого модуля можно определить самостоятельно в _zabbuino.h_
       strcpy_P(cBuffer, PSTR(NET_MODULE_NAME));
       result = RESULT_IN_BUFFER;
       break;
@@ -659,12 +671,12 @@ void executeCommand()
 
 #ifdef FEATURE_EEPROM_ENABLE
     case CMD_SET_HOSTNAME:
-      // Команда: sethostname[password, hostname]
+      // Команда: set.hostname[password, hostname]
       // Параметры: password - пароль, используемый для изменения свойств системы,
       //            hostname - новое имя узла.
-      // Результат: изменяется имя узла при условии совпадения параметра password с системным пароля и заполненения параметра hostname, происходит возврат значения '1'. 
-      //            В противном случае возвращается значение '0';
-      // Примечание: Проверка пароля происходит только при установленном в значение 1 конфигурационного параметра netConfig.useProtection (см команду setprotection[]).
+      // Результат: при условии совпадения параметра password с системным паролем и заполнения параметра hostname, устанавливается и сохраняется в EEPROM новое имя узла, происходит возврат значения '1'. 
+      //            В противном случае возвращается значение '0'.
+      // Примечание: проверка пароля происходит только при установленном в значение '1' ('true') конфигурационном параметре _netConfig.useProtection_ (см команду _set.sysprotect_, макрос SYS_DEFAULT_PROTECTION в _zabbuino.h_)
       if (AccessGranted) {
          // need check for arg existsience?
          // cBuffer[argOffset[1]] != \0 if argument #2 given
@@ -680,12 +692,12 @@ void executeCommand()
       break;
   
     case CMD_SET_PASSWORD:
-      // Команда: setpassword[oldPassword, newPassword]
+      // Команда: set.password[oldPassword, newPassword]
       // Параметры: oldPassword - пароль, используемый для изменения свойств системы,
       //            newPassword - вновьустанавливаемый пароль.
-      // Результат: изменяется пароль при условии совпадения параметра oldPassword с системным пароля и заполненения параметра newPassword, производится запись в EEPROM,
-      //            происходит возврат значения '1'. В противном случае возвращается значение '0'. 
-      // Примечание: Проверка пароля происходит только при установленном в значение 1 конфигурационного параметра netConfig.useProtection (см команду setprotection[]).
+      // Результат: при условии совпадения параметра _oldPassword_ с системным паролем и заполнения параметра _newPassword_, устанавливается и сохраняется в EEPROM новый пароль, происходит возврат значения '1'.
+      //            В противном случае возвращается значение '0'. 
+      // Примечание: проверка пароля происходит только при установленном в значение '1' ('true') конфигурационном параметре _netConfig.useProtection_ (см команду _set.sysprotect_, макрос SYS_DEFAULT_PROTECTION в _zabbuino.h_)
       if (AccessGranted) {
          if (cBuffer[argOffset[1]]) {
             // take new password from argument #2
@@ -697,12 +709,12 @@ void executeCommand()
       break;
   
     case CMD_SET_SYSPROTECT:
-      // Команда: setprotection[password, protection]
+      // Команда: set.sysprotect[password, protection]
       // Параметры: password - пароль, используемый для изменения свойств системы,
       //            protection - флаг установки защиты паролем: 1 - защита включена, любое иное - защита отменена, 
       // Результат: изменяется значение конфигурационного параметра netConfig.useProtection, , производится запись в EEPROM, происходит возврат значения '1'. 
       //            В случае неудачи возвращается значение '0'.
-      // Примечание: Проверка пароля происходит только при установленном в значение 1 конфигурационного параметра netConfig.useProtection (см команду setprotection[]).
+      // Примечание: проверка пароля происходит только при установленном в значение '1' ('true') конфигурационном параметре _netConfig.useProtection_ (см команду _set.sysprotect_, макрос SYS_DEFAULT_PROTECTION в _zabbuino.h_)
       if (AccessGranted) {
          if (cBuffer[argOffset[1]]) {
             // take new password from argument #2
@@ -714,16 +726,18 @@ void executeCommand()
       break;
    
     case CMD_SET_NETWORK:
-      // Команда: setnetwork[password, useDHCP, macAddress, ipAddress, ipNetmask, ipGateway]
-      // Параметры: password - пароль, используемый для изменения свойств системы,
-      //            useDHCP - 1 enable, 0 - disable
-      //            macAddress - новый MAC-адрес, задается в шестнадцатеричной форме: 0xAABBCCDDEEFF
+      // Команда: set.network[password, useDHCP, macAddress, ipAddress, ipNetmask, ipGateway]
+      // Параметры: password - пароль, используемый для изменения свойств системы;
+      //            useDHCP - флаг, задающий использование DHCP при запуске системы, 1 - разрешено, 0 - запрещено. Не учитывается при использовании прошивки, собранной без поддержки DHCP;
+      //            macAddress - новый MAC-адрес, задается в шестнадцатеричной форме: 0xAABBCCDDEEFF;
       //            ipAddress  - новый IP-адрес, задается в шестнадцатеричной форме: http://www.miniwebtool.com/ip-address-to-hex-converter/
       //            ipNetmask, - новая сетевая маска, задается в шестнадцатеричной форме: -"-"-
       //            ipGateway  - новый адрес шлюза по умолчанию, задается в шестнадцатеричной форме: -"-"-
-      // Результат: изменяются сетевые настройки, производится запись в EEPROM, происходит возврат значения '1'. 
+      // Результат: при условии совпадения параметра _password_ с системным паролем и корректности данных, изменяются сетевые настройки, производится запись в EEPROM, происходит возврат значения '1'.
       //            В случае неудачи возвращается значение '0'.
-      // Примечание: Проверка пароля происходит только при установленном в значение 1 конфигурационного параметра netConfig.useProtection (см команду setprotection[]).
+      // Примечание: проверка пароля происходит только при установленном в значение '1' ('true') конфигурационном параметре _netConfig.useProtection_ (см команду _set.sysprotect_, макрос SYS_DEFAULT_PROTECTION в _zabbuino.h_).
+      //
+      // Примечание: применение новых настроек происходит после нового включения или перезагрузки системы, см. команду _reboot_.
   
       if (AccessGranted) {
          uint8_t ip[4], mac[6], success = 1;
@@ -762,9 +776,10 @@ void executeCommand()
     case CMD_SYS_REBOOT:
       // Команда: reboot[password]
       // Параметры: password - пароль, используемый для изменения свойств системы
-      // Результат: система начинает выполнять программу заново, с адреса 0 (мягкая перезагрузка), происходит возврат значения '1'. 
+      // Результат: происходит возврат значения '1', микроконтроллер начинает выполнять программу заново, с адреса 0 (мягкая перезагрузка)
       //            В случае неудачи возвращается значение '0'.
-      // Примечание: Проверка пароля происходит только при установленном в значение 1 конфигурационного параметра netConfig.useProtection (см команду setprotection[]).
+      // Примечание: проверка пароля происходит только при установленном в значение '1' ('true') конфигурационном параметре _netConfig.useProtection_ (см команду _set.sysprotect_, макрос SYS_DEFAULT_PROTECTION в _zabbuino.h_).
+
       if (AccessGranted) {
          ethClient.println("1");
          // hang-up if no delay
@@ -787,29 +802,20 @@ void executeCommand()
       // VCC may be bigger than max or smaller than min. 
       // To avoid wrong results and graphs in monitoring system - correct min/max metrics
       correctVCCMetrics(result);
-       break;
+      break;
   
     case CMD_SYS_VCCMIN:
-      // Команда: sys.minvcc
+      // Команда: sys.vccmin
       // Параметры: не требуются
       // Результат: пользователю возвращается значение минимального значения напряжения в mV на входе VCC микроконтроллера с момента подачи питания.
       result = sysMetrics[IDX_METRIC_SYS_VCCMIN];
-       break;
+      break;
   
     case CMD_SYS_VCCMAX:
-      // Команда: sys.maxvcc
+      // Команда: sys.vccmax
       // Параметры: не требуются
       // Результат: пользователю возвращается значение максимального значения напряжения в mV на входе VCC микроконтроллера с момента подачи питания.
       result = sysMetrics[IDX_METRIC_SYS_VCCMAX];
-       break;
-  
-    case CMD_ARDUINO_DELAY:
-      // Команда: delay[value]
-      // Параметры: value - время паузы перед выдачей ответа. Задается в миллисекундах.
-      // Результат: Возврат значения '1' производится после истечения времени задержки.
-      // Примечание: команда является оберткой функции Delay() http://www.arduino.cc/en/Reference/Delay
-      delay(arg[0]);
-      result = RESULT_IS_OK;
       break;
   
     case CMD_SYS_PORTWRITE:
@@ -819,9 +825,11 @@ void executeCommand()
       // Результат: изменяется состояние порта ввода/вывода (PORTB, PORTC, PORTD...) и происходит возврат значения '1'.
       // Примечание: если ваш экземпляр Arduino имеет более, чем три порта, то на данный момент вам необходимо самостоятельно добавить в скетч информацию о них.
       //
-      // Номер порта представляет собой разницу между ASCII-кодом аргумента port и 96. Таким образом b=2, c=3, d=4 и т.д.
-      portWrite((byte) arg[0] - 96, arg[1]);
-      result = RESULT_IS_OK;
+      // Номер порта представляет собой разницу между ASCII-кодом аргумента port и ASCII 96. Таким образом b=2, c=3, d=4 и т.д.
+      if (PORTS_NUM < (arg[0] - 96)) {
+         portWrite((byte) arg[0] - 96, arg[1]);
+         result = RESULT_IS_OK;
+      }
       break;
   
     case CMD_ARDUINO_ANALOGWRITE:
@@ -844,6 +852,11 @@ void executeCommand()
       // Примечание: команда является оберткой функции analogRead() www.arduino.cc/en/Reference/AnalogRead
       // Данная команда имеет смысл только для аналоговых пинов.
       // Состояние INPUT для пина должно быть определено в коде скетча. В противном случае совпадения считываемых данных с ожидаемыми может не произойти.   
+      // change source of the reference voltage if its given
+      if ('\0' != cBuffer[argOffset[1]]) {
+         analogReference(arg[1]);
+         delayMicroseconds(2000);
+      }
       result = (long) analogRead(arg[0]);
       break;
       
@@ -878,6 +891,16 @@ void executeCommand()
       result = (long) digitalRead(arg[0]);
        break;
 
+     case CMD_ARDUINO_DELAY:
+      // Команда: delay[value]
+      // Параметры: value - время паузы перед выдачей ответа. Задается в миллисекундах.
+      // Результат: Возврат значения '1' производится после истечения времени задержки.
+      // Примечание: команда является оберткой функции Delay() http://www.arduino.cc/en/Reference/Delay
+      delay(arg[0]);
+      result = RESULT_IS_OK;
+      break;
+
+
 #ifdef FEATURE_TONE_ENABLE
     case CMD_ARDUINO_TONE:
       // Команда: tone[pin, frequency, duration]
@@ -886,7 +909,11 @@ void executeCommand()
       // Примечание: команда является оберткой функции tone() http://www.arduino.cc/en/Reference/Tone
       // Состояние OUTPUT для пина должно быть задано в коде скетча. Если пин защищен, изменения режима не происходит.
       if (isSafePin(arg[0])) {
-        tone(arg[0], arg[1], arg[2]);
+        if ('\0' != cBuffer[argOffset[2]]) {
+           tone(arg[0], arg[1], arg[2]);
+         } else {
+           tone(arg[0], arg[1]);
+         }
         result = RESULT_IS_OK;
       }
       break;
@@ -936,7 +963,7 @@ void executeCommand()
       // Параметры: value - начальное число ряда псевдослучайных значений
       // Результат: инициализируется генератор псевдослучайных чисел
       // Примечание: команда является оберткой функции randomSeed() http://www.arduino.cc/en/Reference/randomSeed
-      randomSeed(arg[0]);
+      randomSeed((0 == arg[0]) ? (int32_t) millis() : arg[0]);
       result = RESULT_IS_OK;
       break;
    
@@ -946,7 +973,7 @@ void executeCommand()
       // Результат: возвращается псевдослучайное число
       // Примечание: команда является оберткой функции random() http://www.arduino.cc/en/Reference/random
       //  !! random return long
-      result = (long) random(arg[0], arg[1]);
+      result = ('\0' == cBuffer[argOffset[1]]) ? (int32_t) random(arg[0]) : (int32_t) random(arg[0], arg[1]);
       break;
 #endif // FEATURE_RANDOM_ENABLE
 
@@ -1111,10 +1138,10 @@ void executeCommand()
 
 #ifdef FEATURE_EXTERNAL_INTERRUPT_ENABLE
     case CMD_EXTINT_COUNT:
-      // Команда: interrupt.count[intPin, intNumber, mode]
+      // Команда: extInt.count[intPin, intNumber, mode]
       // Параметры: intPin - цифровые обозначение пинов, на которое назначено (или будет назначено) внешнее прерывание.
       //            intNumber - номер прерывания. Номера прерываний зависят от используемой платформы, обратитесь к ее описанию для уточнения.
-      //            mode - режим прерывания: 1 - CHANGE, 2 - FALLING, 3 - RISING
+      //            mode - режим прерывания: 0-LOW, 1 - CHANGE, 2 - FALLING, 3 - RISING
       // Примечание: intNumber на данный момент не применяется (используются стандартные прерывания, привязанные к intPin) и зарезервирован для будущих разработок.
 
       // TODO: maybe need to rework code block
@@ -1122,19 +1149,20 @@ void executeCommand()
          int8_t interruptNumber=digitalPinToInterrupt(arg[0]);
          voidFuncPtr interruptHandler;
          // Interrupt number and mode is correct?
-         if ((EXTERNAL_NUM_INTERRUPTS > interruptNumber) && (RISING >= arg[3])) {
+         if ((EXTERNAL_NUM_INTERRUPTS > interruptNumber) && (RISING >= arg[2])) {
             // Interrupt mode is changed
-            // Serial.println("[1] Interrupt number and mode is correct"); 
+            //Serial.println("[1] Interrupt number and mode is correct"); 
+            //Serial.print("[1*] Old interrupt mode is: ");  Serial.println(extInterrupt[interruptNumber].mode); 
             // just use NOT_AN_INTERRUPT = -1 macro from Arduino.h
-            if (extInterrupt[interruptNumber].mode != arg[3] && NOT_AN_INTERRUPT != extInterrupt[interruptNumber].mode) {
-               // Serial.println("[2] Interrupt mode is changed, detach"); 
+            if (extInterrupt[interruptNumber].mode != arg[2] && NOT_AN_INTERRUPT != extInterrupt[interruptNumber].mode) {
+               //Serial.println("[2] Interrupt mode is changed, detach"); 
                detachInterrupt(arg[1]);
                extInterrupt[interruptNumber].mode = -1;
             } 
 
            // Interrupt not attached?
            if (NOT_AN_INTERRUPT == extInterrupt[arg[1]].mode) {
-              extInterrupt[interruptNumber].mode = arg[3];
+              extInterrupt[interruptNumber].mode = arg[2];
               switch (interruptNumber) {
 // Basic configuration => EXTERNAL_NUM_INTERRUPTS == 3
                 case INT0:
@@ -1178,43 +1206,43 @@ void executeCommand()
               if (NOT_AN_INTERRUPT != extInterrupt[interruptNumber].mode) {
                  // if pin still not INPUT_PULLUP - system will hang up
                  pinMode(arg[0], INPUT_PULLUP);
-                 attachInterrupt(interruptNumber, interruptHandler, arg[3]);
+                 attachInterrupt(interruptNumber, interruptHandler, arg[2]);
                  // reinit counter
                  extInterrupt[interruptNumber].count = 0;
               }
             
            } // if (NOT_AN_INTERRUPT == extInterrupt[arg[1]].mode)
            result = extInterrupt[interruptNumber].count;
-         } // if ((interruptNumber < EXTERNAL_NUM_INTERRUPTS) && (CHANGE >= arg[3]))
+         } // if ((EXTERNAL_NUM_INTERRUPTS > interruptNumber) && (RISING >= arg[2])) 
        } // if (isSafePin(arg[0]))
        break;
 #endif // FEATURE_EXTERNAL_INTERRUPT_ENABLE
      
 
     default:
-      // В любом ином случае команда считается неопределенной.
+      // In default case command  is considered unknown.
       strcpy(cBuffer, ZBX_NOTSUPPORTED_MSG);
-      // Прирощенный ранее счетчик сматывается
+      // Early increased command counter is decremented
       sysMetrics[IDX_METRIC_SYS_CMD_COUNT]--;
       result = RESULT_IN_BUFFER;
    }
 
 
-   // Результат уже выведен исполняемой командой?
+   // The result is already printed?
    if (RESULT_IS_PRINTED != result) {
-      // Результат помещен в буфер заранее?
+      // The result is placed to buffer?
       if (RESULT_IN_BUFFER != result) {
-         //  Необходимо возвратить '1'
+         //  '1' must be returned
          if (RESULT_IS_OK == result) {
             result = 1L;
-         // или '0'
+         // or '0'
          } else if (RESULT_IS_FAIL == result) {
             result = 0L;
          }
-         //  Если результатом работы команды является число, оно преобразуется в C-string.
+         //  If result is number - convert its to C-string.
          ltoa (result, cBuffer, 10);
       }
-      //  Буфер отдается клиенту
+      //  Push the buffer
       ethClient.println(cBuffer);
 #ifdef FEATURE_DEBUG_TO_SERIAL
      SerialPrint_P(PSTR("Result: ")); Serial.println(cBuffer); Serial.println(); 

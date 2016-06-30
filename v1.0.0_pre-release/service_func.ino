@@ -37,7 +37,7 @@ void sethostname(char* _dest, const char* _src){
 **************************************************************************************************************************** */
 void ltoaf(int32_t _number, char* _dst, uint8_t _num_after_dot)
 {
-  uint8_t i, skipLeadingZeros = true;
+  uint8_t i, skipLeadingZeros = true, pointIsUsed = false;;
   char currChar;
   uint32_t value = _number;
   const uint8_t maxStringLen = 10;
@@ -55,10 +55,13 @@ void ltoaf(int32_t _number, char* _dst, uint8_t _num_after_dot)
     if ((maxStringLen - i) == _num_after_dot) {
         // If non-zero character has not yet processeed - push '0' before decimal point
         if (skipLeadingZeros) {*_dst = '0'; _dst++;}
+// +10 byte to used flash
+//        if (0 >= value) {break;}
         // push decimal point
         *_dst = '.'; _dst++; 
         // Need to process all next zeros
         skipLeadingZeros = false;
+        pointIsUsed = true;
     }
     // Init character value
     currChar = '0';
@@ -81,6 +84,8 @@ void ltoaf(int32_t _number, char* _dst, uint8_t _num_after_dot)
     // Push currChar to buffer
     *_dst = currChar;
     _dst++;
+    // do not add trailing zeros after dot
+    if (0 >= value and pointIsUsed) {break;}
   }
   *_dst = '\0';
 }
