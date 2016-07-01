@@ -4,7 +4,7 @@
 
 New command:
 - _encoder.count[terminalAPin, terminalBPin, intNumber, initialValue]_ - this command allow to get signed long counter, that was increased and decreased by incremental encoder (tested on mechanical EC12E24204A9) that connected to pin which mapped to interrupt.
-  - _terminalAPin_ - which pin used to connect first encoder terminal and interrupt catching (refer to https://www.arduino.cc/en/Reference/AttachInterrupt);
+  - _terminalAPin_ - which pin used to connect first encoder terminal and catching interrupt (refer to https://www.arduino.cc/en/Reference/AttachInterrupt);
   - _terminalBPin_ - which pin used to connect second encoder terminal;
   - _intNumber_ - not used at this time, reserved for future;
   - _initialValue_ - defines initial counter value. 
