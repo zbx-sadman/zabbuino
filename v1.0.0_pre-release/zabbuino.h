@@ -291,65 +291,69 @@ D13 -^    ^- D8    <- pins   */
                                                             COMMAND NAMES SECTION 
 */
 // Increase this if add new command 
-#define CMD_MAX 0x28
+#define CMD_MAX 0x30
 
 // Add command macro with new sequental number
-#define CMD_ZBX_AGENT_PING           	0x00
-#define CMD_ZBX_AGENT_HOSTNAME       	0x01
-#define CMD_ZBX_AGENT_VERSION        	0x02
+#define CMD_ZBX_NOPE             	0x00
+#define CMD_ZBX_AGENT_PING           	0x01
+#define CMD_ZBX_AGENT_HOSTNAME       	0x02
+#define CMD_ZBX_AGENT_VERSION        	0x03
 
-#define CMD_ARDUINO_ANALOGREAD		0x03
-#define CMD_ARDUINO_ANALOGWRITE        	0x04
-#define CMD_ARDUINO_ANALOGREFERENCE    	0x05
-#define CMD_ARDUINO_DELAY              	0x06
-#define CMD_ARDUINO_DIGITALREAD        	0x07
-#define CMD_ARDUINO_DIGITALWRITE       	0x08
-#define CMD_ARDUINO_NOTONE           	0x09
-#define CMD_ARDUINO_TONE             	0x0A
-#define CMD_ARDUINO_RANDOM           	0x0B
-#define CMD_ARDUINO_RANDOMSEED       	0x0C
+#define CMD_ARDUINO_ANALOGREAD		0x04
+#define CMD_ARDUINO_ANALOGWRITE        	0x05
+#define CMD_ARDUINO_ANALOGREFERENCE    	0x06
+#define CMD_ARDUINO_DELAY              	0x07
+#define CMD_ARDUINO_DIGITALREAD        	0x08
+#define CMD_ARDUINO_DIGITALWRITE       	0x09
+#define CMD_ARDUINO_NOTONE           	0x0A
+#define CMD_ARDUINO_TONE             	0x0B
+#define CMD_ARDUINO_RANDOM           	0x0C
+#define CMD_ARDUINO_RANDOMSEED       	0x0D
 
-#define CMD_SET_HOSTNAME         	0x0D
-#define CMD_SET_PASSWORD         	0x0E
-#define CMD_SET_SYSPROTECT       	0x0F
-#define CMD_SET_NETWORK          	0x10
+#define CMD_SET_HOSTNAME         	0x0E
+#define CMD_SET_PASSWORD         	0x0F
+#define CMD_SET_SYSPROTECT       	0x10
+#define CMD_SET_NETWORK          	0x11
 
-#define CMD_SYS_PORTWRITE            	0x11
-#define CMD_SYS_SHIFTOUT             	0x12
-#define CMD_SYS_REBOOT               	0x13
+#define CMD_SYS_PORTWRITE            	0x12
+#define CMD_SYS_SHIFTOUT             	0x13
+#define CMD_SYS_REBOOT               	0x14
 
-#define CMD_SYS_MCU_NAME              	0x14
-#define CMD_SYS_NET_MODULE           	0x15
-#define CMD_SYS_UPTIME               	0x16
+#define CMD_SYS_MCU_NAME              	0x15
+#define CMD_SYS_NET_MODULE           	0x16
+#define CMD_SYS_UPTIME               	0x17
 
-#define CMD_SYS_CMD_COUNT             	0x17
-#define CMD_SYS_CMD_TIMEMAX             0x18
+#define CMD_SYS_CMD_COUNT             	0x18
+#define CMD_SYS_CMD_TIMEMAX             0x19
 
-#define CMD_SYS_RAM_FREE              	0x19
-#define CMD_SYS_RAM_FREEMIN           	0x1A
+#define CMD_SYS_RAM_FREE              	0x1A
+#define CMD_SYS_RAM_FREEMIN           	0x1B
 
-#define CMD_SYS_VCC              	0x1B
-#define CMD_SYS_VCCMIN           	0x1C
-#define CMD_SYS_VCCMAX           	0x1D
+#define CMD_SYS_VCC              	0x1C
+#define CMD_SYS_VCCMIN           	0x1D
+#define CMD_SYS_VCCMAX           	0x1E
 
-#define CMD_EXTINT_COUNT            	0x1E
+#define CMD_EXTINT_COUNT            	0x1F
 
-#define CMD_OW_SCAN             	0x1F
-#define CMD_I2C_SCAN            	0x20
+#define CMD_OW_SCAN             	0x20
+#define CMD_I2C_SCAN            	0x21
 
-#define CMD_DS18X20_TEMPERATURE      	0x21
+#define CMD_DS18X20_TEMPERATURE      	0x22
 
-#define CMD_DHT_HUMIDITY             	0x22
-#define CMD_DHT_TEMPERATURE          	0x23
+#define CMD_DHT_HUMIDITY             	0x23
+#define CMD_DHT_TEMPERATURE          	0x24
 
-#define CMD_BMP_PRESSURE             	0x24 
-#define CMD_BMP_TEMPERATURE          	0x25
+#define CMD_BMP_PRESSURE             	0x25 
+#define CMD_BMP_TEMPERATURE          	0x26
 
-#define CMD_BH1750_LIGHT           	0x26
+#define CMD_BH1750_LIGHT           	0x27
 
-#define CMD_MAX7219_WRITE               0x27
+#define CMD_MAX7219_WRITE               0x28
+
+#define CMD_ECODER_COUNT                0x29
 
 // add new command as "const char command_<COMMAND_MACRO> PROGMEM". Only 'const' push string to PROGMEM. Tanx, Arduino.
+const char command_CMD_ZBX_NOPE[]       		PROGMEM	= "";
 const char command_CMD_ZBX_AGENT_PING[] 		PROGMEM	= "agent.ping";
 const char command_CMD_ZBX_AGENT_HOSTNAME[] 		PROGMEM = "agent.hostname";
 const char command_CMD_ZBX_AGENT_VERSION[] 		PROGMEM = "agent.version";
@@ -405,52 +409,56 @@ const char command_CMD_BH1750_LIGHT[] 			PROGMEM = "bh1750.light";
 
 const char command_CMD_MAX7219_WRITE[] 			PROGMEM = "max7219.write";
 
+const char command_CMD_ECODER_COUNT[] 			PROGMEM = "encoder.count";
+
 // do not insert new command to any position without syncing indexes. Tanx, Arduino, for this method of string array pushing to PROGMEM
 const char* const commands[] PROGMEM = {
-  command_CMD_ZBX_AGENT_PING, 		
+  command_CMD_ZBX_NOPE,
+
+  command_CMD_ZBX_AGENT_PING,
   command_CMD_ZBX_AGENT_HOSTNAME,
-  command_CMD_ZBX_AGENT_VERSION, 		
+  command_CMD_ZBX_AGENT_VERSION,
 
-  command_CMD_ARDUINO_ANALOGREAD, 		
-  command_CMD_ARDUINO_ANALOGWRITE, 		
-  command_CMD_ARDUINO_ANALOGREFERENCE, 	
-  command_CMD_ARDUINO_DELAY, 			
-  command_CMD_ARDUINO_DIGITALREAD, 		
-  command_CMD_ARDUINO_DIGITALWRITE, 		
-  command_CMD_ARDUINO_NOTONE, 		
-  command_CMD_ARDUINO_TONE, 			
-  command_CMD_ARDUINO_RANDOM, 		
-  command_CMD_ARDUINO_RANDOMSEED, 		
+  command_CMD_ARDUINO_ANALOGREAD,
+  command_CMD_ARDUINO_ANALOGWRITE,
+  command_CMD_ARDUINO_ANALOGREFERENCE,
+  command_CMD_ARDUINO_DELAY,
+  command_CMD_ARDUINO_DIGITALREAD,
+  command_CMD_ARDUINO_DIGITALWRITE,
+  command_CMD_ARDUINO_NOTONE,
+  command_CMD_ARDUINO_TONE,
+  command_CMD_ARDUINO_RANDOM,
+  command_CMD_ARDUINO_RANDOMSEED,
 
-  command_CMD_SET_HOSTNAME, 		
-  command_CMD_SET_PASSWORD, 		
-  command_CMD_SET_SYSPROTECT, 		
-  command_CMD_SET_NETWORK, 		
+  command_CMD_SET_HOSTNAME,
+  command_CMD_SET_PASSWORD,
+  command_CMD_SET_SYSPROTECT,
+  command_CMD_SET_NETWORK,
 
-  command_CMD_SYS_PORTWRITE, 			
-  command_CMD_SYS_SHIFTOUT, 			
-  command_CMD_SYS_REBOOT, 			
+  command_CMD_SYS_PORTWRITE,
+  command_CMD_SYS_SHIFTOUT,
+  command_CMD_SYS_REBOOT,
 
-  command_CMD_SYS_MCU_NAME, 			
-  command_CMD_SYS_NET_MODULE, 			
-  command_CMD_SYS_UPTIME, 			
+  command_CMD_SYS_MCU_NAME,
+  command_CMD_SYS_NET_MODULE,
+  command_CMD_SYS_UPTIME,
 
-  command_CMD_SYS_CMD_COUNT, 			
+  command_CMD_SYS_CMD_COUNT,
   command_CMD_SYS_CMD_TIMEMAX,
   
-  command_CMD_SYS_RAM_FREE, 			
-  command_CMD_SYS_RAM_FREEMIN, 			
+  command_CMD_SYS_RAM_FREE,
+  command_CMD_SYS_RAM_FREEMIN,
   
-  command_CMD_SYS_VCC, 			
-  command_CMD_SYS_VCCMIN, 		
-  command_CMD_SYS_VCCMAX, 		
+  command_CMD_SYS_VCC,
+  command_CMD_SYS_VCCMIN,
+  command_CMD_SYS_VCCMAX,
 
   command_CMD_EXTINT_COUNT,
 
   command_CMD_OW_SCAN,
   command_CMD_I2C_SCAN,
 
-  command_CMD_DS18X20_TEMPERATURE, 		
+  command_CMD_DS18X20_TEMPERATURE,
 
   command_CMD_DHT_HUMIDITY,
   command_CMD_DHT_TEMPERATURE,
@@ -460,7 +468,10 @@ const char* const commands[] PROGMEM = {
 
   command_CMD_BH1750_LIGHT,
 
-  command_CMD_MAX7219_WRITE
+  command_CMD_MAX7219_WRITE,
+
+  command_CMD_ECODER_COUNT
+  
 };
 /*
 /* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
@@ -521,6 +532,9 @@ ADC channels
 #define DBG_PRINT_AS_MAC 		0x1
 #define DBG_PRINT_AS_IP  		0x2
 
+#define ENCODER_STABILIZATION_DELAY     2000L     // 2000 microseconds
+
+
 
 /* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
                                                          PROGRAMM STRUCTURES SECTION 
@@ -544,6 +558,8 @@ typedef struct {
   uint32_t count;        			// 4 byte
   // mode == -1 => Interrupt is not attached
   int8_t mode;         			        // 1 byte 
+  int8_t encTerminalAPin;        	        // 1 byte 
+  int8_t encTerminalBPin;        	        // 1 byte 
 } extInterrupt_t ;
 
 /* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-

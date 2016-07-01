@@ -86,6 +86,9 @@
 // Uncomment to enable external interrupts handling: interrupt.*[] commands
 #define FEATURE_EXTERNAL_INTERRUPT_ENABLE
 
+// Uncomment to enable encoder handling with external interrupts: encoder.*[] commands
+#define FEATURE_ENCODER_ENABLE
+
 /****      1-Wire bus      ****/
 
 // Uncomment to enable 1-Wire functions
@@ -148,12 +151,26 @@
 #define GATHER_METRIC_USING_TIMER_INTERRUPT
 
 
+
+/* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
+*/
+
+// Enable I2C functions if user forget it
+#if defined(FEATURE_BH1750_ENABLE) || defined(FEATURE_BMP085_ENABLE)
+#define FEATURE_I2C_ENABLE
+#endif
+
+// Enable 1-Wire functions if user forget it
+#if defined(FEATURE_DS18X20_ENABLE)
+#define FEATURE_OW_ENABLE
+#endif
+
 /* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
                                                                  GLOBAL VARIABLES SECTION
 */
 
 netconfig_t netConfig;
-#ifdef FEATURE_EXTERNAL_INTERRUPT_ENABLE
+#if defined(FEATURE_EXTERNAL_INTERRUPT_ENABLE) || defined(FEATURE_ENCODER_ENABLE)
 // need to #include <wiring_private.h> for compilation
 volatile extInterrupt_t extInterrupt[EXTERNAL_NUM_INTERRUPTS];
 #endif
@@ -168,17 +185,6 @@ int32_t sysMetrics[IDX_METRICS_MAX];
 /* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
                                                                       STARTUP SECTION
 */
-
-// Enable I2C functions if user forget it
-#if defined(FEATURE_BH1750_ENABLE) || defined(FEATURE_BMP085_ENABLE)
-#define FEATURE_I2C_ENABLE
-#endif
-
-// Enable 1-Wire functions if user forget it
-#if defined(FEATURE_DS18X20_ENABLE)
-#define FEATURE_OW_ENABLE
-#endif
-
 
 void setup() {
   uint8_t i;
@@ -306,7 +312,7 @@ void setup() {
     setPortMode(i, port_mode[i], port_pullup[i]);
   }
 
-#ifdef FEATURE_EXTERNAL_INTERRUPT_ENABLE
+#if defined(FEATURE_EXTERNAL_INTERRUPT_ENABLE) || defined(FEATURE_ENCODER_ENABLE)
   // Init external interrupts info structure
   for (i = 0; i < EXTERNAL_NUM_INTERRUPTS; i++) { 
     // -1 - interrupt is detached
@@ -556,7 +562,7 @@ void executeCommand()
   }
 
 #ifdef FEATURE_DEBUG_TO_SERIAL
-  SerialPrint_P(PSTR("Execute command #")); Serial.print(cmdIdx); SerialPrint_P(PSTR(" =>")); Serial.println(cBuffer);
+  SerialPrint_P(PSTR("Execute command #")); Serial.print(cmdIdx, HEX); SerialPrint_P(PSTR(" =>")); Serial.println(cBuffer);
 #endif 
   
   // batch convert args to number values
@@ -1161,7 +1167,7 @@ void executeCommand()
             } 
 
            // Interrupt not attached?
-           if (NOT_AN_INTERRUPT == extInterrupt[arg[1]].mode) {
+           if (NOT_AN_INTERRUPT == extInterrupt[interruptNumber].mode) {
               extInterrupt[interruptNumber].mode = arg[2];
               switch (interruptNumber) {
 // Basic configuration => EXTERNAL_NUM_INTERRUPTS == 3
@@ -1211,13 +1217,60 @@ void executeCommand()
                  extInterrupt[interruptNumber].count = 0;
               }
             
-           } // if (NOT_AN_INTERRUPT == extInterrupt[arg[1]].mode)
+           } // if (NOT_AN_INTERRUPT == extInterrupt[interruptNumber].mode)
            result = extInterrupt[interruptNumber].count;
          } // if ((EXTERNAL_NUM_INTERRUPTS > interruptNumber) && (RISING >= arg[2])) 
        } // if (isSafePin(arg[0]))
        break;
 #endif // FEATURE_EXTERNAL_INTERRUPT_ENABLE
+
+#ifdef FEATURE_ENCODER_ENABLE
+    case CMD_ECODER_COUNT:
+      // Команда: encoder.count[terminalAPin, terminalBPin, intNumber, initialNumber]
+
+      // TODO: maybe need to rework code block
+      // 
+      if (isSafePin(arg[0]) && isSafePin(arg[1])) {
+         int8_t interruptNumber=digitalPinToInterrupt(arg[0]);
+         voidFuncPtr interruptHandler;
+         // Interrupt number is correct?
+         if (EXTERNAL_NUM_INTERRUPTS > interruptNumber) {
+            // Interrupt mode is changed
+            // just use NOT_AN_INTERRUPT = -1 macro from Arduino.h
+           // Interrupt not attached?
+           if (NOT_AN_INTERRUPT == extInterrupt[interruptNumber].mode) {
+              extInterrupt[interruptNumber].mode = CHANGE;
+              switch (interruptNumber) {
+// Basic configuration => EXTERNAL_NUM_INTERRUPTS == 3
+                case INT0:
+                  interruptHandler = handleINT0ForEncoder;
+                  break;
+                case INT1:
+                  interruptHandler = handleINT1ForEncoder;
+                  break;
+                default:
+                // still not attached
+                extInterrupt[interruptNumber].mode = NOT_AN_INTERRUPT;
+              }  // switch (interruptNumber)
+              // check again to take in account 'No interrupt choosed' case
+              if (NOT_AN_INTERRUPT != extInterrupt[interruptNumber].mode) {
+                 // if pin still not INPUT_PULLUP - system will hang up
+                 pinMode(arg[0], INPUT_PULLUP);
+                 pinMode(arg[1], INPUT_PULLUP);
+                 attachInterrupt(interruptNumber, interruptHandler, CHANGE);
+                 // reinit counter
+                 extInterrupt[interruptNumber].encTerminalAPin = arg[0];
+                 extInterrupt[interruptNumber].encTerminalBPin = arg[1];
+                 extInterrupt[interruptNumber].count = arg[3];
+              }
+           } // if (NOT_AN_INTERRUPT == extInterrupt[interruptNumber].mode)
+           result = extInterrupt[interruptNumber].count;
+         } // if (EXTERNAL_NUM_INTERRUPTS > interruptNumber)
+       } // ((isSafePin(arg[0]) && isSafePin(arg[1]))
+       break;
+#endif // FEATURE_ENCODER_ENABLE
      
+
 
     default:
       // In default case command  is considered unknown.

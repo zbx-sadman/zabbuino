@@ -1,5 +1,23 @@
 # Zabbuino 1.0.0 (pre-release)
 
+####01 Jul 2016
+
+New command:
+- _encoder.count[terminalAPin, terminalBPin, intNumber, initialValue]_ - this command allow to get signed long counter, that was increased and decreased by incremental encoder (tested on mechanical EC12E24204A9) that connected to pin which mapped to interrupt.
+  - _terminalAPin_ - which pin used to connect first encoder terminal and interrupt catching (refer to https://www.arduino.cc/en/Reference/AttachInterrupt);
+  - _terminalBPin_ - which pin used to connect second encoder terminal;
+  - _intNumber_ - not used at this time, reserved for future;
+  - _initialValue_ - defines initial counter value. 
+
+**Note** You can reverse encoder's "incrementing" direction - just connect wire on _terminalAPin_ to encoder's terminal B and wire on _terminalBPin_ to encoder's terminal A.
+
+**Note** Code of interrupt's handling not yet optimized and can be buggy.
+
+Testings:
+ - _extInt.count_ command tested on tilt switch SW-520D (CHANGE mode) and PIR-sensor HC-SR501 (RISING mode). All events registred well by counter.
+
+
+
 ####30 Jun 2016
 
 Fixes:
@@ -68,7 +86,7 @@ Changes:
 - Code reorganized;
 
 New command:
-- _interrupt.count[intPin, intNumber, mode]_. This command allow to get unsigned long counter, that was increased by external interrupt. It's can be used in DYI anemometer projects, for example. On first (after power on) call of _interrupt.count_ command _intPin_ will be switched to INPUT_PULLUP mode and attached to interrupt. On next call number of rising/failing/changing will be returned. If _mode_ is changed for _intPin_, that already used by interrupt - counter will be reset and interrupt will be reattached on new _mode_;
+- _interrupt.count[intPin, intNumber, mode]_. This command allow to get unsigned long counter, that was incremented by external interrupt. It's can be used in DYI anemometer projects, for example. On first (after power on) call of _interrupt.count_ command _intPin_ will be switched to INPUT_PULLUP mode and attached to interrupt. On next call number of rising/failing/changing will be returned. If _mode_ is changed for _intPin_, that already used by interrupt - counter will be reset and interrupt will be reattached on new _mode_;
   - _intPin_ - which pin used to interrupt catching. For ATMega328p this can be 2 or 3 (refer to https://www.arduino.cc/en/Reference/AttachInterrupt );
   - _intNumber_ - not used at this time, reserved for future;
   - _mode_ - defines when the interrupt should be triggered. Four constants are predefined as valid values: 0 - LOW, 1 - CHANGE, 2 - FALLING, 3 - RISING
