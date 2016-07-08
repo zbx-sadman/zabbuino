@@ -18,7 +18,6 @@ New commands:
   - _data_ - HEX-coded string that contain text and display commands. It must begin with _0x_ prefix. Use [http://www.asciitohex.com](http://www.asciitohex.com/) to recode yours text or write small perl script.
 - _pc8574.LCDBLight[sdaPin, sclPin, i2cAddress, lcdBacklight]_ - set LCD backlight mode. _lcdBacklight_ => 0 - off, other - on. Command can be abolished in future;
 
-
 **Note** You must increase _ARGS_PART_SIZE_ in _zabbuino.h_  if full text want to see on display ;)
 
 Supported display HD44780-compatible commands:
@@ -62,6 +61,7 @@ Print on LCD of 2002 type with turned backlight, that connected via expander wit
 
 **Note** I'm not sure about correct work of _XX04_ displays. It should be tested, but i haven't hardware.
 
+**Note** BMP280 sensor support is added, but not tested yet. I just wait for sensors pack;
 
 ####01 Jul 2016
 
