@@ -721,6 +721,7 @@ version 1.1.2 is used
 #define LCD_CMD_ENTRYMODE_RIGHTTOLEFT_SCREENSHIFT        0x05
 #define LCD_CMD_ENTRYMODE_LEFTTORIGHT                    0x06
 #define LCD_CMD_ENTRYMODE_LEFTTORIGHT_SCREENSHIFT        0x07
+#define LCD_CMD_BLANKSCREEN                              0x08
 #define LCD_CMD_CURSOROFF                                0x0C
 #define LCD_CMD_UNDERLINECURSORON                        0x0E
 #define LCD_CMD_BLINKINGBLOCKCURSORON                    0x0F
@@ -886,6 +887,7 @@ uint8_t pc8574LCDOutput(uint8_t _sdaPin, uint8_t _sclPin, uint8_t _i2cAddress, u
       case LCD_CMD_ENTRYMODE_RIGHTTOLEFT_SCREENSHIFT:
       case LCD_CMD_ENTRYMODE_LEFTTORIGHT:
       case LCD_CMD_ENTRYMODE_LEFTTORIGHT_SCREENSHIFT:
+      case LCD_CMD_BLANKSCREEN:
       case LCD_CMD_CURSOROFF:
       case LCD_CMD_UNDERLINECURSORON:
       case LCD_CMD_BLINKINGBLOCKCURSORON:

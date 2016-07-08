@@ -29,6 +29,7 @@ Supported display HD44780-compatible commands:
 - _0x05_ - print from right to left with screen shifting;
 - _0x06_ - print from left to right;
 - _0x07_ - print from left to right with screen shifting;
+- _0x08_ - blank the screen (without clearing);
 - _0x0C_ - turn cursor off;
 - _0x0E_ - turn on "underline" cursor;
 - _0x0F_ - turn on "blinking block" cursor;
