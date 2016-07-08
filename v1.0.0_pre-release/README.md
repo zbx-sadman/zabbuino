@@ -1,5 +1,68 @@
 # Zabbuino 1.0.0 (pre-release)
 
+
+####08 Jul 2016
+
+Fixes:
+- Reboot on incoming data buffer overflow;
+
+Changes:
+- DHT functions was reworked, part of DHTlib source code is used. Now DHT33 & DHT44 is supported.
+
+New commands:
+- _pc8574.LCDPrint[sdaPin, sclPin, i2cAddress, lcdBacklight, lcdType, data]_ - this command print text that extracted from _data_ to character HD44780-based LCD, connected to I2C via PC8574 expander.
+  - _sdaPin, sclPin_ - I2C pins;
+  - _i2cAddress_ - address of PC8574 expander. It can be found with _I2C.scan[]_ command;
+  - _lcdBacklight_ - LCD backlight mode. 0 - off, other - on;
+  - _lcdType_ - type of LCD: 801, 1601, 802, 1202, 1602, 2002, 2402, 4002, 1604, 2004, 4004;
+  - _data_ - HEX-coded string that contain text and display commands. It must begin with _0x_ prefix. Use [http://www.asciitohex.com](http://www.asciitohex.com/) to recode yours text or write small perl script.
+- _pc8574.LCDBLight[sdaPin, sclPin, i2cAddress, lcdBacklight]_ - set LCD backlight mode. _lcdBacklight_ => 0 - off, other - on. Command can be abolished in future;
+
+
+**Note** You must increase _ARGS_PART_SIZE_ in _zabbuino.h_  if full text want to see on display ;)
+
+Supported display HD44780-compatible commands:
+
+- _0x00_ - turn display off. Need to send any other command to turn display on;
+- _0x01_ - clear screen;
+- _0x02_ - go to home (move cursor to top/left character position);
+- _0x04_ - print from right to left (look to animated gifs on [http://www.dinceraydin.com/lcd/commands.htm)](http://www.dinceraydin.com/lcd/commands.htm);
+- _0x05_ - print from right to left with screen shifting;
+- _0x06_ - print from left to right;
+- _0x07_ - print from left to right with screen shifting;
+- _0x0C_ - turn cursor off;
+- _0x0E_ - turn on "underline" cursor;
+- _0x0F_ - turn on "blinking block" cursor;
+- _0x10_ - move cursor one char left;
+- _0x14_ - move cursor one char right;
+- _0x18_ - shift screen to left;
+- _0x1E_ - shift screen to right.
+
+Additional display commands:
+- _0x03_ - blink by backlight twice;
+- _0x09_ - print four spaces (simply "tab");
+- _0x0A_ - line feed, go to newline, position 0;
+- _0x80..0x9F_ - set cursor to _(N - 0x80)_ position. I.e. _0x80_ - position 0 (first char), _0x81_ - position 1 (second char), and so;
+
+
+Example:
+
+
+Print on LCD of 2002 type with turned backlight, that connected via expander with I2C address 0x27:
+
+    zabbix_get.exe -s 192.168.0.1 -k "pc8574.lcdprint[18,19,0x27,1,2002,0x01 93 04 48 65 6c 6c 6f]"
+
+    0x 01             93                    04                            48 65 6c 6c 6f
+       clear screen   from 20-th position   from the right to the left    H  e  l  l  o
+
+    zabbix_get.exe -s 192.168.0.1 -k "pc8574.lcdprint[18,19,0x27,1,2002,0x01 0F 48 65 0A 6c 09 6c 6f]"
+
+    0x 01              0F                    48 65 0A          6c   09           6c 6f
+       clear screen    turn "block" cursor   H  e  line feed   l    four space   l  o
+
+**Note** I'm not sure about correct work of _XX04_ displays. It should be tested, but i haven't hardware.
+
+
 ####01 Jul 2016
 
 New command:

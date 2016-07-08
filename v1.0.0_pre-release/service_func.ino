@@ -31,6 +31,29 @@ void sethostname(char* _dest, const char* _src){
 
 /* ****************************************************************************************************************************
 *
+*   Convert _Qm.n_ float number (int64_t) to char[] 
+*
+**************************************************************************************************************************** */
+uint8_t qtoaf(int64_t _number, char* _dst, uint8_t _fracBits){
+    int64_t tmp; 
+    tmp = _number >> _fracBits;
+    ltoa(tmp, _dst, 10);
+    if (0 == _fracBits) { return true; }
+    while (*_dst) {_dst++;}
+    *_dst = '.'; _dst++;
+    tmp = 1;
+    while (0 < _fracBits) {
+        tmp <<= 1;
+        tmp |= 1;
+        _fracBits--;
+    }
+    tmp = _number & tmp;
+    ltoa(tmp, _dst, 10);
+}
+
+
+/* ****************************************************************************************************************************
+*
 *   Convert int32_t _number to char[]  with decimal point on _num_after_dot position 
 *   _number / (10 * _num_after_dot position) => char[]
 *

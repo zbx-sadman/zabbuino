@@ -49,6 +49,7 @@
 #include <avr/wdt.h>
 // used by interrupts-related macroses
 #include <wiring_private.h>
+#include <util/atomic.h>
 
 /* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
                                                                  PROGRAMM FEATURES SECTION
@@ -79,37 +80,42 @@
 //#define FEATURE_RANDOM_ENABLE
 
 // Uncomment to enable shiftOut[] command
-#define FEATURE_SHIFTOUT_ENABLE
+//#define FEATURE_SHIFTOUT_ENABLE
 
 /****    Other   ****/
 
 // Uncomment to enable external interrupts handling: interrupt.*[] commands
-#define FEATURE_EXTERNAL_INTERRUPT_ENABLE
+//#define FEATURE_EXTERNAL_INTERRUPT_ENABLE
 
 // Uncomment to enable encoder handling with external interrupts: encoder.*[] commands
-#define FEATURE_ENCODER_ENABLE
+//#define FEATURE_ENCODER_ENABLE
 
 /****      1-Wire bus      ****/
 
-// Uncomment to enable 1-Wire functions
-#define FEATURE_OW_ENABLE
+// Uncomment to enable 1-Wire common functions: OW.Scan[]
+//#define FEATURE_OW_ENABLE
 
 // Uncomment to enable Dallas DS18x20 family functions: DS18x20.*[] commands
-#define FEATURE_DS18X20_ENABLE
+//#define FEATURE_DS18X20_ENABLE
 
 /****        I2C bus       ****/
 
 // Note #1: I2C library (Wire.h) takes at least 32bytes of memory for internal buffers
 // Note #2: I2C library (Wire.h) activate internal pullups for SDA & SCL pins when Wire.begin() called
 
-// Uncomment to enable I2C functions
+// Uncomment to enable I2C common functions: I2C.Scan[]
 #define FEATURE_I2C_ENABLE
 
 // Uncomment to enable BMP pressure sensors functions: BMP.*[] commands
-#define FEATURE_BMP085_ENABLE
+//#define FEATURE_BMP_ENABLE
+//#define SUPPORT_BMP180_INCLUDE
+//#define SUPPORT_BMP280_INCLUDE
 
 // Uncomment to enable BH1750 light sensors functions: BH1750.*[] commands
 //#define FEATURE_BH1750_ENABLE
+
+
+#define FEATURE_PC8574_LCD_ENABLE
 
 /****        MicroWire bus       ****/
 
@@ -141,7 +147,7 @@
 // Uncomment to force protect (enable even netConfig.useProtection is true) your system from illegal access for change runtime settings and reboots 
 //#define FEATURE_PASSWORD_PROTECTION_FORCE
 
-// Uncomment to enable system's command which can be used in system debug process: cmdCount, sys.ramFree and so
+// Uncomment to enable system's command which can be used in system debug process: sys.cmd.count, sys.ram.free and so
 #define FEATURE_DEBUG_COMMANDS_ENABLE
 
 // Uncomment to view the debug messages on the Serial Monitor
@@ -156,14 +162,14 @@
 */
 
 // Enable I2C functions if user forget it
-#if defined(FEATURE_BH1750_ENABLE) || defined(FEATURE_BMP085_ENABLE)
-#define FEATURE_I2C_ENABLE
-#endif
+//#if defined(FEATURE_BH1750_ENABLE) || defined(FEATURE_BMP_ENABLE)
+//#define FEATURE_I2C_ENABLE
+//#endif
 
 // Enable 1-Wire functions if user forget it
-#if defined(FEATURE_DS18X20_ENABLE)
-#define FEATURE_OW_ENABLE
-#endif
+//#if defined(FEATURE_DS18X20_ENABLE)
+//#define FEATURE_OW_ENABLE
+//#endif
 
 /* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
                                                                  GLOBAL VARIABLES SECTION
@@ -178,7 +184,7 @@ volatile extInterrupt_t extInterrupt[EXTERNAL_NUM_INTERRUPTS];
 EthernetServer ethServer(10050);
 EthernetClient ethClient;
 
-char cBuffer[BUFFER_SIZE];
+char cBuffer[BUFFER_SIZE+1]; // +1 for trailing \0
 int16_t argOffset[ARGS_MAX];
 int32_t sysMetrics[IDX_METRICS_MAX];
 
@@ -336,7 +342,7 @@ void setup() {
    timerOneInit(SYS_METRIC_RENEW_PERIOD);
 #endif
 
-#ifdef FEATURE_I2C_ENABLE
+#if defined(FEATURE_I2C_ENABLE) || defined(FEATURE_BMP_ENABLE) || defined(FEATURE_BH1750_ENABLE) || defined (FEATURE_PC8574_LCD_ENABLE)
 Wire.begin();
 #endif
 
@@ -994,7 +1000,7 @@ void executeCommand()
          result = oneWireScan(arg[0]);
       }
       break;
-
+#endif // FEATURE_ONEWIRE_ENABLE
 
 #ifdef FEATURE_DS18X20_ENABLE
     case CMD_DS18X20_TEMPERATURE:
@@ -1012,7 +1018,6 @@ void executeCommand()
       }
       break;
 #endif // FEATURE_DS18X20_ENABLE
-#endif // FEATURE_ONEWIRE_ENABLE
 
 #ifdef FEATURE_DHT_ENABLE
     case CMD_DHT_TEMPERATURE:
@@ -1054,8 +1059,9 @@ void executeCommand()
          result = i2CScan();
       }
       break;
+#endif // FEATURE_I2C_ENABLE
        
-#ifdef FEATURE_BMP085_ENABLE
+#ifdef FEATURE_BMP_ENABLE
     case CMD_BMP_TEMPERATURE:
       // Команда: BMP.Temperature[sdaPin, sclPin, i2cAddress]
       // Параметры: sdaPin, sclPin - цифровые обозначение пинов, к которым подключена шина I2C.
@@ -1065,12 +1071,14 @@ void executeCommand()
       //             sdaPin, sclPin на данный момент не применяются (используются стандартные пины для I2C подключения) и зарезервированы для внедрения SoftTWI интерфейсов.
       if (isSafePin(arg[0]) && isSafePin(arg[1])) {
          // (int8_t) arg[2] is i2c address, 7 bytes size
-         result = BMP085Read(arg[0], arg[1], arg[2], arg[3], SENS_READ_TEMP, cBuffer);
+         result = BMPRead(arg[0], arg[1], arg[2], arg[3], arg[4], SENS_READ_TEMP, cBuffer);
       }
       break;
-  
+
+// How about IIR filter settings for BMP280? 
+
     case CMD_BMP_PRESSURE:
-      // Команда: BMP.Pressure[sdaPin, sclPin, i2cAddress, overSampling]
+      // Команда: BMP.Pressure[sdaPin, sclPin, i2cAddress, overSampling, filterCoef]
       // Параметры: sdaPin, sclPin - цифровые обозначение пинов, к которым подключена шина I2C.
       //            i2cAddress - адрес датчика на шине I2C (адрес по умолчанию: 0x77) 
       //            overSampling - значение, определяющее точность и длительность измерения.
@@ -1079,11 +1087,11 @@ void executeCommand()
       // Примечание: sdaPin, sclPin на данный момент не применяются (используются стандартные пины для I2C подключения) и зарезервированы для внедрения SoftTWI интерфейсов.
       if (isSafePin(arg[0]) && isSafePin(arg[1])) {
           // (int8_t) arg[2] is i2c address, 7 bytes size
-         result = BMP085Read(arg[0], arg[1], arg[2], arg[3], SENS_READ_PRSS, cBuffer);
+         result = BMPRead(arg[0], arg[1], arg[2], arg[3], arg[4], SENS_READ_PRSS, cBuffer);
       }
       break;
   
-#endif // FEATURE_BMP085_ENABLE
+#endif // FEATURE_BMP_ENABLE
 
 #ifdef FEATURE_BH1750_ENABLE
     case CMD_BH1750_LIGHT:
@@ -1102,7 +1110,6 @@ void executeCommand()
       }
       break;
 #endif // FEATURE_BH1750_ENABLE
-#endif // FEATURE_I2C_ENABLE
 
 
 #ifdef FEATURE_MAX7219_ENABLE
@@ -1131,6 +1138,25 @@ void executeCommand()
       }
       break;
 #endif // FEATURE_MAX7219_ENABLE
+
+#ifdef FEATURE_PC8574_LCD_ENABLE
+    case CMD_PC8574_LCDPRINT:
+      if (isSafePin(arg[0]) && isSafePin(arg[1])) {
+         // (int8_t) arg[2] is i2c address, 7 bytes size
+         result = pc8574LCDOutput(arg[0], arg[1], arg[2], arg[3], arg[4], &cBuffer[argOffset[5]]);
+      }
+      break;
+
+    case CMD_PC8574_LCDBLIGHT:
+      if (isSafePin(arg[0]) && isSafePin(arg[1])) {
+         // (int8_t) arg[2] is i2c address, 7 bytes size
+         // arg[3] - bl on/off
+         pc8574LCDBackLight(arg[0], arg[1], arg[2], arg[3]);
+         result = RESULT_IS_OK;
+      }
+      break;
+      
+#endif // FEATURE_PC8574_LCD_ENABLE
 
       // Команда: shiftOut[dataPin, clockPin, latchPin, bitOrder, value]
       // Параметры: dataPin, clockPin, latchPin - цифровое обозначения пинов вывода данных, синхронизации, защелкивания.
@@ -1226,7 +1252,7 @@ void executeCommand()
 
 #ifdef FEATURE_ENCODER_ENABLE
     case CMD_ECODER_COUNT:
-      // Команда: encoder.count[terminalAPin, terminalBPin, intNumber, initialNumber]
+      // Команда: incEnc.count[terminalAPin, terminalBPin, intNumber, initialNumber]
 
       // TODO: maybe need to rework code block
       // 

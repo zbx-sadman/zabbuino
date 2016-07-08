@@ -82,7 +82,9 @@ void gatherMetrics(){
 *
 **************************************************************************************************************************** */
 void correctMemoryMetrics(uint32_t _currMemFree) {
-  sysMetrics[IDX_METRIC_SYS_RAM_FREEMIN] = min(_currMemFree, sysMetrics[IDX_METRIC_SYS_RAM_FREEMIN]);
+  if (sysMetrics[IDX_METRIC_SYS_RAM_FREEMIN] > _currMemFree) {
+     sysMetrics[IDX_METRIC_SYS_RAM_FREEMIN] = _currMemFree;
+  }
 }           
       
 
@@ -92,8 +94,12 @@ void correctMemoryMetrics(uint32_t _currMemFree) {
 *
 **************************************************************************************************************************** */
 void correctVCCMetrics(uint32_t _currVCC) {
-  sysMetrics[IDX_METRIC_SYS_VCCMIN] = min(_currVCC, sysMetrics[IDX_METRIC_SYS_VCCMIN]);
-  sysMetrics[IDX_METRIC_SYS_VCCMAX] = max(_currVCC, sysMetrics[IDX_METRIC_SYS_VCCMAX]);
+  if (sysMetrics[IDX_METRIC_SYS_VCCMIN] > _currVCC) {
+     sysMetrics[IDX_METRIC_SYS_VCCMIN] = _currVCC;
+  }
+  if (sysMetrics[IDX_METRIC_SYS_VCCMAX] < _currVCC) {
+     sysMetrics[IDX_METRIC_SYS_VCCMAX] = _currVCC;
+  }
 }
 
 

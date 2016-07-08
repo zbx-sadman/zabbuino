@@ -84,7 +84,7 @@
 // Number of expected arguments of the command
 #define ARGS_MAX                    	6
 // Size of buffer's argument part. All separators and delimiters must be taken into account
-#define ARGS_PART_SIZE         	        50
+#define ARGS_PART_SIZE         	        90
 // Size of buffer's command part
 #define CMD_PART_SIZE          	        25
 // The total size of the buffer
@@ -291,7 +291,7 @@ D13 -^    ^- D8    <- pins   */
                                                             COMMAND NAMES SECTION 
 */
 // Increase this if add new command 
-#define CMD_MAX 0x30
+#define CMD_MAX 0x2C
 
 // Add command macro with new sequental number
 #define CMD_ZBX_NOPE             	0x00
@@ -352,6 +352,9 @@ D13 -^    ^- D8    <- pins   */
 
 #define CMD_ECODER_COUNT                0x29
 
+#define CMD_PC8574_LCDPRINT            	0x2A
+#define CMD_PC8574_LCDBLIGHT            0x2B
+
 // add new command as "const char command_<COMMAND_MACRO> PROGMEM". Only 'const' push string to PROGMEM. Tanx, Arduino.
 const char command_CMD_ZBX_NOPE[]       		PROGMEM	= "";
 const char command_CMD_ZBX_AGENT_PING[] 		PROGMEM	= "agent.ping";
@@ -409,7 +412,12 @@ const char command_CMD_BH1750_LIGHT[] 			PROGMEM = "bh1750.light";
 
 const char command_CMD_MAX7219_WRITE[] 			PROGMEM = "max7219.write";
 
-const char command_CMD_ECODER_COUNT[] 			PROGMEM = "encoder.count";
+const char command_CMD_ECODER_COUNT[] 			PROGMEM = "incenc.count";
+
+const char command_CMD_PC8574_LCDPRINT[] 		PROGMEM = "pc8574.lcdprint";
+
+const char command_CMD_PC8574_LCDBLIGHT[]   		PROGMEM = "pc8574.lcdblight";
+
 
 // do not insert new command to any position without syncing indexes. Tanx, Arduino, for this method of string array pushing to PROGMEM
 const char* const commands[] PROGMEM = {
@@ -470,7 +478,10 @@ const char* const commands[] PROGMEM = {
 
   command_CMD_MAX7219_WRITE,
 
-  command_CMD_ECODER_COUNT
+  command_CMD_ECODER_COUNT,
+
+  command_CMD_PC8574_LCDPRINT,
+  command_CMD_PC8574_LCDBLIGHT
   
 };
 /*
