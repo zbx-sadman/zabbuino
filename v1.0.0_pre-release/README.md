@@ -1,6 +1,10 @@
 # Zabbuino 1.0.0 (pre-release)
 
 
+####09 Jul 2016
+
+Unfortunately, i've found that DHT-functions of Zabbuino works unstable on long time testing and can hang up the system. I keep on to seek a solution.
+
 ####08 Jul 2016
 
 Fixes:
