@@ -33,77 +33,6 @@ int32_t i2CScan()
 
 /* ****************************************************************************************************************************
 *
-*  Reads a 16 bit value over I2C
-*
-**************************************************************************************************************************** */
-uint16_t i2CRead16(int8_t _i2cAddress, uint8_t _registerAddress)
-{
-  uint16_t result;
-  // start transmission to device
-  Wire.beginTransmission(_i2cAddress);
-  // sends register address to read from
-  Wire.write(_registerAddress);
-  // end transmission
-  Wire.endTransmission();
-
-  // start transmission to device
-  Wire.beginTransmission(_i2cAddress);
-  Wire.requestFrom(_i2cAddress, 2);
-  // Infinite loop can be caused if bus not ready or broken 
-//  while (Wire.available() < 2)
-//    ;
-  result = Wire.read();
-  result <<= 8;
-  result |= Wire.read();
-  // end transmission
-  Wire.endTransmission();
-
-  return result;
-}
-
-/* ****************************************************************************************************************************
-*
-*   Reads a signed 16 bit value over I2C 
-*
-**************************************************************************************************************************** */
-uint16_t i2CRead16_LE(int8_t _i2cAddress, uint8_t _registerAddress) {
-  uint16_t temp = i2CRead16(_i2cAddress, _registerAddress);
-  return (temp >> 8) | (temp << 8);
-}
-
-
-/* ****************************************************************************************************************************
-*
-*  Reads a 24 bit value over I2C
-*
-**************************************************************************************************************************** */
-uint32_t i2CRead24(int8_t _i2cAddress, uint8_t _registerAddress)
-{
-  uint16_t result;
-  // start transmission to device
-  Wire.beginTransmission(_i2cAddress);
-  // sends register address to read from
-  Wire.write(_registerAddress);
-  // end transmission
-  Wire.endTransmission();
-
-  // start transmission to device
-  Wire.beginTransmission(_i2cAddress);
-  Wire.requestFrom(_i2cAddress, 3);
-
-  result = Wire.read();
-  result <<= 8;
-  result |= Wire.read();
-  result <<= 8;
-  result |= Wire.read();
-  // end transmission
-  Wire.endTransmission();
-
-  return result;
-}
-
-/* ****************************************************************************************************************************
-*
 *  Write 1 byte to I2C device register
 *
 **************************************************************************************************************************** */
@@ -115,70 +44,162 @@ void i2CWriteByte(uint8_t _i2cAddress, uint8_t _registerAddress, uint8_t _data)
   Wire.endTransmission(); // end transmission
 }
 
+/* ****************************************************************************************************************************
+*
+*  Reads  N bytes over I2C
+*
+**************************************************************************************************************************** */
+void i2CReadBytes(const uint8_t _i2cAddress, const uint8_t _registerAddress, uint8_t _buff[], const uint8_t length=1)
+{
+    Wire.beginTransmission(_i2cAddress); 	// Adress + WRITE (0)
+    Wire.write(_registerAddress);
+    Wire.endTransmission(false); 		// No Stop Condition, for repeated Talk
+    if (!length) return;
+
+    uint8_t i = 0;
+    Wire.requestFrom(_i2cAddress, length); 	// Address + READ (1)
+    while(Wire.available())
+    {
+        _buff[i] = Wire.read();
+        i++;
+    }
+
+    Wire.endTransmission(true); 		// Stop Condition
+};
+
+/* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
+                                                                     SHT21 SECTION
+*/
+
+#define SHT2X_I2C_ADDRESS              0x40
+#define SHT2X_CMD_GETTEMP_HOLD         0xE3
+#define SHT2X_CMD_GETHUMD_HOLD         0xE5
+
+uint16_t SHT2XReadSensor(const uint8_t _i2cAddress, const uint8_t _command)
+{
+    uint16_t result;
+    Wire.beginTransmission(_i2cAddress);
+    Wire.write(_command);
+    delay(100);
+    Wire.endTransmission();
+
+    Wire.requestFrom((uint8_t)_i2cAddress, (uint8_t) 3);
+    uint32_t timeout = millis() + 300;       // Don't hang here for more than 300ms
+    while (Wire.available() < 3) {
+      if ((millis() - timeout) > 0) {
+            return 0;
+        }
+    }
+    //Store the result
+    result = Wire.read() << 8;
+    result += Wire.read();
+    result &= ~0x0003;   // clear two low bits (status bits)
+    //Clear the final byte from the buffer
+    Wire.read();
+    return result;
+}
+
+int32_t SHT2XRead(uint8_t _sdaPin, uint8_t _sclPin, uint8_t _i2cAddress, uint8_t _metric, char* _outBuffer) 
+{
+  int32_t result = 0;
+  uint16_t rawData; 
+  
+  switch (_i2cAddress) {
+    case SHT2X_I2C_ADDRESS:
+      break;
+    default:  
+       _i2cAddress = SHT2X_I2C_ADDRESS;
+  }
+
+  
+  switch (_metric) {
+    case SENS_READ_TEMP:
+      rawData = SHT2XReadSensor(_i2cAddress, SHT2X_CMD_GETTEMP_HOLD);
+      // Default humidity  resolution - 14 bit => 0.01C
+      // all part of equation must be multiplied by 100 to get 2-digit fract part by ltoaf() 
+      // H_real = 100 * -6 + (100 * 125 * H_raw) / (2^16)
+      result = (((uint32_t)rawData * 17572) >> 16) - 4685;
+      break;
+      
+    case SENS_READ_HUMD:
+      rawData = SHT2XReadSensor(_i2cAddress, SHT2X_CMD_GETHUMD_HOLD);
+      // Default humidity  resolution - 12 bit => 0.04%RH
+      // all part of equation must be multiplied by 100 to get 2-digit fract part by ltoaf() 
+      // H_real = 100 * -6 + (100 * 125 * H_raw) / (2^16)
+      if (0 < rawData) { result = (((uint32_t)rawData * 100 * 125) >> 16) - 600; }
+  }
+  // result /=100
+  ltoaf(result, _outBuffer, 2);
+  return RESULT_IN_BUFFER;  
+
+}
+
 
 /* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
                                                                      BMP SECTION
 */
 
-#define BMP180_I2C_ADDRESS             0x77  // I2C address of BMP sensor
+#define BMP180_I2C_ADDRESS                                      0x77  // I2C address of BMP085/180 sensor
 
-#define BMP280_I2C_ADDRESS_1           0x76
-#define BMP280_I2C_ADDRESS_2           0x77
-
-
-#define BMP_REG_CHIPID                 0xD0
-
-#define BMP_REG_CONTROL                0xF4 
-#define BMP_REG_TEMPDATA               0xF6
-#define BMP_REG_PRESSUREDATA           0xF6
-#define BMP_CMD_READTEMP               0x2E
-#define BMP_CMD_READPRESSURE           0x34
-
-#define BMP085_CHIPID                  0x55
-#define BMP180_CHIPID                  0x55
-#define BMP280_CHIPID_1                0x56
-#define BMP280_CHIPID_2                0x57
-#define BMP280_CHIPID_3                0x58
+#define BMP280_I2C_ADDRESS_1                                    0x76  // I2C address of BMP280/BME280 sensor
+#define BMP280_I2C_ADDRESS_2                                    0x77
 
 
-#define BMP085_ULTRALOWPOWER           0x00
-#define BMP085_STANDARD                0x01
-#define BMP085_HIGHRES                 0x02
-#define BMP085_ULTRAHIGHRES            0x03
+#define BMP_REG_CHIPID                                          0xD0
 
-#define BMP085_REG_CAL_AC1             0xAA  // R   Calibration data (16 bits)
-#define BMP085_REG_CAL_AC2             0xAC  // R   Calibration data (16 bits)
-#define BMP085_REG_CAL_AC3             0xAE  // R   Calibration data (16 bits)    
-#define BMP085_REG_CAL_AC4             0xB0  // R   Calibration data (16 bits)
-#define BMP085_REG_CAL_AC5             0xB2  // R   Calibration data (16 bits)
-#define BMP085_REG_CAL_AC6             0xB4  // R   Calibration data (16 bits)
-#define BMP085_REG_CAL_B1              0xB6  // R   Calibration data (16 bits)
-#define BMP085_REG_CAL_B2              0xB8  // R   Calibration data (16 bits)
-#define BMP085_REG_CAL_MB              0xBA  // R   Calibration data (16 bits)
-#define BMP085_REG_CAL_MC              0xBC  // R   Calibration data (16 bits)
-#define BMP085_REG_CAL_MD              0xBE  // R   Calibration data (16 bits)
+#define BMP_REG_CONTROL                                         0xF4 
+#define BMP_REG_TEMPDATA                                        0xF6
+#define BMP_REG_PRESSUREDATA                                    0xF6
+#define BMP_CMD_READTEMP                                        0x2E
+#define BMP_CMD_READPRESSURE                                    0x34
 
 
-#define BMP280_REGISTER_DIG_T1         0x88
-#define BMP280_REGISTER_DIG_T2         0x8A
-#define BMP280_REGISTER_DIG_T3         0x8C
+#define BMP085_CHIPID                                           0x55
+#define BMP180_CHIPID                                           0x55
+#define BMP280_CHIPID_1                                         0x56 // Only for engeneering samples (BMP180 datasheet, page 24)
+#define BMP280_CHIPID_2                                         0x57 // Only for engeneering samples
+#define BMP280_CHIPID_3                                         0x58 // Mass production ID
 
-#define BMP280_REGISTER_DIG_P1         0x8E
-#define BMP280_REGISTER_DIG_P2         0x90
-#define BMP280_REGISTER_DIG_P3         0x92
-#define BMP280_REGISTER_DIG_P4         0x94
-#define BMP280_REGISTER_DIG_P5         0x96
-#define BMP280_REGISTER_DIG_P6         0x98
-#define BMP280_REGISTER_DIG_P7         0x9A
-#define BMP280_REGISTER_DIG_P8         0x9C
-#define BMP280_REGISTER_DIG_P9         0x9E
+#define BME280_CHIPID                                           0x60 // 
 
-#define BMP280_REGISTER_CAL26          0xE1  // R calibration stored in 0xE1-0xF0
+#define BMP085_ULTRALOWPOWER                                    0x00
+#define BMP085_STANDARD                                         0x01
+#define BMP085_HIGHRES                                          0x02
+#define BMP085_ULTRAHIGHRES                                     0x03
 
-#define BMP280_REGISTER_CONTROL        0xF4
-#define BMP280_REGISTER_CONFIG         0xF5
-#define BMP280_REGISTER_PRESSUREDATA   0xF7
-#define BMP280_REGISTER_TEMPDATA       0xFA
+#define BMP085_REG_CAL_AC1                                      0xAA  // R   Calibration data (16 bits)
+#define BMP085_REG_CAL_AC2                                      0xAC  // R   Calibration data (16 bits)
+#define BMP085_REG_CAL_AC3                                      0xAE  // R   Calibration data (16 bits)    
+#define BMP085_REG_CAL_AC4                                      0xB0  // R   Calibration data (16 bits)
+#define BMP085_REG_CAL_AC5                                      0xB2  // R   Calibration data (16 bits)
+#define BMP085_REG_CAL_AC6                                      0xB4  // R   Calibration data (16 bits)
+#define BMP085_REG_CAL_B1                                       0xB6  // R   Calibration data (16 bits)
+#define BMP085_REG_CAL_B2                                       0xB8  // R   Calibration data (16 bits)
+#define BMP085_REG_CAL_MB                                       0xBA  // R   Calibration data (16 bits)
+#define BMP085_REG_CAL_MC                                       0xBC  // R   Calibration data (16 bits)
+#define BMP085_REG_CAL_MD                                       0xBE  // R   Calibration data (16 bits)
+
+
+#define BMP280_REGISTER_DIG_T1                                  0x88
+#define BMP280_REGISTER_DIG_T2                                  0x8A
+#define BMP280_REGISTER_DIG_T3                                  0x8C
+
+#define BMP280_REGISTER_DIG_P1                                  0x8E
+#define BMP280_REGISTER_DIG_P2                                  0x90
+#define BMP280_REGISTER_DIG_P3                                  0x92
+#define BMP280_REGISTER_DIG_P4                                  0x94
+#define BMP280_REGISTER_DIG_P5                                  0x96
+#define BMP280_REGISTER_DIG_P6                                  0x98
+#define BMP280_REGISTER_DIG_P7                                  0x9A
+#define BMP280_REGISTER_DIG_P8                                  0x9C
+#define BMP280_REGISTER_DIG_P9                                  0x9E
+
+#define BMP280_REGISTER_CAL26                                   0xE1  // R calibration stored in 0xE1-0xF0
+
+#define BMP280_REGISTER_CONTROL                                 0xF4
+#define BMP280_REGISTER_CONFIG                                  0xF5
+#define BMP280_REGISTER_PRESSUREDATA                            0xF7
+#define BMP280_REGISTER_TEMPDATA                                0xFA
 
 #define BMP280_OVERSAMP_SKIPPED          			0x00
 #define BMP280_OVERSAMP_1X               			0x01
@@ -227,6 +248,17 @@ void i2CWriteByte(uint8_t _i2cAddress, uint8_t _registerAddress, uint8_t _data)
 #define BMP280_STANDBY_TIME_2000_MS                             0x06
 #define BMP280_STANDBY_TIME_4000_MS                             0x07
 
+
+// BME280 additional registers
+#define BME280_REGISTER_DIG_H1                                  0xA1
+#define BME280_REGISTER_DIG_H2                                  0xE1
+#define BME280_REGISTER_DIG_H3                                  0xE3
+#define BME280_REGISTER_DIG_H4                                  0xE4
+#define BME280_REGISTER_DIG_H5                                  0xE5
+#define BME280_REGISTER_DIG_H6                                  0xE7
+
+#define BME280_REGISTER_HUMIDDATA                               0xFD
+
 #define T_INIT_MAX						20   // 20/16 = 1.25 ms
 #define T_MEASURE_PER_OSRS_MAX					37   // 37/16 = 2.3125 ms
 #define T_SETUP_PRESSURE_MAX					10   // 10/16 = 0.625 ms
@@ -252,13 +284,14 @@ int32_t BMPRead(uint8_t _sdaPin, uint8_t _sclPin, uint8_t _i2cAddress, uint8_t _
   // 2:received NACK on transmit of address
   // 3:received NACK on transmit of data
   // 4:other error
-  if (0 != Wire.endTransmission()) { return DEVICE_DISCONNECTED_C; }
+  if (0 != Wire.endTransmission()) { return DEVICE_ERROR_CONNECT; }
 
   Wire.beginTransmission(_i2cAddress);
   Wire.requestFrom((uint8_t) _i2cAddress, (uint8_t) 1);
   chipID = Wire.read();
   Wire.endTransmission();
-
+  Serial.println(chipID);
+  
   switch (chipID) {
     // BMP085 and BMP180 have the same ID  
 #ifdef SUPPORT_BMP180_INCLUDE
@@ -273,8 +306,16 @@ int32_t BMPRead(uint8_t _sdaPin, uint8_t _sclPin, uint8_t _i2cAddress, uint8_t _
        BMP280Read(_sdaPin, _sclPin, _i2cAddress, _overSampling, _filterCoef, _metric, _outBuffer);
        break;
 #endif
+//#ifdef SUPPORT_BME280_INCLUDE
+    case BME280_CHIPID:
+       Serial.println("BME");
+
+       // BME280 is BMP280 with additional humidity sensor
+       BMP280Read(_sdaPin, _sclPin, _i2cAddress, _overSampling, _filterCoef, _metric, _outBuffer);
+       break;
+//#endif
     default:  
-       ; 
+       return DEVICE_ERROR_CONNECT;  
   }
   return RESULT_IN_BUFFER;  
 }
@@ -292,58 +333,12 @@ int32_t BMP280Read(uint8_t _sdaPin, uint8_t _sclPin, uint8_t _i2cAddress, uint8_
   uint16_t dig_P1;
   int16_t  dig_P2, dig_P3, dig_P4, dig_P5, dig_P6, dig_P7, dig_P8, dig_P9;
 
-/*      uint8_t dig_H1, dig_H3;
-      int16_t  dig_H2, dig_H4, dig_H5;
-      int8_t dig_H6;
-*/
-  int32_t adc;
-  int64_t pvar1, pvar2, result;
-  int32_t var1, var2, t_fine;
+  uint8_t dig_H1, dig_H3;
+  int8_t dig_H6;
+  int16_t  dig_H2, dig_H4, dig_H5;
 
-  /* read calibration data */
-  dig_T1 = i2CRead16_LE(_i2cAddress, BMP280_REGISTER_DIG_T1);
-  dig_T2 = (int16_t) i2CRead16_LE(_i2cAddress, BMP280_REGISTER_DIG_T2);
-  dig_T3 = (int16_t) i2CRead16_LE(_i2cAddress, BMP280_REGISTER_DIG_T3);
-
-  dig_P1 = i2CRead16_LE(_i2cAddress, BMP280_REGISTER_DIG_P1);
-  dig_P2 = (int16_t) i2CRead16_LE(_i2cAddress, BMP280_REGISTER_DIG_P2);
-  dig_P3 = (int16_t) i2CRead16_LE(_i2cAddress, BMP280_REGISTER_DIG_P3);
-  dig_P4 = (int16_t) i2CRead16_LE(_i2cAddress, BMP280_REGISTER_DIG_P4);
-  dig_P5 = (int16_t) i2CRead16_LE(_i2cAddress, BMP280_REGISTER_DIG_P5);
-  dig_P6 = (int16_t) i2CRead16_LE(_i2cAddress, BMP280_REGISTER_DIG_P6);
-  dig_P7 = (int16_t) i2CRead16_LE(_i2cAddress, BMP280_REGISTER_DIG_P7);
-  dig_P8 = (int16_t) i2CRead16_LE(_i2cAddress, BMP280_REGISTER_DIG_P8);
-  dig_P9 = (int16_t) i2CRead16_LE(_i2cAddress, BMP280_REGISTER_DIG_P9);
-
-/*  testing values */
-/*   
-    dig_T1 = 27504;
-    dig_T2 = 26435;
-    dig_T3 = -1000;
-
-    dig_P1 = 36477;
-    dig_P2 = -10685;
-    dig_P3 = 3024;
-    dig_P4 = 2855;
-    dig_P5 = 140;
-    dig_P6 = -7;
-    dig_P7 = 15500;
-    dig_P8 = -14600;
-    dig_P9 = 6000;
-
-    adc = 519888;
-*/
-
-
-/*
-Original BOSCH code:
-
-    BMP280_S32_t var1, var2, T;
-    var1 = ((((adc_T>>3) – ((BMP280_S32_t)dig_T1<<1))) * ((BMP280_S32_t)dig_T2)) >> 11;
-    var2 = (((((adc_T>>4) – ((BMP280_S32_t)dig_T1)) * ((adc_T>>4) – ((BMP280_S32_t)dig_T1))) >> 12) * ((BMP280_S32_t)dig_T3)) >> 14;
-    t_fine = var1 + var2;
-*/
-
+  int32_t adc, result, var1, var2, t_fine;
+  uint8_t value[3];
 
   switch (_filterCoef) {
     case BMP280_FILTER_COEFF_OFF: 
@@ -356,6 +351,10 @@ Original BOSCH code:
       _filterCoef = BMP280_FILTER_COEFF_OFF;   
    }
    
+  // Set filter coefficient. While BMP280 used in Forced mode - BMP280_STANDBY_TIME_4000_MS can be any. '0' - define SPI configuration. Not used.
+  i2CWriteByte(_i2cAddress, BMP280_REGISTER_CONFIG, ((BMP280_STANDBY_TIME_4000_MS << 6)| (_filterCoef << 3) | 0 ));
+
+
   // set work mode
   switch ( _overSampling) {
     case BMP280_ULTRALOWPOWER: 
@@ -380,9 +379,6 @@ Original BOSCH code:
       var2 = BMP280_STANDARD_OVERSAMP_PRESSURE;
   }
 
-  // Set filter coefficient. While BMP280 used in Forced mode - BMP280_STANDBY_TIME_4000_MS can be any. '0' - define SPI configuration. Not used.
-  i2CWriteByte(_i2cAddress, BMP280_REGISTER_CONFIG, ((BMP280_STANDBY_TIME_4000_MS << 6)| (_filterCoef << 3) | 0 ));
-
   // var1 is oversamp_temperature
   // var2 is oversamp_pressure
   // Use var1 as temp variable for store conversion delay time
@@ -391,37 +387,92 @@ Original BOSCH code:
   i2CWriteByte(_i2cAddress, BMP_REG_CONTROL, ((var1 << 6)| (var2 << 3) | BMP280_FORCED_MODE));
   delay(var1);
 
-
   // Compensate temperature caculation
-  adc = i2CRead24(_i2cAddress, BMP280_REGISTER_TEMPDATA);
-  adc >>= 3;
-  var1  = (((adc - ((int32_t) dig_T1 << 1))) * ((int32_t) dig_T2)) >> 11;
-  adc = (adc >> 1) - (int32_t) dig_T1;
-  var2  = (((adc * adc) >> 12) * ((int32_t) dig_T3)) >> 14;
+  /* read calibration data */
+  i2CReadBytes(_i2cAddress, BMP280_REGISTER_DIG_T1, value, 2);
+  dig_T1 = uint16_t((uint16_t(value[1]<<8)) | value[0]);
+  
+  i2CReadBytes(_i2cAddress, BMP280_REGISTER_DIG_T2, value, 2);
+  dig_T2 = int16_t((value[1]<<8) | value[0]);
+  
+  i2CReadBytes(_i2cAddress, BMP280_REGISTER_DIG_T3, value, 2);
+  dig_T3 = int16_t((value[1]<<8) | value[0]);
+
+  // Read raw value  
+  i2CReadBytes(_i2cAddress, BMP280_REGISTER_TEMPDATA, value, 3);
+  adc = (uint32_t(uint16_t(value[0] << 8) | value[1]) << 4) | (value[2] >> 4);
+
+  var1 = ((((adc >> 3) - ((int32_t) dig_T1 << 1))) * ((int32_t) dig_T2)) >> 11;
+  var2 = (((((adc >> 4) - ((int32_t) dig_T1)) * ((adc >> 4) - ((int32_t) dig_T1))) >> 12) * ((int32_t) dig_T3)) >> 14;
+
   t_fine = var1 + var2;
 
+  switch (_metric) {
+    case SENS_READ_TEMP:
+      // real temperature caculation
+      result  = (t_fine * 5 + 128) >> 8;
+      //  return T/100;    
+      ltoaf(result, _outBuffer, 2);
+      break;
 
-  if ( SENS_READ_PRSS == _metric) {
-     // Pressure caculation
-     adc = i2CRead24(_i2cAddress, BMP280_REGISTER_PRESSUREDATA);
-     // Test value
-     // adc = 415148;
-     // It's the BOSH code, page 22 of datasheet
-     pvar1 = ((int64_t) t_fine) - 128000;
-     pvar2 = pvar1 * pvar1 * (int64_t) dig_P6;
-     pvar2 = pvar2 + ((pvar1*(int64_t) dig_P5) << 17);
-     pvar2 = pvar2 + (((int64_t) dig_P4) << 35);
-     pvar1 = ((pvar1 * pvar1 * (int64_t) dig_P3) >> 8) + ((pvar1 * (int64_t) dig_P2) << 12);
-     pvar1 = (((((int64_t) 1) << 47)+pvar1))*((int64_t) dig_P1) >> 33;
+    case SENS_READ_PRSS:
+      /* read calibration data */
+      i2CReadBytes(_i2cAddress, BMP280_REGISTER_DIG_P1, value, 2);
+      dig_P1 = uint16_t((uint16_t(value[1]<<8)) | value[0]);
+      
+      i2CReadBytes(_i2cAddress, BMP280_REGISTER_DIG_P2, value, 2);
+      dig_P2 = int16_t((value[1]<<8) | value[0]);
+      
+      i2CReadBytes(_i2cAddress, BMP280_REGISTER_DIG_P3, value, 2);
+      dig_P3 = int16_t((value[1]<<8) | value[0]);
 
-     if (pvar1 == 0) {
-        return 0;  // avoid exception caused by division by zero
-     }
-     result = 1048576 - adc;
-     result = (((result << 31) - pvar2) * 3125) / pvar1;
-     pvar1 = (((int64_t) dig_P9) * (result >> 13) * (result  >> 13)) >> 25;
-     pvar2 = (((int64_t) dig_P8) * result) >> 19;
-     result = ((result + pvar1 + pvar2) >> 8) + (((int64_t) dig_P7) << 4);
+      i2CReadBytes(_i2cAddress, BMP280_REGISTER_DIG_P4, value, 2);
+      dig_P4 = int16_t((value[1]<<8) | value[0]);
+      
+      i2CReadBytes(_i2cAddress, BMP280_REGISTER_DIG_P5, value, 2);
+      dig_P5 = int16_t((value[1]<<8) | value[0]);
+      
+      i2CReadBytes(_i2cAddress, BMP280_REGISTER_DIG_P6, value, 2);
+      dig_P6 = int16_t((value[1]<<8) | value[0]);
+
+      i2CReadBytes(_i2cAddress, BMP280_REGISTER_DIG_P7, value, 2);
+      dig_P7 = int16_t((value[1]<<8) | value[0]);
+      
+      i2CReadBytes(_i2cAddress, BMP280_REGISTER_DIG_P8, value, 2);
+      dig_P8 = int16_t((value[1]<<8) | value[0]);
+      
+      i2CReadBytes(_i2cAddress, BMP280_REGISTER_DIG_P9, value, 2);
+      dig_P9 = int16_t((value[1]<<8) | value[0]);
+
+      // Test value
+      // adc = 415148 ( from BOSH datasheet)
+      // Read raw value  
+      i2CReadBytes(_i2cAddress, BMP280_REGISTER_PRESSUREDATA, value, 3);
+      adc = (uint32_t( uint16_t(value[0] << 8) | value[1])<<4) | (value[2]>>4);
+
+      // Compensate pressure caculation
+      var1 = (((int32_t)t_fine) >> 1) - (int32_t) 64000;
+      var2 = (((var1 >> 2) * (var1 >> 2)) >> 11 ) * ((int32_t) dig_P6);
+      var2 = var2 + ((var1 * ((int32_t) dig_P5)) << 1);
+      var2 = (var2 >> 2) + (((int32_t) dig_P4) << 16);
+      var1 = (((dig_P3 * (((var1 >> 2) * (var1 >> 2)) >> 13 )) >> 3) + ((((int32_t) dig_P2) * var1) >> 1)) >> 18;
+      var1 =((((32768 + var1)) * ((int32_t) dig_P1)) >> 15);
+
+      // avoid exception caused by division by zero
+      if (var1 == 0) { 
+        return 0; 
+      }
+
+      result = (((uint32_t)(((int32_t) 1048576) - adc)-(var2 >> 12))) * 3125;
+      if (result < 0x80000000) {
+         result = (result << 1) / ((uint32_t) var1); 
+      } else {
+         result = (result / (uint32_t) var1) * 2; 
+      }
+
+      var1 = (((int32_t) dig_P9) * ((int32_t)(((result >> 3) * (result >> 3)) >> 13))) >> 12;
+      var2 = (((int32_t)(result >> 2)) * ((int32_t) dig_P8)) >> 13;
+      result = (uint32_t)((int32_t) result + ((var1 + var2 + dig_P7) >> 4));
 
      // BOSH on page 22 of datasheet say: "Returns pressure in Pa as unsigned 32 bit integer in Q24.8 format (24 integer bits and 8 fractional bits)." 
      // 24674867 in Q24.8 is 96386 in whole part (24674867 >> 8) , and 51 in frac part (24674867 & B11111111) => 96386.51
@@ -429,13 +480,50 @@ Original BOSCH code:
      //
      // What way is right, BOSCH? 
      //
-     qtoaf(result, _outBuffer, 8);
-  } else {
-     // Temperature caculation
-     result  = (t_fine * 5 + 128) >> 8;
-     //  return T/100;    
-     ltoaf(result, _outBuffer, 2);
-  }
+     ltoa(result, _outBuffer, 10);
+     break;
+     
+#ifdef SUPPORT_BME280_INCLUDE
+    case SENS_READ_HUMD:
+      /* read calibration data */
+      i2CReadBytes(_i2cAddress, BME280_REGISTER_DIG_H1, value, 1);
+      dig_H1 = value[0];
+  
+      i2CReadBytes(_i2cAddress, BME280_REGISTER_DIG_H2, value, 2);
+      dig_H2 = int16_t((value[1]<<8) | value[0]);
+
+      i2CReadBytes(_i2cAddress, BME280_REGISTER_DIG_H3, value, 1);
+      dig_H3 = value[0];
+
+      i2CReadBytes(_i2cAddress, BME280_REGISTER_DIG_H4, value, 2);
+      dig_H4 = (value[0] << 4) | (value[1] & 0xF);
+
+      i2CReadBytes(_i2cAddress, BME280_REGISTER_DIG_H5, value, 2);
+      dig_H5 = (value[1] << 4) | (value[0] >> 4);
+
+      i2CReadBytes(_i2cAddress, BME280_REGISTER_DIG_H6, value, 1);
+      dig_H6 = (int8_t) value[0];
+    
+      // Read raw value  
+      i2CReadBytes(_i2cAddress, BME280_REGISTER_HUMIDDATA, value, 2);
+
+      adc = (value[0] << 8) | value[1];
+     
+      // Compensate humidity caculation
+      var1 = (t_fine -  ((int32_t) 76800));
+      var1 = (((((adc << 14) - (((int32_t) dig_H4) << 20) - (((int32_t) dig_H5) * var1)) +
+             ((int32_t) 16384)) >> 15) * (((((((var1 * ((int32_t) dig_H6)) >> 10) * (((var1 * 
+             ((int32_t) dig_H3)) >> 11) + ((int32_t) 32768))) >> 10) + ((int32_t) 2097152)) *
+             ((int32_t) dig_H2) + 8192) >> 14));
+      var1 = (var1 - (((((var1 >> 15) * (var1 >> 15)) >> 7) * ((int32_t)dig_H1)) >> 4));
+      var1 = (var1 < 0 ? 0 : var1);
+      var1 = (var1 > 419430400 ? 419430400 : var1);
+      result = (uint32_t)(var1 >> 12);
+      // Returns humidity in %RH as unsigned 32 bit integer in Q22.10 format (22 integer and 10 fractional bits).
+      //	 Output value of “47445” represents 47445/1024 = 46.333 %RH
+      qtoaf(result, _outBuffer, 10);
+#endif        
+}
   return RESULT_IN_BUFFER;
 }
 
@@ -455,21 +543,42 @@ int32_t BMP085Read(uint8_t _sdaPin, uint8_t _sclPin, uint8_t _i2cAddress, uint8_
   int32_t x1, x2, x3, b3, b5, b6, result;
   uint32_t b4, b7;
   uint8_t msb, lsb, xlsb;
+  uint8_t value[3];
 
 
   /* read calibration data */
-  ac1 = i2CRead16(_i2cAddress, BMP085_REG_CAL_AC1);
-  ac2 = i2CRead16(_i2cAddress, BMP085_REG_CAL_AC2);
-  ac3 = i2CRead16(_i2cAddress, BMP085_REG_CAL_AC3);
-  ac4 = i2CRead16(_i2cAddress, BMP085_REG_CAL_AC4);
-  ac5 = i2CRead16(_i2cAddress, BMP085_REG_CAL_AC5);
-  ac6 = i2CRead16(_i2cAddress, BMP085_REG_CAL_AC6);
-  b1 = i2CRead16(_i2cAddress, BMP085_REG_CAL_B1);
-  b2 = i2CRead16(_i2cAddress, BMP085_REG_CAL_B2);
-  mb = i2CRead16(_i2cAddress, BMP085_REG_CAL_MB);
-  mc = i2CRead16(_i2cAddress, BMP085_REG_CAL_MC);
-  md = i2CRead16(_i2cAddress, BMP085_REG_CAL_MD);
+  i2CReadBytes(_i2cAddress, BMP085_REG_CAL_AC1, value, 2);
+  ac1 = (value[0] << 8) | value[1];
+  
+  i2CReadBytes(_i2cAddress, BMP085_REG_CAL_AC2, value, 2);
+  ac2 = (value[0] << 8) | value[1];
+  
+  i2CReadBytes(_i2cAddress, BMP085_REG_CAL_AC3, value, 2);
+  ac3 = (value[0] << 8) | value[1];
+  
+  i2CReadBytes(_i2cAddress, BMP085_REG_CAL_AC4, value, 2);
+  ac4 = (value[0] << 8) | value[1];
+  
+  i2CReadBytes(_i2cAddress, BMP085_REG_CAL_AC5, value, 2);
+  ac5 = (value[0] << 8) | value[1];
+  
+  i2CReadBytes(_i2cAddress, BMP085_REG_CAL_AC6, value, 2);
+  ac6 = (value[0] << 8) | value[1];
+  
+  i2CReadBytes(_i2cAddress, BMP085_REG_CAL_B1, value, 2);
+  b1 = (value[0] << 8) | value[1];
+  
+  i2CReadBytes(_i2cAddress, BMP085_REG_CAL_B2, value, 2);
+  b2 = (value[0] << 8) | value[1];
+  
+  i2CReadBytes(_i2cAddress, BMP085_REG_CAL_MB, value, 2);
+  mb = (value[0] << 8) | value[1];
 
+  i2CReadBytes(_i2cAddress, BMP085_REG_CAL_MC, value, 2);
+  mc = (value[0] << 8) | value[1];
+
+  i2CReadBytes(_i2cAddress, BMP085_REG_CAL_MD, value, 2);
+  md = (value[0] << 8) | value[1];
 
   switch ( _oversampling) {
     case BMP085_ULTRALOWPOWER: 
@@ -481,8 +590,6 @@ int32_t BMP085Read(uint8_t _sdaPin, uint8_t _sclPin, uint8_t _i2cAddress, uint8_
         _oversampling = BMP085_STANDARD;
   }
 
-
-
   // ******** Get Temperature ********
   // Write 0x2E into Register 0xF4
   // This requests a temperature reading
@@ -492,7 +599,9 @@ int32_t BMP085Read(uint8_t _sdaPin, uint8_t _sclPin, uint8_t _i2cAddress, uint8_
   delay(5);
 
   // Read two bytes from registers 0xF6 and 0xF7
-  ut = i2CRead16(_i2cAddress, BMP_REG_TEMPDATA);
+  i2CReadBytes(_i2cAddress, BMP_REG_TEMPDATA, value, 2);
+  ut = (value[0] << 8) | value[1];
+//  ut = i2CRead16(_i2cAddress, BMP_REG_TEMPDATA);
 
   x1 = (((int32_t) ut - (int32_t) ac6) * (int32_t) ac5) >> 15;
   x2 = ((int32_t) mc << 11) / (x1 + (int32_t) md);
@@ -501,7 +610,7 @@ int32_t BMP085Read(uint8_t _sdaPin, uint8_t _sclPin, uint8_t _i2cAddress, uint8_
 
   if ( SENS_READ_PRSS == _metric)
   {
-    // ******** Get pressureTemperature ********
+    // ******** Get Pressure ********
 
     // Calculate pressure given up
     // calibration values must be known
@@ -516,18 +625,8 @@ int32_t BMP085Read(uint8_t _sdaPin, uint8_t _sclPin, uint8_t _i2cAddress, uint8_
     delay(2 + (3 << _oversampling));
 
     // Read register 0xF6 (MSB), 0xF7 (LSB), and 0xF8 (XLSB)
-    Wire.beginTransmission(_i2cAddress);
-    Wire.write(BMP_REG_PRESSUREDATA);
-    Wire.endTransmission();
-
-    Wire.beginTransmission(_i2cAddress);
-    Wire.requestFrom(_i2cAddress, (uint8_t) 3);
-
-    msb = Wire.read();
-    lsb = Wire.read();
-    xlsb = Wire.read();
-
-    up = (((uint32_t) msb << 16) | ((uint32_t) lsb << 8) | (uint32_t) xlsb) >> (8 - _oversampling);
+    i2CReadBytes(_i2cAddress, BMP_REG_PRESSUREDATA, value, 3);
+    up = (((uint32_t) value[0] << 16) | ((uint32_t) value[1] << 8) | (uint32_t) value[2]) >> (8 - _oversampling);
 
     b6 = b5 - 4000;
 
@@ -568,105 +667,6 @@ int32_t BMP085Read(uint8_t _sdaPin, uint8_t _sclPin, uint8_t _i2cAddress, uint8_
   return RESULT_IN_BUFFER;
 }
 
-/* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
-                                                                     BH1750 SECTION
-*/
-
-
-#define BH1750_I2C_FIRST_ADDRESS            0x23
-#define BH1750_I2C_SECOND_ADDRESS           0x5C
-/*
-
-  Datasheet: http://rohmfs.rohm.com/en/products/databook/datasheet/ic/sensor/light/bh1750fvi-e.pdf
-*/
-
-// No active state
-#define BH1750_CMD_POWERDOWN                0x00
-// Wating for measurment command
-#define BH1750_CMD_POWERON                  0x01
-// Reset data register value - not accepted in POWER_DOWN mode
-#define BH1750_CMD_RESET                    0x07
-// Start measurement at 1lx resolution. Measurement time is approx 120ms.
-#define BH1750_CONTINUOUS_HIGHRES           0x10
-// Start measurement at 0.5lx resolution. Measurement time is approx 120ms.
-#define BH1750_CONTINUOUS_HIGHRES_2         0x11
-// Start measurement at 4lx resolution. Measurement time is approx 16ms.
-#define BH1750_CONTINUOUS_LOWRES            0x13
-// Start measurement at 1lx resolution. Measurement time is approx 120ms.
-// Device is automatically set to Power Down after measurement.
-#define BH1750_ONETIME_HIGHRES              0x20
-// Start measurement at 0.5lx resolution. Measurement time is approx 120ms.
-// Device is automatically set to Power Down after measurement.
-#define BH1750_ONETIME_HIGHRES_2            0x21
-// Start measurement at 4lx resolution. Measurement time is approx 16ms.
-// Device is automatically set to Power Down after measurement.
-#define BH1750_ONETIME_LOWRES               0x23
-
-
-int32_t BH1750Read(uint8_t _sdaPin, uint8_t _sclPin, uint8_t _i2cAddress, uint8_t _mode, uint8_t _metric, char* _outBuffer)
-{
-  int32_t result;
-  uint8_t setModeTimeout = 24; // 24ms - max time to complete measurement in High-resolution
-
-  switch (_mode) {
-    case BH1750_ONETIME_HIGHRES: 
-    case BH1750_ONETIME_HIGHRES_2:
-         setModeTimeout = 180; // 180ms - max time to complete measurement in High-resolution
-    case BH1750_ONETIME_LOWRES:
-       break;
-     default:  
-       _mode = BH1750_ONETIME_LOWRES;
-  }
-
-  switch (_i2cAddress) {
-    case BH1750_I2C_FIRST_ADDRESS:
-    case BH1750_I2C_SECOND_ADDRESS: 
-      break;
-    default:  
-       _i2cAddress = BH1750_I2C_FIRST_ADDRESS;
-  }
-
-  Wire.beginTransmission(_i2cAddress);
-  Wire.write(BH1750_CMD_POWERON);
-  Wire.endTransmission();
-  _delay_ms(10);
-
-  Wire.beginTransmission(_i2cAddress);
-  Wire.write(BH1750_CMD_RESET);
-  Wire.endTransmission();
-  _delay_ms(10);
-
-  // Refer to Technical Note, v2010.04-Rev.C, page 7/17
-  // Send "go to _mode" instruction
-  Wire.beginTransmission(_i2cAddress);
-  Wire.write(_mode);
-  Wire.endTransmission();
-  // Wait to complete, 180ms max for H-resolution, 24ms max to L-resolution
-  delayMicroseconds(setModeTimeout);
-
-  // result = i2CRead16(_i2cAddress, 0x00);
-  // Why do not point to register address before read - it's 0x00 or BH1750 do not need to use register address to return light raw value?
-  Wire.beginTransmission(_i2cAddress);
-  Wire.requestFrom(_i2cAddress, (uint8_t) 2);
-  result = Wire.read();
-  result <<= 8;
-  result |= Wire.read();
-  Wire.endTransmission();
- 
-  if (SENS_READ_RAW == _metric) {
-    ltoa(result, _outBuffer, 10);
-  } else {
-    // Prepare to using with ltoaf() subroutine
-    // level = level/1.2; // convert to lux
-    // 5 / 1.2 => 4,16
-    // (5 * 1000) / 12 => 416 ==> ltoaf (..., ..., 2) ==> 4.16
-    // max raw level = 65535 => 65535 * 1000 => long int
-    result = (result * 1000) / 12;    
-    ltoaf(result, _outBuffer, 2);
-  }
-
-  return RESULT_IN_BUFFER;
-}
 
 /* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
                                                                      LCD SECTION
@@ -677,42 +677,43 @@ version 1.1.2 is used
 
 
 */
+// Some pin mappings not used at presently
+/* LCD functional pin             ===>                   PC8574 port (bit # in byte which send to I2C expander) */
 
+#define LCD_RS                                           0      // P0 (pin 4) on PC8574 - expander pin #4  (used)
+#define LCD_RW                                           1      // P1 (pin 5) on PC8574 - expander pin #5
+#define LCD_E                                            2      // P2 (pin 6) on PC8574 - expander pin #6  (used)
+#define LCD_BL                                           3      // P3 (pin 7) on PC8574 - expander pin #7  (used)
 
+#define LCD_D4                                           4      // P4 (pin 9) on PC8574  - expander pin #11
+#define LCD_D5                                           5      // P5 (pin 10) on PC8574 - expander pin #12
+#define LCD_D6                                           6      // P6 (pin 11) on PC8574 - expander pin #13
+#define LCD_D7                                           7      // P7 (pin 12) on PC8574 - expander pin #14
 
-/* LCD finction     PC8574 port (bit # in byte which send to I2C expander) */
-#define LCD_RS                    0                          // P0 (pin 4) on PC8574 - expander pin #4
-#define LCD_RW                    1                          // P1 (pin 5) on PC8574 - expander pin #5
-#define LCD_E                     2                          // P2 (pin 6) on PC8574 - expander pin #6
-#define LCD_BL                    3                          // P3 (pin 7) on PC8574 - expander pin #7
-
-#define LCD_D4                    4                          // P4 (pin 9) on PC8574  - expander pin #11
-#define LCD_D5                    5                          // P5 (pin 10) on PC8574 - expander pin #12
-#define LCD_D6                    6                          // P6 (pin 11) on PC8574 - expander pin #13
-#define LCD_D7                    7                          // P7 (pin 12) on PC8574 - expander pin #14
-
-#define LCD_TYPE_801              801
-#define LCD_TYPE_1601             1601
+// LCD types.  1602 => 16 chars * 2 rows
+#define LCD_TYPE_801                                     801
+#define LCD_TYPE_1601                                    1601
                             
-#define LCD_TYPE_802              802 
-#define LCD_TYPE_1202             1202 
-#define LCD_TYPE_1602             1602 
-#define LCD_TYPE_2002             2002
-#define LCD_TYPE_2402             2402
-#define LCD_TYPE_4002             4002
+#define LCD_TYPE_802                                     802 
+#define LCD_TYPE_1202                                    1202 
+#define LCD_TYPE_1602                                    1602 
+#define LCD_TYPE_2002                                    2002
+#define LCD_TYPE_2402                                    2402
+#define LCD_TYPE_4002                                    4002
 
-#define LCD_TYPE_1604             1604
-#define LCD_TYPE_2004             2004
-#define LCD_TYPE_4004             4004
+#define LCD_TYPE_1604                                    1604
+#define LCD_TYPE_2004                                    2004
+#define LCD_TYPE_4004                                    4004
 
-#define LCD_TAB_SIZE              0x04 // 4 space
-#define LCD_BLINK_DUTY_CYCLE      250  // 250 ms
-#define LCD_BLINK_TIMES           4    // in cycle of 4 times - 2 off state & 2 on state. Need use even numbers for save previous backlight state on cycle finish
+// LCD control codes
+#define LCD_TAB_SIZE                                     0x04   // 4 space
+#define LCD_BLINK_DUTY_CYCLE                             250    // 250 ms
+#define LCD_BLINK_TIMES                                  0x04   // in cycle of 4 times - 2 off state & 2 on state. Need use even numbers for save previous backlight state on cycle finish
 
-// commands
-#define LCD_CMD_BACKLIGHT_BLINK                          0x03 // ASCII    - backlight blink
-#define LCD_CMD_HT                                       0x09 // ASCII 09 - horizontal tabulation
-#define LCD_CMD_LF                                       0x0A // ASCII 10 - line feed
+// HD44780-compatible commands
+#define LCD_CMD_BACKLIGHT_BLINK                          0x03   // ASCII 03 - backlight blink
+#define LCD_CMD_HT                                       0x09   // ASCII 09 - horizontal tabulation
+#define LCD_CMD_LF                                       0x0A   // ASCII 10 - line feed
 
 #define LCD_CMD_DISPLAYOFF                               0x00
 #define LCD_CMD_CLEARDISPLAY                             0x01
@@ -731,35 +732,35 @@ version 1.1.2 is used
 #define LCD_CMD_SCREENSHIFTRIGHT                         0x1E
 
 
-#define LCD_DISPLAYCONTROL    0x08
-#define LCD_CURSORSHIFT       0x10
-#define LCD_FUNCTIONSET       0x20
-#define LCD_SETDDRAMADDR      0x80
+#define LCD_DISPLAYCONTROL                               0x08
+#define LCD_CURSORSHIFT                                  0x10
+#define LCD_FUNCTIONSET                                  0x20
+#define LCD_SETDDRAMADDR                                 0x80
 
 // flags for display on/off control
-#define LCD_DISPLAYON             0x04
-#define LCD_DISPLAYOFF            0x00
-#define LCD_CURSORON              0x02
-#define LCD_CURSOROFF             0x00
-#define LCD_BLINKON               0x01
-#define LCD_BLINKOFF              0x00
+#define LCD_DISPLAYON                                    0x04
+#define LCD_DISPLAYOFF                                   0x00
+#define LCD_CURSORON                                     0x02
+#define LCD_CURSOROFF                                    0x00
+#define LCD_BLINKON                                      0x01
+#define LCD_BLINKOFF                                     0x00
 
 // flags for display/cursor shift
-#define LCD_DISPLAYMOVE           0x08
-#define LCD_CURSORMOVE            0x00
-#define LCD_MOVERIGHT             0x04
-#define LCD_MOVELEFT              0x00
+#define LCD_DISPLAYMOVE                                  0x08
+#define LCD_CURSORMOVE                                   0x00
+#define LCD_MOVERIGHT                                    0x04
+#define LCD_MOVELEFT                                     0x00
 
 
 // flags for function set
-#define LCD_8BITMODE              0x10
-#define LCD_4BITMODE              0x00
-#define LCD_2LINE                 0x08
-#define LCD_1LINE                 0x00
+#define LCD_8BITMODE                                     0x10
+#define LCD_4BITMODE                                     0x00
+#define LCD_2LINE                                        0x08
+#define LCD_1LINE                                        0x00
 
 // flags for backlight control
-#define LCD_BACKLIGHT             0x08
-#define LCD_NOBACKLIGHT           0x00
+#define LCD_BACKLIGHT                                    0x08
+#define LCD_NOBACKLIGHT                                  0x00
 
 
 void lcdSend(uint8_t _i2cAddress, uint8_t _data, uint8_t _mode)
@@ -871,9 +872,8 @@ uint8_t pc8574LCDOutput(uint8_t _sdaPin, uint8_t _sclPin, uint8_t _i2cAddress, u
         break;
 
       case LCD_CMD_BACKLIGHT_BLINK:
-//        uint8_t tmp_lcdBacklight = (uint8_t) _lcdBacklight;
         for (i = 0; i < LCD_BLINK_TIMES; i++) {
-          // tmp_lcdBacklight is not false/true, is 0x00 / 0x08
+          // _lcdBacklight is not false/true, is 0x00 / 0x08
           _lcdBacklight = _lcdBacklight ? 0x00 : _BV(LCD_BL);
           expanderWrite(_i2cAddress, _lcdBacklight);
           delay (LCD_BLINK_DUTY_CYCLE);
@@ -928,9 +928,100 @@ uint8_t pc8574LCDOutput(uint8_t _sdaPin, uint8_t _sclPin, uint8_t _i2cAddress, u
   return true;
 }
 
-uint8_t pc8574LCDBackLight(uint8_t _sdaPin, uint8_t _sclPin, uint8_t _i2cAddress, uint8_t _lcdBacklight)
-{  
-  expanderWrite(_i2cAddress, ((_lcdBacklight) ? LCD_BACKLIGHT : LCD_NOBACKLIGHT));
-}
+/* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
+                                                                     BH1750 SECTION
+*/
 
+
+#define BH1750_I2C_FIRST_ADDRESS            0x23
+#define BH1750_I2C_SECOND_ADDRESS           0x5C
+/*
+
+  Datasheet: http://rohmfs.rohm.com/en/products/databook/datasheet/ic/sensor/light/bh1750fvi-e.pdf
+*/
+
+// No active state
+#define BH1750_CMD_POWERDOWN                0x00
+// Wating for measurment command
+#define BH1750_CMD_POWERON                  0x01
+// Reset data register value - not accepted in POWER_DOWN mode
+#define BH1750_CMD_RESET                    0x07
+
+// Start measurement at 1lx resolution. Measurement time is approx 120ms.
+#define BH1750_CONTINUOUS_HIGHRES           0x10
+// Start measurement at 0.5lx resolution. Measurement time is approx 120ms.
+#define BH1750_CONTINUOUS_HIGHRES_2         0x11
+// Start measurement at 4lx resolution. Measurement time is approx 16ms.
+#define BH1750_CONTINUOUS_LOWRES            0x13
+// Start measurement at 1lx resolution. Measurement time is approx 120ms.
+// Device is automatically set to Power Down after measurement.
+#define BH1750_ONETIME_HIGHRES              0x20
+// Start measurement at 0.5lx resolution. Measurement time is approx 120ms.
+// Device is automatically set to Power Down after measurement.
+#define BH1750_ONETIME_HIGHRES_2            0x21
+// Start measurement at 4lx resolution. Measurement time is approx 16ms.
+// Device is automatically set to Power Down after measurement.
+#define BH1750_ONETIME_LOWRES               0x23
+
+
+int32_t BH1750Read(uint8_t _sdaPin, uint8_t _sclPin, uint8_t _i2cAddress, uint8_t _mode, uint8_t _metric, char* _outBuffer)
+{
+  int32_t result;
+  uint8_t setModeTimeout = 24; // 24ms - max time to complete measurement in low-resolution
+
+  switch (_mode) {
+    case BH1750_CONTINUOUS_HIGHRES:
+    case BH1750_CONTINUOUS_HIGHRES_2:
+    case BH1750_ONETIME_HIGHRES: 
+    case BH1750_ONETIME_HIGHRES_2:
+         setModeTimeout = 180; // 180ms - max time to complete measurement in High-resolution
+    case BH1750_CONTINUOUS_LOWRES:
+    case BH1750_ONETIME_LOWRES:
+       break;
+     default:  
+       _mode = BH1750_CONTINUOUS_LOWRES;
+  }
+
+  switch (_i2cAddress) {
+    case BH1750_I2C_FIRST_ADDRESS:
+    case BH1750_I2C_SECOND_ADDRESS: 
+      break;
+    default:  
+       _i2cAddress = BH1750_I2C_FIRST_ADDRESS;
+  }
+
+  Wire.beginTransmission(_i2cAddress);
+  Wire.write(BH1750_CMD_POWERON);
+  Wire.endTransmission();
+  _delay_ms(10);
+
+  // Refer to Technical Note, v2010.04-Rev.C, page 7/17
+  // Send "go to _mode" instruction
+  Wire.beginTransmission(_i2cAddress);
+  Wire.write(_mode);
+  Wire.endTransmission();
+  // Wait to complete, 180ms max for H-resolution, 24ms max to L-resolution
+  delayMicroseconds(setModeTimeout);
+
+  Wire.beginTransmission(_i2cAddress);
+  Wire.requestFrom(_i2cAddress, (uint8_t) 2);
+  result = Wire.read();
+  result <<= 8;
+  result |= Wire.read();
+  Wire.endTransmission();
+ 
+  if (SENS_READ_RAW == _metric) {
+    ltoa(result, _outBuffer, 10);
+  } else {
+    // Prepare to using with ltoaf() subroutine
+    // level = level/1.2; // convert to lux
+    // 5 / 1.2 => 4,16
+    // (5 * 1000) / 12 => 416 ==> ltoaf (..., ..., 2) ==> 4.16
+    // max raw level = 65535 => 65535 * 1000 => long int
+    result = (result * 1000) / 12;    
+    ltoaf(result, _outBuffer, 2);
+  }
+
+  return RESULT_IN_BUFFER;
+}
 

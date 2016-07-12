@@ -1,7 +1,7 @@
 # Zabbuino
 An Zabbix agent firmware for Arduino
 
-Try Zabbuino 1.0.0 [pre-release](https://github.com/zbx-sadman/Zabbuino/tree/master/v1.0.0_pre-release)
+Try Zabbuino 1.0.0 [pre-release](https://github.com/zbx-sadman/Zabbuino/tree/master/v1.0.0_pre-release) (Implemented sensors/indicators/metrics lists inside);
 
 **You can help to the project** by providing hardware to testing and integrating. Or yo can just donate for it. Contact to me via email: [zbx.sadman@gmail.com](mailto://zbx.sadman@gmail.com)
 

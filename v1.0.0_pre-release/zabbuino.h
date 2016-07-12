@@ -32,10 +32,10 @@
 */
 
 #define NET_DEFAULT_USE_DHCP        	false
-#define NET_DEFAULT_MAC_ADDRESS     	{0xDE,0xAD,0xBE,0xEF,0xFE,0xF5}
+#define NET_DEFAULT_MAC_ADDRESS     	{0xDE,0xAD,0xBE,0xEF,0xFE,0xF4}
 
 #ifdef USE_NETWORK_192_168_0_1
-  #define NET_DEFAULT_IP_ADDRESS      	{192,168,0,228}
+  #define NET_DEFAULT_IP_ADDRESS      	{192,168,0,227}
   #define NET_DEFAULT_GATEWAY         	{192,168,0,1}
 #else
   #define NET_DEFAULT_IP_ADDRESS      	{172,16,100,228}
@@ -291,7 +291,7 @@ D13 -^    ^- D8    <- pins   */
                                                             COMMAND NAMES SECTION 
 */
 // Increase this if add new command 
-#define CMD_MAX 0x2C
+#define CMD_MAX 0x2F
 
 // Add command macro with new sequental number
 #define CMD_ZBX_NOPE             	0x00
@@ -353,7 +353,13 @@ D13 -^    ^- D8    <- pins   */
 #define CMD_ECODER_COUNT                0x29
 
 #define CMD_PC8574_LCDPRINT            	0x2A
-#define CMD_PC8574_LCDBLIGHT            0x2B
+#define CMD_SYS_CMD_TIMEMAX_N           0x2B
+
+#define CMD_BME_HUMIDITY          	0x2C
+
+#define CMD_SHT2X_HUMIDITY          	0x2D
+#define CMD_SHT2X_TEMPERATURE          	0x2E
+
 
 // add new command as "const char command_<COMMAND_MACRO> PROGMEM". Only 'const' push string to PROGMEM. Tanx, Arduino.
 const char command_CMD_ZBX_NOPE[]       		PROGMEM	= "";
@@ -416,8 +422,12 @@ const char command_CMD_ECODER_COUNT[] 			PROGMEM = "incenc.count";
 
 const char command_CMD_PC8574_LCDPRINT[] 		PROGMEM = "pc8574.lcdprint";
 
-const char command_CMD_PC8574_LCDBLIGHT[]   		PROGMEM = "pc8574.lcdblight";
+const char command_CMD_SYS_CMD_TIMEMAX_N[] 		PROGMEM = "sys.cmd.timemax.n";
 
+const char command_CMD_BME_HUMIDITY[] 		        PROGMEM = "bme.humidity";
+
+const char command_CMD_SHT2X_HUMIDITY[] 		PROGMEM = "sht2x.humidity";
+const char command_CMD_SHT2X_TEMPERATURE[] 		PROGMEM = "sht2x.temperature";
 
 // do not insert new command to any position without syncing indexes. Tanx, Arduino, for this method of string array pushing to PROGMEM
 const char* const commands[] PROGMEM = {
@@ -481,7 +491,10 @@ const char* const commands[] PROGMEM = {
   command_CMD_ECODER_COUNT,
 
   command_CMD_PC8574_LCDPRINT,
-  command_CMD_PC8574_LCDBLIGHT
+  command_CMD_SYS_CMD_TIMEMAX_N,
+  command_CMD_BME_HUMIDITY,
+  command_CMD_SHT2X_HUMIDITY,
+  command_CMD_SHT2X_TEMPERATURE
   
 };
 /*
@@ -489,16 +502,17 @@ const char* const commands[] PROGMEM = {
                                                            VARIOUS DEFINES SECTION 
 */
 
-#define IDX_METRICS_MAX            	6
-#define IDX_METRICS_FIRST_CRONNED       2
+#define IDX_METRICS_MAX            	7
+#define IDX_METRICS_FIRST_CRONNED       3
 
 #define IDX_METRIC_SYS_CMD_COUNT       	0
 #define IDX_METRIC_SYS_CMD_TIMEMAX      1
+#define IDX_METRIC_SYS_CMD_TIMEMAX_N    2
 
-#define IDX_METRIC_SYS_VCCMIN         	2
-#define IDX_METRIC_SYS_VCCMAX         	3
-#define IDX_METRIC_SYS_RAM_FREE        	4
-#define IDX_METRIC_SYS_RAM_FREEMIN      5
+#define IDX_METRIC_SYS_VCCMIN         	3
+#define IDX_METRIC_SYS_VCCMAX         	4
+#define IDX_METRIC_SYS_RAM_FREE        	5
+#define IDX_METRIC_SYS_RAM_FREEMIN      6
 
 // Zabbix v2.x header prefix ('ZBXD\x01')
 #define ZBX_HEADER_PREFIX             	"zbxd\1"
@@ -520,9 +534,12 @@ const char* const commands[] PROGMEM = {
 #define RESULT_IS_PRINTED             	-0xFFDL
 
 // Error Codes
-#define DEVICE_DISCONNECTED_C         	-127
-#define DEVICE_DISCONNECTED_F         	-196.6
-#define DEVICE_DISCONNECTED_RAW       	-7040
+//#define DEVICE_DISCONNECTED_C         	-127
+#define DEVICE_ERROR_CHECKSUM           -131
+#define DEVICE_ERROR_TIMEOUT            -130
+#define DEVICE_ERROR_CONNECT            -127
+#define DEVICE_ERROR_ACK_L              -128
+#define DEVICE_ERROR_ACK_H              -129
 
 /*
 ADC channels 

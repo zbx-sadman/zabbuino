@@ -111,9 +111,9 @@ int32_t DS18X20Read(uint8_t _pin, uint8_t _resolution, char* _id, char* _outBuff
   if ('\0' == _id[0]) {
      // If ID not valid - search any sensor on OneWire bus and use its. Or return error when no devices found.    
      ow.reset_search();
-     if (!ow.search(dsAddr)) {return DEVICE_DISCONNECTED_C;}
+     if (!ow.search(dsAddr)) {return DEVICE_ERROR_CONNECT;}
   } else {
-     if (!haveHexPrefix(_id)) {return DEVICE_DISCONNECTED_C;}
+     if (!haveHexPrefix(_id)) {return DEVICE_ERROR_CONNECT;}
      // Convert sensor ID (if its given) from HEX string to byte array (DeviceAddress structure). 
      // Sensor ID is equal DeviceAddress.
      _id+=2;
@@ -125,12 +125,12 @@ int32_t DS18X20Read(uint8_t _pin, uint8_t _resolution, char* _id, char* _outBuff
 
   // Validate sensor. Model id saved in first byte of DeviceAddress (sensor ID).
   if (DS18S20MODEL != dsAddr[0] && DS18B20MODEL != dsAddr[0] && DS1822MODEL != dsAddr[0])
-    return DEVICE_DISCONNECTED_C;
+    return DEVICE_ERROR_CONNECT;
 
   // Get values of CONFIGURATION, HIGH_ALARM_TEMP, LOW_ALARM_TEMP registers via ScratchPad reading.
   // Or return error if bad CRC detected
   if (!DS18X20ReadScratchPad(ow, dsAddr, scratchPad))
-    return DEVICE_DISCONNECTED_C;
+    return DEVICE_ERROR_CHECKSUM;
 
   // Detect power on sensor - parasite or not
   parasitePowerUsed = false;
@@ -193,7 +193,7 @@ int32_t DS18X20Read(uint8_t _pin, uint8_t _resolution, char* _id, char* _outBuff
 
   // Read data from DS's ScratchPad or return 'Error' on failure
   if (!DS18X20ReadScratchPad(ow, dsAddr, scratchPad))
-    return DEVICE_DISCONNECTED_C;
+    return DEVICE_ERROR_CHECKSUM;
 
   // Temperature calculation
   tRaw = (((int16_t) scratchPad[TEMP_MSB]) << 8) | scratchPad[TEMP_LSB];

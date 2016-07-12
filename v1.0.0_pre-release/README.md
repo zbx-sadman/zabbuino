@@ -1,5 +1,56 @@
 # Zabbuino 1.0.0 (pre-release)
 
+Implemented:
+- A few Zabbix agent commands;
+- Wraps a lot of Arduino Language functions;
+- Onewire and I2C bus scaning to detect sensors ID or adresses;
+- Network DHCP and static IP support;
+- Remote configuring & rebooting, system protection;
+- Storing system setting in EEPROM;
+- AVR WatchDog feature support;
+- MCU and runtime metrics (current/min/max VCC, current/min RAM, uptime, MCU name) obtaining;
+- Support WS5100 and ENC25J60 network modules;
+- Support one or more DS18X20 thermometer;
+- Support DHT11/21/22/33/44 or AM2301/2302 humidity and temperature sensors;
+- Support SHT2X humidity and temperature sensors serie;
+- Support BMP085/180, BMP280/BME280 pressure and temperature sensors;
+- Support BH1750 light sensor;
+- Support incremental Encoder (on interrupt's pin);
+- Support any devices that can be used with hardware interrupt - tilt switches, dry contacts, water flow sensor, and so;
+- Support ACS712-XX sensor (coming soon);
+- Support any other analog or digital sensor via `analogread` /`digitalread` commands;
+- Support indicators, that connected to MAX7219, 8x8 Led matrix for example;
+- Support One- or Two- (and maybe Four-) lines LCD Character displays with PC8574 I2C expander;
+- Support any actuators or indicators via `digitalwrite` command;
+- Support WS2801 Led stripe and any indicators on shift registers via extended `shiftout` command.
+
+
+####12 Jul 2016
+
+Fixes:
+- DHT reading unstability (see note #1);
+- _BH1750.light_ command. It tested on real hardware and works now;
+
+Changes:
+- _BMP.*_ commands supports BMP280 sensor now;
+- New option for _BMP.Temperature_ command if BMP280/BME280 used: _overSampling_ => _BMP.Temperature[sdaPin, sclPin, i2cAddress, overSampling]_. For more details refer to BMP280 datasheet, section "3.4 Filter selection";
+- New option for _BMP.Pressure_ command if BMP280/BME280 used: _filterCoef_ => _BMP.Pressure[sdaPin, sclPin, i2cAddress, overSampling, filterCoef]_. For more details refer to BMP280 datasheet, section "3.3.3 IIR filter".
+
+New commands:
+- _BME.Humidity[sdaPin, sclPin, i2cAddress, overSampling, filterCoef]_ - returns humidity value, obtained from BME280 (equal BMP280 + Humidity) sensor.
+  - _sdaPin, sclPin_ - I2C pins;
+  - _i2cAddress_ - address of BME280 sensor. It can be found with _I2C.scan[]_ command;
+  - _overSampling_ - hardware sampling accuracy modes, refer to BMP280 datasheet, section "3.4 Filter selection";
+  - _filterCoef_ - IIR filter setting, refer to BMP280 datasheet, section "3.3.3 IIR filter".
+- _SHT2x.Humidity[sdaPin, sclPin, i2cAddress]_ - returns humidity value, obtained from SHT2x sensor;
+- _SHT2x.Temperature[sdaPin, sclPin, i2cAddress]_ - returns temperature value, obtained from SHT2x sensor;
+
+**Note #1** DHT sensor have limit to readings frequency. Its a 1kHz (1 reading / sec). Because of this a little delay implemented to function. It stops the process until the one second expitre since the last time reading. If Zabbix put so close into poller queue requests to DHT sensor, Zabbuino slowed the output of the results, because it will execute commands in sequence and every time will stops for a little time (~0.5 .. 0.7 sec). 	
+Therefore need to specify Data Item's update interval to distribute polls on timeline with more that 1 sec gaps. For example: _DHT.Humidity_ - 60 sec, _DHT.Temperature_ - 57 sec. **Warning!** All connected to Zabbuino DHT's have the same delay counter and polls must be distributed on timeline together.
+
+
+**Note #2** _SHT2x.*_ commands tested on SHT21 module (SI7021 chip).
+
 
 ####09 Jul 2016
 
@@ -64,9 +115,9 @@ Print on LCD of 2002 type with turned backlight, that connected via expander wit
     0x 01              0F                    48 65 0A          6c   09           6c 6f
        clear screen    turn "block" cursor   H  e  line feed   l    four space   l  o
 
-**Note** I'm not sure about correct work of _XX04_ displays. It should be tested, but i haven't hardware.
+**Note #1** I'm not sure about correct work of _XX04_ displays. It should be tested, but i haven't hardware.
 
-**Note** BMP280 sensor support is added, but not tested yet. I just wait for sensors pack;
+**Note #2** BMP280 sensor support is added, but not tested yet. I just wait for sensors pack;
 
 ####01 Jul 2016
 
@@ -77,9 +128,9 @@ New command:
   - _intNumber_ - not used at this time, reserved for future;
   - _initialValue_ - defines initial counter value. 
 
-**Note** You can reverse encoder's "incrementing" direction - just connect wire on _terminalAPin_ to encoder's terminal B and wire on _terminalBPin_ to encoder's terminal A.
+**Note #1** You can reverse encoder's "incrementing" direction - just connect wire on _terminalAPin_ to encoder's terminal B and wire on _terminalBPin_ to encoder's terminal A.
 
-**Note** Code of interrupt's handling not yet optimized and can be buggy.
+**Note #2** Code of interrupt's handling not yet optimized and can be buggy.
 
 Testings:
  - _extInt.count_ command tested on tilt switch SW-520D (CHANGE mode) and PIR-sensor HC-SR501 (RISING mode). All events registred well by counter.
@@ -161,7 +212,7 @@ New command:
 
 I'm not sure that _interrupt.count_ will be run stable and properly, due not test it in production, but i hope for it.
 
-**Note** You can get unexpected growing of _interrupt.count_ value. It's can be 'button bounce' or 'bad electrical contact' problem.
+**Note #1** You can get unexpected growing of _interrupt.count_ value. It's can be 'button bounce' or 'bad electrical contact' problem.
 
 
 ####15 Jun 2016
@@ -180,7 +231,7 @@ New commands:
 - _i2c.scan[sdaPin, sclPin]_ - return addresses of devices that will be found on I2C bus; 
 - _sys.netmodule_ - return netmodule name, that depends on #included library: _W5xxx_ or _ENC28J60_. 
 
-**Note** _bh1750.light_  do not tested with real hardware.
+**Note #1** _bh1750.light_  do not tested with real hardware.
 
 ####13 Jun 2016
 

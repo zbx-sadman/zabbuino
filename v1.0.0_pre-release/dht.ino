@@ -19,14 +19,6 @@ version 0.1.13 is used
 #define DHTLIB_TIMEOUT (F_CPU/40000)
 #endif
 
-
-#define DHTLIB_OK                   0
-#define DHTLIB_ERROR_CHECKSUM       -131
-#define DHTLIB_ERROR_TIMEOUT        -130
-#define DHTLIB_ERROR_CONNECT        -127
-#define DHTLIB_ERROR_ACK_L          -128
-#define DHTLIB_ERROR_ACK_H          -129
-
 #define DHTLIB_DHT11_WAKEUP         18
 #define DHTLIB_DHT_WAKEUP           1
 
@@ -55,7 +47,7 @@ int32_t DHTRead(uint8_t _pin, uint8_t _sensorModel, uint8_t _metric, char* _outB
   uint32_t humidity, temperature, result;
   uint8_t oldSREG;
   static uint32_t lastReadTime = 0;
-  int16_t waitTime = 0;
+  uint16_t waitTime = 0;
   
   switch (_sensorModel) {
     case DHT11:
@@ -80,11 +72,14 @@ int32_t DHTRead(uint8_t _pin, uint8_t _sensorModel, uint8_t _metric, char* _outB
   uint8_t port = digitalPinToPort(_pin);
   volatile uint8_t *PIR = portInputRegister(port);
 
+  pinMode(_pin, OUTPUT);
+
   // DHT sensor have limit for taking samples frequency - 1kHz (1 sample/sec)
-  // Need delay the process for a lot msec to 1 sec (1000ms) pause
   waitTime = millis() - lastReadTime;
-  waitTime = (waitTime < 1000) ? ((int16_t) (1000 - waitTime)) : 0;
+  waitTime = (waitTime < 1000) ? ((uint16_t) (1000 - waitTime)) : 0;
   // Sensor wont connect if no HIGH level on pin before work for a few time 
+
+  //waitTime = 0;
   if ((*PIR & bit) == LOW ) {
      digitalWrite(_pin, HIGH);
      // Increase delay to 0.5sec if it less
@@ -92,18 +87,19 @@ int32_t DHTRead(uint8_t _pin, uint8_t _sensorModel, uint8_t _metric, char* _outB
   }
 
   // do nothing to give a rest to sensor
-  if (0 < waitTime) { delay(waitTime); }
+//  if (0 < waitTime) { 
+  delay(waitTime); 
+//}
 
   // REQUEST SAMPLE
-  pinMode(_pin, OUTPUT);
   digitalWrite(_pin, LOW); // T-be
   delayMicroseconds(wakeupDelay * 1000UL);
   digitalWrite(_pin, HIGH); // T-go
   pinMode(_pin, INPUT);
 
-  // XXX: not better time to save millis(), its must be saved after sample taking.
+  // XXX: not better place to save millis(), its must be saved after sample taking.
   lastReadTime = millis();
-  
+
   // disable interrupt
   oldSREG = SREG; cli();
 //  ATOMIC_BLOCK(ATOMIC_FORCEON);
@@ -113,7 +109,7 @@ int32_t DHTRead(uint8_t _pin, uint8_t _sensorModel, uint8_t _metric, char* _outB
     {
        if (--loopCount == 0) { 
           SREG = oldSREG;
-          return DHTLIB_ERROR_CONNECT; 
+          return DEVICE_ERROR_CONNECT; 
        }
     }
 
@@ -124,7 +120,7 @@ int32_t DHTRead(uint8_t _pin, uint8_t _sensorModel, uint8_t _metric, char* _outB
     {
       if (--loopCount == 0) {
          SREG = oldSREG;
-         return DHTLIB_ERROR_ACK_L;
+         return DEVICE_ERROR_ACK_L;
       }
     }
 
@@ -134,7 +130,7 @@ int32_t DHTRead(uint8_t _pin, uint8_t _sensorModel, uint8_t _metric, char* _outB
     {
       if (--loopCount == 0) {
          SREG = oldSREG;
-         return DHTLIB_ERROR_ACK_H;
+         return DEVICE_ERROR_ACK_H;
       }
     }
 
@@ -176,7 +172,7 @@ int32_t DHTRead(uint8_t _pin, uint8_t _sensorModel, uint8_t _metric, char* _outB
       if (--loopCount == 0)
          {
            SREG = oldSREG;
-           return DHTLIB_ERROR_TIMEOUT;
+           return DEVICE_ERROR_TIMEOUT;
          }
 
   }
@@ -189,7 +185,7 @@ int32_t DHTRead(uint8_t _pin, uint8_t _sensorModel, uint8_t _metric, char* _outB
   uint8_t sum = bits[0] + bits[1] + bits[2] + bits[3];
   if (bits[4] != sum)
      {
-       return DHTLIB_ERROR_CHECKSUM;
+       return DEVICE_ERROR_CHECKSUM;
      }
 
   switch (_sensorModel) {
@@ -221,6 +217,7 @@ int32_t DHTRead(uint8_t _pin, uint8_t _sensorModel, uint8_t _metric, char* _outB
   result = (SENS_READ_HUMD == _metric) ? humidity : temperature;
   ltoaf(result, _outBuffer, 1);
   return RESULT_IN_BUFFER;
+//    return waitTime;
 //  return DHTLIB_OK;
 }
 
