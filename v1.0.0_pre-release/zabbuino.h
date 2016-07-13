@@ -3,8 +3,127 @@
 
 #include <Arduino.h>
 #include <IPAddress.h>
-#include "avr_cpunames.h"
 #include "platforms.h"
+
+
+/* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
+                                                                 PROGRAMM FEATURES SECTION
+
+                                  Comment #define's below to save RAM and Flash and uncomment to enable some feature 
+
+*/
+
+/****       Network      ****/
+
+// Uncomment to use DHCP address obtaining
+//#define FEATURE_NET_DHCP_ENABLE
+
+// Uncomment to force using DHCP even netConfig.useDHCP = false
+//#define FEATURE_NET_DHCP_FORCE
+
+/****       Arduino      ****/
+
+// Uncomment to enable Arduino's tone[], noTone[] commands
+//#define FEATURE_TONE_ENABLE
+
+// Uncomment to enable Arduino's randomSeed, random[] commands
+//#define FEATURE_RANDOM_ENABLE
+
+// Uncomment to enable shiftOut[] command
+//#define FEATURE_SHIFTOUT_ENABLE
+
+/****    Other   ****/
+
+// Uncomment to enable external interrupts handling: interrupt.*[] commands
+//#define FEATURE_EXTERNAL_INTERRUPT_ENABLE
+
+// Uncomment to enable encoder handling with external interrupts: encoder.*[] commands
+//#define FEATURE_ENCODER_ENABLE
+
+/****      1-Wire bus      ****/
+
+// Uncomment to enable 1-Wire common functions: OW.Scan[]
+//#define FEATURE_OW_ENABLE
+
+// Uncomment to enable Dallas DS18x20 family functions: DS18x20.*[] commands
+//#define FEATURE_DS18X20_ENABLE
+
+/****        I2C bus       ****/
+
+// Note #1: I2C library (Wire.h) takes at least 32bytes of memory for internal buffers
+// Note #2: I2C library (Wire.h) activate internal pullups for SDA & SCL pins when Wire.begin() called
+
+// Uncomment to enable I2C common functions: I2C.Scan[]
+//#define FEATURE_I2C_ENABLE
+
+// Uncomment to enable BMP pressure sensors functions: BMP.*[] commands
+#define FEATURE_BMP_ENABLE
+//#define SUPPORT_BMP180_INCLUDE
+#define SUPPORT_BMP280_INCLUDE
+#define SUPPORT_BME280_INCLUDE
+
+// Uncomment to enable BH1750 light sensors functions: BH1750.*[] commands
+#define FEATURE_BH1750_ENABLE
+
+
+//#define FEATURE_PC8574_LCD_ENABLE
+
+//
+#define FEATURE_SHT2X_ENABLE
+
+/****        MicroWire bus       ****/
+
+// Uncomment to enable MAX7219 8x8 led matrix functions: MAX7219.*[] commands
+//#define FEATURE_MAX7219_ENABLE
+
+/****    DHT/AM family    ****/
+
+// Uncomment to enable DHT/AM humidity sensors functions: DHT.*[] commands
+#define FEATURE_DHT_ENABLE
+
+/****    Ultrasonic    ****/
+
+// HC-SR04 sensor
+//#define FEATURE_ULTRASONIC_ENABLE
+
+/****    ACS7XX family    ****/
+
+//#define FEATURE_ACS7XX_ENABLE
+
+
+
+/****      System        ****/
+
+// Uncomment to enable AVR watchdog
+//                                                                     !!! BEWARE !!!
+//                                                     NOT ALL BOOTLOADERS HANDLE WATCHDOG PROPERLY 
+//                                                    http://forum.arduino.cc/index.php?topic=157406.0 
+// 
+// Note: OptiBoot is watchdog compatible and use less flash space that stock bootloader.
+// Note: watchdog timeout may be vary for many controllers, see comments to macro WTD_TIMEOUT in zabbuino.h
+//#define FEATURE_WATCHDOG_ENABLE
+
+// Uncomment only if you know all about AREF pin using risks
+//#define FEATURE_AREF_ENABLE
+
+// Uncomment to be able to store runtime settings in EEPROM and use its on start
+#define FEATURE_EEPROM_ENABLE
+
+// debug only option, must be removed on releasing 
+//#define FEATURE_EEPROM_SET_COMMANDS_ENABLE
+
+// Uncomment to force protect (enable even netConfig.useProtection is true) your system from illegal access for change runtime settings and reboots 
+//#define FEATURE_PASSWORD_PROTECTION_FORCE
+
+// Uncomment to enable system's command which can be used in system debug process: sys.cmd.count, sys.ram.free and so
+#define FEATURE_DEBUG_COMMANDS_ENABLE
+
+// Uncomment to view the debug messages on the Serial Monitor
+//#define FEATURE_DEBUG_TO_SERIAL
+
+// Uncomment to enable using time+interrupt for internal metric gathering
+#define GATHER_METRIC_USING_TIMER_INTERRUPT
+
 
 
 /* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
@@ -84,7 +203,7 @@
 // Number of expected arguments of the command
 #define ARGS_MAX                    	6
 // Size of buffer's argument part. All separators and delimiters must be taken into account
-#define ARGS_PART_SIZE         	        90
+#define ARGS_PART_SIZE         	        50
 // Size of buffer's command part
 #define CMD_PART_SIZE          	        25
 // The total size of the buffer
@@ -252,7 +371,7 @@ const uint8_t port_pullup[PORTS_NUM] = {
   B00000000, // not a port
   B00000000, // not a port
   // Bits 6, 7 have not correspondented pins in Arduino Mini Pro / Freeduino 2009
-  B00000001, /*     PORTB        
+  B00111101, /*     PORTB        
 D13 -^    ^- D8    <- pins   */
   B00000000, /*     PORTC 
    ^-A7   ^-A0   <- pins    */
@@ -284,14 +403,13 @@ D13 -^    ^- D8    <- pins   */
   B00000000  // PORTL
 #endif
 };
-#endif
 
 
 /* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
                                                             COMMAND NAMES SECTION 
 */
 // Increase this if add new command 
-#define CMD_MAX 0x2F
+#define CMD_MAX 0x33
 
 // Add command macro with new sequental number
 #define CMD_ZBX_NOPE             	0x00
@@ -350,7 +468,7 @@ D13 -^    ^- D8    <- pins   */
 
 #define CMD_MAX7219_WRITE               0x28
 
-#define CMD_ECODER_COUNT                0x29
+#define CMD_ENCODER_COUNT                0x29
 
 #define CMD_PC8574_LCDPRINT            	0x2A
 #define CMD_SYS_CMD_TIMEMAX_N           0x2B
@@ -359,6 +477,13 @@ D13 -^    ^- D8    <- pins   */
 
 #define CMD_SHT2X_HUMIDITY          	0x2D
 #define CMD_SHT2X_TEMPERATURE          	0x2E
+
+#define CMD_ACS7XX_ZC                   0x2F
+#define CMD_ACS7XX_AC                   0x30
+#define CMD_ACS7XX_DC                   0x31
+
+#define CMD_ULTRASONIC_RANGE            0x32
+
 
 
 // add new command as "const char command_<COMMAND_MACRO> PROGMEM". Only 'const' push string to PROGMEM. Tanx, Arduino.
@@ -373,26 +498,32 @@ const char command_CMD_ARDUINO_ANALOGREFERENCE[] 	PROGMEM	= "analogreference";
 const char command_CMD_ARDUINO_DELAY[] 			PROGMEM = "delay";
 const char command_CMD_ARDUINO_DIGITALREAD[] 		PROGMEM = "digitalread"; 
 const char command_CMD_ARDUINO_DIGITALWRITE[] 		PROGMEM = "digitalwrite";
+
 const char command_CMD_ARDUINO_NOTONE[] 		PROGMEM = "notone";
-const char command_CMD_ARDUINO_TONE[] 			PROGMEM = "tone";
+const char command_CMD_ARDUINO_TONE[] 		        PROGMEM = "tone";
+
 const char command_CMD_ARDUINO_RANDOM[] 		PROGMEM = "random";
 const char command_CMD_ARDUINO_RANDOMSEED[] 		PROGMEM = "randomseed";
 
 const char command_CMD_SET_HOSTNAME[] 		        PROGMEM = "set.hostname";
-const char command_CMD_SET_PASSWORD[] 		        PROGMEM = "set.password";        
+const char command_CMD_SET_PASSWORD[] 		        PROGMEM = "set.password";
 const char command_CMD_SET_SYSPROTECT[] 		PROGMEM = "set.sysprotect";
 const char command_CMD_SET_NETWORK[] 		        PROGMEM = "set.network";
 
 const char command_CMD_SYS_PORTWRITE[] 			PROGMEM = "portwrite";
-const char command_CMD_SYS_SHIFTOUT[] 			PROGMEM = "shiftout";            
+
+const char command_CMD_SYS_SHIFTOUT[] 			PROGMEM = "shiftout";
+
 const char command_CMD_SYS_REBOOT[] 			PROGMEM = "reboot";              
+
+const char command_CMD_SYS_UPTIME[] 			PROGMEM = "sys.uptime";
 
 const char command_CMD_SYS_MCU_NAME[] 			PROGMEM = "sys.mcu.name";
 const char command_CMD_SYS_NET_MODULE[] 		PROGMEM = "sys.net.module";
-const char command_CMD_SYS_UPTIME[] 			PROGMEM = "sys.uptime";
 
-const char command_CMD_SYS_CMD_COUNT[] 			PROGMEM = "sys.cmd.count";
+const char command_CMD_SYS_CMD_COUNT[] 		        PROGMEM = "sys.cmd.count";
 const char command_CMD_SYS_CMD_TIMEMAX[] 		PROGMEM = "sys.cmd.timemax";
+const char command_CMD_SYS_CMD_TIMEMAX_N[] 		PROGMEM = "sys.cmd.timemax.n";
 
 const char command_CMD_SYS_RAM_FREE[] 			PROGMEM = "sys.ram.free";
 const char command_CMD_SYS_RAM_FREEMIN[] 		PROGMEM = "sys.ram.freemin";
@@ -404,6 +535,7 @@ const char command_CMD_SYS_VCCMAX[] 		        PROGMEM = "sys.vccmax";
 const char command_CMD_EXTINT_COUNT[] 		        PROGMEM = "extint.count";
 
 const char command_CMD_OW_SCAN[]         		PROGMEM = "ow.scan";
+
 const char command_CMD_I2C_SCAN[] 			PROGMEM = "i2c.scan";
 
 const char command_CMD_DS18X20_TEMPERATURE[] 		PROGMEM	= "ds18x20.temperature";
@@ -418,18 +550,23 @@ const char command_CMD_BH1750_LIGHT[] 			PROGMEM = "bh1750.light";
 
 const char command_CMD_MAX7219_WRITE[] 			PROGMEM = "max7219.write";
 
-const char command_CMD_ECODER_COUNT[] 			PROGMEM = "incenc.count";
+const char command_CMD_ENCODER_COUNT[] 			PROGMEM = "incenc.count";
 
 const char command_CMD_PC8574_LCDPRINT[] 		PROGMEM = "pc8574.lcdprint";
-
-const char command_CMD_SYS_CMD_TIMEMAX_N[] 		PROGMEM = "sys.cmd.timemax.n";
 
 const char command_CMD_BME_HUMIDITY[] 		        PROGMEM = "bme.humidity";
 
 const char command_CMD_SHT2X_HUMIDITY[] 		PROGMEM = "sht2x.humidity";
 const char command_CMD_SHT2X_TEMPERATURE[] 		PROGMEM = "sht2x.temperature";
 
+const char command_CMD_ACS7XX_ZC[] 		        PROGMEM = "acs7xx.zc";
+const char command_CMD_ACS7XX_AC[] 		        PROGMEM = "acs7xx.ac";
+const char command_CMD_ACS7XX_DC[] 		        PROGMEM = "acs7xx.dc";
+
+const char command_CMD_ULTRASONIC_RANGE[] 	        PROGMEM = "ultrasonic.range";
+
 // do not insert new command to any position without syncing indexes. Tanx, Arduino, for this method of string array pushing to PROGMEM
+// ~300 bytes of PROGMEM space can be saved with crazy "#ifdef-#else-#endif" dance
 const char* const commands[] PROGMEM = {
   command_CMD_ZBX_NOPE,
 
@@ -439,63 +576,183 @@ const char* const commands[] PROGMEM = {
 
   command_CMD_ARDUINO_ANALOGREAD,
   command_CMD_ARDUINO_ANALOGWRITE,
+
+#ifdef FEATURE_AREF_ENABLE
   command_CMD_ARDUINO_ANALOGREFERENCE,
+#else
+  command_CMD_ZBX_NOPE,
+#endif
+
   command_CMD_ARDUINO_DELAY,
   command_CMD_ARDUINO_DIGITALREAD,
   command_CMD_ARDUINO_DIGITALWRITE,
+
+#ifdef FEATURE_TONE_ENABLE
   command_CMD_ARDUINO_NOTONE,
   command_CMD_ARDUINO_TONE,
+#else
+  command_CMD_ZBX_NOPE,
+  command_CMD_ZBX_NOPE,
+#endif
+
+#ifdef FEATURE_RANDOM_ENABLE
   command_CMD_ARDUINO_RANDOM,
   command_CMD_ARDUINO_RANDOMSEED,
+#else
+  command_CMD_ZBX_NOPE,
+  command_CMD_ZBX_NOPE,
+#endif
 
+#ifdef FEATURE_EEPROM_ENABLE
   command_CMD_SET_HOSTNAME,
   command_CMD_SET_PASSWORD,
   command_CMD_SET_SYSPROTECT,
   command_CMD_SET_NETWORK,
+#else
+  command_CMD_ZBX_NOPE,
+  command_CMD_ZBX_NOPE,
+  command_CMD_ZBX_NOPE,
+  command_CMD_ZBX_NOPE,
+#endif
 
   command_CMD_SYS_PORTWRITE,
+
+#ifdef FEATURE_SHIFTOUT_ENABLE 
   command_CMD_SYS_SHIFTOUT,
+#else
+  command_CMD_ZBX_NOPE,
+#endif
+
   command_CMD_SYS_REBOOT,
 
+#ifdef FEATURE_DEBUG_COMMANDS_ENABLE
   command_CMD_SYS_MCU_NAME,
   command_CMD_SYS_NET_MODULE,
+#else 
+  command_CMD_ZBX_NOPE,
+  command_CMD_ZBX_NOPE,
+#endif
+
   command_CMD_SYS_UPTIME,
 
+#ifdef FEATURE_DEBUG_COMMANDS_ENABLE
   command_CMD_SYS_CMD_COUNT,
   command_CMD_SYS_CMD_TIMEMAX,
   
   command_CMD_SYS_RAM_FREE,
   command_CMD_SYS_RAM_FREEMIN,
+#else 
+  command_CMD_ZBX_NOPE,
+  command_CMD_ZBX_NOPE,
+  command_CMD_ZBX_NOPE,
+  command_CMD_ZBX_NOPE,
+#endif
   
   command_CMD_SYS_VCC,
   command_CMD_SYS_VCCMIN,
   command_CMD_SYS_VCCMAX,
 
+#ifdef FEATURE_EXTERNAL_INTERRUPT_ENABLE
   command_CMD_EXTINT_COUNT,
+#else
+  command_CMD_ZBX_NOPE,
+#endif
 
+#ifdef FEATURE_OW_ENABLE
   command_CMD_OW_SCAN,
+#else
+  command_CMD_ZBX_NOPE,
+#endif
+
+#ifdef FEATURE_I2C_ENABLE
   command_CMD_I2C_SCAN,
+#else
+  command_CMD_ZBX_NOPE,
+#endif
 
+#ifdef FEATURE_DS18X20_ENABLE
   command_CMD_DS18X20_TEMPERATURE,
+#else
+  command_CMD_ZBX_NOPE,
+#endif
 
+#ifdef FEATURE_DHT_ENABLE
   command_CMD_DHT_HUMIDITY,
   command_CMD_DHT_TEMPERATURE,
+#else
+  command_CMD_ZBX_NOPE,
+  command_CMD_ZBX_NOPE,
+#endif
 
+#ifdef FEATURE_BMP_ENABLE
   command_CMD_BMP_PRESSURE,
   command_CMD_BMP_TEMPERATURE,
+#else
+  command_CMD_ZBX_NOPE,
+  command_CMD_ZBX_NOPE,
+#endif
 
+#ifdef FEATURE_BH1750_ENABLE
   command_CMD_BH1750_LIGHT,
+#else
+  command_CMD_ZBX_NOPE,
+#endif
 
+#ifdef FEATURE_MAX7219_ENABLE
   command_CMD_MAX7219_WRITE,
+#else
+  command_CMD_ZBX_NOPE,
+#endif
 
-  command_CMD_ECODER_COUNT,
+#ifdef FEATURE_ENCODER_ENABLE
+  command_CMD_ENCODER_COUNT,
+#else
+  command_CMD_ZBX_NOPE,
+#endif
 
+#ifdef FEATURE_PC8574_LCD_ENABLE
   command_CMD_PC8574_LCDPRINT,
+#else
+  command_CMD_ZBX_NOPE,
+#endif
+
+#ifdef FEATURE_DEBUG_COMMANDS_ENABLE
   command_CMD_SYS_CMD_TIMEMAX_N,
+#else
+  command_CMD_ZBX_NOPE,
+#endif
+
+#ifdef SUPPORT_BME280_INCLUDE
   command_CMD_BME_HUMIDITY,
-  command_CMD_SHT2X_HUMIDITY,
-  command_CMD_SHT2X_TEMPERATURE
+#else
+  command_CMD_ZBX_NOPE,
+#endif
   
+#ifdef FEATURE_SHT2X_ENABLE
+  command_CMD_SHT2X_HUMIDITY,
+  command_CMD_SHT2X_TEMPERATURE,
+#else
+  command_CMD_ZBX_NOPE,
+  command_CMD_ZBX_NOPE,
+#endif
+  
+#ifdef FEATURE_ACS7XX_ENABLE
+  command_CMD_ACS7XX_ZC,
+  command_CMD_ACS7XX_AC,
+  command_CMD_ACS7XX_DC,
+#else
+  command_CMD_ZBX_NOPE,
+  command_CMD_ZBX_NOPE,
+  command_CMD_ZBX_NOPE,
+#endif
+
+
+#ifdef FEATURE_ULTRASONIC_ENABLE
+  command_CMD_ULTRASONIC_RANGE,
+#else
+  command_CMD_ZBX_NOPE,
+#endif
+ 
 };
 /*
 /* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
@@ -525,6 +782,10 @@ const char* const commands[] PROGMEM = {
 #define SENS_READ_HUMD 			0x02
 #define SENS_READ_PRSS 			0x03
 #define SENS_READ_LUX                   0x04
+
+#define SENS_READ_ZC                    0x08
+#define SENS_READ_AC                    0x09
+#define SENS_READ_DC                    0x0A
 
 #define SENS_READ_RAW 			0xFF
 
@@ -602,4 +863,6 @@ typedef struct {
 
 // if _source have hex prefix - return true
 #define haveHexPrefix(_source) ( (_source[0] == '0' && _source[1] == 'x') )
+
+#endif
 

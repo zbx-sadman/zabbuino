@@ -68,7 +68,7 @@ void i2CReadBytes(const uint8_t _i2cAddress, const uint8_t _registerAddress, uin
 };
 
 /* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
-                                                                     SHT21 SECTION
+                                                                     SHT2x SECTION
 */
 
 #define SHT2X_I2C_ADDRESS              0x40
@@ -290,7 +290,6 @@ int32_t BMPRead(uint8_t _sdaPin, uint8_t _sclPin, uint8_t _i2cAddress, uint8_t _
   Wire.requestFrom((uint8_t) _i2cAddress, (uint8_t) 1);
   chipID = Wire.read();
   Wire.endTransmission();
-  Serial.println(chipID);
   
   switch (chipID) {
     // BMP085 and BMP180 have the same ID  
@@ -306,14 +305,14 @@ int32_t BMPRead(uint8_t _sdaPin, uint8_t _sclPin, uint8_t _i2cAddress, uint8_t _
        BMP280Read(_sdaPin, _sclPin, _i2cAddress, _overSampling, _filterCoef, _metric, _outBuffer);
        break;
 #endif
-//#ifdef SUPPORT_BME280_INCLUDE
+#ifdef SUPPORT_BME280_INCLUDE
     case BME280_CHIPID:
-       Serial.println("BME");
+//       Serial.println("BME");
 
        // BME280 is BMP280 with additional humidity sensor
        BMP280Read(_sdaPin, _sclPin, _i2cAddress, _overSampling, _filterCoef, _metric, _outBuffer);
        break;
-//#endif
+#endif
     default:  
        return DEVICE_ERROR_CONNECT;  
   }
@@ -486,6 +485,7 @@ int32_t BMP280Read(uint8_t _sdaPin, uint8_t _sclPin, uint8_t _i2cAddress, uint8_
 #ifdef SUPPORT_BME280_INCLUDE
     case SENS_READ_HUMD:
       /* read calibration data */
+
       i2CReadBytes(_i2cAddress, BME280_REGISTER_DIG_H1, value, 1);
       dig_H1 = value[0];
   
@@ -508,6 +508,8 @@ int32_t BMP280Read(uint8_t _sdaPin, uint8_t _sclPin, uint8_t _i2cAddress, uint8_
       i2CReadBytes(_i2cAddress, BME280_REGISTER_HUMIDDATA, value, 2);
 
       adc = (value[0] << 8) | value[1];
+      //Serial.print("t_fine: "); Serial.println(t_fine);
+      //Serial.print("adc: "); Serial.println(adc);
      
       // Compensate humidity caculation
       var1 = (t_fine -  ((int32_t) 76800));
@@ -521,6 +523,7 @@ int32_t BMP280Read(uint8_t _sdaPin, uint8_t _sclPin, uint8_t _i2cAddress, uint8_
       result = (uint32_t)(var1 >> 12);
       // Returns humidity in %RH as unsigned 32 bit integer in Q22.10 format (22 integer and 10 fractional bits).
       //	 Output value of “47445” represents 47445/1024 = 46.333 %RH
+      //Serial.print("H: "); Serial.println(result);
       qtoaf(result, _outBuffer, 10);
 #endif        
 }

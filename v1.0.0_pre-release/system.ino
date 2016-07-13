@@ -30,7 +30,7 @@ ISR(TIMER1_COMPA_vect)
 **************************************************************************************************************************** */
 uint8_t timerOneInit(uint16_t _milliseconds) 
 {
-  // Don't allow no more 5 sec to avoid overflow on 16Mhz with prescaler 1024 
+  // Don't allow more that 5 sec to avoid overflow on 16Mhz with prescaler 1024 
   if ((1000 > _milliseconds) && (5000 < _milliseconds)) { return false; }
   // Clear control register A 
   TCCR1A = 0;                 

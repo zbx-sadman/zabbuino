@@ -1,7 +1,7 @@
 // My Freeduino is not listed, but is analogue to ARDUINO_AVR_DUEMILANOVE
 #define ARDUINO_AVR_DUEMILANOVE
 // Just for compilation with various default network configs
-//#define USE_NETWORK_192_168_0_1
+#define USE_NETWORK_192_168_0_1
 
 /* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
                                                              !!! WizNet W5xxx users !!!
@@ -9,8 +9,8 @@
     1. Comment #include <UIPEthernet.h>
     2. Uncomment #include <Ethernet.h> and <SPI.h> headers
 */
-#include <Ethernet.h>
-#include <SPI.h>
+//#include <Ethernet.h>
+//#include <SPI.h>
 
 /* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
                                                                 !!! ENC28J60 users !!!
@@ -34,8 +34,21 @@
              ...
     
 */
-//#include <UIPEthernet.h>
+#include <UIPEthernet.h>
 //#define USE_DIRTY_HACK_AND_REBOOT_ENC28J60_IF_ITS_SEEMS_FREEZE
+
+
+
+/* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
+                                                                 PROGRAMM FEATURES SECTION
+                                                                        MOVED  TO
+                                                                        zabuino.h
+                   
+                Please refer to the zabbuino.h file for enabling or disabling Zabbuino's features  and tuning (like set State LED pin, network addresses, agent hostname and so)
+
+        if connected sensors seems not work - first check setting in port_protect[], port_mode[], port_pullup[] arrays in I/O PORTS SETTING SECTION
+
+*/
 
 
 #include "zabbuino.h"
@@ -49,134 +62,6 @@
 #include <avr/wdt.h>
 // used by interrupts-related macroses
 #include <wiring_private.h>
-#include <util/atomic.h>
-
-/* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
-                                                                 PROGRAMM FEATURES SECTION
-                   (Please refer to the zabbuino.h file for more Zabbuino tuning like set State LED pin, network addresses, agent hostname and so)
-
-        if connected sensors seems not work - first check setting in port_protect[], port_mode[], port_pullup[] arrays in I/O PORTS SETTING SECTION
-
-
-
-                                  Comment #define's below to save RAM and Flash and uncomment to enable some feature 
-
-*/
-
-/****       Network      ****/
-
-// Uncomment to use DHCP address obtaining
-//#define FEATURE_NET_DHCP_ENABLE
-
-// Uncomment to force using DHCP even netConfig.useDHCP = false
-//#define FEATURE_NET_DHCP_FORCE
-
-/****       Arduino      ****/
-
-// Uncomment to enable Arduino's tone[], noTone[] commands
-//#define FEATURE_TONE_ENABLE
-
-// Uncomment to enable Arduino's randomSeed, random[] commands
-//#define FEATURE_RANDOM_ENABLE
-
-// Uncomment to enable shiftOut[] command
-//#define FEATURE_SHIFTOUT_ENABLE
-
-/****    Other   ****/
-
-// Uncomment to enable external interrupts handling: interrupt.*[] commands
-#define FEATURE_EXTERNAL_INTERRUPT_ENABLE
-
-// Uncomment to enable encoder handling with external interrupts: encoder.*[] commands
-//#define FEATURE_ENCODER_ENABLE
-
-/****      1-Wire bus      ****/
-
-// Uncomment to enable 1-Wire common functions: OW.Scan[]
-#define FEATURE_OW_ENABLE
-
-// Uncomment to enable Dallas DS18x20 family functions: DS18x20.*[] commands
-#define FEATURE_DS18X20_ENABLE
-
-/****        I2C bus       ****/
-
-// Note #1: I2C library (Wire.h) takes at least 32bytes of memory for internal buffers
-// Note #2: I2C library (Wire.h) activate internal pullups for SDA & SCL pins when Wire.begin() called
-
-// Uncomment to enable I2C common functions: I2C.Scan[]
-#define FEATURE_I2C_ENABLE
-
-// Uncomment to enable BMP pressure sensors functions: BMP.*[] commands
-#define FEATURE_BMP_ENABLE
-#define SUPPORT_BMP180_INCLUDE
-#define SUPPORT_BMP280_INCLUDE
-#define SUPPORT_BME280_INCLUDE
-
-// Uncomment to enable BH1750 light sensors functions: BH1750.*[] commands
-#define FEATURE_BH1750_ENABLE
-
-
-#define FEATURE_PC8574_LCD_ENABLE
-
-//
-#define FEATURE_SHT2X_ENABLE
-
-/****        MicroWire bus       ****/
-
-// Uncomment to enable MAX7219 8x8 led matrix functions: MAX7219.*[] commands
-#define FEATURE_MAX7219_ENABLE
-
-/****    DHT/AM family    ****/
-
-// Uncomment to enable DHT/AM humidity sensors functions: DHT.*[] commands
-#define FEATURE_DHT_ENABLE
-
-
-
-
-/****      System        ****/
-
-// Uncomment to enable AVR watchdog
-//                                                                     !!! BEWARE !!!
-//                                                     NOT ALL BOOTLOADERS HANDLE WATCHDOG PROPERLY 
-//                                                    http://forum.arduino.cc/index.php?topic=157406.0 
-// 
-// Note: OptiBoot is watchdog compatible and use less flash space that stock bootloader.
-// Note: watchdog timeout may be vary for many controllers, see comments to macro WTD_TIMEOUT in zabbuino.h
-//#define FEATURE_WATCHDOG_ENABLE
-
-// Uncomment to be able to store runtime settings in EEPROM and use its on start
-#define FEATURE_EEPROM_ENABLE
-
-// debug only option, must be removed on releasing 
-//#define FEATURE_EEPROM_SET_COMMANDS_ENABLE
-
-// Uncomment to force protect (enable even netConfig.useProtection is true) your system from illegal access for change runtime settings and reboots 
-//#define FEATURE_PASSWORD_PROTECTION_FORCE
-
-// Uncomment to enable system's command which can be used in system debug process: sys.cmd.count, sys.ram.free and so
-#define FEATURE_DEBUG_COMMANDS_ENABLE
-
-// Uncomment to view the debug messages on the Serial Monitor
-#define FEATURE_DEBUG_TO_SERIAL
-
-// Uncomment to enable using time+interrupt for internal metric gathering
-#define GATHER_METRIC_USING_TIMER_INTERRUPT
-
-
-
-/* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
-*/
-
-// Enable I2C functions if user forget it
-//#if defined(FEATURE_BH1750_ENABLE) || defined(FEATURE_BMP_ENABLE)
-//#define FEATURE_I2C_ENABLE
-//#endif
-
-// Enable 1-Wire functions if user forget it
-//#if defined(FEATURE_DS18X20_ENABLE)
-//#define FEATURE_OW_ENABLE
-//#endif
 
 /* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
                                                                  GLOBAL VARIABLES SECTION
@@ -490,7 +375,7 @@ void loop() {
 /* ****************************************************************************************************************************
 *
 *  Stream analyzing subroutine
-*  Detect Zabbix packets, on-fly spit incoming stream to command, arguments
+*  Detect Zabbix packets, on-fly spit incoming stream to command & arguments
 *
 **************************************************************************************************************************** */
 uint8_t analyzeStream(char charFromClient) {
@@ -498,15 +383,24 @@ uint8_t analyzeStream(char charFromClient) {
   uint16_t static bufferWritePosition;
 
   // If there is not room in buffer - simulate EOL recieving
-  if (BUFFER_SIZE <= bufferWritePosition ) { charFromClient = '\n'; }
+  if (BUFFER_SIZE <= bufferWritePosition ) { charFromClient = '\n'; 
+//     Serial.println("End of buffer reached, stop analyzing");
+  }
+  
   // Put next char to buffer
+//  Serial.print("[");  Serial.print(bufferWritePosition);  Serial.print("] ");  
+//   if (charFromClient > 32) { Serial.print(charFromClient); } else {Serial.print(" ");}
+//  Serial.print(" => "); Serial.print(charFromClient, HEX); Serial.print(" = tolower => "); 
   cBuffer[bufferWritePosition] = tolower(charFromClient); 
- 
+//  if (cBuffer[bufferWritePosition] > 32) { Serial.print(cBuffer[bufferWritePosition]); } else {Serial.print(" ");}
+//  Serial.print(" => "); Serial.println(cBuffer[bufferWritePosition], HEX);
+  
   // When ZBX_HEADER_PREFIX_LENGTH chars is saved to buffer - test its for Zabbix2 protocol header prefix ("ZBXD\01") presence
   if (ZBX_HEADER_PREFIX_LENGTH == bufferWritePosition) {
      if (0 == memcmp(&cBuffer, ZBX_HEADER_PREFIX, ZBX_HEADER_PREFIX_LENGTH)) {
         // If packet have prefix - set 'skip whole header' flag
         needSkipZabbix2Header = true;
+//        Serial.println("Header detected, skipping it");
      }
   }
 
@@ -516,6 +410,7 @@ uint8_t analyzeStream(char charFromClient) {
      bufferWritePosition = 0;
      needSkipZabbix2Header = false;
      // Return 'Need next char' and save a lot cpu time 
+ //    Serial.println("Header skipped");
      return true;
   }
 
@@ -526,14 +421,19 @@ uint8_t analyzeStream(char charFromClient) {
         case 0x20:
           // Space or final square bracket found. Do nothing and next char will be written to same position. 
           // Return 'Need next char'
+//          Serial.println("Skip ' ' or ']'");
           return true;
         case '[':
         case ',':
+//          Serial.println("Delimiter or separator found, processing");
           // Delimiter or separator found. Push begin of next argument (bufferWritePosition+1) on buffer to arguments offset array. 
           argOffset[argIndex] = bufferWritePosition+1; argIndex++; 
           // Make current buffer segment like C-string
-          cBuffer[bufferWritePosition] = '\0'; break;
+          cBuffer[bufferWritePosition] = '\0'; 
+          break;
         case '\n':
+//Serial.println();  
+//           Serial.println("EOL detected");
           // EOL detected
           // Save last argIndex that pointed to <null> item. All unused argOffset[] items must be pointed to this <null> item too.
           cBuffer[bufferWritePosition] = '\0'; 
@@ -638,7 +538,6 @@ uint8_t executeCommand()
 
     case CMD_SYS_CMD_TIMEMAX_N:
       ethClient.println(sysMetrics[IDX_METRIC_SYS_CMD_TIMEMAX_N], HEX);
-
       result = RESULT_IS_PRINTED;
       break;
    
@@ -662,6 +561,7 @@ uint8_t executeCommand()
 #endif
 
 #ifdef FEATURE_EEPROM_ENABLE
+// TODO: remove on release
 #ifdef FEATURE_EEPROM_SET_COMMANDS_ENABLE
     case CMD_SET_HOSTNAME:
       if (AccessGranted) {
@@ -732,8 +632,8 @@ uint8_t executeCommand()
          }
        }
        break;
-#endif  
 #endif // FEATURE_EEPROM_ENABLE
+#endif // 
 
     case CMD_SYS_REBOOT:
       if (AccessGranted) {
@@ -778,21 +678,25 @@ uint8_t executeCommand()
          result = RESULT_IS_OK;
       }
       break;
-  
+      
     case CMD_ARDUINO_ANALOGREAD:
+#ifdef FEATURE_AREF_ENABLE
       // change source of the reference voltage if its given
       if ('\0' != cBuffer[argOffset[1]]) {
          analogReference(arg[1]);
          delayMicroseconds(2000);
       }
+#endif
       result = (long) analogRead(arg[0]);
       break;
       
   
+#ifdef FEATURE_AREF_ENABLE
     case CMD_ARDUINO_ANALOGREFERENCE:
       analogReference(arg[0]);
       result = RESULT_IS_OK;
       break;
+#endif
   
     case CMD_ARDUINO_DIGITALWRITE:
       if (isSafePin(arg[0])) {
@@ -949,7 +853,6 @@ uint8_t executeCommand()
       break;
 #endif // FEATURE_BH1750_ENABLE
 
-
 #ifdef FEATURE_MAX7219_ENABLE
     case CMD_MAX7219_WRITE:
       if (isSafePin(arg[0]) && isSafePin(arg[1])  && isSafePin(arg[2])) {
@@ -968,6 +871,51 @@ uint8_t executeCommand()
       break;
 
 #endif // FEATURE_PC8574_LCD_ENABLE
+
+
+#ifdef FEATURE_ACS7XX_ENABLE
+    case CMD_ACS7XX_ZC:
+      if (isSafePin(arg[0])) {
+         /*
+            for ATmega1280, ATmega2560, ATmega1284, ATmega1284P, ATmega644, ATmega644A, ATmega644P, ATmega644PA
+               INTERNAL1V1 	2  - 1,1V
+               INTERNAL2V56 	3  - 2,56V
+            ATmega328 and so
+               INTERNAL 	3  - 1,1V
+            Both
+               DEFAULT 	        1  - VCC
+               EXTERNAL 	0  - AREF << mV on AREF, more than '3'
+*/
+         // ACS7XX.ZC[_sensorPin, refVoltage];
+         result = ACS7XXCurrent(arg[0], arg[1], SENS_READ_ZC, 0, 0, cBuffer);
+      }
+      break;
+
+    case CMD_ACS7XX_AC:
+      if (isSafePin(arg[0])) {
+         // ACS7XX.AC[_sensorPin, refVoltage, sensitivity, zeroCurrentPoint];
+         result = ACS7XXCurrent(arg[0], arg[1], SENS_READ_AC, arg[2], arg[3], cBuffer);
+      }
+      break;
+
+    case CMD_ACS7XX_DC:
+      if (isSafePin(arg[0])) {
+         // ACS7XX.DC[_sensorPin, refVoltage, sensitivity, zeroCurrentPoint];
+         result = ACS7XXCurrent(arg[0], arg[1], SENS_READ_DC, arg[2], arg[3], cBuffer);
+      }
+      break;
+
+#endif // FEATURE_ACS7XX_ENABLE
+
+
+#ifdef FEATURE_ULTRASONIC_ENABLE
+    case CMD_ULTRASONIC_RANGE:
+      if (isSafePin(arg[0]) & isSafePin(arg[1])) {
+         result = ultrasonicRanging(arg[0], arg[1]);
+      }
+      break;
+#endif // FEATURE_ULTRASONIC_ENABLE
+
 
 #ifdef FEATURE_EXTERNAL_INTERRUPT_ENABLE
     case CMD_EXTINT_COUNT:
@@ -1046,7 +994,7 @@ uint8_t executeCommand()
 #endif // FEATURE_EXTERNAL_INTERRUPT_ENABLE
 
 #ifdef FEATURE_ENCODER_ENABLE
-    case CMD_ECODER_COUNT:
+    case CMD_ENCODER_COUNT:
       // Команда: incEnc.count[terminalAPin, terminalBPin, intNumber, initialNumber]
 
       // TODO: maybe need to rework code block
@@ -1094,6 +1042,13 @@ uint8_t executeCommand()
 
 
     default:
+/*      uint8_t i; 
+      for (i =0; i < BUFFER_SIZE; i++){
+         Serial.print("[");  Serial.print(i);  Serial.print("] ");  
+         if (cBuffer[i] > 32) { Serial.print(cBuffer[i]); } else {Serial.print(" ");}     
+         Serial.print(" => ");  Serial.print(cBuffer[i], HEX);  Serial.println();  
+      }
+ */     
       // In default case command  is considered unknown.
       strcpy(cBuffer, ZBX_NOTSUPPORTED_MSG);
       // Early increased command counter is decremented

@@ -17,13 +17,33 @@ Implemented:
 - Support BH1750 light sensor;
 - Support incremental Encoder (on interrupt's pin);
 - Support any devices that can be used with hardware interrupt - tilt switches, dry contacts, water flow sensor, and so;
-- Support ACS712-XX sensor (coming soon);
+- Support ACS712-XX sensor;
+- Support HC-SR04 ultrasonic ranging module (coming soon);
 - Support any other analog or digital sensor via `analogread` /`digitalread` commands;
 - Support indicators, that connected to MAX7219, 8x8 Led matrix for example;
 - Support One- or Two- (and maybe Four-) lines LCD Character displays with PC8574 I2C expander;
 - Support any actuators or indicators via `digitalwrite` command;
 - Support WS2801 Led stripe and any indicators on shift registers via extended `shiftout` command.
 
+
+####13 Jul 2016
+Changes:
+- Programm features section moved to zabbuino.h for code reorganization to reducing firmware size;
+- AnalogReference() related functions disabled until FEATURE_AREF_ENABLE defined. It must prevent MCU damage (see AREF pin connect recommendation).
+
+New commands:
+- _acs7xx.zc[sensorPin, refVoltage]_ - returns Arduino ADC's "zero point". ACS7xx sensor's load must be disconnected before command using.
+  - _sensorPin_ - pin (analog) to which ACS7xx sensor's output is connected;
+  - _refVoltage_ - reference voltage settings. Can be an number that defined as DEFAULT for Arduino's _analogReference()_ function on your platform, or voltage value (in mVolts) on AREF pin (please read all notes about AREF pin using).
+- _acs7xx.dc[sensorPin, refVoltage, sensitivity, zeroPoint]_ - returns current for DC. 
+  - _sensorPin_ - pin (analog) to which ACS7xx sensor's output is connected;
+  - _refVoltage_ - reference voltage settings. Refer to _acs7xx.zc[]_ command description;
+  - _sensitivity_ - sensitivity of used sensor in A/mV. For example - 185 for ACS712-05A or 66 for ACS712-30A. Refer to sensor datasheet;
+  - _zeroPoint_ - Arduino ADC's "zero point". For example - 511. It can be found with _acs7xx.zc[]_ command.
+
+**Note #1** - _acs7xx.ac_ presently not ready to use.
+ 
+**Note #2** - The value that measured by _acs7xx.*_  can have large error (may be 5% or more) due to Arduino's circuit design (unstable internal reference voltage, noisy ADC and so). To get better results you can try to use external reference voltage on AREF pin. 
 
 ####12 Jul 2016
 
