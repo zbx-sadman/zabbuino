@@ -1,5 +1,5 @@
 # Zabbuino
-An Zabbix agent firmware for Arduino
+An Zabbix agent firmware for Arduino (**AVR only**)
 
 Try Zabbuino 1.0.0 [pre-release](https://github.com/zbx-sadman/Zabbuino/tree/master/v1.0.0_pre-release) (Implemented sensors/indicators/metrics lists inside);
 
@@ -15,7 +15,7 @@ Implemented:
 
 Minimum requirements: 
 - W5100 Ethernet Module with ATMega 168 and upward;
-- ENC28J60 Ethernet Module with ATMega 328 and upward
+- ENC28J60 Ethernet Module with ATMega 328 and upward.
 
 Manuals:
 - Draft in [Russian](https://github.com/zbx-sadman/zabbuino/wiki/Zabbuino-in-Russian);
