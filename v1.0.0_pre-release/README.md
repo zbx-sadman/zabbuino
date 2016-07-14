@@ -43,7 +43,7 @@ New commands:
 
 **Note #1** - _acs7xx.ac_ presently not ready to use.
  
-**Note #2** - The value that measured by _acs7xx.*_  can have large error (may be 5% or more) due to Arduino's circuit design (unstable internal reference voltage, noisy ADC and so). To get better results you can try to use external reference voltage on AREF pin. 
+**Note #2** - The value that measured by _acs7xx.*_  can have large error (may be 5% or more) due to Arduino's circuit design (unstable internal reference voltage, noisy ADC and so) and _acs7xx_ noise (21mv / 0.11A for ACS712-05) exists. To get better results you can try to use external reference voltage on AREF pin.
 
 ####12 Jul 2016
 
