@@ -31,7 +31,7 @@ version 0.1.13 is used
 *   Read temperature or humidity from digital sensor DHT11/DHT21/DHT22/AM2301/AM2302
 *
 **************************************************************************************************************************** */
-int32_t DHTRead(uint8_t _pin, uint8_t _sensorModel, uint8_t _metric, char* _outBuffer)
+int32_t DHTRead(const uint8_t _pin, const uint8_t _sensorModel, const uint8_t _metric, char* _outBuffer)
 {
   // INIT BUFFERVAR TO RECEIVE DATA
   uint8_t mask = 128;

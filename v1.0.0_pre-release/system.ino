@@ -28,7 +28,7 @@ ISR(TIMER1_COMPA_vect)
 *   
 *
 **************************************************************************************************************************** */
-uint8_t timerOneInit(uint16_t _milliseconds) 
+uint8_t timerOneInit(const uint16_t _milliseconds) 
 {
   // Don't allow more that 5 sec to avoid overflow on 16Mhz with prescaler 1024 
   if ((1000 > _milliseconds) && (5000 < _milliseconds)) { return false; }
@@ -81,7 +81,7 @@ void gatherMetrics(){
 *   Correct minmem metric when FreeMem just taken
 *
 **************************************************************************************************************************** */
-void correctMemoryMetrics(uint32_t _currMemFree) {
+void correctMemoryMetrics(const uint32_t _currMemFree) {
   if (sysMetrics[IDX_METRIC_SYS_RAM_FREEMIN] > _currMemFree) {
      sysMetrics[IDX_METRIC_SYS_RAM_FREEMIN] = _currMemFree;
   }
@@ -93,7 +93,7 @@ void correctMemoryMetrics(uint32_t _currMemFree) {
 *   Correct minvcc/maxvcc metrics when VCC just taken
 *
 **************************************************************************************************************************** */
-void correctVCCMetrics(uint32_t _currVCC) {
+void correctVCCMetrics(const uint32_t _currVCC) {
   if (sysMetrics[IDX_METRIC_SYS_VCCMIN] > _currVCC) {
      sysMetrics[IDX_METRIC_SYS_VCCMIN] = _currVCC;
   }

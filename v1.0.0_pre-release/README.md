@@ -18,13 +18,28 @@ Implemented:
 - Support incremental Encoder (on interrupt's pin);
 - Support any devices that can be used with hardware interrupt - tilt switches, dry contacts, water flow sensor, and so;
 - Support ACS712-XX sensor;
-- Support HC-SR04 ultrasonic ranging module (coming soon);
+- Support HC-SR04 ultrasonic ranging module;
 - Support any other analog or digital sensor via `analogread` /`digitalread` commands;
 - Support indicators, that connected to MAX7219, 8x8 Led matrix for example;
+- Support PC8574 I2C expander;
 - Support One- or Two- (and maybe Four-) lines LCD Character displays with PC8574 I2C expander;
 - Support any actuators or indicators via `digitalwrite` command;
 - Support WS2801 Led stripe and any indicators on shift registers via extended `shiftout` command.
 
+
+####15 Jul 2016
+New commands:
+- _ultrasonic.range[triggerPin, echoPin]_ - returns from obtained HC-SR04 module distance (in **mm**) to the object.
+  - _triggerPin_ - pin to which HC-SR04 "Trig" connected;
+  - _echoPin_ - pin to which HC-SR04 "Echo" connected;
+
+- _pc8574.write[sdaPin, sclPin, i2cAddress, data]_ - write data (one byte) to PC8574/PC8574A I2C expander. 
+  - _sdaPin, sclPin_ - I2C pins;
+  - _i2cAddress_ - address of PC8574/PC8574A expander. It can be found with _I2C.scan[]_ command;
+  - _data_ - one byte data to expander write.
+
+**Note #1** - _ultrasonic.range_ returns 65534 if the object out of distance range (too close or too far).
+ 
 
 ####13 Jul 2016
 Changes:

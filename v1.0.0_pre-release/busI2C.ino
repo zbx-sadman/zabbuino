@@ -36,7 +36,7 @@ int32_t i2CScan()
 *  Write 1 byte to I2C device register
 *
 **************************************************************************************************************************** */
-void i2CWriteByte(uint8_t _i2cAddress, uint8_t _registerAddress, uint8_t _data)
+void i2CWriteByte(const uint8_t _i2cAddress, const uint8_t _registerAddress, const uint8_t _data)
 {
   Wire.beginTransmission(_i2cAddress); // start transmission to device 
   Wire.write(_registerAddress); // sends register address to be written
@@ -99,7 +99,7 @@ uint16_t SHT2XReadSensor(const uint8_t _i2cAddress, const uint8_t _command)
     return result;
 }
 
-int32_t SHT2XRead(uint8_t _sdaPin, uint8_t _sclPin, uint8_t _i2cAddress, uint8_t _metric, char* _outBuffer) 
+int32_t SHT2XRead(const uint8_t _sdaPin, const uint8_t _sclPin, uint8_t _i2cAddress, const uint8_t _metric, char* _outBuffer) 
 {
   int32_t result = 0;
   uint16_t rawData; 
@@ -263,7 +263,7 @@ int32_t SHT2XRead(uint8_t _sdaPin, uint8_t _sclPin, uint8_t _i2cAddress, uint8_t
 #define T_MEASURE_PER_OSRS_MAX					37   // 37/16 = 2.3125 ms
 #define T_SETUP_PRESSURE_MAX					10   // 10/16 = 0.625 ms
 
-int32_t BMPRead(uint8_t _sdaPin, uint8_t _sclPin, uint8_t _i2cAddress, uint8_t _overSampling, uint8_t _filterCoef, uint8_t _metric, char* _outBuffer)
+int32_t BMPRead(const uint8_t _sdaPin, const uint8_t _sclPin, uint8_t _i2cAddress, const uint8_t _overSampling, const uint8_t _filterCoef, const uint8_t _metric, char* _outBuffer)
 {
   uint8_t chipID; 
 
@@ -324,7 +324,7 @@ int32_t BMPRead(uint8_t _sdaPin, uint8_t _sclPin, uint8_t _i2cAddress, uint8_t _
 *  Read temperature or pressure from digital sensor BMP280
 *
 **************************************************************************************************************************** */
-int32_t BMP280Read(uint8_t _sdaPin, uint8_t _sclPin, uint8_t _i2cAddress, uint8_t _overSampling, uint8_t _filterCoef, uint8_t _metric, char* _outBuffer)
+int32_t BMP280Read(const uint8_t _sdaPin, const uint8_t _sclPin, uint8_t _i2cAddress, const uint8_t _overSampling, uint8_t _filterCoef, const uint8_t _metric, char* _outBuffer)
 {
   uint16_t dig_T1;
   int16_t  dig_T2, dig_T3;
@@ -535,7 +535,7 @@ int32_t BMP280Read(uint8_t _sdaPin, uint8_t _sclPin, uint8_t _i2cAddress, uint8_
 *  Read temperature or pressure from digital sensor BMP085(BMP180)
 *
 **************************************************************************************************************************** */
-int32_t BMP085Read(uint8_t _sdaPin, uint8_t _sclPin, uint8_t _i2cAddress, uint8_t _oversampling, uint8_t _metric, char* _outBuffer)
+int32_t BMP085Read(const uint8_t _sdaPin, const uint8_t _sclPin, uint8_t _i2cAddress, uint8_t _overSampling, const uint8_t _metric, char* _outBuffer)
 {
   // Calibration values
   int16_t ac1, ac2, ac3;
@@ -583,14 +583,14 @@ int32_t BMP085Read(uint8_t _sdaPin, uint8_t _sclPin, uint8_t _i2cAddress, uint8_
   i2CReadBytes(_i2cAddress, BMP085_REG_CAL_MD, value, 2);
   md = (value[0] << 8) | value[1];
 
-  switch ( _oversampling) {
+  switch ( _overSampling) {
     case BMP085_ULTRALOWPOWER: 
     case BMP085_STANDARD:
     case BMP085_HIGHRES:
     case BMP085_ULTRAHIGHRES:
        break;
      default:  
-        _oversampling = BMP085_STANDARD;
+        _overSampling = BMP085_STANDARD;
   }
 
   // ******** Get Temperature ********
@@ -622,14 +622,14 @@ int32_t BMP085Read(uint8_t _sdaPin, uint8_t _sclPin, uint8_t _i2cAddress, uint8_
 
     // Write 0x34+(_oversampling<<6) into register 0xF4
     // Request a pressure reading w/ oversampling setting
-    i2CWriteByte(_i2cAddress, BMP_REG_CONTROL, BMP_CMD_READPRESSURE + (_oversampling << 6));
+    i2CWriteByte(_i2cAddress, BMP_REG_CONTROL, BMP_CMD_READPRESSURE + (_overSampling << 6));
 
     // Wait for conversion, delay time dependent on _oversampling
-    delay(2 + (3 << _oversampling));
+    delay(2 + (3 << _overSampling));
 
     // Read register 0xF6 (MSB), 0xF7 (LSB), and 0xF8 (XLSB)
     i2CReadBytes(_i2cAddress, BMP_REG_PRESSUREDATA, value, 3);
-    up = (((uint32_t) value[0] << 16) | ((uint32_t) value[1] << 8) | (uint32_t) value[2]) >> (8 - _oversampling);
+    up = (((uint32_t) value[0] << 16) | ((uint32_t) value[1] << 8) | (uint32_t) value[2]) >> (8 - _overSampling);
 
     b6 = b5 - 4000;
 
@@ -637,7 +637,7 @@ int32_t BMP085Read(uint8_t _sdaPin, uint8_t _sclPin, uint8_t _i2cAddress, uint8_
     x1 = ((int32_t) b2 * (b6 * b6) >> 12) >> 11;
     x2 = ((int32_t) ac2 * b6) >> 11;
     x3 = x1 + x2;
-    b3 = (((((int32_t)ac1) * 4 + x3) << _oversampling) + 2) >> 2;
+    b3 = (((((int32_t)ac1) * 4 + x3) << _overSampling) + 2) >> 2;
 
     // Calculate B4
     x1 = ((int32_t) ac3 * b6) >> 13;
@@ -645,7 +645,7 @@ int32_t BMP085Read(uint8_t _sdaPin, uint8_t _sclPin, uint8_t _i2cAddress, uint8_
     x3 = ((x1 + x2) + 2) >> 2;
     b4 = ((int32_t) ac4 * (uint32_t)(x3 + 32768)) >> 15;
 
-    b7 = ((uint32_t)(up - b3) * (uint32_t)(50000 >> _oversampling));
+    b7 = ((uint32_t)(up - b3) * (uint32_t)(50000 >> _overSampling));
 
     if (b7 < 0x80000000)
       result = (b7 << 1) / b4;
@@ -670,6 +670,36 @@ int32_t BMP085Read(uint8_t _sdaPin, uint8_t _sclPin, uint8_t _i2cAddress, uint8_
   return RESULT_IN_BUFFER;
 }
 
+/* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
+                                                                     PC8574 SECTION
+
+
+*/
+
+#define PC8574_I2C_ADDRESS_FIRST                     0x20
+#define PC8574_I2C_ADDRESS_LAST                      0x27
+#define PC8574A_I2C_ADDRESS_FIRST                    0x38
+#define PC8574A_I2C_ADDRESS_LAST                     0x3F
+
+// Validate address for PC8574 / PC8574A I2C expander and return first default if address not valid
+uint8_t pc8574ValidateI2CAddress(const uint8_t _i2cAddress) 
+{
+   if (! ((PC8574_I2C_ADDRESS_FIRST <= _i2cAddress) && (PC8574_I2C_ADDRESS_LAST >= _i2cAddress )) ||
+         ((PC8574A_I2C_ADDRESS_FIRST <= _i2cAddress) && (PC8574A_I2C_ADDRESS_LAST >= _i2cAddress))) {
+      return PC8574_I2C_ADDRESS_FIRST;
+   } else {
+      return _i2cAddress;
+   }
+}
+
+// Write byte to PC8574 / PC8574A I2C and return success or unsuccess code
+int32_t pc8574Write(const uint8_t _sdaPin, const uint8_t _sclPin, uint8_t _i2cAddress, const uint8_t _data) 
+{  uint8_t result;
+   result = expanderWrite(pc8574ValidateI2CAddress(_i2cAddress), _data);
+
+   // Wire transaction is finished successfuly?
+   return (0 == result) ? RESULT_IS_OK : RESULT_IS_FAIL;
+}
 
 /* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
                                                                      LCD SECTION
@@ -766,7 +796,7 @@ version 1.1.2 is used
 #define LCD_NOBACKLIGHT                                  0x00
 
 
-void lcdSend(uint8_t _i2cAddress, uint8_t _data, uint8_t _mode)
+void lcdSend(const uint8_t _i2cAddress, const uint8_t _data, const uint8_t _mode)
 {
   // Send high bit
   lcdWrite4bits(_i2cAddress, (_data & 0xF0) | _mode);
@@ -774,13 +804,13 @@ void lcdSend(uint8_t _i2cAddress, uint8_t _data, uint8_t _mode)
   lcdWrite4bits(_i2cAddress, ((_data << 4) & 0xF0) | _mode);
 }
 
-void lcdWrite4bits(uint8_t _i2cAddress, uint8_t _data) 
+void lcdWrite4bits(const uint8_t _i2cAddress, const uint8_t _data) 
 {
   expanderWrite(_i2cAddress, _data);
   lcdPulseEnable(_i2cAddress, _data);
 }
 
-void lcdPulseEnable(uint8_t _i2cAddress, uint8_t _data)
+void lcdPulseEnable(const uint8_t _i2cAddress, const uint8_t _data)
 {
   expanderWrite(_i2cAddress, _data | _BV(LCD_E));	// 'Enable' high
   delayMicroseconds(1);		                        // enable pulse must be >450ns
@@ -788,14 +818,14 @@ void lcdPulseEnable(uint8_t _i2cAddress, uint8_t _data)
   delayMicroseconds(50);	                        // commands need > 37us to settle
 } 
 
-void expanderWrite(uint8_t _i2cAddress, uint8_t _data)
+uint8_t expanderWrite(const uint8_t _i2cAddress, const uint8_t _data)
 {                                        
   Wire.beginTransmission(_i2cAddress);
   Wire.write((uint8_t) _data);
-  Wire.endTransmission();   
+  return Wire.endTransmission();   
 }
 
-uint8_t pc8574LCDOutput(uint8_t _sdaPin, uint8_t _sclPin, uint8_t _i2cAddress, uint8_t _lcdBacklight, uint16_t _lcdType, const char *_data)
+uint8_t pc8574LCDOutput(const uint8_t _sdaPin, const uint8_t _sclPin, uint8_t _i2cAddress, uint8_t _lcdBacklight, const uint16_t _lcdType, const char *_data)
 {
   uint8_t displayFunction, lastLine, currLine, currChar, i;
   uint8_t rowOffsets[] = { 0x00, 0x40, 0x14, 0x54 };
@@ -967,7 +997,7 @@ uint8_t pc8574LCDOutput(uint8_t _sdaPin, uint8_t _sclPin, uint8_t _i2cAddress, u
 #define BH1750_ONETIME_LOWRES               0x23
 
 
-int32_t BH1750Read(uint8_t _sdaPin, uint8_t _sclPin, uint8_t _i2cAddress, uint8_t _mode, uint8_t _metric, char* _outBuffer)
+int32_t BH1750Read(const uint8_t _sdaPin, const uint8_t _sclPin, uint8_t _i2cAddress, uint8_t _mode, const uint8_t _metric, char* _outBuffer)
 {
   int32_t result;
   uint8_t setModeTimeout = 24; // 24ms - max time to complete measurement in low-resolution

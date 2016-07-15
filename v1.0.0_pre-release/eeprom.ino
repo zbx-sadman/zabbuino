@@ -4,7 +4,7 @@
 *
 **************************************************************************************************************************** */
 
-uint8_t saveConfig(netconfig_t* _configStruct)
+uint8_t saveConfig(const netconfig_t* _configStruct)
 {
   uint8_t index, calculatedCRC, *p_configStruct = (uint8_t*) _configStruct;
   // Save every byte of _configStruct to EEPROM

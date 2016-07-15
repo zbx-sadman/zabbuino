@@ -30,12 +30,12 @@
 //#define FEATURE_RANDOM_ENABLE
 
 // Uncomment to enable shiftOut[] command
-//#define FEATURE_SHIFTOUT_ENABLE
+#define FEATURE_SHIFTOUT_ENABLE
 
 /****    Other   ****/
 
 // Uncomment to enable external interrupts handling: interrupt.*[] commands
-//#define FEATURE_EXTERNAL_INTERRUPT_ENABLE
+#define FEATURE_EXTERNAL_INTERRUPT_ENABLE
 
 // Uncomment to enable encoder handling with external interrupts: encoder.*[] commands
 //#define FEATURE_ENCODER_ENABLE
@@ -43,10 +43,10 @@
 /****      1-Wire bus      ****/
 
 // Uncomment to enable 1-Wire common functions: OW.Scan[]
-//#define FEATURE_OW_ENABLE
+#define FEATURE_OW_ENABLE
 
 // Uncomment to enable Dallas DS18x20 family functions: DS18x20.*[] commands
-//#define FEATURE_DS18X20_ENABLE
+#define FEATURE_DS18X20_ENABLE
 
 /****        I2C bus       ****/
 
@@ -54,19 +54,23 @@
 // Note #2: I2C library (Wire.h) activate internal pullups for SDA & SCL pins when Wire.begin() called
 
 // Uncomment to enable I2C common functions: I2C.Scan[]
-//#define FEATURE_I2C_ENABLE
+#define FEATURE_I2C_ENABLE
 
 // Uncomment to enable BMP pressure sensors functions: BMP.*[] commands
 #define FEATURE_BMP_ENABLE
 //#define SUPPORT_BMP180_INCLUDE
 #define SUPPORT_BMP280_INCLUDE
+// BME280 is BMP280+Humidity sensor. If you want to get all, uncomment SUPPORT_BMP280_INCLUDE too
 #define SUPPORT_BME280_INCLUDE
 
 // Uncomment to enable BH1750 light sensors functions: BH1750.*[] commands
 #define FEATURE_BH1750_ENABLE
 
+//  PC8574 I2C expander enable
+#define FEATURE_PC8574_ENABLE
 
-//#define FEATURE_PC8574_LCD_ENABLE
+// LCD connected to PC8574 I2C expander enable
+#define FEATURE_PC8574_LCD_ENABLE
 
 //
 #define FEATURE_SHT2X_ENABLE
@@ -74,7 +78,7 @@
 /****        MicroWire bus       ****/
 
 // Uncomment to enable MAX7219 8x8 led matrix functions: MAX7219.*[] commands
-//#define FEATURE_MAX7219_ENABLE
+#define FEATURE_MAX7219_ENABLE
 
 /****    DHT/AM family    ****/
 
@@ -84,7 +88,7 @@
 /****    Ultrasonic    ****/
 
 // HC-SR04 sensor
-//#define FEATURE_ULTRASONIC_ENABLE
+#define FEATURE_ULTRASONIC_ENABLE
 
 /****    ACS7XX family    ****/
 
@@ -103,14 +107,14 @@
 // Note: watchdog timeout may be vary for many controllers, see comments to macro WTD_TIMEOUT in zabbuino.h
 //#define FEATURE_WATCHDOG_ENABLE
 
-// Uncomment only if you know all about AREF pin using risks
-//#define FEATURE_AREF_ENABLE
+// Uncomment ***only*** if you know all about AREF pin using ***risks***
+// // // // #define FEATURE_AREF_ENABLE
 
 // Uncomment to be able to store runtime settings in EEPROM and use its on start
 #define FEATURE_EEPROM_ENABLE
 
 // debug only option, must be removed on releasing 
-//#define FEATURE_EEPROM_SET_COMMANDS_ENABLE
+#define FEATURE_EEPROM_SET_COMMANDS_ENABLE
 
 // Uncomment to force protect (enable even netConfig.useProtection is true) your system from illegal access for change runtime settings and reboots 
 //#define FEATURE_PASSWORD_PROTECTION_FORCE
@@ -119,7 +123,7 @@
 #define FEATURE_DEBUG_COMMANDS_ENABLE
 
 // Uncomment to view the debug messages on the Serial Monitor
-//#define FEATURE_DEBUG_TO_SERIAL
+#define FEATURE_DEBUG_TO_SERIAL
 
 // Uncomment to enable using time+interrupt for internal metric gathering
 #define GATHER_METRIC_USING_TIMER_INTERRUPT
@@ -409,7 +413,7 @@ D13 -^    ^- D8    <- pins   */
                                                             COMMAND NAMES SECTION 
 */
 // Increase this if add new command 
-#define CMD_MAX 0x33
+#define CMD_MAX 0x34
 
 // Add command macro with new sequental number
 #define CMD_ZBX_NOPE             	0x00
@@ -483,6 +487,8 @@ D13 -^    ^- D8    <- pins   */
 #define CMD_ACS7XX_DC                   0x31
 
 #define CMD_ULTRASONIC_RANGE            0x32
+
+#define CMD_PC8574_WRITE                0x33
 
 
 
@@ -564,6 +570,7 @@ const char command_CMD_ACS7XX_AC[] 		        PROGMEM = "acs7xx.ac";
 const char command_CMD_ACS7XX_DC[] 		        PROGMEM = "acs7xx.dc";
 
 const char command_CMD_ULTRASONIC_RANGE[] 	        PROGMEM = "ultrasonic.range";
+const char command_CMD_PC8574_WRITE[] 		        PROGMEM = "pc8574.write";
 
 // do not insert new command to any position without syncing indexes. Tanx, Arduino, for this method of string array pushing to PROGMEM
 // ~300 bytes of PROGMEM space can be saved with crazy "#ifdef-#else-#endif" dance
@@ -749,6 +756,12 @@ const char* const commands[] PROGMEM = {
 
 #ifdef FEATURE_ULTRASONIC_ENABLE
   command_CMD_ULTRASONIC_RANGE,
+#else
+  command_CMD_ZBX_NOPE,
+#endif
+
+#ifdef FEATURE_PC8574_ENABLE
+  command_CMD_PC8574_WRITE,
 #else
   command_CMD_ZBX_NOPE,
 #endif

@@ -34,7 +34,7 @@ void sethostname(char* _dest, const char* _src){
 *   Convert _Qm.n_ float number (int64_t) to char[] 
 *
 **************************************************************************************************************************** */
-uint8_t qtoaf(int64_t _number, char* _dst, uint8_t _fracBits){
+uint8_t qtoaf(const int64_t _number, char* _dst, uint8_t _fracBits){
     int64_t tmp; 
     tmp = _number >> _fracBits;
     ltoa(tmp, _dst, 10);
@@ -58,7 +58,7 @@ uint8_t qtoaf(int64_t _number, char* _dst, uint8_t _fracBits){
 *   _number / (10 * _num_after_dot position) => char[]
 *
 **************************************************************************************************************************** */
-void ltoaf(int32_t _number, char* _dst, uint8_t _num_after_dot)
+void ltoaf(const int32_t _number, char* _dst, const uint8_t _num_after_dot)
 {
   uint8_t i, skipLeadingZeros = true, pointIsUsed = false;;
   char currChar;
@@ -212,7 +212,7 @@ uint32_t pl_atol(char const *_src, uint8_t _len) {
 *  Print array to Serial as MAC or IP or other string with sign-separated parts
 *
 **************************************************************************************************************************** */
-void printArray(uint8_t *_src, uint8_t _len, uint8_t _type)
+void printArray(uint8_t *_src, uint8_t _len, const uint8_t _type)
 {
   while (_len--) {
     if (DBG_PRINT_AS_MAC == _type) {
@@ -227,9 +227,9 @@ void printArray(uint8_t *_src, uint8_t _len, uint8_t _type)
   Serial.println();
 }
 
-void blinkMore(uint8_t _times, uint16_t _onTime, uint16_t _offTime) 
+void blinkMore(const uint8_t _times, const uint16_t _onTime, const uint16_t _offTime) 
 {
-  for (byte i=0; i < _times ; i++) {
+  for (uint8_t i=0; i < _times ; i++) {
     digitalWrite(PIN_STATE_LED, HIGH);   // turn the LED on (HIGH is the voltage level)
     delay(_onTime);              // wait for a second
     digitalWrite(PIN_STATE_LED, LOW);   // turn the LED on (HIGH is the voltage level)

@@ -4,7 +4,7 @@
 *  Can get HEX-string as the data to shift out
 *
 **************************************************************************************************************************** */
-void advShiftOut(uint8_t _dataPin, uint8_t _clockPin, uint8_t _bitOrder, char* _dataBuffer)
+void advShiftOut(const uint8_t _dataPin, const uint8_t _clockPin, const uint8_t _bitOrder, char* _dataBuffer)
 {
   uint16_t len = 0;
   uint8_t dataPinBit, clockPinBit;
@@ -64,7 +64,7 @@ void advShiftOut(uint8_t _dataPin, uint8_t _clockPin, uint8_t _bitOrder, char* _
 *  Four-bit (one HEX-char) shiftOut(). Use direct port manipulation.
 *
 **************************************************************************************************************************** */
-void  shiftOut4bits(volatile uint8_t *_dataPortOutputRegister, uint8_t _dataPinBit, volatile uint8_t *_clockPortOutputRegister, uint8_t _clockPinBit, uint8_t _bitOrder, uint8_t _val)
+void  shiftOut4bits(volatile uint8_t *_dataPortOutputRegister, const uint8_t _dataPinBit, volatile uint8_t *_clockPortOutputRegister, const uint8_t _clockPinBit, const uint8_t _bitOrder, const uint8_t _val)
 {
   uint8_t i, currBit;
   for (i = 0; i < 4; i++)  {

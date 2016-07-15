@@ -1,6 +1,6 @@
-#define SAMPLES                         1000  // for median sampling algo: every sample is int16_t number, total memory consumption is (SAMPLES * 2) bytes
+#define ADC_SAMPLES                         1000  // for median sampling algo: every sample is int16_t number, total memory consumption is (ADC_SAMPLES * 2) bytes
 
-int32_t MeasureVoltage(uint8_t _analogChannel) {  
+int32_t MeasureVoltage(const uint8_t _analogChannel) {  
   uint8_t i, oldADCSRA;
   uint32_t avgADC=0;
   
@@ -59,97 +59,90 @@ int32_t MeasureVoltage(uint8_t _analogChannel) {
   return avgADC;
 }
 
-int32_t ACS7XXCurrent(const uint8_t _sensorPin, uint16_t _aRefVoltage,  const uint8_t _metric, const uint8_t _sensitivity, const uint16_t _ZeroCurrentPoint, char* _outBuffer)
+int32_t ACS7XXCurrent(const uint8_t _sensorPin, uint32_t _aRefVoltage,  const uint8_t _metric, const uint8_t _sensitivity, const int32_t _ZeroCurrentPoint, char* _outBuffer)
 {  
-  int32_t vcc, result, mVperUnit, numUnits, aRefVoltage;
-  int16_t adcTable[SAMPLES], temp;
-  uint8_t swapped, i, n;
+  uint32_t sampleInterval, mVperUnit, prevMicros = 0;
+  int32_t result, adcValue, numUnits = 0;
+  int16_t temp, samplesCount = 0; // adcTable[ADC_SAMPLES], 
+  uint8_t swapped, oldSREG;
 
   pinMode(_sensorPin, INPUT);
-  /**** Gathering ****/
-
-// When AREF pin is used - user can point to get reference voltage from its.
-#ifdef FEATURE_AREF_ENABLE
-  if (DEFAULT == _aRef) {
+  
+  // _aRef point to use internal voltage (very unstable with onboard Ethernet, sensors, etc. But show some digits ;) 
+  if (DEFAULT == _aRefVoltage) {
      // Take internal MCU's VCC
-     aRefVoltage = MeasureVoltage(ANALOG_CHAN_VBG);
+     _aRefVoltage = (uint32_t) MeasureVoltage(ANALOG_CHAN_VBG);
   } else {
-     // Otherwise - use ref voltage on AREF pin that is given in mV
+     // Otherwise - use _aRef as referenve voltage value that is given in mV
+     //aRefVoltage = _aRefVoltage;
+#ifdef FEATURE_AREF_ENABLE
+     // if AREF feature is enabled - activate external reference voltage source
     analogReference(EXTERNAL);
     delay(2);
-  }
-// AREF is not used - take internal MCU's VCC
-#else
-    aRefVoltage = MeasureVoltage(ANALOG_CHAN_VBG);
 #endif
- 
-   Serial.print("aRefVoltage: ");
-   Serial.println(aRefVoltage);
-//  aRefVoltage *= 1000;
-    
-  numUnits = 0;
-  // TODO: Need to rework samples gathering part of code: 1) DC - need do get median of samples array
+  }
+
+//  Serial.print("aRefVoltage: ");
+//  Serial.println(_aRefVoltage);
+
+  /**** Gathering ****/
+  // need to find reliable gathering algo. 
+  // median average is not so good -  the result near (a little bit better) to simply arithmetic mean
+  
+  // 100000UL mcsec => 100 msec (for 50Hz)
+  sampleInterval = 100000UL/ADC_SAMPLES; 
+
+  // *** Do not disable interrupts here - the system can hang ***
+
+  // disable interrupt
+  //oldSREG = SREG; cli();
+  // ************ Simple algo for search arithmethic mean *****************
+  while (samplesCount < ADC_SAMPLES) {
+    if ((micros() - prevMicros) >= sampleInterval) {
+       // if numUnits give strange results, calc adcValue before and add then it to numUnits
+       adcValue = (int32_t) analogRead(_sensorPin) - _ZeroCurrentPoint;
+       if (SENS_READ_AC == _metric) {
+          numUnits += adcValue * adcValue;
+       } else {
+          numUnits += adcValue;
+       }
+       samplesCount++;
+       prevMicros = micros();
+    }
+  }
+  // enable interrupts
+  //SREG = oldSREG;
+
   switch (_metric) {
     case SENS_READ_ZC:
     case SENS_READ_DC:
-     // ************ Simple algo for search arithmethic mean *****************
-      for (uint16_t i=0; i < SAMPLES; i++) {
-        numUnits += ((int32_t) analogRead(_sensorPin) - _ZeroCurrentPoint) ;
-      }
       // Take mean of analogread()
-      numUnits = numUnits / SAMPLES;
-/*
-
-     // ************ Median filter  *****************
-     // reading. Samples number can be odd
-      for (i=0; i < SAMPLES; i++) {
-        adcTable[i] = ((int16_t) analogRead(_sensorPin) - _ZeroCurrentPoint) ;
-        delay(1);
-      }
-      // sorting: unoptimized bubblesort
-      do {
-        swapped = false;
-        for (i = 1; i < SAMPLES ; i++) {
-           if (adcTable[i-1] > adcTable[i]) {
-              temp = adcTable[i-1];
-              adcTable[i-1] = adcTable[i];
-              adcTable[i] = temp;
-              swapped = true;
-           }
-        }
-      } while (swapped);
-
-//      for (i=0; i < SAMPLES; i++) {
-//        Serial.println(adcTable[i]);
-//        delay(1);
-//      }
-
-      //calculating
-      numUnits = adcTable[(SAMPLES/2)+1];
- */
+      numUnits = numUnits / ADC_SAMPLES;
       break;
 
     case SENS_READ_AC:
       break;
   }
 
+//  Serial.print("numUnits: ");   Serial.println(numUnits); 
   /**** Calculation ****/
-  
   switch (_metric) {
     case SENS_READ_ZC:
       result = numUnits;
       break;
-    case SENS_READ_DC:
     case SENS_READ_AC:
-      // 1000 * aRefVoltage - "un-float" procedure
-      mVperUnit = (1000 * aRefVoltage) / 1023;
-      // I (mA) = (1000 * aRefVoltage / 1023) * units * (1 / 185) =>  I (mA) = mVperUnit * units / SENSITIVITY
+    case SENS_READ_DC:
+      // 1000 * _aRefVoltage - "un-float" procedure
+      mVperUnit = 1000 * _aRefVoltage / 1023;
+//  Serial.print("mVperUnit: ");   Serial.println(mVperUnit); 
+      // I (mA) = (1000 * _aRefVoltage / 1023) * units * (1 / 185) =>  I (mA) = mVperUnit * units / SENSITIVITY
       // (VCC / 1024) * units - how many mV give ACS712
       // (1 / SENSITIVITY) - Amps on mV
       result =  mVperUnit * numUnits / _sensitivity;
   }
 
   ltoa(result, _outBuffer, 10);
+
   return RESULT_IN_BUFFER;
 }
 

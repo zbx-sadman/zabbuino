@@ -30,7 +30,7 @@ int32_t DS18X20Discovery(uint8_t _pin)
 *   Scan 1-Wire bus and print to ethernet client all detected ID's (Addresses)
 *
 **************************************************************************************************************************** */
-int32_t oneWireScan(uint8_t _pin)
+int32_t oneWireScan(const uint8_t _pin)
 {
    uint8_t dsAddr[8], numDevices = 0, i;
    OneWire ow(_pin);
@@ -97,7 +97,7 @@ int32_t oneWireScan(uint8_t _pin)
 *   Probably you can meet problems with the correct calculation of temperature due to incorrect 'tRaw' adjustment 
 *
 **************************************************************************************************************************** */
-int32_t DS18X20Read(uint8_t _pin, uint8_t _resolution, char* _id, char* _outBuffer)
+int32_t DS18X20Read(const uint8_t _pin, uint8_t _resolution, char* _id, char* _outBuffer)
 {
   uint8_t i, signBit, dsAddr[8], scratchPad[9], parasitePowerUsed;
   int16_t conversionTimeout;
@@ -255,7 +255,7 @@ int32_t DS18X20Read(uint8_t _pin, uint8_t _resolution, char* _id, char* _outBuff
   return RESULT_IN_BUFFER;
 }
 
-uint8_t DS18X20ReadScratchPad(OneWire _ow, uint8_t *_addr, uint8_t *_scratchPad)
+uint8_t DS18X20ReadScratchPad(OneWire _ow, const uint8_t *_addr, uint8_t *_scratchPad)
 {
   uint8_t i;
   _ow.reset();

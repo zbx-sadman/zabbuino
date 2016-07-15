@@ -32,7 +32,7 @@ Second modification is by:
 #define MAX7219_DISPLAYTEST        0x0f
 
 
-void max7219WriteByte(uint8_t _dataPin, uint8_t _clockPin, uint8_t _data) 
+void max7219WriteByte(const uint8_t _dataPin, const uint8_t _clockPin, const uint8_t _data) 
 {
   int8_t i = 7;
   while(i >= 0) {
@@ -43,7 +43,7 @@ void max7219WriteByte(uint8_t _dataPin, uint8_t _clockPin, uint8_t _data)
   }
 }
 
-void max7219PushData(uint8_t _dataPin, uint8_t _clockPin, uint8_t  _loadPin, uint8_t _register, uint8_t _data) {    
+void max7219PushData(const uint8_t _dataPin, const uint8_t _clockPin, const uint8_t _loadPin, const uint8_t _register, const uint8_t _data) {    
   digitalWrite(_loadPin, LOW);
   // specify register or column
   max7219WriteByte(_dataPin, _clockPin, _register);   
@@ -54,7 +54,7 @@ void max7219PushData(uint8_t _dataPin, uint8_t _clockPin, uint8_t  _loadPin, uin
   digitalWrite(_loadPin,HIGH);
 }
 
-void max7219DrawOn8x8(uint8_t _dataPin, uint8_t _clockPin, uint8_t  _loadPin, uint8_t _intensity, char* _dataBuffer) {    
+void max7219DrawOn8x8(const uint8_t _dataPin, const uint8_t _clockPin, const uint8_t _loadPin, const uint8_t _intensity, char* _dataBuffer) {    
   uint8_t col, dataByte;
   // Init the module 
   // Mark all columns as active

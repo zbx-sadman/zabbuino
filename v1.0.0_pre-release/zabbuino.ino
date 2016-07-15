@@ -1,7 +1,7 @@
 // My Freeduino is not listed, but is analogue to ARDUINO_AVR_DUEMILANOVE
 #define ARDUINO_AVR_DUEMILANOVE
 // Just for compilation with various default network configs
-#define USE_NETWORK_192_168_0_1
+//#define USE_NETWORK_192_168_0_1
 
 /* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
                                                              !!! WizNet W5xxx users !!!
@@ -9,8 +9,8 @@
     1. Comment #include <UIPEthernet.h>
     2. Uncomment #include <Ethernet.h> and <SPI.h> headers
 */
-//#include <Ethernet.h>
-//#include <SPI.h>
+#include <Ethernet.h>
+#include <SPI.h>
 
 /* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
                                                                 !!! ENC28J60 users !!!
@@ -34,7 +34,7 @@
              ...
     
 */
-#include <UIPEthernet.h>
+//#include <UIPEthernet.h>
 //#define USE_DIRTY_HACK_AND_REBOOT_ENC28J60_IF_ITS_SEEMS_FREEZE
 
 
@@ -234,7 +234,7 @@ void setup() {
    timerOneInit(SYS_METRIC_RENEW_PERIOD);
 #endif
 
-#if defined(FEATURE_I2C_ENABLE) || defined(FEATURE_BMP_ENABLE) || defined(FEATURE_BH1750_ENABLE) || defined (FEATURE_PC8574_LCD_ENABLE) || defined (FEATURE_SHT2X_ENABLE)
+#if defined(FEATURE_I2C_ENABLE) || defined(FEATURE_BMP_ENABLE) || defined(FEATURE_BH1750_ENABLE) || defined (FEATURE_PC8574_ENABLE) ||  defined (FEATURE_PC8574_LCD_ENABLE) || defined (FEATURE_SHT2X_ENABLE)
 Wire.begin();
 #endif
 
@@ -795,7 +795,6 @@ uint8_t executeCommand()
 #ifdef FEATURE_I2C_ENABLE
     case CMD_I2C_SCAN:
       if (isSafePin(arg[0]) && isSafePin(arg[1])) {
-         // (int8_t) arg[2] is i2c address, 7 bytes size
          result = i2CScan();
       }
       break;
@@ -804,23 +803,23 @@ uint8_t executeCommand()
 #ifdef FEATURE_BMP_ENABLE
     case CMD_BMP_TEMPERATURE:
       if (isSafePin(arg[0]) && isSafePin(arg[1])) {
-         // (int8_t) arg[2] is i2c address, 7 bytes size
-         result = BMPRead(arg[0], arg[1], arg[2], arg[3], arg[4], SENS_READ_TEMP, cBuffer);
+         // (uint8_t) arg[2] is i2c address, 7 bytes size
+         result = BMPRead(arg[0], arg[1], (uint8_t) arg[2], arg[3], arg[4], SENS_READ_TEMP, cBuffer);
       }
       break;
 
     case CMD_BMP_PRESSURE:
       if (isSafePin(arg[0]) && isSafePin(arg[1])) {
-          // (int8_t) arg[2] is i2c address, 7 bytes size
-         result = BMPRead(arg[0], arg[1], arg[2], arg[3], arg[4], SENS_READ_PRSS, cBuffer);
+          // (uint8_t) arg[2] is i2c address, 7 bytes size
+         result = BMPRead(arg[0], arg[1], (uint8_t) arg[2], arg[3], arg[4], SENS_READ_PRSS, cBuffer);
       }
       break;
       
 #ifdef SUPPORT_BME280_INCLUDE
       case CMD_BME_HUMIDITY:
       if (isSafePin(arg[0]) && isSafePin(arg[1])) {
-          // (int8_t) arg[2] is i2c address, 7 bytes size
-         result = BMPRead(arg[0], arg[1], arg[2], arg[3], arg[4], SENS_READ_HUMD, cBuffer);
+          // (uint8_t) arg[2] is i2c address, 7 bytes size
+         result = BMPRead(arg[0], arg[1], (uint8_t) arg[2], arg[3], arg[4], SENS_READ_HUMD, cBuffer);
       }
       break;      
 #endif // SUPPORT_BME280_INCLUDE 
@@ -830,15 +829,15 @@ uint8_t executeCommand()
 #ifdef FEATURE_SHT2X_ENABLE
     case CMD_SHT2X_TEMPERATURE:
       if (isSafePin(arg[0]) && isSafePin(arg[1])) {
-         // (int8_t) arg[2] is i2c address, 7 bytes size
-         result = SHT2XRead(arg[0], arg[1], arg[2], SENS_READ_TEMP, cBuffer);
+         // (uint8_t) arg[2] is i2c address, 7 bytes size
+         result = SHT2XRead(arg[0], arg[1], (uint8_t) arg[2], SENS_READ_TEMP, cBuffer);
       }
       break;
 
     case CMD_SHT2X_HUMIDITY:
       if (isSafePin(arg[0]) && isSafePin(arg[1])) {
-         // (int8_t) arg[2] is i2c address, 7 bytes size
-         result = SHT2XRead(arg[0], arg[1], arg[2], SENS_READ_HUMD, cBuffer);
+         // (uint8_t) arg[2] is i2c address, 7 bytes size
+         result = SHT2XRead(arg[0], arg[1], (uint8_t) arg[2], SENS_READ_HUMD, cBuffer);
       }
       break;
 #endif // FEATURE_SHT2X_ENABLE  
@@ -847,8 +846,8 @@ uint8_t executeCommand()
 #ifdef FEATURE_BH1750_ENABLE
     case CMD_BH1750_LIGHT:
       if (isSafePin(arg[0]) && isSafePin(arg[1])) {
-         // (int8_t) arg[2] is i2c address, 7 bytes size
-         result = BH1750Read(arg[0], arg[1], (int8_t) arg[2], arg[3], SENS_READ_LUX, cBuffer);
+         // (uint8_t) arg[2] is i2c address, 7 bytes size
+         result = BH1750Read(arg[0], arg[1], (uint8_t) arg[2], arg[3], SENS_READ_LUX, cBuffer);
       }
       break;
 #endif // FEATURE_BH1750_ENABLE
@@ -865,12 +864,24 @@ uint8_t executeCommand()
 #ifdef FEATURE_PC8574_LCD_ENABLE
     case CMD_PC8574_LCDPRINT:
       if (isSafePin(arg[0]) && isSafePin(arg[1])) {
-         // (int8_t) arg[2] is i2c address, 7 bytes size
-         result = pc8574LCDOutput(arg[0], arg[1], arg[2], arg[3], arg[4], &cBuffer[argOffset[5]]);
+         // (uint8_t) arg[2] is i2c address, 7 bytes size
+         result = pc8574LCDOutput(arg[0], arg[1], (uint8_t) arg[2], arg[3], arg[4], &cBuffer[argOffset[5]]);
       }
       break;
 
 #endif // FEATURE_PC8574_LCD_ENABLE
+
+#ifdef FEATURE_PC8574_ENABLE
+    case CMD_PC8574_WRITE:
+      if (isSafePin(arg[0]) && isSafePin(arg[1])) {
+         // (uint8_t) arg[2] is i2c address, 7 bytes size
+         result = pc8574Write(arg[0], arg[1], (uint8_t) arg[2], arg[3]);
+      }
+      break;
+
+#endif // FEATURE_PC8574_ENABLE
+
+
 
 
 #ifdef FEATURE_ACS7XX_ENABLE
@@ -894,14 +905,14 @@ uint8_t executeCommand()
     case CMD_ACS7XX_AC:
       if (isSafePin(arg[0])) {
          // ACS7XX.AC[_sensorPin, refVoltage, sensitivity, zeroCurrentPoint];
-         result = ACS7XXCurrent(arg[0], arg[1], SENS_READ_AC, arg[2], arg[3], cBuffer);
+         result = ACS7XXCurrent(arg[0], arg[1], SENS_READ_AC, arg[2], (int32_t) arg[3], cBuffer);
       }
       break;
 
     case CMD_ACS7XX_DC:
       if (isSafePin(arg[0])) {
          // ACS7XX.DC[_sensorPin, refVoltage, sensitivity, zeroCurrentPoint];
-         result = ACS7XXCurrent(arg[0], arg[1], SENS_READ_DC, arg[2], arg[3], cBuffer);
+         result = ACS7XXCurrent(arg[0], arg[1], SENS_READ_DC, arg[2], (int32_t) arg[3], cBuffer);
       }
       break;
 

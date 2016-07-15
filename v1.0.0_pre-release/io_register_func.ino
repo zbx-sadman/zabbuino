@@ -3,7 +3,7 @@
 *   Set I/O port mode
 *
 **************************************************************************************************************************** */
-void setPortMode(uint8_t _port, uint8_t _mode, uint8_t _pullup)
+void setPortMode(const uint8_t _port, const uint8_t _mode, const uint8_t _pullup)
 {
   volatile uint8_t *modeRegister, *pullUpRegister;
   uint8_t oldSREG;
@@ -27,7 +27,7 @@ void setPortMode(uint8_t _port, uint8_t _mode, uint8_t _pullup)
 *   Write to I/O port
 *
 **************************************************************************************************************************** */
-void portWrite(uint8_t _port, uint8_t _value)
+void portWrite(const uint8_t _port, const uint8_t _value)
 {
   volatile uint8_t *portRegister;
   uint8_t oldSREG;
@@ -49,7 +49,7 @@ void portWrite(uint8_t _port, uint8_t _value)
 *   Pin protection testing. Refer to zabbuino.h -> port_protect[] array
 *
 **************************************************************************************************************************** */
-boolean isSafePin(uint8_t _pin)
+boolean isSafePin(const uint8_t _pin)
 {
   // Определение байта в порте, соотносящегося с заданным пином
   uint8_t result = digitalPinToBitMask(_pin);
