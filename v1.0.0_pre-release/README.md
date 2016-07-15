@@ -29,7 +29,7 @@ Implemented:
 
 ####15 Jul 2016
 New commands:
-- _ultrasonic.range[triggerPin, echoPin]_ - returns from obtained HC-SR04 module distance (in **mm**) to the object.
+- _ultrasonic.distance[triggerPin, echoPin]_ - returns from obtained HC-SR04 module distance (in **mm**) to the object.
   - _triggerPin_ - pin to which HC-SR04 "Trig" connected;
   - _echoPin_ - pin to which HC-SR04 "Echo" connected;
 
