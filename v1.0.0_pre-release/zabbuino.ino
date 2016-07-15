@@ -920,9 +920,9 @@ uint8_t executeCommand()
 
 
 #ifdef FEATURE_ULTRASONIC_ENABLE
-    case CMD_ULTRASONIC_RANGE:
+    case CMD_ULTRASONIC_DISTANCE:
       if (isSafePin(arg[0]) & isSafePin(arg[1])) {
-         result = ultrasonicRanging(arg[0], arg[1]);
+         result = ultrasonicDistance(arg[0], arg[1]);
       }
       break;
 #endif // FEATURE_ULTRASONIC_ENABLE

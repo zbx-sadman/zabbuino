@@ -3,11 +3,11 @@
 //          GitHub: https://github.com/JRodrigoTech/Ultrasonic-HC-SR04
 
 
-uint32_t ultrasonicRanging(const uint8_t _triggerPin, const uint8_t _echoPin)
+uint32_t ultrasonicDistance(const uint8_t _triggerPin, const uint8_t _echoPin)
 {
   uint32_t result;
-  // timeout in microseconds. 38010 * 100 / 58 => 65534. It is out of distance range (too close or too far).
-  uint16_t timeOut =  38010;  
+  // timeout in microseconds. 38000 * 10 / 58 => 6551. It is out of distance range (too close or too far).
+  uint16_t timeOut =  38000;  
 
   // Between pings must be silence period for 50ms or more
   // delay(50);
@@ -34,5 +34,5 @@ uint32_t ultrasonicRanging(const uint8_t _triggerPin, const uint8_t _echoPin)
 
   // Resolution : 0.3 cm => 3mm. 
   // Return result in mm
-  return (result * 100  / 58 ) ;
+  return (result * 10  / 58 ) ;
 }

@@ -486,7 +486,7 @@ D13 -^    ^- D8    <- pins   */
 #define CMD_ACS7XX_AC                   0x30
 #define CMD_ACS7XX_DC                   0x31
 
-#define CMD_ULTRASONIC_RANGE            0x32
+#define CMD_ULTRASONIC_DISTANCE         0x32
 
 #define CMD_PC8574_WRITE                0x33
 
@@ -569,7 +569,7 @@ const char command_CMD_ACS7XX_ZC[] 		        PROGMEM = "acs7xx.zc";
 const char command_CMD_ACS7XX_AC[] 		        PROGMEM = "acs7xx.ac";
 const char command_CMD_ACS7XX_DC[] 		        PROGMEM = "acs7xx.dc";
 
-const char command_CMD_ULTRASONIC_RANGE[] 	        PROGMEM = "ultrasonic.range";
+const char command_CMD_ULTRASONIC_DISTANCE[] 	        PROGMEM = "ultrasonic.distance";
 const char command_CMD_PC8574_WRITE[] 		        PROGMEM = "pc8574.write";
 
 // do not insert new command to any position without syncing indexes. Tanx, Arduino, for this method of string array pushing to PROGMEM
@@ -755,7 +755,7 @@ const char* const commands[] PROGMEM = {
 
 
 #ifdef FEATURE_ULTRASONIC_ENABLE
-  command_CMD_ULTRASONIC_RANGE,
+  command_CMD_ULTRASONIC_DISTANCE,
 #else
   command_CMD_ZBX_NOPE,
 #endif
