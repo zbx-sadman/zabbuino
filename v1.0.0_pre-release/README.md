@@ -38,7 +38,7 @@ New commands:
   - _i2cAddress_ - address of PC8574/PC8574A expander. It can be found with _I2C.scan[]_ command;
   - _data_ - one byte data to expander write.
 
-**Note #1** - _ultrasonic.range_ returns 65534 if the object out of distance range (too close or too far).
+**Note #1** - _ultrasonic.distance returns 65534 if the object out of distance range (too close or too far).
  
 
 ####13 Jul 2016
