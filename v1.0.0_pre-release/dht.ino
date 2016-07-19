@@ -4,27 +4,26 @@ version 0.1.13 is used
 
 */
 
-#define DHT11 	11
-#define DHT21 	21
-#define DHT22 	22
-#define DHT33 	33
-#define DHT44 	44
-#define AM2301 	21
-#define AM2302 	22
+#define DHT11                                                   11
+#define DHT21                                                   21
+#define DHT22                                                   22
+#define DHT33                                                   33
+#define DHT44                                                   44
+#define AM2301                                                  21
+#define AM2302                                                  22
 
 
 #ifndef F_CPU
-#define DHTLIB_TIMEOUT 1000  // ahould be approx. clock/40000
+  #define DHTLIB_TIMEOUT                                        1000  // ahould be approx. clock/40000
 #else
-#define DHTLIB_TIMEOUT (F_CPU/40000)
+  #define DHTLIB_TIMEOUT                                        (F_CPU/40000)
 #endif
 
-#define DHTLIB_DHT11_WAKEUP         18
-#define DHTLIB_DHT_WAKEUP           1
+#define DHTLIB_DHT11_WAKEUP                                     18
+#define DHTLIB_DHT_WAKEUP                                       1
 
-#define DHTLIB_DHT11_LEADING_ZEROS  1
-#define DHTLIB_DHT_LEADING_ZEROS    6
-
+#define DHTLIB_DHT11_LEADING_ZEROS                              1
+#define DHTLIB_DHT_LEADING_ZEROS                                6
 
 /* ****************************************************************************************************************************
 *
@@ -76,9 +75,9 @@ int32_t DHTRead(const uint8_t _pin, const uint8_t _sensorModel, const uint8_t _m
 
   // DHT sensor have limit for taking samples frequency - 1kHz (1 sample/sec)
   waitTime = millis() - lastReadTime;
-  waitTime = (waitTime < 1000) ? ((uint16_t) (1000 - waitTime)) : 0;
-  // Sensor wont connect if no HIGH level on pin before work for a few time 
+  waitTime = (waitTime < 1100) ? ((uint16_t) (1100 - waitTime)) : 0;
 
+  // Sensor wont connect if no HIGH level on pin before work for a few time 
   //waitTime = 0;
   if ((*PIR & bit) == LOW ) {
      digitalWrite(_pin, HIGH);

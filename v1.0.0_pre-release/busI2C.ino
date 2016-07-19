@@ -1,6 +1,18 @@
 /* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
-                                                                     COMMON I2C SECTION
+                                                      COMMON I2C SECTION
 */
+
+#define WireToU8(_source)  ((uint8_t) _source[0])
+#define WireToS8(_source)  ((int8_t) _source[0])
+
+#define WireToU16(_source)  ((uint16_t) ( ((uint16_t) _source[0] << 8)| _source[1]))
+#define WireToS16(_source)  ((int16_t) ( ((uint16_t) _source[0] << 8)| _source[1]))
+
+#define WireToU16LE(_source)  ((uint16_t) ( ((uint16_t) _source[1] << 8)| _source[0]))
+#define WireToS16LE(_source)  ((int16_t) ( ((uint16_t) _source[1] << 8)| _source[0]))
+
+#define WireToU24(_source)  ((uint32_t) ( ((uint32_t) _source[0] << 16) | (_source[1] << 8) | _source[2]))
+#define WireToS24(_source)  ((int32_t) ( ((uint32_t) _source[0] << 16) | (_source[1] << 8) | _source[2]))
 
 /* ****************************************************************************************************************************
 *
@@ -11,7 +23,7 @@ int32_t i2CScan()
 {
   int8_t i2cAddress, numDevices;
 
-  for(i2cAddress = 1; i2cAddress < 0x7F; i2cAddress++ ) {
+  for(i2cAddress = 0x01; i2cAddress < 0x7F; i2cAddress++ ) {
     // The i2c_scanner uses the return value of
     // the Write.endTransmisstion to see if
     // a device did acknowledge to the address.
@@ -33,47 +45,65 @@ int32_t i2CScan()
 
 /* ****************************************************************************************************************************
 *
-*  Write 1 byte to I2C device register
+*  Write 1 byte to I2C device register or just to device
 *
 **************************************************************************************************************************** */
-void i2CWriteByte(const uint8_t _i2cAddress, const uint8_t _registerAddress, const uint8_t _data)
+uint8_t i2CWriteByte(const uint8_t _i2cAddress, const int16_t _registerAddress, const uint8_t _data)
 {
   Wire.beginTransmission(_i2cAddress); // start transmission to device 
-  Wire.write(_registerAddress); // sends register address to be written
+  // registerAddress is 0x00 and above ?
+  if (I2C_NO_REG_SPECIFIED < _registerAddress) {
+     Wire.write(_registerAddress); // sends register address to be written
+  }
   Wire.write(_data);  // write data
-  Wire.endTransmission(); // end transmission
+  return Wire.endTransmission(); // end transmission
 }
 
 /* ****************************************************************************************************************************
 *
-*  Reads  N bytes over I2C
+*  Reads N bytes from device's register (or not) over I2C
 *
 **************************************************************************************************************************** */
-void i2CReadBytes(const uint8_t _i2cAddress, const uint8_t _registerAddress, uint8_t _buff[], const uint8_t length=1)
+uint8_t i2CReadBytes(const uint8_t _i2cAddress, const int16_t _registerAddress, uint8_t _buff[], const uint8_t length)
 {
+    if (!length) return false;
     Wire.beginTransmission(_i2cAddress); 	// Adress + WRITE (0)
-    Wire.write(_registerAddress);
-    Wire.endTransmission(false); 		// No Stop Condition, for repeated Talk
-    if (!length) return;
+    if (I2C_NO_REG_SPECIFIED < _registerAddress) {
+       Wire.write(_registerAddress);
+       Wire.endTransmission(false); 		// No Stop Condition, for repeated Talk
+    }
 
     uint8_t i = 0;
     Wire.requestFrom(_i2cAddress, length); 	// Address + READ (1)
-    while(Wire.available())
-    {
-        _buff[i] = Wire.read();
-        i++;
+    while(i < length) {
+      _buff[i] = Wire.read();
+      i++;
     }
 
-    Wire.endTransmission(true); 		// Stop Condition
+    return Wire.endTransmission(true); 		// Stop Condition
 };
 
+
+/* ****************************************************************************************************************************
+*
+*  Ping I2C client
+*
+**************************************************************************************************************************** */
+uint8_t inline isI2CDeviceReady(uint8_t _i2cAddress)
+{
+  //
+  Wire.beginTransmission(_i2cAddress);
+  return (0 == Wire.endTransmission());
+}
+
+
 /* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
-                                                                     SHT2x SECTION
+                                                        SHT2x SECTION
 */
 
-#define SHT2X_I2C_ADDRESS              0x40
-#define SHT2X_CMD_GETTEMP_HOLD         0xE3
-#define SHT2X_CMD_GETHUMD_HOLD         0xE5
+#define SHT2X_I2C_ADDRESS                                       0x40
+#define SHT2X_CMD_GETTEMP_HOLD                                  0xE3
+#define SHT2X_CMD_GETHUMD_HOLD                                  0xE5
 
 uint16_t SHT2XReadSensor(const uint8_t _i2cAddress, const uint8_t _command)
 {
@@ -111,6 +141,7 @@ int32_t SHT2XRead(const uint8_t _sdaPin, const uint8_t _sclPin, uint8_t _i2cAddr
        _i2cAddress = SHT2X_I2C_ADDRESS;
   }
 
+  if (!isI2CDeviceReady(_i2cAddress)) {return DEVICE_ERROR_CONNECT; }
   
   switch (_metric) {
     case SENS_READ_TEMP:
@@ -275,16 +306,14 @@ int32_t BMPRead(const uint8_t _sdaPin, const uint8_t _sclPin, uint8_t _i2cAddres
     default:  
        _i2cAddress = BMP180_I2C_ADDRESS;
   }
-  
+
+
+  if (!isI2CDeviceReady(_i2cAddress)) {return DEVICE_ERROR_CONNECT; }
+
   // Taking Chip ID
   Wire.beginTransmission(_i2cAddress);
   Wire.write(BMP_REG_CHIPID);
-  // 0:success
-  // 1:data too long to fit in transmit buffer
-  // 2:received NACK on transmit of address
-  // 3:received NACK on transmit of data
-  // 4:other error
-  if (0 != Wire.endTransmission()) { return DEVICE_ERROR_CONNECT; }
+  Wire.endTransmission();
 
   Wire.beginTransmission(_i2cAddress);
   Wire.requestFrom((uint8_t) _i2cAddress, (uint8_t) 1);
@@ -307,8 +336,6 @@ int32_t BMPRead(const uint8_t _sdaPin, const uint8_t _sclPin, uint8_t _i2cAddres
 #endif
 #ifdef SUPPORT_BME280_INCLUDE
     case BME280_CHIPID:
-//       Serial.println("BME");
-
        // BME280 is BMP280 with additional humidity sensor
        BMP280Read(_sdaPin, _sclPin, _i2cAddress, _overSampling, _filterCoef, _metric, _outBuffer);
        break;
@@ -389,17 +416,19 @@ int32_t BMP280Read(const uint8_t _sdaPin, const uint8_t _sclPin, uint8_t _i2cAdd
   // Compensate temperature caculation
   /* read calibration data */
   i2CReadBytes(_i2cAddress, BMP280_REGISTER_DIG_T1, value, 2);
-  dig_T1 = uint16_t((uint16_t(value[1]<<8)) | value[0]);
-  
+  dig_T1 = WireToU16LE(value);
+
   i2CReadBytes(_i2cAddress, BMP280_REGISTER_DIG_T2, value, 2);
-  dig_T2 = int16_t((value[1]<<8) | value[0]);
+  dig_T2 = WireToS16LE(value);
   
   i2CReadBytes(_i2cAddress, BMP280_REGISTER_DIG_T3, value, 2);
-  dig_T3 = int16_t((value[1]<<8) | value[0]);
+  dig_T3 = WireToS16LE(value);;
 
   // Read raw value  
   i2CReadBytes(_i2cAddress, BMP280_REGISTER_TEMPDATA, value, 3);
-  adc = (uint32_t(uint16_t(value[0] << 8) | value[1]) << 4) | (value[2] >> 4);
+  adc = ((int32_t) (((uint16_t) value[0] << 8) | (uint16_t) value[1]) << 4) | ((uint16_t) value[2] >> 4);
+  //adc = WireToS24(value);
+  //adc >>= 4;
 
   var1 = ((((adc >> 3) - ((int32_t) dig_T1 << 1))) * ((int32_t) dig_T2)) >> 11;
   var2 = (((((adc >> 4) - ((int32_t) dig_T1)) * ((adc >> 4) - ((int32_t) dig_T1))) >> 12) * ((int32_t) dig_T3)) >> 14;
@@ -415,40 +444,42 @@ int32_t BMP280Read(const uint8_t _sdaPin, const uint8_t _sclPin, uint8_t _i2cAdd
       break;
 
     case SENS_READ_PRSS:
-      /* read calibration data */
+        /* read calibration data */
       i2CReadBytes(_i2cAddress, BMP280_REGISTER_DIG_P1, value, 2);
-      dig_P1 = uint16_t((uint16_t(value[1]<<8)) | value[0]);
+      dig_P1 = WireToU16LE(value);
       
       i2CReadBytes(_i2cAddress, BMP280_REGISTER_DIG_P2, value, 2);
-      dig_P2 = int16_t((value[1]<<8) | value[0]);
+      dig_P2 = WireToS16LE(value);
       
       i2CReadBytes(_i2cAddress, BMP280_REGISTER_DIG_P3, value, 2);
-      dig_P3 = int16_t((value[1]<<8) | value[0]);
+      dig_P3 = WireToS16LE(value);
 
       i2CReadBytes(_i2cAddress, BMP280_REGISTER_DIG_P4, value, 2);
-      dig_P4 = int16_t((value[1]<<8) | value[0]);
+      dig_P4 = WireToS16LE(value);
       
       i2CReadBytes(_i2cAddress, BMP280_REGISTER_DIG_P5, value, 2);
-      dig_P5 = int16_t((value[1]<<8) | value[0]);
+      dig_P5 = WireToS16LE(value);
       
       i2CReadBytes(_i2cAddress, BMP280_REGISTER_DIG_P6, value, 2);
-      dig_P6 = int16_t((value[1]<<8) | value[0]);
-
+      dig_P6 = WireToS16LE(value);
+      
       i2CReadBytes(_i2cAddress, BMP280_REGISTER_DIG_P7, value, 2);
-      dig_P7 = int16_t((value[1]<<8) | value[0]);
+      dig_P7 = WireToS16LE(value);
       
       i2CReadBytes(_i2cAddress, BMP280_REGISTER_DIG_P8, value, 2);
-      dig_P8 = int16_t((value[1]<<8) | value[0]);
+      dig_P8 = WireToS16LE(value);
       
       i2CReadBytes(_i2cAddress, BMP280_REGISTER_DIG_P9, value, 2);
-      dig_P9 = int16_t((value[1]<<8) | value[0]);
+      dig_P9 = WireToS16LE(value);
 
       // Test value
       // adc = 415148 ( from BOSH datasheet)
       // Read raw value  
       i2CReadBytes(_i2cAddress, BMP280_REGISTER_PRESSUREDATA, value, 3);
-      adc = (uint32_t( uint16_t(value[0] << 8) | value[1])<<4) | (value[2]>>4);
-
+      adc = ((int32_t) (((uint16_t) value[0] << 8) | (uint16_t) value[1]) << 4) | ((uint16_t) value[2] >> 4);
+//      adc = WireToS24(value);
+//      adc >>= 4;
+      
       // Compensate pressure caculation
       var1 = (((int32_t)t_fine) >> 1) - (int32_t) 64000;
       var2 = (((var1 >> 2) * (var1 >> 2)) >> 11 ) * ((int32_t) dig_P6);
@@ -487,27 +518,28 @@ int32_t BMP280Read(const uint8_t _sdaPin, const uint8_t _sclPin, uint8_t _i2cAdd
       /* read calibration data */
 
       i2CReadBytes(_i2cAddress, BME280_REGISTER_DIG_H1, value, 1);
-      dig_H1 = value[0];
+      dig_H1 = WireToU8(value);
   
       i2CReadBytes(_i2cAddress, BME280_REGISTER_DIG_H2, value, 2);
-      dig_H2 = int16_t((value[1]<<8) | value[0]);
+      dig_H2 = WireToS16LE(value);
 
       i2CReadBytes(_i2cAddress, BME280_REGISTER_DIG_H3, value, 1);
-      dig_H3 = value[0];
+      dig_H3 = WireToU8(value);
 
       i2CReadBytes(_i2cAddress, BME280_REGISTER_DIG_H4, value, 2);
-      dig_H4 = (value[0] << 4) | (value[1] & 0xF);
+      dig_H4 = (int16_t) (((uint16_t) value[0] << 4) | (value[1] & 0xF));
 
       i2CReadBytes(_i2cAddress, BME280_REGISTER_DIG_H5, value, 2);
-      dig_H5 = (value[1] << 4) | (value[0] >> 4);
+      dig_H5 = (int16_t) ((uint16_t) value[1] << 4) | (value[0] >> 4);
 
       i2CReadBytes(_i2cAddress, BME280_REGISTER_DIG_H6, value, 1);
-      dig_H6 = (int8_t) value[0];
+      dig_H6 = WireToS8(value);
     
       // Read raw value  
       i2CReadBytes(_i2cAddress, BME280_REGISTER_HUMIDDATA, value, 2);
 
-      adc = (value[0] << 8) | value[1];
+      // adc take wrong value due overflow if value[] no cast to (uint16_t) 
+      adc = (int32_t) WireToU16(value);
       //Serial.print("t_fine: "); Serial.println(t_fine);
       //Serial.print("adc: "); Serial.println(adc);
      
@@ -551,37 +583,37 @@ int32_t BMP085Read(const uint8_t _sdaPin, const uint8_t _sclPin, uint8_t _i2cAdd
 
   /* read calibration data */
   i2CReadBytes(_i2cAddress, BMP085_REG_CAL_AC1, value, 2);
-  ac1 = (value[0] << 8) | value[1];
+  ac1 = WireToS16(value);
   
   i2CReadBytes(_i2cAddress, BMP085_REG_CAL_AC2, value, 2);
-  ac2 = (value[0] << 8) | value[1];
+  ac2 = WireToS16(value);
   
   i2CReadBytes(_i2cAddress, BMP085_REG_CAL_AC3, value, 2);
-  ac3 = (value[0] << 8) | value[1];
+  ac3 = WireToS16(value);
   
   i2CReadBytes(_i2cAddress, BMP085_REG_CAL_AC4, value, 2);
-  ac4 = (value[0] << 8) | value[1];
+  ac4 = WireToU16(value);
   
   i2CReadBytes(_i2cAddress, BMP085_REG_CAL_AC5, value, 2);
-  ac5 = (value[0] << 8) | value[1];
+  ac5 = WireToU16(value);
   
   i2CReadBytes(_i2cAddress, BMP085_REG_CAL_AC6, value, 2);
-  ac6 = (value[0] << 8) | value[1];
+  ac6 = WireToU16(value);
   
   i2CReadBytes(_i2cAddress, BMP085_REG_CAL_B1, value, 2);
-  b1 = (value[0] << 8) | value[1];
+  b1 = WireToS16(value);
   
   i2CReadBytes(_i2cAddress, BMP085_REG_CAL_B2, value, 2);
-  b2 = (value[0] << 8) | value[1];
+  b2 = WireToS16(value);
   
   i2CReadBytes(_i2cAddress, BMP085_REG_CAL_MB, value, 2);
-  mb = (value[0] << 8) | value[1];
+  mb = WireToS16(value);
 
   i2CReadBytes(_i2cAddress, BMP085_REG_CAL_MC, value, 2);
-  mc = (value[0] << 8) | value[1];
+  mc = WireToS16(value);
 
   i2CReadBytes(_i2cAddress, BMP085_REG_CAL_MD, value, 2);
-  md = (value[0] << 8) | value[1];
+  md = WireToS16(value);
 
   switch ( _overSampling) {
     case BMP085_ULTRALOWPOWER: 
@@ -603,7 +635,7 @@ int32_t BMP085Read(const uint8_t _sdaPin, const uint8_t _sclPin, uint8_t _i2cAdd
 
   // Read two bytes from registers 0xF6 and 0xF7
   i2CReadBytes(_i2cAddress, BMP_REG_TEMPDATA, value, 2);
-  ut = (value[0] << 8) | value[1];
+  ut = WireToU16(value);
 //  ut = i2CRead16(_i2cAddress, BMP_REG_TEMPDATA);
 
   x1 = (((int32_t) ut - (int32_t) ac6) * (int32_t) ac5) >> 15;
@@ -671,37 +703,6 @@ int32_t BMP085Read(const uint8_t _sdaPin, const uint8_t _sclPin, uint8_t _i2cAdd
 }
 
 /* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
-                                                                     PC8574 SECTION
-
-
-*/
-
-#define PC8574_I2C_ADDRESS_FIRST                     0x20
-#define PC8574_I2C_ADDRESS_LAST                      0x27
-#define PC8574A_I2C_ADDRESS_FIRST                    0x38
-#define PC8574A_I2C_ADDRESS_LAST                     0x3F
-
-// Validate address for PC8574 / PC8574A I2C expander and return first default if address not valid
-uint8_t pc8574ValidateI2CAddress(const uint8_t _i2cAddress) 
-{
-   if (! ((PC8574_I2C_ADDRESS_FIRST <= _i2cAddress) && (PC8574_I2C_ADDRESS_LAST >= _i2cAddress )) ||
-         ((PC8574A_I2C_ADDRESS_FIRST <= _i2cAddress) && (PC8574A_I2C_ADDRESS_LAST >= _i2cAddress))) {
-      return PC8574_I2C_ADDRESS_FIRST;
-   } else {
-      return _i2cAddress;
-   }
-}
-
-// Write byte to PC8574 / PC8574A I2C and return success or unsuccess code
-int32_t pc8574Write(const uint8_t _sdaPin, const uint8_t _sclPin, uint8_t _i2cAddress, const uint8_t _data) 
-{  uint8_t result;
-   result = expanderWrite(pc8574ValidateI2CAddress(_i2cAddress), _data);
-
-   // Wire transaction is finished successfuly?
-   return (0 == result) ? RESULT_IS_OK : RESULT_IS_FAIL;
-}
-
-/* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
                                                                      LCD SECTION
 
 
@@ -711,89 +712,84 @@ version 1.1.2 is used
 
 */
 // Some pin mappings not used at presently
-/* LCD functional pin             ===>                   PC8574 port (bit # in byte which send to I2C expander) */
+/* LCD functional pin             ===>                   PCF8574 port (bit # in byte which send to I2C expander) */
 
-#define LCD_RS                                           0      // P0 (pin 4) on PC8574 - expander pin #4  (used)
-#define LCD_RW                                           1      // P1 (pin 5) on PC8574 - expander pin #5
-#define LCD_E                                            2      // P2 (pin 6) on PC8574 - expander pin #6  (used)
-#define LCD_BL                                           3      // P3 (pin 7) on PC8574 - expander pin #7  (used)
+#define LCD_RS                                                  0      // P0 (pin 4) on PCF8574 - expander pin #4  (used)
+#define LCD_RW                                                  1      // P1 (pin 5) on PCF8574 - expander pin #5
+#define LCD_E                                                   2      // P2 (pin 6) on PCF8574 - expander pin #6  (used)
+#define LCD_BL                                                  3      // P3 (pin 7) on PCF8574 - expander pin #7  (used)
 
-#define LCD_D4                                           4      // P4 (pin 9) on PC8574  - expander pin #11
-#define LCD_D5                                           5      // P5 (pin 10) on PC8574 - expander pin #12
-#define LCD_D6                                           6      // P6 (pin 11) on PC8574 - expander pin #13
-#define LCD_D7                                           7      // P7 (pin 12) on PC8574 - expander pin #14
+#define LCD_D4                                                  4      // P4 (pin 9) on PCF8574  - expander pin #11
+#define LCD_D5                                                  5      // P5 (pin 10) on PCF8574 - expander pin #12
+#define LCD_D6                                                  6      // P6 (pin 11) on PCF8574 - expander pin #13
+#define LCD_D7                                                  7      // P7 (pin 12) on PCF8574 - expander pin #14
 
 // LCD types.  1602 => 16 chars * 2 rows
-#define LCD_TYPE_801                                     801
-#define LCD_TYPE_1601                                    1601
+#define LCD_TYPE_801                                            801
+#define LCD_TYPE_1601                                           1601
                             
-#define LCD_TYPE_802                                     802 
-#define LCD_TYPE_1202                                    1202 
-#define LCD_TYPE_1602                                    1602 
-#define LCD_TYPE_2002                                    2002
-#define LCD_TYPE_2402                                    2402
-#define LCD_TYPE_4002                                    4002
+#define LCD_TYPE_802                                            802 
+#define LCD_TYPE_1202                                           1202 
+#define LCD_TYPE_1602                                           1602 
+#define LCD_TYPE_2002                                           2002
+#define LCD_TYPE_2402                                           2402
+#define LCD_TYPE_4002                                           4002
 
-#define LCD_TYPE_1604                                    1604
-#define LCD_TYPE_2004                                    2004
-#define LCD_TYPE_4004                                    4004
+#define LCD_TYPE_1604                                           1604
+#define LCD_TYPE_2004                                           2004
+#define LCD_TYPE_4004                                           4004
 
 // LCD control codes
-#define LCD_TAB_SIZE                                     0x04   // 4 space
-#define LCD_BLINK_DUTY_CYCLE                             250    // 250 ms
-#define LCD_BLINK_TIMES                                  0x04   // in cycle of 4 times - 2 off state & 2 on state. Need use even numbers for save previous backlight state on cycle finish
+#define LCD_TAB_SIZE                                            0x04   // 4 space
+#define LCD_BLINK_DUTY_CYCLE                                    250    // 250 ms
+#define LCD_BLINK_TIMES                                         0x04   // in cycle of 4 times - 2 off state & 2 on state. Need use even numbers for save previous backlight state on cycle finish
 
 // HD44780-compatible commands
-#define LCD_CMD_BACKLIGHT_BLINK                          0x03   // ASCII 03 - backlight blink
-#define LCD_CMD_HT                                       0x09   // ASCII 09 - horizontal tabulation
-#define LCD_CMD_LF                                       0x0A   // ASCII 10 - line feed
+#define LCD_CMD_BACKLIGHT_BLINK                                 0x03   // ASCII 03 - backlight blink
+#define LCD_CMD_HT                                              0x09   // ASCII 09 - horizontal tabulation
+#define LCD_CMD_LF                                              0x0A   // ASCII 10 - line feed
 
-#define LCD_CMD_DISPLAYOFF                               0x00
-#define LCD_CMD_CLEARDISPLAY                             0x01
-#define LCD_CMD_RETURNHOME                               0x02
-#define LCD_CMD_ENTRYMODE_RIGHTTOLEFT                    0x04
-#define LCD_CMD_ENTRYMODE_RIGHTTOLEFT_SCREENSHIFT        0x05
-#define LCD_CMD_ENTRYMODE_LEFTTORIGHT                    0x06
-#define LCD_CMD_ENTRYMODE_LEFTTORIGHT_SCREENSHIFT        0x07
-#define LCD_CMD_BLANKSCREEN                              0x08
-#define LCD_CMD_CURSOROFF                                0x0C
-#define LCD_CMD_UNDERLINECURSORON                        0x0E
-#define LCD_CMD_BLINKINGBLOCKCURSORON                    0x0F
-#define LCD_CMD_CURSORMOVELEFT                           0x10
-#define LCD_CMD_CURSORMOVERIGHT                          0x14
-#define LCD_CMD_SCREENSHIFTLEFT                          0x18
-#define LCD_CMD_SCREENSHIFTRIGHT                         0x1E
+#define LCD_CMD_DISPLAYOFF                                      0x00
+#define LCD_CMD_CLEARDISPLAY                                    0x01
+#define LCD_CMD_RETURNHOME                                      0x02
+#define LCD_CMD_ENTRYMODE_RIGHTTOLEFT                           0x04
+#define LCD_CMD_ENTRYMODE_RIGHTTOLEFT_SCREENSHIFT               0x05
+#define LCD_CMD_ENTRYMODE_LEFTTORIGHT                           0x06
+#define LCD_CMD_ENTRYMODE_LEFTTORIGHT_SCREENSHIFT               0x07
+#define LCD_CMD_BLANKSCREEN                                     0x08
+#define LCD_CMD_CURSOROFF                                       0x0C
+#define LCD_CMD_UNDERLINECURSORON                               0x0E
+#define LCD_CMD_BLINKINGBLOCKCURSORON                           0x0F
+#define LCD_CMD_CURSORMOVELEFT                                  0x10
+#define LCD_CMD_CURSORMOVERIGHT                                 0x14
+#define LCD_CMD_SCREENSHIFTLEFT                                 0x18
+#define LCD_CMD_SCREENSHIFTRIGHT                                0x1E
 
 
-#define LCD_DISPLAYCONTROL                               0x08
-#define LCD_CURSORSHIFT                                  0x10
-#define LCD_FUNCTIONSET                                  0x20
-#define LCD_SETDDRAMADDR                                 0x80
+#define LCD_DISPLAYCONTROL                                      0x08
+#define LCD_CURSORSHIFT                                         0x10
+#define LCD_FUNCTIONSET                                         0x20
+#define LCD_SETDDRAMADDR                                        0x80
 
 // flags for display on/off control
-#define LCD_DISPLAYON                                    0x04
-#define LCD_DISPLAYOFF                                   0x00
-#define LCD_CURSORON                                     0x02
-#define LCD_CURSOROFF                                    0x00
-#define LCD_BLINKON                                      0x01
-#define LCD_BLINKOFF                                     0x00
+#define LCD_DISPLAYON                                           0x04
+#define LCD_DISPLAYOFF                                          0x00
+#define LCD_CURSORON                                            0x02
+#define LCD_CURSOROFF                                           0x00
+#define LCD_BLINKON                                             0x01
+#define LCD_BLINKOFF                                            0x00
 
 // flags for display/cursor shift
-#define LCD_DISPLAYMOVE                                  0x08
-#define LCD_CURSORMOVE                                   0x00
-#define LCD_MOVERIGHT                                    0x04
-#define LCD_MOVELEFT                                     0x00
-
+#define LCD_DISPLAYMOVE                                         0x08
+#define LCD_CURSORMOVE                                          0x00
+#define LCD_MOVERIGHT                                           0x04
+#define LCD_MOVELEFT                                            0x00
 
 // flags for function set
-#define LCD_8BITMODE                                     0x10
-#define LCD_4BITMODE                                     0x00
-#define LCD_2LINE                                        0x08
-#define LCD_1LINE                                        0x00
-
-// flags for backlight control
-#define LCD_BACKLIGHT                                    0x08
-#define LCD_NOBACKLIGHT                                  0x00
+#define LCD_8BITMODE                                            0x10
+#define LCD_4BITMODE                                            0x00
+#define LCD_2LINE                                               0x08
+#define LCD_1LINE                                               0x00
 
 
 void lcdSend(const uint8_t _i2cAddress, const uint8_t _data, const uint8_t _mode)
@@ -806,29 +802,24 @@ void lcdSend(const uint8_t _i2cAddress, const uint8_t _data, const uint8_t _mode
 
 void lcdWrite4bits(const uint8_t _i2cAddress, const uint8_t _data) 
 {
-  expanderWrite(_i2cAddress, _data);
+  i2CWriteByte(_i2cAddress, I2C_NO_REG_SPECIFIED, _data);
   lcdPulseEnable(_i2cAddress, _data);
 }
 
 void lcdPulseEnable(const uint8_t _i2cAddress, const uint8_t _data)
 {
-  expanderWrite(_i2cAddress, _data | _BV(LCD_E));	// 'Enable' high
+  i2CWriteByte(_i2cAddress, I2C_NO_REG_SPECIFIED, _data | _BV(LCD_E));	// 'Enable' high
   delayMicroseconds(1);		                        // enable pulse must be >450ns
-  expanderWrite(_i2cAddress, _data & ~_BV(LCD_E));	// 'Enable' low
+  i2CWriteByte(_i2cAddress, I2C_NO_REG_SPECIFIED, _data & ~_BV(LCD_E));	// 'Enable' low
   delayMicroseconds(50);	                        // commands need > 37us to settle
 } 
 
-uint8_t expanderWrite(const uint8_t _i2cAddress, const uint8_t _data)
-{                                        
-  Wire.beginTransmission(_i2cAddress);
-  Wire.write((uint8_t) _data);
-  return Wire.endTransmission();   
-}
-
-uint8_t pc8574LCDOutput(const uint8_t _sdaPin, const uint8_t _sclPin, uint8_t _i2cAddress, uint8_t _lcdBacklight, const uint16_t _lcdType, const char *_data)
+int32_t pcf8574LCDOutput(const uint8_t _sdaPin, const uint8_t _sclPin, uint8_t _i2cAddress, uint8_t _lcdBacklight, const uint16_t _lcdType, const char *_data)
 {
   uint8_t displayFunction, lastLine, currLine, currChar, i;
   uint8_t rowOffsets[] = { 0x00, 0x40, 0x14, 0x54 };
+
+  if (!isI2CDeviceReady(_i2cAddress)) {return DEVICE_ERROR_CONNECT; }
 
   switch (_lcdType) {
    case LCD_TYPE_1602:
@@ -853,7 +844,11 @@ uint8_t pc8574LCDOutput(const uint8_t _sdaPin, const uint8_t _sclPin, uint8_t _i
 
   _lcdBacklight = _lcdBacklight ? _BV(LCD_BL) : 0;
 
-  if (!haveHexPrefix(_data)) {return false;}
+  // just tooggle backlight and go back if no data given 
+  i2CWriteByte(_i2cAddress, I2C_NO_REG_SPECIFIED, _lcdBacklight);
+  if (! *_data) {return RESULT_IS_OK; }
+ 
+  if (!haveHexPrefix(_data)) {return RESULT_IS_FAIL;}
   _data+=2;
 
   // SEE PAGE 45/46 FOR INITIALIZATION SPECIFICATION!
@@ -862,11 +857,6 @@ uint8_t pc8574LCDOutput(const uint8_t _sdaPin, const uint8_t _sclPin, uint8_t _i
   delay(50); 
 
   // Now we pull both RS and R/W low to begin commands
-//  expanderWrite(_i2cAddress, ((_lcdBacklight > 0) ? LCD_BACKLIGHT : LCD_NOBACKLIGHT));
-  expanderWrite(_i2cAddress, _lcdBacklight);
-  delayMicroseconds(40000); // wait 40ms
-
-  //put the LCD into 4 bit mode
   // this is according to the hitachi HD44780 datasheet
   // figure 24, pg 46
 	
@@ -908,7 +898,7 @@ uint8_t pc8574LCDOutput(const uint8_t _sdaPin, const uint8_t _sclPin, uint8_t _i
         for (i = 0; i < LCD_BLINK_TIMES; i++) {
           // _lcdBacklight is not false/true, is 0x00 / 0x08
           _lcdBacklight = _lcdBacklight ? 0x00 : _BV(LCD_BL);
-          expanderWrite(_i2cAddress, _lcdBacklight);
+          i2CWriteByte(_i2cAddress, I2C_NO_REG_SPECIFIED, _lcdBacklight);
           delay (LCD_BLINK_DUTY_CYCLE);
         }
         
@@ -958,7 +948,7 @@ uint8_t pc8574LCDOutput(const uint8_t _sdaPin, const uint8_t _sclPin, uint8_t _i
   }
     _data += 2;
   }
-  return true;
+  return RESULT_IS_OK;
 }
 
 /* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
@@ -966,41 +956,52 @@ uint8_t pc8574LCDOutput(const uint8_t _sdaPin, const uint8_t _sclPin, uint8_t _i
 */
 
 
-#define BH1750_I2C_FIRST_ADDRESS            0x23
-#define BH1750_I2C_SECOND_ADDRESS           0x5C
+#define BH1750_I2C_FIRST_ADDRESS                                0x23
+#define BH1750_I2C_SECOND_ADDRESS                               0x5C
 /*
 
   Datasheet: http://rohmfs.rohm.com/en/products/databook/datasheet/ic/sensor/light/bh1750fvi-e.pdf
 */
 
 // No active state
-#define BH1750_CMD_POWERDOWN                0x00
+#define BH1750_CMD_POWERDOWN                                    0x00
 // Wating for measurment command
-#define BH1750_CMD_POWERON                  0x01
+#define BH1750_CMD_POWERON                                      0x01
 // Reset data register value - not accepted in POWER_DOWN mode
-#define BH1750_CMD_RESET                    0x07
+#define BH1750_CMD_RESET                                        0x07
 
 // Start measurement at 1lx resolution. Measurement time is approx 120ms.
-#define BH1750_CONTINUOUS_HIGHRES           0x10
+#define BH1750_CONTINUOUS_HIGHRES                               0x10
 // Start measurement at 0.5lx resolution. Measurement time is approx 120ms.
-#define BH1750_CONTINUOUS_HIGHRES_2         0x11
+#define BH1750_CONTINUOUS_HIGHRES_2                             0x11
 // Start measurement at 4lx resolution. Measurement time is approx 16ms.
-#define BH1750_CONTINUOUS_LOWRES            0x13
+#define BH1750_CONTINUOUS_LOWRES                                0x13
 // Start measurement at 1lx resolution. Measurement time is approx 120ms.
 // Device is automatically set to Power Down after measurement.
-#define BH1750_ONETIME_HIGHRES              0x20
+#define BH1750_ONETIME_HIGHRES                                  0x20
 // Start measurement at 0.5lx resolution. Measurement time is approx 120ms.
 // Device is automatically set to Power Down after measurement.
-#define BH1750_ONETIME_HIGHRES_2            0x21
+#define BH1750_ONETIME_HIGHRES_2                                0x21
 // Start measurement at 4lx resolution. Measurement time is approx 16ms.
 // Device is automatically set to Power Down after measurement.
-#define BH1750_ONETIME_LOWRES               0x23
+#define BH1750_ONETIME_LOWRES                                   0x23
 
 
 int32_t BH1750Read(const uint8_t _sdaPin, const uint8_t _sclPin, uint8_t _i2cAddress, uint8_t _mode, const uint8_t _metric, char* _outBuffer)
 {
   int32_t result;
   uint8_t setModeTimeout = 24; // 24ms - max time to complete measurement in low-resolution
+
+  switch (_i2cAddress) {
+    case BH1750_I2C_FIRST_ADDRESS:
+    case BH1750_I2C_SECOND_ADDRESS: 
+      break;
+    default:  
+       _i2cAddress = BH1750_I2C_FIRST_ADDRESS;
+  }
+
+  if (!isI2CDeviceReady(_i2cAddress)) {return DEVICE_ERROR_CONNECT; }
+
 
   switch (_mode) {
     case BH1750_CONTINUOUS_HIGHRES:
@@ -1015,18 +1016,13 @@ int32_t BH1750Read(const uint8_t _sdaPin, const uint8_t _sclPin, uint8_t _i2cAdd
        _mode = BH1750_CONTINUOUS_LOWRES;
   }
 
-  switch (_i2cAddress) {
-    case BH1750_I2C_FIRST_ADDRESS:
-    case BH1750_I2C_SECOND_ADDRESS: 
-      break;
-    default:  
-       _i2cAddress = BH1750_I2C_FIRST_ADDRESS;
-  }
 
   Wire.beginTransmission(_i2cAddress);
   Wire.write(BH1750_CMD_POWERON);
   Wire.endTransmission();
-  _delay_ms(10);
+  //_delay_ms(10);
+
+  delay(10);
 
   // Refer to Technical Note, v2010.04-Rev.C, page 7/17
   // Send "go to _mode" instruction
@@ -1042,7 +1038,7 @@ int32_t BH1750Read(const uint8_t _sdaPin, const uint8_t _sclPin, uint8_t _i2cAdd
   result <<= 8;
   result |= Wire.read();
   Wire.endTransmission();
- 
+
   if (SENS_READ_RAW == _metric) {
     ltoa(result, _outBuffer, 10);
   } else {

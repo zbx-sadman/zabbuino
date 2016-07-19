@@ -50,22 +50,26 @@ uint8_t timerOneInit(const uint16_t _milliseconds)
 *
 **************************************************************************************************************************** */
 void gatherMetrics(){
+  // repeat measuring on next round
+  if (skipMetricGathering) { return; }
   // = IDX_METRICS_FIRST_CRONNED to skip "gathering" uncronned metric (IDX_METRIC_SYS_CMD_COUNT and so) 
   static uint8_t metricIdx = IDX_METRICS_FIRST_CRONNED;
   // Gather only one metric at once to leave CPU time to other important procedures
 
 #ifdef FEATURE_DEBUG_COMMANDS_ENABLE
   switch (metricIdx) {
-    case IDX_METRIC_SYS_VCCMIN:
-    case IDX_METRIC_SYS_VCCMAX:
-      correctVCCMetrics(MeasureVoltage(ANALOG_CHAN_VBG));
-      metricIdx++; // Two metrics taken at once  
+    case IDX_METRIC_SYS_VCC:
+    //case IDX_METRIC_SYS_VCCMIN:
+    //case IDX_METRIC_SYS_VCCMAX:
+        sysMetrics[IDX_METRIC_SYS_VCC] = MeasureVoltage(ANALOG_CHAN_VBG);
+        correctVCCMetrics(sysMetrics[IDX_METRIC_SYS_VCC]);
+      metricIdx += 2; // Three metrics taken at once  
       break;
     case IDX_METRIC_SYS_RAM_FREE:
-    case IDX_METRIC_SYS_RAM_FREEMIN:
+    //case IDX_METRIC_SYS_RAM_FREEMIN:
       sysMetrics[IDX_METRIC_SYS_RAM_FREE] = (int32_t) ramFree(); 
       correctMemoryMetrics(sysMetrics[IDX_METRIC_SYS_RAM_FREE]);
-      metricIdx++; // Two metrics taken at once  
+      metricIdx += 1; // Two metrics taken at once  
       break;
     default:
       ;
@@ -81,10 +85,8 @@ void gatherMetrics(){
 *   Correct minmem metric when FreeMem just taken
 *
 **************************************************************************************************************************** */
-void correctMemoryMetrics(const uint32_t _currMemFree) {
-  if (sysMetrics[IDX_METRIC_SYS_RAM_FREEMIN] > _currMemFree) {
-     sysMetrics[IDX_METRIC_SYS_RAM_FREEMIN] = _currMemFree;
-  }
+void correctMemoryMetrics(uint32_t _currMemFree) {
+  if (sysMetrics[IDX_METRIC_SYS_RAM_FREEMIN] > _currMemFree) { sysMetrics[IDX_METRIC_SYS_RAM_FREEMIN] = _currMemFree; }
 }           
       
 
@@ -93,13 +95,8 @@ void correctMemoryMetrics(const uint32_t _currMemFree) {
 *   Correct minvcc/maxvcc metrics when VCC just taken
 *
 **************************************************************************************************************************** */
-void correctVCCMetrics(const uint32_t _currVCC) {
-  if (sysMetrics[IDX_METRIC_SYS_VCCMIN] > _currVCC) {
-     sysMetrics[IDX_METRIC_SYS_VCCMIN] = _currVCC;
-  }
-  if (sysMetrics[IDX_METRIC_SYS_VCCMAX] < _currVCC) {
-     sysMetrics[IDX_METRIC_SYS_VCCMAX] = _currVCC;
-  }
+void correctVCCMetrics(uint32_t _currVCC) {
+  if (sysMetrics[IDX_METRIC_SYS_VCCMIN] > _currVCC) { sysMetrics[IDX_METRIC_SYS_VCCMIN] = _currVCC; }
+  if (sysMetrics[IDX_METRIC_SYS_VCCMAX] < _currVCC) { sysMetrics[IDX_METRIC_SYS_VCCMAX] = _currVCC; }
 }
-
 

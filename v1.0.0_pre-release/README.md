@@ -21,11 +21,44 @@ Implemented:
 - Support HC-SR04 ultrasonic ranging module;
 - Support any other analog or digital sensor via `analogread` /`digitalread` commands;
 - Support indicators, that connected to MAX7219, 8x8 Led matrix for example;
-- Support PC8574 I2C expander;
+- Support simple I2C devices (expanders, digital linear potentiometers, etc.);
 - Support One- or Two- (and maybe Four-) lines LCD Character displays with PC8574 I2C expander;
 - Support any actuators or indicators via `digitalwrite` command;
 - Support WS2801 Led stripe and any indicators on shift registers via extended `shiftout` command.
 
+####19 Jul 2016
+
+Changes:
+- _pc8574.write_ command code moved to  _i2c.write_ ;
+- _pc8574.LCDPrint_ command renamed to _pc**f**8574.LCDPrint_ (just my inattention caused error in chip name);
+- _pcf8574.LCDPrint_ have new function. When no data specified, the command toggle backlight in accordance with the value of _lcdBacklight_ option.
+
+New commands:
+- _I2C.Write[sdaPin, sclPin, i2cAddress, register, data]_ - write data (one byte) to the register of I2C device.
+  - _sdaPin, sclPin_ - I2C pins;
+  - _i2cAddress_ - address of I2C device. It can be found with _I2C.scan[]_ command;
+  - _register_ - register, which must be written (optional);
+  - _data_ - one byte data to expander write.
+- _I2C.Read[sdaPin, sclPin, i2cAddress, register, bytes]_ - read the value with _bytes_ lenght from the register of I2C device;
+  - _sdaPin, sclPin_ - I2C pins;
+  - _i2cAddress_ - address of I2C device. It can be found with _I2C.scan[]_ command;
+  - _register_ - register, which must be read (optional);
+  - _bytes_ - how many bytes need to read (1 .. 4, uint8_t .. uint32_t).
+- _I2C.BitWrite[sdaPin, sclPin, i2cAddress, register, bitNumber, value]_ - write _value_ to  _bitNumber_ of I2C device's register;
+  - _sdaPin, sclPin_ - I2C pins;
+  - _i2cAddress_ - address of I2C device. It can be found with _I2C.scan[]_ command;
+  - _register_ - register, which must be written (optional);
+  - _bitNumber_ - bit, which must be written (0 .. 7);
+  - _value_ - 1 or 0.
+- _I2C.BitRead[sdaPin, sclPin, i2cAddress, register, bitNumber]_ - read _value_ from  _bitNumber_ of I2C device's register;
+  - _sdaPin, sclPin_ - I2C pins;
+  - _i2cAddress_ - address of I2C device. It can be found with _I2C.scan[]_ command;
+  - _register_ - register, which must be read (optional);
+  - _bitNumber_ - bit, which must be read (0 .. 7).
+
+**Note #1** Set of I2C.* commands allow to handle most of simple I2C devices - PCF8574/PCF8574A expanders, MCP4018T digital linear potentiometer, and etc.
+
+**Note #2** Some I2C devices havent registers (PCF8574 expander for example). Just skip value of _register_ option when work with it.
 
 ####15 Jul 2016
 New commands:

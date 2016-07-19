@@ -1,7 +1,7 @@
 #define ADC_SAMPLES                         1000  // for median sampling algo: every sample is int16_t number, total memory consumption is (ADC_SAMPLES * 2) bytes
 
 int32_t MeasureVoltage(const uint8_t _analogChannel) {  
-  uint8_t i, oldADCSRA;
+  uint8_t i, oldADCSRA, oldADMUX;
   uint32_t avgADC=0;
   
     /* • Bit 7:6 – REFS[1:0]: Reference Selection Bits
@@ -33,6 +33,7 @@ int32_t MeasureVoltage(const uint8_t _analogChannel) {
        These bits determine the division factor between the system clock frequency and the input clock to the ADC.
        
   */
+  oldADMUX = ADMUX;
   ADMUX = (0 << REFS1) | (1 << REFS0) | _analogChannel;
   //  save ADCSRA register
   oldADCSRA = ADCSRA;
@@ -52,6 +53,7 @@ int32_t MeasureVoltage(const uint8_t _analogChannel) {
 
   //  restore ADCSRA register
   ADCSRA = oldADCSRA;
+  ADMUX = oldADMUX;
   // No delay() used because sub can be called from interrupt
   delayMicroseconds(2000);
   avgADC = 1125300L / avgADC; // Calculate Vcc (in mV); 1125300 = 1.1*1023*1000
@@ -92,6 +94,9 @@ int32_t ACS7XXCurrent(const uint8_t _sensorPin, uint32_t _aRefVoltage,  const ui
   // 100000UL mcsec => 100 msec (for 50Hz)
   sampleInterval = 100000UL/ADC_SAMPLES; 
 
+  // Do not disturb processes by internal routines 
+  skipMetricGathering = true;
+
   // *** Do not disable interrupts here - the system can hang ***
 
   // disable interrupt
@@ -112,6 +117,7 @@ int32_t ACS7XXCurrent(const uint8_t _sensorPin, uint32_t _aRefVoltage,  const ui
   }
   // enable interrupts
   //SREG = oldSREG;
+  skipMetricGathering = false;
 
   switch (_metric) {
     case SENS_READ_ZC:
