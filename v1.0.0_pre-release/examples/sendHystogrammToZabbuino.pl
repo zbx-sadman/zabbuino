@@ -23,8 +23,9 @@ $zabbuinoPort = '10050';
 
 # pins to which MAX7219 with 8x8 led matrix connected
 $dataPin = 5;
-$loadPin = 6;
-$clockPin = 7;
+$clockPin = 6;
+$loadPin = 7;
+
 
 # test set
 #@triggersActive=(0,0,1,3,5,0,0,0);
