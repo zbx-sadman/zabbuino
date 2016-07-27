@@ -1,7 +1,7 @@
 // My Freeduino is not listed, but is analogue to ARDUINO_AVR_DUEMILANOVE
 #define ARDUINO_AVR_DUEMILANOVE
 // Just for compilation with various default network configs
-#define USE_NETWORK_192_168_0_1
+//#define USE_NETWORK_192_168_0_1
 
 /* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
                                                              !!! WizNet W5xxx users !!!
@@ -9,8 +9,8 @@
     1. Comment #include <UIPEthernet.h>
     2. Uncomment #include <Ethernet.h> and <SPI.h> headers
 */
-//#include <Ethernet.h>
-//#include <SPI.h>
+#include <Ethernet.h>
+#include <SPI.h>
 
 /* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
                                                                 !!! ENC28J60 users !!!
@@ -34,7 +34,7 @@
              ...
 
 */
-#include <UIPEthernet.h>
+//#include <UIPEthernet.h>
 //#define USE_DIRTY_HACK_AND_REBOOT_ENC28J60_IF_ITS_SEEMS_FREEZE
 
 
@@ -78,7 +78,7 @@ EthernetClient ethClient;
 char cBuffer[BUFFER_SIZE+1]; // +1 for trailing \0
 int16_t argOffset[ARGS_MAX];
 int32_t sysMetrics[IDX_METRICS_MAX];
-// dontTouchADC checked in interrupt's subroutine
+// skipMetricGathering used in interrupt's subroutine - must be `volatile` 
 volatile uint8_t skipMetricGathering = false;
 
 /* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
@@ -110,9 +110,10 @@ void setup() {
    -=-=-=-=-=-=-=-=-=-=-=- */
 
   // Set mode of PIN_FACTORY_RESET and turn on internal pull resistor
+  pinMode(PIN_STATE_LED, OUTPUT);
+  digitalWrite(PIN_STATE_LED, LOW);
   pinMode(PIN_FACTORY_RESET, INPUT_PULLUP);
-//  digitalWrite(PIN_FACTORY_RESET, HIGH);
-  // Check for PIN_FACTORY_RESET shoring to ground?
+  // Check for PIN_FACTORY_RESET shorting to ground?
   // (when pulled INPUT pin shorted to GND - digitalRead() return LOW)
   if (LOW == digitalRead(PIN_FACTORY_RESET)){
     // Fire up state LED
@@ -123,6 +124,10 @@ void setup() {
     if (LOW == digitalRead(PIN_FACTORY_RESET)){
        setDefaults(netConfig);
        saveConfig(&netConfig);
+       // Blink fast while PIN_FACTORY_RESET shorted to GND
+       while (LOW == digitalRead(PIN_FACTORY_RESET)) {
+          digitalWrite(PIN_STATE_LED, millis() % 100 < 50);
+      }
     }
     digitalWrite(PIN_STATE_LED, LOW);
   } // if (LOW == digitalRead(PIN_FACTORY_RESET))
@@ -473,7 +478,9 @@ uint8_t executeCommand()
 
   for (i = 0; i < CMD_MAX; i++)
   {
-     if (0 == strcmp_P(cBuffer, (char*)pgm_read_word(&(commands[i])))) {cmdIdx = i; break;}
+//    Serial.print(i, HEX); Serial.print(": ");
+//    SerialPrintln_P((char*)pgm_read_word(&(commands[i])));
+    if (0 == strcmp_P(cBuffer, (char*)pgm_read_word(&(commands[i])))) {cmdIdx = i; break;}
   }
 
 #ifdef FEATURE_DEBUG_TO_SERIAL
@@ -507,73 +514,161 @@ uint8_t executeCommand()
 
   i2CAddress = (uint8_t) arg[2];
   i2CRegister = (int16_t) arg[3];
-  // i2COption can be length, bit or data
+  // i2COption can be length, bitNumber or data
   i2COption = (uint8_t) arg[4];
 
  
    switch (cmdIdx) {
-//     case -1: 
+//  case  CMD_ZBX_NOPE: 
 //        break;
     case CMD_ZBX_AGENT_PING:
+      /*/
+      //   agent.ping 
+      /=*/
       result = RESULT_IS_OK;
       break;
+
     case CMD_ZBX_AGENT_HOSTNAME:
+      /*/
+      /=/   agent.hostname
+      /*/
       strcpy(cBuffer, netConfig.hostname);
       result = RESULT_IN_BUFFER;
       break;
          
     case CMD_ZBX_AGENT_VERSION:
+      /*/
+      /=/  agent.version
+      /*/
       strcpy_P(cBuffer, PSTR(ZBX_AGENT_VERISON));
       result = RESULT_IN_BUFFER;
       break;
 
-
     case CMD_SYS_UPTIME:
-      // Команда: sys.uptime
-      // Параметры: не требуются
-      // Результат: возвращается количество секунд, прошедших с момента включения устройства
+      /*/
+      /=/  sys.uptime
+      /*/
       result = millis() / 1000;
       break;
    
-#ifdef FEATURE_DEBUG_COMMANDS_ENABLE
-    case CMD_SYS_CMD_COUNT:
-      if (arg[0]) { sysMetrics[IDX_METRIC_SYS_CMD_COUNT] = 0; } 
-      result = sysMetrics[IDX_METRIC_SYS_CMD_COUNT];
-      break;
 
-    case CMD_SYS_CMD_TIMEMAX:
-      if (cBuffer[argOffset[0]]) { sysMetrics[IDX_METRIC_SYS_CMD_TIMEMAX] = 0; sysMetrics[IDX_METRIC_SYS_CMD_TIMEMAX_N] = 0; } 
-      result = sysMetrics[IDX_METRIC_SYS_CMD_TIMEMAX];
-      break;
 
-    case CMD_SYS_CMD_TIMEMAX_N:
-      ethClient.println(sysMetrics[IDX_METRIC_SYS_CMD_TIMEMAX_N], HEX);
-      result = RESULT_IS_PRINTED;
+    case CMD_ARDUINO_ANALOGWRITE:
+      /*/
+      /=/  analogWrite[pin, value]
+      /*/
+      if (isSafePin(arg[0])) {
+         analogWrite(arg[0], arg[1]);
+         result = RESULT_IS_OK;
+      }
       break;
-   
-    case CMD_SYS_RAM_FREE:
-      result = sysMetrics[IDX_METRIC_SYS_RAM_FREE];
-      break;
-
-    case CMD_SYS_RAM_FREEMIN:
-      result = sysMetrics[IDX_METRIC_SYS_RAM_FREEMIN];
-      break;
-
-    case CMD_SYS_MCU_NAME:
-      strcpy_P(cBuffer, PSTR(_AVR_CPU_NAME_));
-      result = RESULT_IN_BUFFER;
-      break;
-   
-    case CMD_SYS_NET_MODULE:
-      strcpy_P(cBuffer, PSTR(NET_MODULE_NAME));
-      result = RESULT_IN_BUFFER;
+      
+    case CMD_ARDUINO_ANALOGREAD:
+      /*/
+      /=/  analogRead[pin, analogReferenceSource]
+      /*/
+#ifdef FEATURE_AREF_ENABLE
+      // change source of the reference voltage if its given
+      if ('\0' != cBuffer[argOffset[1]]) {
+         analogReference(arg[1]);
+         delayMicroseconds(2000);
+      }
+#endif
+      // Do not disturb processes by internal routines 
+      skipMetricGathering = true;
+      result = (int32_t) analogRead(arg[0]);
+      skipMetricGathering = false;
+      break;      
+  
+#ifdef FEATURE_AREF_ENABLE
+    case CMD_ARDUINO_ANALOGREFERENCE:
+      /*/
+      /=/  analogReference[source]
+      /*/
+      analogReference(arg[0]);
+      result = RESULT_IS_OK;
       break;
 #endif
+  
+    
+    case CMD_ARDUINO_DELAY:
+      /*/
+      /=/  delay[time]
+      /*/
+      delay(arg[0]);
+      result = RESULT_IS_OK;
+      break;
+
+    case CMD_ARDUINO_DIGITALWRITE:
+      /*/
+      /=/  digitalWrite[pin, value]
+      /*/
+      if (isSafePin(arg[0])) {
+         digitalWrite(arg[0], arg[1]);
+         result = RESULT_IS_OK;
+      }
+      break;
+      
+    case CMD_ARDUINO_DIGITALREAD:
+      /*/
+      /=/  digitalRead[pin]
+      /*/
+      result = (int32_t) digitalRead(arg[0]);
+      break;
+
+
+#ifdef FEATURE_TONE_ENABLE
+    case CMD_ARDUINO_TONE:
+      /*/
+      /=/  tone[pin, frequency, duration]
+      /*/
+      if (isSafePin(arg[0])) {
+        if ('\0' != cBuffer[argOffset[2]]) {
+           tone(arg[0], arg[1], arg[2]);
+         } else {
+           tone(arg[0], arg[1]);
+         }
+        result = RESULT_IS_OK;
+      }
+      break;
+  
+    case CMD_ARDUINO_NOTONE:
+      /*/
+      /*/
+      if (isSafePin(arg[0])) {
+        noTone(arg[0]);
+        result = RESULT_IS_OK;
+      }
+      break;
+  
+#endif
+
+#ifdef FEATURE_RANDOM_ENABLE
+    case CMD_ARDUINO_RANDOMSEED:
+      /*/
+      /=/  randomSeed[value]
+      /*/
+      randomSeed((0 == arg[0]) ? (int32_t) millis() : arg[0]);
+      result = RESULT_IS_OK;
+      break;
+   
+    case CMD_ARDUINO_RANDOM:
+      /*/
+      /=/  random[min, max]
+      /*/
+      //  !! random return long
+      result = ('\0' == cBuffer[argOffset[1]]) ? (int32_t) random(arg[0]) : (int32_t) random(arg[0], arg[1]);
+      break;
+#endif // FEATURE_RANDOM_ENABLE
+
 
 #ifdef FEATURE_EEPROM_ENABLE
 // TODO: remove on release
 #ifdef FEATURE_EEPROM_SET_COMMANDS_ENABLE
     case CMD_SET_HOSTNAME:
+      /*/
+      /=/  set.hostname[password, hostname]
+      /*/
       if (AccessGranted) {
          // need check for arg existsience?
          // cBuffer[argOffset[1]] != \0 if argument #2 given
@@ -589,6 +684,9 @@ uint8_t executeCommand()
       break;
   
     case CMD_SET_PASSWORD:
+      /*/
+      /=/  set.password[oldPassword, newPassword]
+      /*/
       if (AccessGranted) {
          if (cBuffer[argOffset[1]]) {
             // take new password from argument #2
@@ -600,6 +698,9 @@ uint8_t executeCommand()
       break;
   
     case CMD_SET_SYSPROTECT:
+      /*/
+      /=/  set.sysprotect[password, protection]
+      /*/
       if (AccessGranted) {
          if (cBuffer[argOffset[1]]) {
             // take new password from argument #2
@@ -611,6 +712,9 @@ uint8_t executeCommand()
       break;
    
     case CMD_SET_NETWORK:
+      /*/
+      /=/  set.network[password, useDHCP, macAddress, ipAddress, ipNetmask, ipGateway]
+      /*/
       if (AccessGranted) {
          uint8_t ip[4], mac[6], success = 1;
          // useDHCP flag coming from first argument and must be numeric (boolean) - 1 or 0, 
@@ -645,7 +749,36 @@ uint8_t executeCommand()
 #endif // FEATURE_EEPROM_ENABLE
 #endif // 
 
+    case CMD_SYS_PORTWRITE:
+      /*/
+      /=/  portWrite[port, value]
+      /*/
+      if (PORTS_NUM < (arg[0] - 96)) {
+         portWrite((byte) arg[0] - 96, arg[1]);
+         result = RESULT_IS_OK;
+      }
+      break;
+  
+#ifdef FEATURE_SHIFTOUT_ENABLE
+    case CMD_SYS_SHIFTOUT:
+      /*/
+      /=/  shiftOut[dataPin, clockPin, latchPin, bitOrder, value]
+      /*/
+      // i used as latchPinDefined
+      i = ('\0' != arg[2]) && isSafePin(arg[2]);   // << корректный способ проверки или нет?  
+      if (isSafePin(arg[0]) &&  isSafePin(arg[1])) {
+         if (i) { digitalWrite(arg[2], LOW); }
+         advShiftOut(arg[0], arg[1], arg[3], &cBuffer[argOffset[4]]);
+         if (i) { digitalWrite(arg[2], HIGH);}
+         result = RESULT_IS_OK;
+      }
+      break;
+#endif
+
     case CMD_SYS_REBOOT:
+      /*/
+      /=/  reboot[password]
+      /*/
       if (AccessGranted) {
          ethClient.println("1");
          // hang-up if no delay
@@ -659,7 +792,70 @@ uint8_t executeCommand()
       }
       break;
 
+
+
+#ifdef FEATURE_DEBUG_COMMANDS_ENABLE
+    case CMD_SYS_MCU_NAME:
+      /*/
+      /=/  sys.mcu.name
+      /*/
+      strcpy_P(cBuffer, PSTR(_AVR_CPU_NAME_));
+      result = RESULT_IN_BUFFER;
+      break;
+   
+    case CMD_SYS_NET_MODULE:
+      /*/
+      /=/  sys.net.module
+      /*/
+      strcpy_P(cBuffer, PSTR(NET_MODULE_NAME));
+      result = RESULT_IN_BUFFER;
+      break;
+
+    case CMD_SYS_CMD_COUNT:
+      /*/
+      /=/  sys.cmd.count
+      /*/
+      if (arg[0]) { sysMetrics[IDX_METRIC_SYS_CMD_COUNT] = 0; } 
+      result = sysMetrics[IDX_METRIC_SYS_CMD_COUNT];
+      break;
+
+    case CMD_SYS_CMD_TIMEMAX:
+      /*/
+      /=/  sys.cmd.timemax[resetCounter]
+      /*/
+      if (cBuffer[argOffset[0]]) { sysMetrics[IDX_METRIC_SYS_CMD_TIMEMAX] = 0; sysMetrics[IDX_METRIC_SYS_CMD_TIMEMAX_N] = 0; } 
+      result = sysMetrics[IDX_METRIC_SYS_CMD_TIMEMAX];
+      break;
+
+    case CMD_SYS_CMD_TIMEMAX_N:
+      /*/
+      /=/  sys.cmd.timemax.n
+      /*/
+      ethClient.println(sysMetrics[IDX_METRIC_SYS_CMD_TIMEMAX_N], HEX);
+      result = RESULT_IS_PRINTED;
+      break;
+   
+    case CMD_SYS_RAM_FREE:
+      /*/
+      /=/  sys.ram.free
+      /*/
+      result = sysMetrics[IDX_METRIC_SYS_RAM_FREE];
+      break;
+
+    case CMD_SYS_RAM_FREEMIN:
+      /*/
+      /=/  sys.ram.freemin
+      /*/
+      result = sysMetrics[IDX_METRIC_SYS_RAM_FREEMIN];
+      break;
+
+#endif
+
+
     case CMD_SYS_VCC:
+      /*/
+      /=/ sys.vcc
+      /*/
       // Take VCC
       result = MeasureVoltage(ANALOG_CHAN_VBG);
       // VCC may be bigger than max or smaller than min. 
@@ -668,329 +864,25 @@ uint8_t executeCommand()
       break;
   
     case CMD_SYS_VCCMIN:
+      /*/
+      /=/ sys.vccMin
+      /*/
       result = sysMetrics[IDX_METRIC_SYS_VCCMIN];
       break;
   
     case CMD_SYS_VCCMAX:
+      /*/
+      /=/ sys.vccMax
+      /*/
       result = sysMetrics[IDX_METRIC_SYS_VCCMAX];
       break;
   
-    case CMD_SYS_PORTWRITE:
-      if (PORTS_NUM < (arg[0] - 96)) {
-         portWrite((byte) arg[0] - 96, arg[1]);
-         result = RESULT_IS_OK;
-      }
-      break;
-  
-    case CMD_ARDUINO_ANALOGWRITE:
-      if (isSafePin(arg[0])) {
-         analogWrite(arg[0], arg[1]);
-         result = RESULT_IS_OK;
-      }
-      break;
-      
-    case CMD_ARDUINO_ANALOGREAD:
-#ifdef FEATURE_AREF_ENABLE
-      // change source of the reference voltage if its given
-      if ('\0' != cBuffer[argOffset[1]]) {
-         analogReference(arg[1]);
-         delayMicroseconds(2000);
-      }
-#endif
-      // Do not disturb processes by internal routines 
-      skipMetricGathering = true;
-      result = (int32_t) analogRead(arg[0]);
-      skipMetricGathering = false;
-      break;      
-  
-#ifdef FEATURE_AREF_ENABLE
-    case CMD_ARDUINO_ANALOGREFERENCE:
-      analogReference(arg[0]);
-      result = RESULT_IS_OK;
-      break;
-#endif
-  
-    case CMD_ARDUINO_DIGITALWRITE:
-      if (isSafePin(arg[0])) {
-         digitalWrite(arg[0], arg[1]);
-         result = RESULT_IS_OK;
-      }
-      break;
-      
-    case CMD_ARDUINO_DIGITALREAD:
-      result = (int32_t) digitalRead(arg[0]);
-      break;
-
-     case CMD_ARDUINO_DELAY:
-      delay(arg[0]);
-      result = RESULT_IS_OK;
-      break;
-
-
-#ifdef FEATURE_TONE_ENABLE
-    case CMD_ARDUINO_TONE:
-      if (isSafePin(arg[0])) {
-        if ('\0' != cBuffer[argOffset[2]]) {
-           tone(arg[0], arg[1], arg[2]);
-         } else {
-           tone(arg[0], arg[1]);
-         }
-        result = RESULT_IS_OK;
-      }
-      break;
-  
-    case CMD_ARDUINO_NOTONE:
-      if (isSafePin(arg[0])) {
-        noTone(arg[0]);
-        result = RESULT_IS_OK;
-      }
-      break;
-  
-#endif
-
-#ifdef FEATURE_SHIFTOUT_ENABLE
-    case CMD_SYS_SHIFTOUT:
-      // i used as latchPinDefined
-      i = ('\0' != arg[2]) && isSafePin(arg[2]);   // << корректный способ проверки или нет?  
-      if (isSafePin(arg[0]) &&  isSafePin(arg[1])) {
-         if (i) { digitalWrite(arg[2], LOW); }
-         advShiftOut(arg[0], arg[1], arg[3], &cBuffer[argOffset[4]]);
-         if (i) { digitalWrite(arg[2], HIGH);}
-         result = RESULT_IS_OK;
-      }
-      break;
-#endif
-
-#ifdef FEATURE_RANDOM_ENABLE
-    case CMD_ARDUINO_RANDOMSEED:
-      randomSeed((0 == arg[0]) ? (int32_t) millis() : arg[0]);
-      result = RESULT_IS_OK;
-      break;
-   
-    case CMD_ARDUINO_RANDOM:
-      //  !! random return long
-      result = ('\0' == cBuffer[argOffset[1]]) ? (int32_t) random(arg[0]) : (int32_t) random(arg[0], arg[1]);
-      break;
-#endif // FEATURE_RANDOM_ENABLE
-
-
-#ifdef FEATURE_OW_ENABLE
-    case CMD_OW_SCAN:
-      if (isSafePin(arg[0])) {
-         result = oneWireScan(arg[0]);
-      }
-      break;
-#endif // FEATURE_ONEWIRE_ENABLE
-
-#ifdef FEATURE_DS18X20_ENABLE
-    case CMD_DS18X20_TEMPERATURE:
-      if (isSafePin(arg[0])) {
-         result = DS18X20Read(arg[0], arg[1], &cBuffer[argOffset[2]], cBuffer);
-      }
-      break;
-#endif // FEATURE_DS18X20_ENABLE
-
-#ifdef FEATURE_DHT_ENABLE
-    case CMD_DHT_TEMPERATURE:
-      if (isSafePin(arg[0])) {
-        result = DHTRead(arg[0], arg[1], SENS_READ_TEMP, cBuffer);
-      }
-      break;
-   
-    case CMD_DHT_HUMIDITY:
-      if (isSafePin(arg[0])) {
-        result = DHTRead(arg[0], arg[1], SENS_READ_HUMD, cBuffer);
-      }
-      break;
-#endif // FEATURE_DHT_ENABLE
-
-#ifdef FEATURE_I2C_ENABLE
-    case CMD_I2C_SCAN:
-      if (isSafePin(arg[0]) && isSafePin(arg[1])) {
-         result = i2CScan();
-      }
-      break;
-
-    case CMD_I2C_BITWRITE:
-      // i2c.bitwrite(sdaPin, sclPin, i2cAddress, register, bitNumber, value)
-      if (isSafePin(arg[0]) && isSafePin(arg[1])) {
-         // i2COption used as 'bit number'
-         if (0 > i2COption || 7 < i2COption){
-            result = RESULT_IS_FAIL;
-            break;
-         }
-         // Use device's register if specified, read 1 byte
-         result = i2CReadBytes(i2CAddress, (('\0' != cBuffer[argOffset[3]]) ? i2CRegister : I2C_NO_REG_SPECIFIED), i2CValue, 1);
-         // "!!" convert value 0100 to 1.
-         bitWrite (i2CValue[0], i2COption, (!!arg[5]));
-         // Use device's register if specified, write 1 byte
-         result = i2CWriteByte(i2CAddress, (('\0' != cBuffer[argOffset[3]]) ? i2CRegister : I2C_NO_REG_SPECIFIED), i2CValue[0]);
-         result = (0 == result) ? RESULT_IS_OK : RESULT_IS_FAIL;
-      }
-      break;
-      
-    case CMD_I2C_BITREAD:
-      // i2c.bitread(sdaPin, sclPin, i2cAddress, register, bit)
-      if (isSafePin(arg[0]) && isSafePin(arg[1])) {
-         // i2COption used as 'bit number'
-         if (0 > i2COption || 7 < i2COption){
-            result = RESULT_IS_FAIL;
-            break;
-         }
-         // Use device's register if specified, read 1 byte
-         result = i2CReadBytes(i2CAddress, (('\0' != cBuffer[argOffset[3]]) ? i2CRegister : I2C_NO_REG_SPECIFIED), i2CValue, 1);
-         result = bitRead(i2CValue[0], i2COption);
-      }
-      break;
-     
-
-    case CMD_I2C_READ:
-      // i2c.read(sdaPin, sclPin, i2cAddress, register, length)
-      if (isSafePin(arg[0]) && isSafePin(arg[1])) {
-         // i2COption used as 'length' - how much bytes must be read: 0..4 byte
-         i2COption = constrain(i2COption, 1, 4);
-         result = i2CReadBytes(i2CAddress, (('\0' != cBuffer[argOffset[3]]) ? i2CRegister : I2C_NO_REG_SPECIFIED), i2CValue, i2COption);
-         // make int32 from i2C's bytes
-         if (0 != result) {result = RESULT_IS_FAIL; break; }
-         for (i=0; i < i2COption; i++) {
-             result <<= 8;
-             result |= i2CValue[i];
-          }
-      }
-      break;
-
-    case CMD_I2C_WRITE:
-      // i2c.write(sdaPin, sclPin, i2cAddress, register, data)
-      if (isSafePin(arg[0]) && isSafePin(arg[1])) {
-         // i2COption used as 'data'
-         result = i2CWriteByte(i2CAddress, (('\0' != cBuffer[argOffset[3]]) ? i2CRegister : I2C_NO_REG_SPECIFIED), i2COption);
-         result = (0 == result) ? RESULT_IS_OK : RESULT_IS_FAIL;
-      }
-      break;
-
-#endif // FEATURE_I2C_ENABLE
-       
-#ifdef FEATURE_BMP_ENABLE
-    case CMD_BMP_TEMPERATURE:
-      if (isSafePin(arg[0]) && isSafePin(arg[1])) {
-         // (uint8_t) arg[2] is i2c address, 7 bytes size
-         result = BMPRead(arg[0], arg[1], i2CAddress, arg[3], arg[4], SENS_READ_TEMP, cBuffer);
-      }
-      break;
-
-    case CMD_BMP_PRESSURE:
-      if (isSafePin(arg[0]) && isSafePin(arg[1])) {
-          // (uint8_t) arg[2] is i2c address, 7 bytes size
-         result = BMPRead(arg[0], arg[1], i2CAddress, arg[3], arg[4], SENS_READ_PRSS, cBuffer);
-      }
-      break;
-      
-#ifdef SUPPORT_BME280_INCLUDE
-      case CMD_BME_HUMIDITY:
-      if (isSafePin(arg[0]) && isSafePin(arg[1])) {
-          // (uint8_t) arg[2] is i2c address, 7 bytes size
-         result = BMPRead(arg[0], arg[1], i2CAddress, arg[3], arg[4], SENS_READ_HUMD, cBuffer);
-      }
-      break;      
-#endif // SUPPORT_BME280_INCLUDE 
-
-#endif // FEATURE_BMP_ENABLE  
-
-#ifdef FEATURE_SHT2X_ENABLE
-    case CMD_SHT2X_TEMPERATURE:
-      if (isSafePin(arg[0]) && isSafePin(arg[1])) {
-         // (uint8_t) arg[2] is i2c address, 7 bytes size
-         result = SHT2XRead(arg[0], arg[1], i2CAddress, SENS_READ_TEMP, cBuffer);
-      }
-      break;
-
-    case CMD_SHT2X_HUMIDITY:
-      if (isSafePin(arg[0]) && isSafePin(arg[1])) {
-         // (uint8_t) arg[2] is i2c address, 7 bytes size
-         result = SHT2XRead(arg[0], arg[1], i2CAddress, SENS_READ_HUMD, cBuffer);
-      }
-      break;
-#endif // FEATURE_SHT2X_ENABLE  
-
-
-#ifdef FEATURE_BH1750_ENABLE
-    case CMD_BH1750_LIGHT:
-      if (isSafePin(arg[0]) && isSafePin(arg[1])) {
-         // (uint8_t) arg[2] is i2c address, 7 bytes size
-         result = BH1750Read(arg[0], arg[1], i2CAddress, arg[3], SENS_READ_LUX, cBuffer);
-      }
-      break;
-#endif // FEATURE_BH1750_ENABLE
-
-#ifdef FEATURE_MAX7219_ENABLE
-    case CMD_MAX7219_WRITE:
-      if (isSafePin(arg[0]) && isSafePin(arg[1])  && isSafePin(arg[2])) {
-         max7219DrawOn8x8(arg[0], arg[1], arg[2], arg[3], &cBuffer[argOffset[4]]);
-         result = RESULT_IS_OK;
-      }
-      break;
-#endif // FEATURE_MAX7219_ENABLE
-
-#ifdef FEATURE_PCF8574_LCD_ENABLE
-    case CMD_PCF8574_LCDPRINT:
-      if (isSafePin(arg[0]) && isSafePin(arg[1])) {
-         result = pcf8574LCDOutput(arg[0], arg[1], i2CAddress, arg[3], arg[4], &cBuffer[argOffset[5]]);
-      }
-      break;
-
-#endif // FEATURE_PCF8574_LCD_ENABLE
-
-
-
-
-
-
-#ifdef FEATURE_ACS7XX_ENABLE
-    case CMD_ACS7XX_ZC:
-      if (isSafePin(arg[0])) {
-         /*
-            for ATmega1280, ATmega2560, ATmega1284, ATmega1284P, ATmega644, ATmega644A, ATmega644P, ATmega644PA
-               INTERNAL1V1 	2  - 1,1V
-               INTERNAL2V56 	3  - 2,56V
-            ATmega328 and so
-               INTERNAL 	3  - 1,1V
-            Both
-               DEFAULT 	        1  - VCC
-               EXTERNAL 	0  - AREF << mV on AREF, more than '3'
-*/
-         // ACS7XX.ZC[_sensorPin, refVoltage];
-         result = ACS7XXCurrent(arg[0], arg[1], SENS_READ_ZC, 0, 0, cBuffer);
-      }
-      break;
-
-    case CMD_ACS7XX_AC:
-      if (isSafePin(arg[0])) {
-         // ACS7XX.AC[_sensorPin, refVoltage, sensitivity, zeroCurrentPoint];
-         result = ACS7XXCurrent(arg[0], arg[1], SENS_READ_AC, arg[2], (int32_t) arg[3], cBuffer);
-      }
-      break;
-
-    case CMD_ACS7XX_DC:
-      if (isSafePin(arg[0])) {
-         // ACS7XX.DC[_sensorPin, refVoltage, sensitivity, zeroCurrentPoint];
-         result = ACS7XXCurrent(arg[0], arg[1], SENS_READ_DC, arg[2], (int32_t) arg[3], cBuffer);
-      }
-      break;
-
-#endif // FEATURE_ACS7XX_ENABLE
-
-
-#ifdef FEATURE_ULTRASONIC_ENABLE
-    case CMD_ULTRASONIC_DISTANCE:
-      if (isSafePin(arg[0]) & isSafePin(arg[1])) {
-         result = ultrasonicDistance(arg[0], arg[1]);
-      }
-      break;
-#endif // FEATURE_ULTRASONIC_ENABLE
-
 
 #ifdef FEATURE_EXTERNAL_INTERRUPT_ENABLE
     case CMD_EXTINT_COUNT:
+      /*/
+      /=/  extInt.count[intPin, intNumber, mode]
+      /*/
       // TODO: maybe need to rework code block
       if (isSafePin(arg[0])) {
          int8_t interruptNumber=digitalPinToInterrupt(arg[0]);
@@ -1067,8 +959,9 @@ uint8_t executeCommand()
 
 #ifdef FEATURE_ENCODER_ENABLE
     case CMD_ENCODER_COUNT:
-      // Команда: incEnc.count[terminalAPin, terminalBPin, intNumber, initialNumber]
-
+      /*/
+      /=/  incEnc.count[terminalAPin, terminalBPin, intNumber, initialValue]
+      /*/
       // TODO: maybe need to rework code block
       // 
       if (isSafePin(arg[0]) && isSafePin(arg[1])) {
@@ -1113,14 +1006,293 @@ uint8_t executeCommand()
      
 
 
-    default:
-/*      uint8_t i; 
-      for (i =0; i < BUFFER_SIZE; i++){
-         Serial.print("[");  Serial.print(i);  Serial.print("] ");  
-         if (cBuffer[i] > 32) { Serial.print(cBuffer[i]); } else {Serial.print(" ");}     
-         Serial.print(" => ");  Serial.print(cBuffer[i], HEX);  Serial.println();  
+#ifdef FEATURE_OW_ENABLE
+    case CMD_OW_SCAN:
+      /*/
+      /=/  OW.scan[pin]
+      /*/
+      if (isSafePin(arg[0])) {
+         result = oneWireScan(arg[0]);
       }
- */     
+      break;
+#endif // FEATURE_ONEWIRE_ENABLE
+
+
+#ifdef FEATURE_I2C_ENABLE
+    case CMD_I2C_SCAN:
+      /*/
+      /=/  I2C.scan[sdaPin, sclPin]
+      /*/
+      if (isSafePin(arg[0]) && isSafePin(arg[1])) {
+         result = i2CScan();
+      }
+      break;
+
+    case CMD_I2C_WRITE:
+      /*/
+      /=/ i2c.write(sdaPin, sclPin, i2cAddress, register, data)
+      /*/
+      if (isSafePin(arg[0]) && isSafePin(arg[1])) {
+         // i2COption used as 'data'
+         result = i2CWriteByte(i2CAddress, (('\0' != cBuffer[argOffset[3]]) ? i2CRegister : I2C_NO_REG_SPECIFIED), i2COption);
+         result = (0 == result) ? RESULT_IS_OK : RESULT_IS_FAIL;
+      }
+      break;
+
+    case CMD_I2C_READ:
+      /*/
+      /=/ i2c.read(sdaPin, sclPin, i2cAddress, register, length)
+      /*/
+      if (isSafePin(arg[0]) && isSafePin(arg[1])) {
+         // i2COption used as 'length' - how much bytes must be read: 0..4 byte
+         i2COption = constrain(i2COption, 1, 4);
+         result = i2CReadBytes(i2CAddress, (('\0' != cBuffer[argOffset[3]]) ? i2CRegister : I2C_NO_REG_SPECIFIED), i2CValue, i2COption);
+         // make int32 from i2C's bytes
+         if (0 != result) {result = RESULT_IS_FAIL; break; }
+         for (i=0; i < i2COption; i++) {
+             result <<= 8;
+             result |= i2CValue[i];
+          }
+      }
+      break;
+
+    case CMD_I2C_BITWRITE:
+      /*/
+      /=/  i2c.bitWrite(sdaPin, sclPin, i2cAddress, register, bitNumber, value)
+      /*/
+      if (isSafePin(arg[0]) && isSafePin(arg[1])) {
+         // i2COption used as 'bit number'
+         if (0 > i2COption || 7 < i2COption){
+            result = RESULT_IS_FAIL;
+            break;
+         }
+         // Use device's register if specified, read 1 byte
+         result = i2CReadBytes(i2CAddress, (('\0' != cBuffer[argOffset[3]]) ? i2CRegister : I2C_NO_REG_SPECIFIED), i2CValue, 1);
+         // "!!" convert value 0100 to 1.
+         bitWrite (i2CValue[0], i2COption, (!!arg[5]));
+         // Use device's register if specified, write 1 byte
+         result = i2CWriteByte(i2CAddress, (('\0' != cBuffer[argOffset[3]]) ? i2CRegister : I2C_NO_REG_SPECIFIED), i2CValue[0]);
+         result = (0 == result) ? RESULT_IS_OK : RESULT_IS_FAIL;
+      }
+      break;
+      
+    case CMD_I2C_BITREAD:
+      /*/
+      /=/  i2c.bitRead(sdaPin, sclPin, i2cAddress, register, bit)
+      /*/
+      if (isSafePin(arg[0]) && isSafePin(arg[1])) {
+         // i2COption used as 'bit number'
+         if (0 > i2COption || 7 < i2COption){
+            result = RESULT_IS_FAIL;
+            break;
+         }
+         // Use device's register if specified, read 1 byte
+         result = i2CReadBytes(i2CAddress, (('\0' != cBuffer[argOffset[3]]) ? i2CRegister : I2C_NO_REG_SPECIFIED), i2CValue, 1);
+         result = bitRead(i2CValue[0], i2COption);
+      }
+      break;
+
+
+#endif // FEATURE_I2C_ENABLE
+
+#ifdef FEATURE_DS18X20_ENABLE
+    case CMD_DS18X20_TEMPERATURE:
+      /*/
+      /=/  DS18x20.temperature[pin, resolution, id]
+      /*/
+      if (isSafePin(arg[0])) {
+         result = DS18X20Read(arg[0], arg[1], &cBuffer[argOffset[2]], cBuffer);
+      }
+      break;
+#endif // FEATURE_DS18X20_ENABLE
+
+#ifdef FEATURE_DHT_ENABLE
+    case CMD_DHT_HUMIDITY:
+      /*/
+      /=/  DHT.humidity[pin, model]
+      /*/
+      if (isSafePin(arg[0])) {
+        result = DHTRead(arg[0], arg[1], SENS_READ_HUMD, cBuffer);
+      }
+      break;
+
+    case CMD_DHT_TEMPERATURE:
+      /*/
+      /=/  DHT.temperature[pin, model]
+      /*/
+      if (isSafePin(arg[0])) {
+        result = DHTRead(arg[0], arg[1], SENS_READ_TEMP, cBuffer);
+      }
+      break;
+   
+#endif // FEATURE_DHT_ENABLE
+
+       
+#ifdef FEATURE_BMP_ENABLE
+    case CMD_BMP_PRESSURE:
+      /*/
+      /=/  BMP.Pressure[sdaPin, sclPin, i2cAddress, overSampling, filterCoef]
+      /*/
+      if (isSafePin(arg[0]) && isSafePin(arg[1])) {
+          // (uint8_t) arg[2] is i2c address, 7 bytes size
+         result = BMPRead(arg[0], arg[1], i2CAddress, arg[3], arg[4], SENS_READ_PRSS, cBuffer);
+      }
+      break;
+
+    case CMD_BMP_TEMPERATURE:
+      /*/
+      /=/ BMP.Temperature[sdaPin, sclPin, i2cAddress, overSampling]
+      /*/
+      if (isSafePin(arg[0]) && isSafePin(arg[1])) {
+         // (uint8_t) arg[2] is i2c address, 7 bytes size
+         result = BMPRead(arg[0], arg[1], i2CAddress, arg[3], arg[4], SENS_READ_TEMP, cBuffer);
+      }
+      break;
+
+      
+#ifdef SUPPORT_BME280_INCLUDE
+      case CMD_BME_HUMIDITY:
+      /*/
+      /=/  BME.Humidity[sdaPin, sclPin, i2cAddress, overSampling, filterCoef]
+      /*/
+      if (isSafePin(arg[0]) && isSafePin(arg[1])) {
+          // (uint8_t) arg[2] is i2c address, 7 bytes size
+         result = BMPRead(arg[0], arg[1], i2CAddress, arg[3], arg[4], SENS_READ_HUMD, cBuffer);
+      }
+      break;      
+#endif // SUPPORT_BME280_INCLUDE 
+
+#endif // FEATURE_BMP_ENABLE  
+
+
+#ifdef FEATURE_BH1750_ENABLE
+    case CMD_BH1750_LIGHT:
+      /*/
+      /=/  BH1750.light[sdaPin, sclPin, i2cAddress, mode]
+      /*/
+      if (isSafePin(arg[0]) && isSafePin(arg[1])) {
+         // (uint8_t) arg[2] is i2c address, 7 bytes size
+         result = BH1750Read(arg[0], arg[1], i2CAddress, arg[3], SENS_READ_LUX, cBuffer);
+      }
+      break;
+#endif // FEATURE_BH1750_ENABLE
+
+#ifdef FEATURE_MAX7219_ENABLE
+    case CMD_MAX7219_WRITE:
+      /*/
+      /=/  MAX7219.write[dataPin, clockPin, loadPin, intensity, value]
+      /*/
+      if (isSafePin(arg[0]) && isSafePin(arg[1])  && isSafePin(arg[2])) {
+         max7219DrawOn8x8(arg[0], arg[1], arg[2], arg[3], &cBuffer[argOffset[4]]);
+         result = RESULT_IS_OK;
+      }
+      break;
+#endif // FEATURE_MAX7219_ENABLE
+
+#ifdef FEATURE_PCF8574_LCD_ENABLE
+    case CMD_PCF8574_LCDPRINT:
+      /*/
+      /=/  PCF8574.LCDPrint[sdaPin, sclPin, i2cAddress, lcdBacklight, lcdType, data]
+      /*/
+      if (isSafePin(arg[0]) && isSafePin(arg[1])) {
+         result = pcf8574LCDOutput(arg[0], arg[1], i2CAddress, arg[3], arg[4], &cBuffer[argOffset[5]]);
+      }
+      break;
+
+#endif // FEATURE_PCF8574_LCD_ENABLE
+
+
+#ifdef FEATURE_SHT2X_ENABLE
+    case CMD_SHT2X_HUMIDITY:
+      /*/
+      /=/  SHT2X.Humidity[sdaPin, sclPin, i2cAddress]
+      /*/
+      if (isSafePin(arg[0]) && isSafePin(arg[1])) {
+         // (uint8_t) arg[2] is i2c address, 7 bytes size
+         result = SHT2XRead(arg[0], arg[1], i2CAddress, SENS_READ_HUMD, cBuffer);
+      }
+      break;
+
+    case CMD_SHT2X_TEMPERATURE:
+      /*/
+      /=/  SHT2X.Temperature[sdaPin, sclPin, i2cAddress]
+      /*/
+      if (isSafePin(arg[0]) && isSafePin(arg[1])) {
+         // (uint8_t) arg[2] is i2c address, 7 bytes size
+         result = SHT2XRead(arg[0], arg[1], i2CAddress, SENS_READ_TEMP, cBuffer);
+      }
+      break;
+#endif // FEATURE_SHT2X_ENABLE  
+
+
+
+#ifdef FEATURE_ACS7XX_ENABLE
+    case CMD_ACS7XX_ZC:
+      /*/
+      /=/  acs7xx.zc[sensorPin, refVoltage]
+      /*/
+      if (isSafePin(arg[0])) {
+         /*
+            for ATmega1280, ATmega2560, ATmega1284, ATmega1284P, ATmega644, ATmega644A, ATmega644P, ATmega644PA
+               INTERNAL1V1 	2  - 1,1V
+               INTERNAL2V56 	3  - 2,56V
+            ATmega328 and so
+               INTERNAL 	3  - 1,1V
+            Both
+               DEFAULT 	        1  - VCC
+               EXTERNAL 	0  - AREF << mV on AREF, more than '3'
+*/
+         // if refVoltage skipped - use DEFAULT source
+         if ('\0' != cBuffer[argOffset[1]]) {
+           arg[1] = DEFAULT;
+         }
+         result = ACS7XXCurrent(arg[0], arg[1], SENS_READ_ZC, 0, 0, cBuffer);
+      }
+      break;
+
+    case CMD_ACS7XX_AC:
+      /*/
+      /=/  acs7xx.ac[sensorPin, refVoltage, sensitivity, zeroPoint] 
+      /*/
+      if (isSafePin(arg[0])) {
+         // if refVoltage skipped - use DEFAULT source
+         if ('\0' != cBuffer[argOffset[1]]) {
+           arg[1] = DEFAULT;
+         }
+         result = ACS7XXCurrent(arg[0], arg[1], SENS_READ_AC, arg[2], (int32_t) arg[3], cBuffer);
+      }
+      break;
+
+    case CMD_ACS7XX_DC:
+      /*/
+      /=/  acs7xx.dc[sensorPin, refVoltage, sensitivity, zeroPoint] 
+      /*/
+      if (isSafePin(arg[0])) {
+         // if refVoltage skipped - use DEFAULT source
+         if ('\0' != cBuffer[argOffset[1]]) {
+           arg[1] = DEFAULT;
+         }
+         result = ACS7XXCurrent(arg[0], arg[1], SENS_READ_DC, arg[2], (int32_t) arg[3], cBuffer);
+      }
+      break;
+
+#endif // FEATURE_ACS7XX_ENABLE
+
+
+#ifdef FEATURE_ULTRASONIC_ENABLE
+    case CMD_ULTRASONIC_DISTANCE:
+      /*/
+      /=/  ultrasonic.distance[triggerPin, echoPin]
+      /*/
+      if (isSafePin(arg[0]) & isSafePin(arg[1])) {
+         result = ultrasonicDistance(arg[0], arg[1]);
+      }
+      break;
+#endif // FEATURE_ULTRASONIC_ENABLE
+
+
+
+    default:
       // In default case command  is considered unknown.
       strcpy(cBuffer, ZBX_NOTSUPPORTED_MSG);
       // Early increased command counter is decremented

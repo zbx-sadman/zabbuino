@@ -44,10 +44,10 @@
 /****      1-Wire bus      ****/
 
 // Uncomment to enable 1-Wire common functions: OW.Scan[]
-//#define FEATURE_OW_ENABLE
+#define FEATURE_OW_ENABLE
 
 // Uncomment to enable Dallas DS18x20 family functions: DS18x20.*[] commands
-//#define FEATURE_DS18X20_ENABLE
+#define FEATURE_DS18X20_ENABLE
 
 /****        I2C bus       ****/
 
@@ -55,11 +55,11 @@
 // Note #2: I2C library (Wire.h) activate internal pullups for SDA & SCL pins when Wire.begin() called
 
 // Uncomment to enable I2C commands: I2C.Scan[], I2C.Read[], I2C.Write[], I2C.BitRead[], I2C.BitWrite[]
-//#define FEATURE_I2C_ENABLE
+#define FEATURE_I2C_ENABLE
 
 // Uncomment to enable BMP pressure sensors functions: BMP.*[] commands
 #define FEATURE_BMP_ENABLE
-#define SUPPORT_BMP180_INCLUDE
+// #define SUPPORT_BMP180_INCLUDE
 #define SUPPORT_BMP280_INCLUDE
 // BME280 is BMP280+Humidity sensor. If you want to get all, uncomment SUPPORT_BMP280_INCLUDE too
 #define SUPPORT_BME280_INCLUDE
@@ -76,12 +76,12 @@
 /****        MicroWire bus       ****/
 
 // Uncomment to enable MAX7219 8x8 led matrix functions: MAX7219.*[] commands
-//#define FEATURE_MAX7219_ENABLE
+#define FEATURE_MAX7219_ENABLE
 
 /****    DHT/AM family    ****/
 
 // Uncomment to enable DHT/AM humidity sensors functions: DHT.*[] commands
-#define FEATURE_DHT_ENABLE
+// #define FEATURE_DHT_ENABLE
 
 /****    Ultrasonic    ****/
 
@@ -109,10 +109,10 @@
 // // // // #define FEATURE_AREF_ENABLE
 
 // Uncomment to be able to store runtime settings in EEPROM and use its on start
-#define FEATURE_EEPROM_ENABLE
+ #define FEATURE_EEPROM_ENABLE
 
 // debug only option, must be removed on releasing 
-//#define FEATURE_EEPROM_SET_COMMANDS_ENABLE
+#define FEATURE_EEPROM_SET_COMMANDS_ENABLE
 
 // Uncomment to force protect (enable even netConfig.useProtection is true) your system from illegal access for change runtime settings and reboots 
 //#define FEATURE_PASSWORD_PROTECTION_FORCE
@@ -121,7 +121,7 @@
 #define FEATURE_DEBUG_COMMANDS_ENABLE
 
 // Uncomment to view the debug messages on the Serial Monitor
-//#define FEATURE_DEBUG_TO_SERIAL
+#define FEATURE_DEBUG_TO_SERIAL
 
 // Uncomment to enable using time+interrupt for internal metric gathering
 #define GATHER_METRIC_USING_TIMER_INTERRUPT
@@ -205,7 +205,7 @@
 // Number of expected arguments of the command
 #define ARGS_MAX                    	                        6
 // Size of buffer's argument part. All separators and delimiters must be taken into account
-#define ARGS_PART_SIZE         	                                50
+#define ARGS_PART_SIZE         	                                100
 // Size of buffer's command part
 #define CMD_PART_SIZE          	                                25
 // The total size of the buffer

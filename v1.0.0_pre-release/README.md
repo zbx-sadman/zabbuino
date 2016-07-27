@@ -26,6 +26,12 @@ Implemented:
 - Support any actuators or indicators via `digitalwrite` command;
 - Support WS2801 Led stripe and any indicators on shift registers via extended `shiftout` command.
 
+####27 Jul 2016
+
+Fixes:
+- _bme.*_/_bmp.*_ commands show previous measured metric values instead actual data (default behavior for _BMP280/BME280 forced mode_);
+
+
 ####19 Jul 2016
 
 Changes:
