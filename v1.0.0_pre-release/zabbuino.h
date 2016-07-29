@@ -92,7 +92,18 @@
 
 //#define FEATURE_ACS7XX_ENABLE
 
-
+// InfraRed transmitters emulator enable: ir.*[] commands
+// #define FEATURE_IR_ENABLE
+// #define SUPPORT_IR_RC5
+// #define SUPPORT_IR_RC6
+// #define SUPPORT_IR_SONY
+// #define SUPPORT_IR_NEC
+// #define SUPPORT_IR_SAMSUNG
+// #define SUPPORT_IR_WHYNTER
+// #define SUPPORT_IR_LG
+// #define SUPPORT_IR_DISH
+// #define SUPPORT_IR_SHARP
+// #define SUPPORT_IR_DENON
 
 /****      System        ****/
 
@@ -241,21 +252,14 @@
 #define ARDUINO_AVR_DUEMILANOVE
 #endif
 
-/*
-  Защитные маски портов ввода/вывода.
-  Значение '1' в определенной битовой позиции означает то, что при операциях записи в порт данный бит не будет изменен (находится под защитой). Эта маски
-  также применяются для проверки безопасности при операциях изменения состояния определенного пина. Функция isSafePin() проверяет не установлена ли защита
-  для конкретного пина.
-
-  Вы можете изменять как сами маски, так и их количество. Однако, количество элементов данного массива должно соответствовать параметру PORTS_NUM.
-
-  Например: Необходимо защитить от изменения pin D13, так как он используется библиотекой Ethernet и его изменение извне приведет к некорректной работе
-  сетевого адаптера. В заголовочном файле pins_arduino.h определенном для необходимой платформы находим массив digital_pin_to_bit_mask_PGM. Элемент #13 указывает на
-  связь данного пина с портом B (PORTB) и битом 5. Значит, для защиты данного пина необходимо установить в нижележащем массиве port_protect 5-й символ справа
-  в строке "B..... // PORTB" в значение '1'.
-*/
-
 const uint8_t port_protect[PORTS_NUM] = {
+/*
+
+  All bits equal '0' cause setting corresponding pin to non-protection mode
+  
+  All bits equal '1' cause setting corresponding pin to protection mode (it's will be not affected by portWrite[], digitalWrite[] and other commands)
+  
+*/
 #if defined (ARDUINO_AVR_DUEMILANOVE) || defined (ARDUINO_AVR_MINI) || defined (ARDUINO_AVR_NANO) || defined (ARDUINO_AVR_NG) || defined (ARDUINO_AVR_PRO) || defined (ARDUINO_AVR_ETHERNET)
   B00000000, // not a port
   B00000000, // not a port
@@ -296,27 +300,16 @@ D13 -^    ^- D8    <- pins   */
 #endif
 };
 
-/*
-   Маски для задания направления ввода/вывода выходов микроконтроллера.
-   Значение '1' в определенной битовой позиции означает то, что при инициализации соответствующий биту пин будет установлен в состояние OUTPUT.
-   В противном случае он будет оставлен с состоянии по умолчанию для платформы, на которой выполняется программный код.
-
-   Вы можете изменять как сами маски, так и их количество. Однако, количество элементов данного массива должно соответствовать параметру PORTS_NUM.
-
-   Например: Необходимо при инициализации установить пин D8 в режим OUTPUT, а пин D9 оставить в состоянии по умолчанию - INPUT.
-   В заголовочном файле pins_arduino.h определенном для необходимой платформы находим массив digital_pin_to_bit_mask_PGM. Элемент #8 связан с битом 0 порта B,
-   а элемент #9 с битом 1 того же порта. Значит, для правильной инициализации следует установить в нижележащем массиве port_mode 0-й символ справа
-   в строке "B..... // PORTB" в значение '1', а 1-й символ справа в значение '0'
-
-   Будьте внимательны и осторожны. Установка пина в состояние INPUT увеличивает при неаккуратном обращении с устройством вероятность вывода из строя
-   соответствующего вывода микроконтроллера.
-*/
 
 
 const uint8_t port_mode[PORTS_NUM] = {
+/*
  
-  // All bits equal '0' cause setting corresponding pin to INPUT mode
-  // All bits equal '1' cause setting corresponding pin to OUTPUT mode
+  All bits equal '0' cause setting corresponding pin to INPUT mode
+  
+  All bits equal '1' cause setting corresponding pin to OUTPUT mode
+  
+*/
  
 #if defined (ARDUINO_AVR_DUEMILANOVE) || defined (ARDUINO_AVR_MINI) || defined (ARDUINO_AVR_NANO) || defined (ARDUINO_AVR_NG) || defined (ARDUINO_AVR_PRO) || defined (ARDUINO_AVR_ETHERNET)
   B00000000, // not a port
@@ -324,7 +317,7 @@ const uint8_t port_mode[PORTS_NUM] = {
   // Bits 6, 7 have not correspondented pins in Arduino Mini Pro / Freeduino 2009
   B00111110, /*     PORTB        
 D13 -^    ^- D8    <- pins   */
-  B11111110, /*     PORTC 
+  B11111100, /*     PORTC 
    ^-A7   ^-A0   <- pins    */
   B11111111  /*     PORTD 
    ^-D7   ^-D0   <- pins    */
@@ -355,19 +348,14 @@ D13 -^    ^- D8    <- pins   */
 #endif
 };
 
-/*
-  Маски для установки состояния выходов микроконтроллера.
-  Значение '1' в определенной битовой позиции задает высокое состояние пина при инициализации (см. описание функции Arduino pinMode()). Если маской port_mode
-  соответствующий пин определен, как OUTPUT, то его итоговое состояние станет OUTPUT+HIGH. В случае с определением пина, как работающего в режиме INPUT, итоговым
-  состоянием будет INPUT_PULLUP.
 
-  Вы можете изменять как сами маски, так и их количество. Однако, количество элементов данного массива должно соответствовать параметру PORTS_NUM.
-  Вычисление битов, соотвующих пинам аналогично способам, применяемым в port_protect и port_mode.
-*/
 const uint8_t port_pullup[PORTS_NUM] = {
+/*
+   All bits equal '0' cause do not pull-up corresponding pin
 
-  // All bits equal '0' cause do not pull-up corresponding pin
-  // All bits equal '1' cause pull-up corresponding pin
+   All bits equal '1' cause pull-up corresponding pin
+
+*/
 
 #if defined (ARDUINO_AVR_DUEMILANOVE) || defined (ARDUINO_AVR_MINI) || defined (ARDUINO_AVR_NANO) || defined (ARDUINO_AVR_NG) || defined (ARDUINO_AVR_PRO) || defined (ARDUINO_AVR_ETHERNET)
   B00000000, // not a port
@@ -411,7 +399,7 @@ D13 -^    ^- D8    <- pins   */
                                                             COMMAND NAMES SECTION 
 */
 // Increase this if add new command 
-#define CMD_MAX                                                 0x37
+#define CMD_MAX                                                 0x39
 
 // Add command macro with new sequental number
 #define CMD_ZBX_NOPE                                            0x00
@@ -488,6 +476,9 @@ D13 -^    ^- D8    <- pins   */
 #define CMD_ACS7XX_DC                                           0x35
 
 #define CMD_ULTRASONIC_DISTANCE                                 0x36
+
+#define CMD_IR_SEND                                             0x37
+#define CMD_IR_SENDRAW                                          0x38
 
 
 
@@ -572,6 +563,8 @@ const char command_CMD_ACS7XX_AC[]                              PROGMEM = "acs7x
 const char command_CMD_ACS7XX_DC[]                              PROGMEM = "acs7xx.dc";
 
 const char command_CMD_ULTRASONIC_DISTANCE[]                    PROGMEM = "ultrasonic.distance";
+const char command_CMD_IR_SEND[]                                PROGMEM = "ir.send";
+const char command_CMD_IR_SENDRAW[]                             PROGMEM = "ir.sendraw";
 
 // do not insert new command to any position without syncing indexes. Tanx, Arduino, for this method of string array pushing to PROGMEM
 // ~300 bytes of PROGMEM space can be saved with crazy "#ifdef-#else-#endif" dance
@@ -759,6 +752,13 @@ const char* const commands[] PROGMEM = {
   command_CMD_ZBX_NOPE,
 #endif
 
+#ifdef FEATURE_IR_ENABLE
+  command_CMD_IR_SEND,
+  command_CMD_IR_SENDRAW,
+#else
+  command_CMD_ZBX_NOPE,
+  command_CMD_ZBX_NOPE,
+#endif
  
 };
 /*

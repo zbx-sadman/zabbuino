@@ -26,6 +26,24 @@ Implemented:
 - Support any actuators or indicators via `digitalwrite` command;
 - Support WS2801 Led stripe and any indicators on shift registers via extended `shiftout` command.
 
+####29 Jul 2016
+
+New commands:
+- _IR.Send[pwmPin, irPacketType, nBits, data]_ - send command or data to IR-driven device (TV, Soundbar, etc);
+  - _pwmPin_ - pin to which IR-LED connected. It must be OC2B, due IRRemote code implemented;
+  - _irPacketType_ - transmitted data packet format, refer to _ir.ino_ ;
+  - _nBits_ - refer to IRRemote code comments;
+  - _data_ - command or other data, that must be transmitted to IR-driven device.
+
+- _IR.SendRaw[pwmPin, irFrequency, nBits, data]_ - send RAW bit stream to IR-driven device;
+  - _pwmPin_ - pin to which IR-LED connected. It must be OC2B, due IRRemote code implemented;
+  - _irFrequency_ - IR-LED's frequency;
+  - _nBits_ - refer to IRRemote code comments;
+  - _data_ - HEX-string (with _0x_ prefix) that represent IRRemote RAW-data array. Every IRRemote array item must be encode to four-HEX substring (for example: 509 => 01FD). Take in account, that you need to increase ARGS_PART_SIZE.
+
+**Note #1** _IR.*_ commands not tested at all, because i haven't TV's of all vendors ;)
+
+
 ####27 Jul 2016
 
 Fixes:

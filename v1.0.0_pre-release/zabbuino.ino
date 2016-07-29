@@ -72,6 +72,10 @@ netconfig_t netConfig;
 volatile extInterrupt_t extInterrupt[EXTERNAL_NUM_INTERRUPTS];
 #endif
 
+#ifdef FEATURE_IR_ENABLE
+uint8_t irPWMPin;
+#endif
+
 EthernetServer ethServer(10050);
 EthernetClient ethClient;
 
@@ -1070,7 +1074,7 @@ uint8_t executeCommand()
          result = i2CReadBytes(i2CAddress, (('\0' != cBuffer[argOffset[3]]) ? i2CRegister : I2C_NO_REG_SPECIFIED), i2CValue, 1);
          // "!!" convert value 0100 to 1.
          bitWrite (i2CValue[0], i2COption, (!!arg[5]));
-         // Use device's register if specified, write 1 byte
+         // Use device's register if specified, write 1 byte, returns Wire lib state
          result = i2CWriteByte(i2CAddress, (('\0' != cBuffer[argOffset[3]]) ? i2CRegister : I2C_NO_REG_SPECIFIED), i2CValue[0]);
          result = (0 == result) ? RESULT_IS_OK : RESULT_IS_FAIL;
       }
@@ -1290,6 +1294,36 @@ uint8_t executeCommand()
       break;
 #endif // FEATURE_ULTRASONIC_ENABLE
 
+
+#ifdef FEATURE_IR_ENABLE
+    case CMD_IR_SEND:
+      /*/
+      /=/  ir.send[pwmPin, irPacketType, nBits, data, repeat, address]
+      /*/
+      // ATmega328: Use D3 only at this time
+      // Refer to other Arduino's pinouts to find OC2B pin
+      if (isSafePin(arg[0]) && TIMER2B == digitalPinToTimer(arg[0])) {
+         // irPWMPin - global wariable that replace IRremote's TIMER_PWM_PIN
+         irPWMPin = arg[0];
+         result = irSend(arg[1], arg[2], arg[3], arg[4], arg[5]);
+      }
+      break;
+
+    case CMD_IR_SENDRAW:
+      /*/
+      /=/  ir.sendRaw[pwmPin, irFrequency, nBits, data]
+      /=/  >> need to increase ARGS_PART_SIZE, because every data`s Integer number take _four_ HEX-chars => 70 RAW array items take 282 (2+70*4) byte of incoming buffer only
+      /*/
+      // ATmega328: Use D3 only at this time
+      // Refer to other Arduino's pinouts to find OC2B pin
+      if (isSafePin(arg[0]) && TIMER2B == digitalPinToTimer(arg[0])) {
+         // irPWMPin - global wariable that replace IRremote's TIMER_PWM_PIN
+         irPWMPin = arg[0];
+         result = irSendRaw(arg[1], arg[2], &cBuffer[argOffset[3]]);
+         result = (result) ? RESULT_IS_OK : RESULT_IS_FAIL;
+      }
+      break;
+#endif // FEATURE_IR_ENABLE
 
 
     default:
