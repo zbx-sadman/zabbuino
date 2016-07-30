@@ -1306,6 +1306,7 @@ uint8_t executeCommand()
          // irPWMPin - global wariable that replace IRremote's TIMER_PWM_PIN
          irPWMPin = arg[0];
          result = irSend(arg[1], arg[2], arg[3], arg[4], arg[5]);
+         result = (result) ? RESULT_IS_OK : RESULT_IS_FAIL;
       }
       break;
 

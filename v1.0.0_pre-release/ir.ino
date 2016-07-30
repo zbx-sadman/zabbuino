@@ -58,13 +58,20 @@ version 2.2.1 is used
 
 
 //  ir.send[pwmPin, irPacketType, data, nbits, repeat, address]
-uint8_t irSend(const uint8_t _irPacketType, const uint32_t _data, uint8_t _nbits, const uint8_t _repeat, const uint32_t _address)
+uint8_t irSend(const uint8_t _irPacketType, const uint8_t _nbits, const uint32_t _data, const uint8_t _repeat, const uint32_t _address)
 {
 /*
 //void  sendJVC (unsigned long data,  int nbits,  bool repeat)
 //void  sendAiwaRCT501 (int code)
 //void  sendDenon (unsigned long data,  int nbits)  so long codes, no example
 */
+
+//Serial.print("_irPacketType: "); Serial.println(_irPacketType);
+//Serial.print("_nbits: "); Serial.println(_nbits);
+//Serial.print("_data: "); Serial.println(_data);
+#ifndef FEATURE_IR_ENABLE
+  return false;
+#endif
 
  switch (_irPacketType) {
 #ifdef SUPPORT_IR_RC5
@@ -89,7 +96,7 @@ uint8_t irSend(const uint8_t _irPacketType, const uint32_t _data, uint8_t _nbits
 #endif
 #ifdef SUPPORT_IR_SAMSUNG
     case IR_SAMSUNG:
-      sendWhynter(_data, _nbits);
+      sendSAMSUNG(_data, _nbits);
       break;
 #endif
 #ifdef SUPPORT_IR_WHYNTER
@@ -104,7 +111,7 @@ uint8_t irSend(const uint8_t _irPacketType, const uint32_t _data, uint8_t _nbits
 #endif
 #ifdef SUPPORT_IR_DISH
     case IR_DISH:
-      sendLG(_data, _nbits);
+      sendDISH(_data, _nbits);
       break;
 #endif
 #ifdef SUPPORT_IR_SHARP
@@ -118,12 +125,12 @@ uint8_t irSend(const uint8_t _irPacketType, const uint32_t _data, uint8_t _nbits
       break;
 #endif
     default:  
-      return RESULT_IS_FAIL;
+      return false;
   }
   return true;
 }
 
-
+#ifdef FEATURE_IR_ENABLE
 uint8_t irSendRaw (const uint16_t _frequency, unsigned int _nBits, const char* _data)
 {
    uint16_t i=0, packet;
@@ -221,6 +228,7 @@ void custom_delay_usec(unsigned long uSecs) {
   //  __asm__("nop\n\t"); // must have or compiler optimizes out
   //}
 }
+#endif
 
 #ifdef SUPPORT_IR_RC5
 
