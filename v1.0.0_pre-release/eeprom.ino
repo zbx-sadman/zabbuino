@@ -4,7 +4,7 @@
 *
 **************************************************************************************************************************** */
 
-uint8_t saveConfig(const netconfig_t* _configStruct)
+uint8_t saveConfigToEEPROM(const netconfig_t* _configStruct)
 {
   uint8_t index, calculatedCRC, *p_configStruct = (uint8_t*) _configStruct;
   // Save every byte of _configStruct to EEPROM
@@ -24,7 +24,7 @@ uint8_t saveConfig(const netconfig_t* _configStruct)
 *
 **************************************************************************************************************************** */
 
-uint8_t loadConfig(netconfig_t* _configStruct)
+uint8_t loadConfigFromEEPROM(netconfig_t* _configStruct)
 {
   // EEPROM.begin() - used for ESP8266
   // http://esp8266.ru/arduino-ide-esp8266/#eeprom

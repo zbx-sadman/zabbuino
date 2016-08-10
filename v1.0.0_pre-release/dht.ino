@@ -1,16 +1,16 @@
 /*
-Original code on: http://playground.arduino.cc/Main/DHTLib
+Based on: http://playground.arduino.cc/Main/DHTLib
 version 0.1.13 is used
 
 */
 
-#define DHT11                                                   11
-#define DHT21                                                   21
-#define DHT22                                                   22
-#define DHT33                                                   33
-#define DHT44                                                   44
-#define AM2301                                                  21
-#define AM2302                                                  22
+#define DHT11_ID                                                11
+#define DHT21_ID                                                21
+#define DHT22_ID                                                22
+#define DHT33_ID                                                33
+#define DHT44_ID                                                44
+#define AM2301_ID                                               21
+#define AM2302_ID                                               22
 
 
 #ifndef F_CPU
@@ -30,7 +30,7 @@ version 0.1.13 is used
 *   Read temperature or humidity from digital sensor DHT11/DHT21/DHT22/AM2301/AM2302
 *
 **************************************************************************************************************************** */
-int32_t DHTRead(const uint8_t _pin, const uint8_t _sensorModel, const uint8_t _metric, char* _outBuffer)
+int32_t getDHTMetric(const uint8_t _pin, const uint8_t _sensorModel, const uint8_t _metric, char* _outBuffer)
 {
   // INIT BUFFERVAR TO RECEIVE DATA
   uint8_t mask = 128;
@@ -46,17 +46,17 @@ int32_t DHTRead(const uint8_t _pin, const uint8_t _sensorModel, const uint8_t _m
   uint32_t humidity, temperature, result;
   uint8_t oldSREG;
   static uint32_t lastReadTime = 0;
-  uint16_t waitTime = 0;
+  uint32_t waitTime = 0;
   
   switch (_sensorModel) {
-    case DHT11:
+    case DHT11_ID:
       leadingZeroBits = DHTLIB_DHT11_LEADING_ZEROS;
       wakeupDelay = DHTLIB_DHT11_WAKEUP;
       break;
-    case DHT21:
-    case DHT22:
-    case DHT33:
-    case DHT44:
+    case DHT21_ID:
+    case DHT22_ID:
+    case DHT33_ID:
+    case DHT44_ID:
     default:
       leadingZeroBits = DHTLIB_DHT_LEADING_ZEROS;
       wakeupDelay = DHTLIB_DHT_WAKEUP;
@@ -75,20 +75,16 @@ int32_t DHTRead(const uint8_t _pin, const uint8_t _sensorModel, const uint8_t _m
 
   // DHT sensor have limit for taking samples frequency - 1kHz (1 sample/sec)
   waitTime = millis() - lastReadTime;
-  waitTime = (waitTime < 1100) ? ((uint16_t) (1100 - waitTime)) : 0;
+  waitTime = (waitTime < 1100) ? (1100 - waitTime) : 0;
 
   // Sensor wont connect if no HIGH level on pin before work for a few time 
-  //waitTime = 0;
   if ((*PIR & bit) == LOW ) {
      digitalWrite(_pin, HIGH);
      // Increase delay to 0.5sec if it less
      if (waitTime < 500) {waitTime = 500;}
   }
-
   // do nothing to give a rest to sensor
-//  if (0 < waitTime) { 
   delay(waitTime); 
-//}
 
   // REQUEST SAMPLE
   digitalWrite(_pin, LOW); // T-be
@@ -188,7 +184,7 @@ int32_t DHTRead(const uint8_t _pin, const uint8_t _sensorModel, const uint8_t _m
      }
 
   switch (_sensorModel) {
-    case DHT11:
+    case DHT11_ID:
       // original code part:
       //        these bits are always zero, masking them reduces errors.
       //        bits[0] &= 0x7F;
@@ -196,10 +192,10 @@ int32_t DHTRead(const uint8_t _pin, const uint8_t _sensorModel, const uint8_t _m
       humidity    = bits[0];  // bits[1] == 0;
       temperature = bits[2];  // bits[3] == 0;
       break;
-    case DHT21:
-    case DHT22:
-    case DHT33:
-    case DHT44:
+    case DHT21_ID:
+    case DHT22_ID:
+    case DHT33_ID:
+    case DHT44_ID:
     default:
       // original code part:
       //        these bits are always zero, masking them reduces errors.

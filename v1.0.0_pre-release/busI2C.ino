@@ -19,7 +19,7 @@
 *   Scan I2C bus and print to ethernet client addresses of all detected devices 
 *
 **************************************************************************************************************************** */
-int32_t i2CScan()
+int32_t scanI2C()
 {
   int8_t i2cAddress, numDevices;
 
@@ -48,7 +48,7 @@ int32_t i2CScan()
 *  Write 1 byte to I2C device register or just to device
 *
 **************************************************************************************************************************** */
-uint8_t i2CWriteByte(const uint8_t _i2cAddress, const int16_t _registerAddress, const uint8_t _data)
+uint8_t writeByteToI2C(const uint8_t _i2cAddress, const int16_t _registerAddress, const uint8_t _data)
 {
   Wire.beginTransmission(_i2cAddress); // start transmission to device 
   // registerAddress is 0x00 and above ?
@@ -64,7 +64,7 @@ uint8_t i2CWriteByte(const uint8_t _i2cAddress, const int16_t _registerAddress, 
 *  Reads N bytes from device's register (or not) over I2C
 *
 **************************************************************************************************************************** */
-uint8_t i2CReadBytes(const uint8_t _i2cAddress, const int16_t _registerAddress, uint8_t _buff[], const uint8_t length)
+uint8_t readBytesFromi2C(const uint8_t _i2cAddress, const int16_t _registerAddress, uint8_t _buff[], const uint8_t length)
 {
     if (!length) return false;
     Wire.beginTransmission(_i2cAddress); 	// Adress + WRITE (0)
@@ -98,14 +98,14 @@ uint8_t inline isI2CDeviceReady(uint8_t _i2cAddress)
 
 
 /* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
-                                                        SHT2x SECTION
+                                                           SHT2x SECTION
 */
 
 #define SHT2X_I2C_ADDRESS                                       0x40
 #define SHT2X_CMD_GETTEMP_HOLD                                  0xE3
 #define SHT2X_CMD_GETHUMD_HOLD                                  0xE5
 
-uint16_t SHT2XReadSensor(const uint8_t _i2cAddress, const uint8_t _command)
+uint16_t getRawDataFromSHT2X(const uint8_t _i2cAddress, const uint8_t _command)
 {
     uint16_t result;
     Wire.beginTransmission(_i2cAddress);
@@ -129,7 +129,7 @@ uint16_t SHT2XReadSensor(const uint8_t _i2cAddress, const uint8_t _command)
     return result;
 }
 
-int32_t SHT2XRead(const uint8_t _sdaPin, const uint8_t _sclPin, uint8_t _i2cAddress, const uint8_t _metric, char* _outBuffer) 
+int32_t getSHT2XMetric(const uint8_t _sdaPin, const uint8_t _sclPin, uint8_t _i2cAddress, const uint8_t _metric, char* _outBuffer) 
 {
   int32_t result = 0;
   uint16_t rawData; 
@@ -145,19 +145,19 @@ int32_t SHT2XRead(const uint8_t _sdaPin, const uint8_t _sclPin, uint8_t _i2cAddr
   
   switch (_metric) {
     case SENS_READ_TEMP:
-      rawData = SHT2XReadSensor(_i2cAddress, SHT2X_CMD_GETTEMP_HOLD);
+      rawData = getRawDataFromSHT2X(_i2cAddress, SHT2X_CMD_GETTEMP_HOLD);
       // Default humidity  resolution - 14 bit => 0.01C
       // all part of equation must be multiplied by 100 to get 2-digit fract part by ltoaf() 
       // H_real = 100 * -6 + (100 * 125 * H_raw) / (2^16)
-      result = (((uint32_t)rawData * 17572) >> 16) - 4685;
+      result = (((uint32_t) rawData * 17572) >> 16) - 4685;
       break;
       
     case SENS_READ_HUMD:
-      rawData = SHT2XReadSensor(_i2cAddress, SHT2X_CMD_GETHUMD_HOLD);
+      rawData = getRawDataFromSHT2X(_i2cAddress, SHT2X_CMD_GETHUMD_HOLD);
       // Default humidity  resolution - 12 bit => 0.04%RH
       // all part of equation must be multiplied by 100 to get 2-digit fract part by ltoaf() 
       // H_real = 100 * -6 + (100 * 125 * H_raw) / (2^16)
-      if (0 < rawData) { result = (((uint32_t)rawData * 100 * 125) >> 16) - 600; }
+      if (0 < rawData) { result = (((uint32_t) rawData * 100 * 125) >> 16) - 600; }
   }
   // result /=100
   ltoaf(result, _outBuffer, 2);
@@ -180,10 +180,6 @@ int32_t SHT2XRead(const uint8_t _sdaPin, const uint8_t _sclPin, uint8_t _i2cAddr
 
 #define BMP_REGISTER_RESET                                      0xE0 // for all BMP or not?
 #define BMP_REGISTER_CONTROL                                    0xF4 
-#define BMP_REGISTER_TEMPDATA                                   0xF6
-#define BMP_REGISTER_PRESSUREDATA                               0xF6
-#define BMP_CMD_READTEMP                                        0x2E
-#define BMP_CMD_READPRESSURE                                    0x34
 
 
 #define BMP085_CHIPID                                           0x55
@@ -194,23 +190,31 @@ int32_t SHT2XRead(const uint8_t _sdaPin, const uint8_t _sclPin, uint8_t _i2cAddr
 
 #define BME280_CHIPID                                           0x60 // 
 
-#define BMP085_ULTRALOWPOWER                                    0x00
-#define BMP085_STANDARD                                         0x01
-#define BMP085_HIGHRES                                          0x02
-#define BMP085_ULTRAHIGHRES                                     0x03
+#define BMP180_ULTRALOWPOWER                                    0x00
+#define BMP180_STANDARD                                         0x01
+#define BMP180_HIGHRES                                          0x02
+#define BMP180_ULTRAHIGHRES                                     0x03
 
-#define BMP085_REGISTER_CAL_AC1                                 0xAA  // R   Calibration data (16 bits)
-#define BMP085_REGISTER_CAL_AC2                                 0xAC  // R   Calibration data (16 bits)
-#define BMP085_REGISTER_CAL_AC3                                 0xAE  // R   Calibration data (16 bits)    
-#define BMP085_REGISTER_CAL_AC4                                 0xB0  // R   Calibration data (16 bits)
-#define BMP085_REGISTER_CAL_AC5                                 0xB2  // R   Calibration data (16 bits)
-#define BMP085_REGISTER_CAL_AC6                                 0xB4  // R   Calibration data (16 bits)
-#define BMP085_REGISTER_CAL_B1                                  0xB6  // R   Calibration data (16 bits)
-#define BMP085_REGISTER_CAL_B2                                  0xB8  // R   Calibration data (16 bits)
-#define BMP085_REGISTER_CAL_MB                                  0xBA  // R   Calibration data (16 bits)
-#define BMP085_REGISTER_CAL_MC                                  0xBC  // R   Calibration data (16 bits)
-#define BMP085_REGISTER_CAL_MD                                  0xBE  // R   Calibration data (16 bits)
+#define BMP180_REGISTER_CAL_AC1                                 0xAA  // R   Calibration data (16 bits)
+#define BMP180_REGISTER_CAL_AC2                                 0xAC  // R   Calibration data (16 bits)
+#define BMP180_REGISTER_CAL_AC3                                 0xAE  // R   Calibration data (16 bits)    
+#define BMP180_REGISTER_CAL_AC4                                 0xB0  // R   Calibration data (16 bits)
+#define BMP180_REGISTER_CAL_AC5                                 0xB2  // R   Calibration data (16 bits)
+#define BMP180_REGISTER_CAL_AC6                                 0xB4  // R   Calibration data (16 bits)
+#define BMP180_REGISTER_CAL_B1                                  0xB6  // R   Calibration data (16 bits)
+#define BMP180_REGISTER_CAL_B2                                  0xB8  // R   Calibration data (16 bits)
+#define BMP180_REGISTER_CAL_MB                                  0xBA  // R   Calibration data (16 bits)
+#define BMP180_REGISTER_CAL_MC                                  0xBC  // R   Calibration data (16 bits)
+#define BMP180_REGISTER_CAL_MD                                  0xBE  // R   Calibration data (16 bits)
 
+#define BMP180_REGISTER_TEMPDATA                                0xF6
+#define BMP180_REGISTER_PRESSUREDATA                            0xF6
+#define BMP180_CMD_READTEMP                                     0x2E
+#define BMP180_CMD_READPRESSURE                                 0x34
+
+#define BMP180_READY_MASK                                       0x20  // Sco (register F4h <5>): Start of conversion. 
+                                                                      // The value of this bit stays “1” during conversion and is reset to “0” after conversion is 
+                                                                      // complete (data registers are filled). 
 
 #define BMP280_REGISTER_DIG_T1                                  0x88
 #define BMP280_REGISTER_DIG_T2                                  0x8A
@@ -281,6 +285,7 @@ int32_t SHT2XRead(const uint8_t _sdaPin, const uint8_t _sclPin, uint8_t _i2cAddr
 #define BMP280_STANDBY_TIME_2000_MS                             0x06
 #define BMP280_STANDBY_TIME_4000_MS                             0x07
 
+#define BMP280_READY_MASK                                       0x09 // Byte 0 + Byte 3 must be equial 0 if BMP280 do not busy
 
 // BME280 additional registers and constants
 #define BME280_STANDARD_OVERSAMP_HUMIDITY 	                BMP280_OVERSAMP_1X
@@ -299,7 +304,22 @@ int32_t SHT2XRead(const uint8_t _sdaPin, const uint8_t _sclPin, uint8_t _i2cAddr
 #define T_SETUP_PRESSURE_MAX					10   // 10/16 = 0.625 ms
 #define T_SETUP_HUMIDITY_MAX					10   // 10/16 = 0.625 ms
 
-int32_t BMPRead(const uint8_t _sdaPin, const uint8_t _sclPin, uint8_t _i2cAddress, const uint8_t _overSampling, const uint8_t _filterCoef, const uint8_t _metric, char* _outBuffer)
+
+uint8_t waitToBMPReady(const uint8_t _i2cAddress, const int16_t _registerAddress, const int16_t _mask, const uint16_t _timeout)
+{
+  uint8_t value[1], i;
+  uint32_t nowTime;
+
+  nowTime = millis();
+  
+  while((millis() - nowTime) < _timeout){
+     readBytesFromi2C(_i2cAddress, _registerAddress, value, 1);
+     if (0 == (value[0] & _mask)) return true;
+     delay(10);  
+  }
+}
+
+int32_t getBMPMetric(const uint8_t _sdaPin, const uint8_t _sclPin, uint8_t _i2cAddress, const uint8_t _overSampling, const uint8_t _filterCoef, const uint8_t _metric, char* _outBuffer)
 {
   uint8_t chipID; 
 
@@ -329,20 +349,20 @@ int32_t BMPRead(const uint8_t _sdaPin, const uint8_t _sclPin, uint8_t _i2cAddres
     // BMP085 and BMP180 have the same ID  
 #ifdef SUPPORT_BMP180_INCLUDE
     case BMP180_CHIPID: 
-       BMP085Read(_sdaPin, _sclPin, _i2cAddress, _overSampling, _metric, _outBuffer);
+       getBMP180Metric(_sdaPin, _sclPin, _i2cAddress, _overSampling, _metric, _outBuffer);
        break;
 #endif
 #ifdef SUPPORT_BMP280_INCLUDE
     case BMP280_CHIPID_1: 
     case BMP280_CHIPID_2: 
     case BMP280_CHIPID_3: 
-       BMP280Read(_sdaPin, _sclPin, _i2cAddress, _overSampling, _filterCoef, _metric, _outBuffer);
+       getBMP280Metric(_sdaPin, _sclPin, _i2cAddress, _overSampling, _filterCoef, _metric, _outBuffer);
        break;
 #endif
 #ifdef SUPPORT_BME280_INCLUDE
     case BME280_CHIPID:
        // BME280 is BMP280 with additional humidity sensor
-       BMP280Read(_sdaPin, _sclPin, _i2cAddress, _overSampling, _filterCoef, _metric, _outBuffer);
+       getBMP280Metric(_sdaPin, _sclPin, _i2cAddress, _overSampling, _filterCoef, _metric, _outBuffer);
        break;
 #endif
     default:  
@@ -357,7 +377,7 @@ int32_t BMPRead(const uint8_t _sdaPin, const uint8_t _sclPin, uint8_t _i2cAddres
 *  Read temperature or pressure from digital sensor BMP280
 *
 **************************************************************************************************************************** */
-int32_t BMP280Read(const uint8_t _sdaPin, const uint8_t _sclPin, uint8_t _i2cAddress, const uint8_t _overSampling, uint8_t _filterCoef, const uint8_t _metric, char* _outBuffer)
+int32_t getBMP280Metric(const uint8_t _sdaPin, const uint8_t _sclPin, uint8_t _i2cAddress, const uint8_t _overSampling, uint8_t _filterCoef, const uint8_t _metric, char* _outBuffer)
 {
   uint16_t dig_T1;
   int16_t  dig_T2, dig_T3;
@@ -371,7 +391,7 @@ int32_t BMP280Read(const uint8_t _sdaPin, const uint8_t _sclPin, uint8_t _i2cAdd
 
   int32_t adc, result, var1, var2, t_fine;
   uint8_t value[3];
-  uint16_t i;
+  uint8_t i;
 
   // set work mode
   switch ( _overSampling) {
@@ -407,11 +427,6 @@ int32_t BMP280Read(const uint8_t _sdaPin, const uint8_t _sclPin, uint8_t _i2cAdd
       var2 = BMP280_ULTRALOWPOWER_OVERSAMP_PRESSURE;
   }
 
-  // BME280 calculation, BMP280 don't take humidity conversion time into account 
-  // conversion time for temperature only measuring = 4 msec, 
-  // delay_time = (T_INIT_MAX + T_MEASURE_PER_OSRS_MAX * (((1 << BMP280_ULTRALOWPOWER_OVERSAMP_TEMPERATURE) >> 1)  + ((1 << BMP280_OVERSAMP_SKIPPED) >> 1) 
-  //              + ((1 << BMP280_OVERSAMP_SKIPPED) >> 1)) + ((BMP280_OVERSAMP_SKIPPED > 0) ? T_SETUP_PRESSURE_MAX : 0) 
-  //              + ((BMP280_OVERSAMP_SKIPPED > 0) ? T_SETUP_HUMIDITY_MAX : 0) + 15) / 16;
   // var1 is oversamp_temperature
   // var2 is oversamp_pressure
   // Use var1 as temp variable for store conversion delay time
@@ -423,41 +438,46 @@ int32_t BMP280Read(const uint8_t _sdaPin, const uint8_t _sclPin, uint8_t _i2cAdd
   //           + ((var2 > 0) ? T_SETUP_PRESSURE_MAX : 0) 
   //           + ((BME280_STANDARD_OVERSAMP_HUMIDITY > 0) ? T_SETUP_HUMIDITY_MAX : 0) + 15) / 16;
   
+  // We must wait to Bxxxx0xx0 value in "Status" register
+  if (false == waitToBMPReady(_i2cAddress, BMP280_REGISTER_STATUS, BMP280_READY_MASK, 50)) {
+       return DEVICE_ERROR_TIMEOUT;
+  }
+
   // The “ctrl_hum” register sets the humidity data acquisition options of the device. Changes to this register only become effective after a write operation to “ctrl_meas”.
-  i2CWriteByte(_i2cAddress, BME280_REGISTER_CONTROLHUMID, BME280_STANDARD_OVERSAMP_HUMIDITY);
+  writeByteToI2C(_i2cAddress, BME280_REGISTER_CONTROLHUMID, BME280_STANDARD_OVERSAMP_HUMIDITY);
   // Set filter coefficient. While BMP280 used in Forced mode - BMP280_STANDBY_TIME_4000_MS can be replaced to any time. '0' - define SPI configuration. Not used.
-  i2CWriteByte(_i2cAddress, BMP280_REGISTER_CONFIG, ((BMP280_STANDBY_TIME_4000_MS << 6)| (_filterCoef << 3) | 0 ));
+  writeByteToI2C(_i2cAddress, BMP280_REGISTER_CONFIG, ((BMP280_STANDBY_TIME_4000_MS << 6)| (_filterCoef << 3) | 0 ));
   // BMP280_FORCED_MODE -> BME280 act like BMP180
-  // We need "forced mode" to avoid mix-up bytes of data belonging to different measurements on "normal mode"
-  // Need to double read for properly data (not from previous round) obtainiing
+  // We need "forced mode" to avoid mix-up bytes of data belonging to different measurements of various metrics on "normal mode"
+  // Need to double read to take properly data (not from previous measure round)
   // use var as mode variable
   var1 = (var1 << 6)| (var2 << 3) | BMP280_FORCED_MODE;
-  for (uint8_t k=0; k < 2; k++) { 
-    i2CWriteByte(_i2cAddress, BMP_REGISTER_CONTROL, var1);
-    // Wait to conversion finish or 0,1 sec
-    for (i=0; 10 > i; i++){ 
-      i2CReadBytes(_i2cAddress, BMP280_REGISTER_STATUS, value, 1);
-      if ((value[0] & 0x08) == 0) break;
-      delay(10);  
+  for (i = 0; i < 2; i++) { 
+    writeByteToI2C(_i2cAddress, BMP_REGISTER_CONTROL, var1);
+    // We must wait to Bxxxx0xx0 value in "Status" register. It's most reliable way to detect end of conversion 
+    if (false == waitToBMPReady(_i2cAddress, BMP280_REGISTER_STATUS, BMP280_READY_MASK, 50)) {
+       return DEVICE_ERROR_TIMEOUT;
     }
   }
 
   // Compensate temperature caculation
 
   // Read raw value  
-  i2CReadBytes(_i2cAddress, BMP280_REGISTER_TEMPDATA, value, 3);
+  readBytesFromi2C(_i2cAddress, BMP280_REGISTER_TEMPDATA, value, 3);
+  
   adc = ((int32_t) (((uint16_t) value[0] << 8) | (uint16_t) value[1]) << 4) | ((uint16_t) value[2] >> 4);
   //adc = WireToS24(value);
   //adc >>= 4;
+
   
-  /* read calibration data */
-  i2CReadBytes(_i2cAddress, BMP280_REGISTER_DIG_T1, value, 2);
+  // read calibration data 
+  readBytesFromi2C(_i2cAddress, BMP280_REGISTER_DIG_T1, value, 2);
   dig_T1 = WireToU16LE(value);
 
-  i2CReadBytes(_i2cAddress, BMP280_REGISTER_DIG_T2, value, 2);
+  readBytesFromi2C(_i2cAddress, BMP280_REGISTER_DIG_T2, value, 2);
   dig_T2 = WireToS16LE(value);
   
-  i2CReadBytes(_i2cAddress, BMP280_REGISTER_DIG_T3, value, 2);
+  readBytesFromi2C(_i2cAddress, BMP280_REGISTER_DIG_T3, value, 2);
   dig_T3 = WireToS16LE(value);;
 
 
@@ -475,42 +495,42 @@ int32_t BMP280Read(const uint8_t _sdaPin, const uint8_t _sclPin, uint8_t _i2cAdd
       break;
 
     case SENS_READ_PRSS:
-        /* read calibration data */
-      i2CReadBytes(_i2cAddress, BMP280_REGISTER_DIG_P1, value, 2);
+      // read calibration data 
+      readBytesFromi2C(_i2cAddress, BMP280_REGISTER_DIG_P1, value, 2);
       dig_P1 = WireToU16LE(value);
       
-      i2CReadBytes(_i2cAddress, BMP280_REGISTER_DIG_P2, value, 2);
+      readBytesFromi2C(_i2cAddress, BMP280_REGISTER_DIG_P2, value, 2);
       dig_P2 = WireToS16LE(value);
       
-      i2CReadBytes(_i2cAddress, BMP280_REGISTER_DIG_P3, value, 2);
+      readBytesFromi2C(_i2cAddress, BMP280_REGISTER_DIG_P3, value, 2);
       dig_P3 = WireToS16LE(value);
 
-      i2CReadBytes(_i2cAddress, BMP280_REGISTER_DIG_P4, value, 2);
+      readBytesFromi2C(_i2cAddress, BMP280_REGISTER_DIG_P4, value, 2);
       dig_P4 = WireToS16LE(value);
       
-      i2CReadBytes(_i2cAddress, BMP280_REGISTER_DIG_P5, value, 2);
+      readBytesFromi2C(_i2cAddress, BMP280_REGISTER_DIG_P5, value, 2);
       dig_P5 = WireToS16LE(value);
       
-      i2CReadBytes(_i2cAddress, BMP280_REGISTER_DIG_P6, value, 2);
+      readBytesFromi2C(_i2cAddress, BMP280_REGISTER_DIG_P6, value, 2);
       dig_P6 = WireToS16LE(value);
       
-      i2CReadBytes(_i2cAddress, BMP280_REGISTER_DIG_P7, value, 2);
+      readBytesFromi2C(_i2cAddress, BMP280_REGISTER_DIG_P7, value, 2);
       dig_P7 = WireToS16LE(value);
       
-      i2CReadBytes(_i2cAddress, BMP280_REGISTER_DIG_P8, value, 2);
+      readBytesFromi2C(_i2cAddress, BMP280_REGISTER_DIG_P8, value, 2);
       dig_P8 = WireToS16LE(value);
       
-      i2CReadBytes(_i2cAddress, BMP280_REGISTER_DIG_P9, value, 2);
+      readBytesFromi2C(_i2cAddress, BMP280_REGISTER_DIG_P9, value, 2);
       dig_P9 = WireToS16LE(value);
-
+ 
       // Test value
       // adc = 415148 ( from BOSH datasheet)
       // Read raw value  
-      i2CReadBytes(_i2cAddress, BMP280_REGISTER_PRESSUREDATA, value, 3);
+      readBytesFromi2C(_i2cAddress, BMP280_REGISTER_PRESSUREDATA, value, 3);
       adc = ((int32_t) (((uint16_t) value[0] << 8) | (uint16_t) value[1]) << 4) | ((uint16_t) value[2] >> 4);
 //      adc = WireToS24(value);
 //      adc >>= 4;
-      
+   
       // Compensate pressure caculation
       var1 = (((int32_t)t_fine) >> 1) - (int32_t) 64000;
       var2 = (((var1 >> 2) * (var1 >> 2)) >> 11 ) * ((int32_t) dig_P6);
@@ -546,31 +566,31 @@ int32_t BMP280Read(const uint8_t _sdaPin, const uint8_t _sclPin, uint8_t _i2cAdd
      
 #ifdef SUPPORT_BME280_INCLUDE
     case SENS_READ_HUMD:
-      /* read calibration data */
+      //read calibration data 
 
-      i2CReadBytes(_i2cAddress, BME280_REGISTER_DIG_H1, value, 1);
+      readBytesFromi2C(_i2cAddress, BME280_REGISTER_DIG_H1, value, 1);
       dig_H1 = WireToU8(value);
   
-      i2CReadBytes(_i2cAddress, BME280_REGISTER_DIG_H2, value, 2);
+      readBytesFromi2C(_i2cAddress, BME280_REGISTER_DIG_H2, value, 2);
       dig_H2 = WireToS16LE(value);
 
-      i2CReadBytes(_i2cAddress, BME280_REGISTER_DIG_H3, value, 1);
+      readBytesFromi2C(_i2cAddress, BME280_REGISTER_DIG_H3, value, 1);
       dig_H3 = WireToU8(value);
 
-      i2CReadBytes(_i2cAddress, BME280_REGISTER_DIG_H4, value, 2);
+      readBytesFromi2C(_i2cAddress, BME280_REGISTER_DIG_H4, value, 2);
       dig_H4 = (int16_t) (((uint16_t) value[0] << 4) | (value[1] & 0xF));
 
-      i2CReadBytes(_i2cAddress, BME280_REGISTER_DIG_H5, value, 2);
+      readBytesFromi2C(_i2cAddress, BME280_REGISTER_DIG_H5, value, 2);
       dig_H5 = (int16_t) ((uint16_t) value[1] << 4) | (value[0] >> 4);
 
-      i2CReadBytes(_i2cAddress, BME280_REGISTER_DIG_H6, value, 1);
+      readBytesFromi2C(_i2cAddress, BME280_REGISTER_DIG_H6, value, 1);
       dig_H6 = WireToS8(value);
-    
+
       // Read raw value  
-      i2CReadBytes(_i2cAddress, BME280_REGISTER_HUMIDDATA, value, 2);
+      readBytesFromi2C(_i2cAddress, BME280_REGISTER_HUMIDDATA, value, 2);
       // adc take wrong value due overflow if value[] no cast to (uint16_t) 
       adc = (int32_t) WireToU16(value);
-     
+
       // Compensate humidity caculation
       var1 = (t_fine -  ((int32_t) 76800));
       var1 = (((((adc << 14) - (((int32_t) dig_H4) << 20) - (((int32_t) dig_H5) * var1)) +
@@ -584,6 +604,7 @@ int32_t BMP280Read(const uint8_t _sdaPin, const uint8_t _sclPin, uint8_t _i2cAdd
       // Returns humidity in %RH as unsigned 32 bit integer in Q22.10 format (22 integer and 10 fractional bits).
       //	 Output value of “47445” represents 47445/1024 = 46.333 %RH
       //Serial.print("H: "); Serial.println(result);
+
       qtoaf(result, _outBuffer, 10);
 #endif        
 }
@@ -592,10 +613,10 @@ int32_t BMP280Read(const uint8_t _sdaPin, const uint8_t _sclPin, uint8_t _i2cAdd
 
 /* ****************************************************************************************************************************
 *
-*  Read temperature or pressure from digital sensor BMP085(BMP180)
+*  Read temperature or pressure from digital sensor BMP180(BMP085)
 *
 **************************************************************************************************************************** */
-int32_t BMP085Read(const uint8_t _sdaPin, const uint8_t _sclPin, uint8_t _i2cAddress, uint8_t _overSampling, const uint8_t _metric, char* _outBuffer)
+int32_t getBMP180Metric(const uint8_t _sdaPin, const uint8_t _sclPin, uint8_t _i2cAddress, uint8_t _overSampling, const uint8_t _metric, char* _outBuffer)
 {
   // Calibration values
   int16_t ac1, ac2, ac3;
@@ -610,59 +631,67 @@ int32_t BMP085Read(const uint8_t _sdaPin, const uint8_t _sclPin, uint8_t _i2cAdd
 
 
   /* read calibration data */
-  i2CReadBytes(_i2cAddress, BMP085_REGISTER_CAL_AC1, value, 2);
+  readBytesFromi2C(_i2cAddress, BMP180_REGISTER_CAL_AC1, value, 2);
   ac1 = WireToS16(value);
   
-  i2CReadBytes(_i2cAddress, BMP085_REGISTER_CAL_AC2, value, 2);
+  readBytesFromi2C(_i2cAddress, BMP180_REGISTER_CAL_AC2, value, 2);
   ac2 = WireToS16(value);
   
-  i2CReadBytes(_i2cAddress, BMP085_REGISTER_CAL_AC3, value, 2);
+  readBytesFromi2C(_i2cAddress, BMP180_REGISTER_CAL_AC3, value, 2);
   ac3 = WireToS16(value);
   
-  i2CReadBytes(_i2cAddress, BMP085_REGISTER_CAL_AC4, value, 2);
+  readBytesFromi2C(_i2cAddress, BMP180_REGISTER_CAL_AC4, value, 2);
   ac4 = WireToU16(value);
   
-  i2CReadBytes(_i2cAddress, BMP085_REGISTER_CAL_AC5, value, 2);
+  readBytesFromi2C(_i2cAddress, BMP180_REGISTER_CAL_AC5, value, 2);
   ac5 = WireToU16(value);
   
-  i2CReadBytes(_i2cAddress, BMP085_REGISTER_CAL_AC6, value, 2);
+  readBytesFromi2C(_i2cAddress, BMP180_REGISTER_CAL_AC6, value, 2);
   ac6 = WireToU16(value);
   
-  i2CReadBytes(_i2cAddress, BMP085_REGISTER_CAL_B1, value, 2);
+  readBytesFromi2C(_i2cAddress, BMP180_REGISTER_CAL_B1, value, 2);
   b1 = WireToS16(value);
   
-  i2CReadBytes(_i2cAddress, BMP085_REGISTER_CAL_B2, value, 2);
+  readBytesFromi2C(_i2cAddress, BMP180_REGISTER_CAL_B2, value, 2);
   b2 = WireToS16(value);
   
-  i2CReadBytes(_i2cAddress, BMP085_REGISTER_CAL_MB, value, 2);
+  readBytesFromi2C(_i2cAddress, BMP180_REGISTER_CAL_MB, value, 2);
   mb = WireToS16(value);
 
-  i2CReadBytes(_i2cAddress, BMP085_REGISTER_CAL_MC, value, 2);
+  readBytesFromi2C(_i2cAddress, BMP180_REGISTER_CAL_MC, value, 2);
   mc = WireToS16(value);
 
-  i2CReadBytes(_i2cAddress, BMP085_REGISTER_CAL_MD, value, 2);
+  readBytesFromi2C(_i2cAddress, BMP180_REGISTER_CAL_MD, value, 2);
   md = WireToS16(value);
 
   switch ( _overSampling) {
-    case BMP085_ULTRALOWPOWER: 
-    case BMP085_STANDARD:
-    case BMP085_HIGHRES:
-    case BMP085_ULTRAHIGHRES:
+    case BMP180_ULTRALOWPOWER: 
+    case BMP180_STANDARD:
+    case BMP180_HIGHRES:
+    case BMP180_ULTRAHIGHRES:
        break;
      default:  
-        _overSampling = BMP085_STANDARD;
+        _overSampling = BMP180_STANDARD;
   }
 
+  // We must wait to Bxx0xxxxx value in "Control" register to know that device is not busy
+  if (false == waitToBMPReady(_i2cAddress, BMP_REGISTER_CONTROL, BMP180_READY_MASK, 50)) {
+       return DEVICE_ERROR_TIMEOUT;
+  }
   // ******** Get Temperature ********
   // Write 0x2E into Register 0xF4
   // This requests a temperature reading
-  i2CWriteByte(_i2cAddress, BMP_REGISTER_CONTROL, BMP_CMD_READTEMP);
+  writeByteToI2C(_i2cAddress, BMP_REGISTER_CONTROL, BMP180_CMD_READTEMP);
 
   // Wait at least 4.5ms
-  delay(5);
+  //delay(5);
 
+  // We must wait to Bxx0xxxxx value in "Control" register to know about end of conversion
+  if (false == waitToBMPReady(_i2cAddress, BMP_REGISTER_CONTROL, BMP180_READY_MASK, 50)) {
+       return DEVICE_ERROR_TIMEOUT;
+  }
   // Read two bytes from registers 0xF6 and 0xF7
-  i2CReadBytes(_i2cAddress, BMP_REGISTER_TEMPDATA, value, 2);
+  readBytesFromi2C(_i2cAddress, BMP180_REGISTER_TEMPDATA, value, 2);
   ut = WireToU16(value);
 
   x1 = (((int32_t) ut - (int32_t) ac6) * (int32_t) ac5) >> 15;
@@ -676,18 +705,18 @@ int32_t BMP085Read(const uint8_t _sdaPin, const uint8_t _sclPin, uint8_t _i2cAdd
 
     // Calculate pressure given up
     // calibration values must be known
-    // b5 is also required so bmp085GetTemperature(...) must be called first.
+    // b5 is also required so get temperature procedure must be called first.
     // Value returned will be pressure in units of Pa.
 
     // Write 0x34+(_oversampling<<6) into register 0xF4
     // Request a pressure reading w/ oversampling setting
-    i2CWriteByte(_i2cAddress, BMP_REGISTER_CONTROL, BMP_CMD_READPRESSURE + (_overSampling << 6));
+    writeByteToI2C(_i2cAddress, BMP_REGISTER_CONTROL, BMP180_CMD_READPRESSURE + (_overSampling << 6));
 
     // Wait for conversion, delay time dependent on _oversampling
     delay(2 + (3 << _overSampling));
 
     // Read register 0xF6 (MSB), 0xF7 (LSB), and 0xF8 (XLSB)
-    i2CReadBytes(_i2cAddress, BMP_REGISTER_PRESSUREDATA, value, 3);
+    readBytesFromi2C(_i2cAddress, BMP180_REGISTER_PRESSUREDATA, value, 3);
     up = (((uint32_t) value[0] << 16) | ((uint32_t) value[1] << 8) | (uint32_t) value[2]) >> (8 - _overSampling);
 
     b6 = b5 - 4000;
@@ -819,29 +848,29 @@ version 1.1.2 is used
 #define LCD_1LINE                                               0x00
 
 
-void lcdSend(const uint8_t _i2cAddress, const uint8_t _data, const uint8_t _mode)
+void sendToLCD(const uint8_t _i2cAddress, const uint8_t _data, const uint8_t _mode)
 {
   // Send high bit
-  lcdWrite4bits(_i2cAddress, (_data & 0xF0) | _mode);
+  write4bitsToLCD(_i2cAddress, (_data & 0xF0) | _mode);
   // Send low bit
-  lcdWrite4bits(_i2cAddress, ((_data << 4) & 0xF0) | _mode);
+  write4bitsToLCD(_i2cAddress, ((_data << 4) & 0xF0) | _mode);
 }
 
-void lcdWrite4bits(const uint8_t _i2cAddress, const uint8_t _data) 
+void write4bitsToLCD(const uint8_t _i2cAddress, const uint8_t _data) 
 {
-  i2CWriteByte(_i2cAddress, I2C_NO_REG_SPECIFIED, _data);
-  lcdPulseEnable(_i2cAddress, _data);
+  writeByteToI2C(_i2cAddress, I2C_NO_REG_SPECIFIED, _data);
+  pulseEnableOnLCD(_i2cAddress, _data);
 }
 
-void lcdPulseEnable(const uint8_t _i2cAddress, const uint8_t _data)
+void pulseEnableOnLCD(const uint8_t _i2cAddress, const uint8_t _data)
 {
-  i2CWriteByte(_i2cAddress, I2C_NO_REG_SPECIFIED, _data | _BV(LCD_E));	// 'Enable' high
+  writeByteToI2C(_i2cAddress, I2C_NO_REG_SPECIFIED, _data | _BV(LCD_E));	// 'Enable' high
   delayMicroseconds(1);		                        // enable pulse must be >450ns
-  i2CWriteByte(_i2cAddress, I2C_NO_REG_SPECIFIED, _data & ~_BV(LCD_E));	// 'Enable' low
+  writeByteToI2C(_i2cAddress, I2C_NO_REG_SPECIFIED, _data & ~_BV(LCD_E));	// 'Enable' low
   delayMicroseconds(50);	                        // commands need > 37us to settle
 } 
 
-int32_t pcf8574LCDOutput(const uint8_t _sdaPin, const uint8_t _sclPin, uint8_t _i2cAddress, uint8_t _lcdBacklight, const uint16_t _lcdType, const char *_data)
+int32_t printToPCF8574LCD(const uint8_t _sdaPin, const uint8_t _sclPin, uint8_t _i2cAddress, uint8_t _lcdBacklight, const uint16_t _lcdType, const char *_data)
 {
   uint8_t displayFunction, lastLine, currLine, currChar, i;
   uint8_t rowOffsets[] = { 0x00, 0x40, 0x14, 0x54 };
@@ -872,7 +901,7 @@ int32_t pcf8574LCDOutput(const uint8_t _sdaPin, const uint8_t _sclPin, uint8_t _
   _lcdBacklight = _lcdBacklight ? _BV(LCD_BL) : 0;
 
   // just tooggle backlight and go back if no data given 
-  i2CWriteByte(_i2cAddress, I2C_NO_REG_SPECIFIED, _lcdBacklight);
+  writeByteToI2C(_i2cAddress, I2C_NO_REG_SPECIFIED, _lcdBacklight);
   if (! *_data) {return RESULT_IS_OK; }
  
   if (!haveHexPrefix(_data)) {return RESULT_IS_FAIL;}
@@ -888,23 +917,23 @@ int32_t pcf8574LCDOutput(const uint8_t _sdaPin, const uint8_t _sclPin, uint8_t _
   // figure 24, pg 46
 	
   // we start in 8bit mode, try to set 4 bit mode
-  lcdWrite4bits(_i2cAddress, (0x03 << 4) | _lcdBacklight);
+  write4bitsToLCD(_i2cAddress, (0x03 << 4) | _lcdBacklight);
   delayMicroseconds(4500); // wait min 4.1ms
    
   // second try
-  lcdWrite4bits(_i2cAddress, (0x03 << 4) | _lcdBacklight);
+  write4bitsToLCD(_i2cAddress, (0x03 << 4) | _lcdBacklight);
   delayMicroseconds(4500); // wait min 4.1ms
    
   // third go!
-  lcdWrite4bits(_i2cAddress, (0x03 << 4) | _lcdBacklight);
+  write4bitsToLCD(_i2cAddress, (0x03 << 4) | _lcdBacklight);
   delayMicroseconds(150);
    
   // finally, set to 4-bit interface
-  lcdWrite4bits(_i2cAddress, (0x02 << 4) | _lcdBacklight);
+  write4bitsToLCD(_i2cAddress, (0x02 << 4) | _lcdBacklight);
 
   // set # lines, font size, etc.
-  lcdSend(_i2cAddress, (LCD_FUNCTIONSET | displayFunction), 0 | _lcdBacklight);
-  lcdSend(_i2cAddress, (LCD_DISPLAYCONTROL | LCD_DISPLAYON | LCD_CURSOROFF | LCD_BLINKOFF), 0 | _lcdBacklight);
+  sendToLCD(_i2cAddress, (LCD_FUNCTIONSET | displayFunction), 0 | _lcdBacklight);
+  sendToLCD(_i2cAddress, (LCD_DISPLAYCONTROL | LCD_DISPLAYON | LCD_CURSOROFF | LCD_BLINKOFF), 0 | _lcdBacklight);
 
   // Always begin from 0,0
   currLine = 0; 
@@ -912,12 +941,12 @@ int32_t pcf8574LCDOutput(const uint8_t _sdaPin, const uint8_t _sclPin, uint8_t _
     // restore full byte (ASCII char) from HEX nibbles
     currChar = (htod(*_data) << 4) + htod(*(_data+1));
     if (currChar > 0x7F && currChar < 0x9F) {
-     lcdSend(_i2cAddress, LCD_SETDDRAMADDR | ((currChar - 0x80) + rowOffsets[currLine]), 0 | _lcdBacklight);
+     sendToLCD(_i2cAddress, LCD_SETDDRAMADDR | ((currChar - 0x80) + rowOffsets[currLine]), 0 | _lcdBacklight);
   } else {
 
     switch (currChar) {
       case LCD_CMD_CLEARDISPLAY:
-        lcdSend(_i2cAddress, LCD_CMD_CLEARDISPLAY, 0 | _lcdBacklight);// clear display, set cursor position to zero
+        sendToLCD(_i2cAddress, LCD_CMD_CLEARDISPLAY, 0 | _lcdBacklight);// clear display, set cursor position to zero
         delayMicroseconds(2000);  // or 2000 ?  - this command takes a long time!
         break;
 
@@ -925,7 +954,7 @@ int32_t pcf8574LCDOutput(const uint8_t _sdaPin, const uint8_t _sclPin, uint8_t _
         for (i = 0; i < LCD_BLINK_TIMES; i++) {
           // _lcdBacklight is not false/true, is 0x00 / 0x08
           _lcdBacklight = _lcdBacklight ? 0x00 : _BV(LCD_BL);
-          i2CWriteByte(_i2cAddress, I2C_NO_REG_SPECIFIED, _lcdBacklight);
+          writeByteToI2C(_i2cAddress, I2C_NO_REG_SPECIFIED, _lcdBacklight);
           delay (LCD_BLINK_DUTY_CYCLE);
         }
         
@@ -945,7 +974,7 @@ int32_t pcf8574LCDOutput(const uint8_t _sdaPin, const uint8_t _sclPin, uint8_t _
       case LCD_CMD_CURSORMOVERIGHT:
       case LCD_CMD_SCREENSHIFTLEFT:
       case LCD_CMD_SCREENSHIFTRIGHT:
-        lcdSend(_i2cAddress, currChar, 0 | _lcdBacklight);  // set cursor position to zero
+        sendToLCD(_i2cAddress, currChar, 0 | _lcdBacklight);  // set cursor position to zero
         delayMicroseconds(40);  // this command takes a long time!
         break;
 
@@ -956,21 +985,21 @@ int32_t pcf8574LCDOutput(const uint8_t _sdaPin, const uint8_t _sclPin, uint8_t _
             // Space is 0x20 ASCII
             // 32 => htod('2') << 4
             // 0  => htod('0') << 4
-            lcdWrite4bits(_i2cAddress, 32 | _BV(LCD_RS) | _lcdBacklight);
-            lcdWrite4bits(_i2cAddress, 0  | _BV(LCD_RS) | _lcdBacklight);
+            write4bitsToLCD(_i2cAddress, 32 | _BV(LCD_RS) | _lcdBacklight);
+            write4bitsToLCD(_i2cAddress, 0  | _BV(LCD_RS) | _lcdBacklight);
         }
         break;
       // Go to new line
       case LCD_CMD_LF:
         if (lastLine > currLine) { currLine++; }
-        lcdSend(_i2cAddress, (LCD_SETDDRAMADDR | rowOffsets[currLine]), 0 | _lcdBacklight);
+        sendToLCD(_i2cAddress, (LCD_SETDDRAMADDR | rowOffsets[currLine]), 0 | _lcdBacklight);
         break;
 
       default:
         // Send first nibble (first four bits) into high byte area
-        lcdWrite4bits(_i2cAddress, (htod(*_data) << 4) | _BV(LCD_RS) | _lcdBacklight);
+        write4bitsToLCD(_i2cAddress, (htod(*_data) << 4) | _BV(LCD_RS) | _lcdBacklight);
         // Send second nibble (second four bits) into high byte area
-        lcdWrite4bits(_i2cAddress, (htod(*(_data+1)) << 4) | _BV(LCD_RS) | _lcdBacklight);
+        write4bitsToLCD(_i2cAddress, (htod(*(_data+1)) << 4) | _BV(LCD_RS) | _lcdBacklight);
     }
   }
     _data += 2;
@@ -1014,7 +1043,7 @@ int32_t pcf8574LCDOutput(const uint8_t _sdaPin, const uint8_t _sclPin, uint8_t _
 #define BH1750_ONETIME_LOWRES                                   0x23
 
 
-int32_t BH1750Read(const uint8_t _sdaPin, const uint8_t _sclPin, uint8_t _i2cAddress, uint8_t _mode, const uint8_t _metric, char* _outBuffer)
+int32_t getBH1750Metric(const uint8_t _sdaPin, const uint8_t _sclPin, uint8_t _i2cAddress, uint8_t _mode, const uint8_t _metric, char* _outBuffer)
 {
   int32_t result;
   uint8_t setModeTimeout = 24; // 24ms - max time to complete measurement in low-resolution

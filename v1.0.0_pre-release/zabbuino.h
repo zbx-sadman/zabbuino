@@ -1,4 +1,3 @@
-// http://www.kandrsmith.org/RJS/Misc/Hygrometers/calib_many.html
 #ifndef Zabbuino_h
 #define Zabbuino_h
 
@@ -36,7 +35,7 @@
 /****    Other   ****/
 
 // Uncomment to enable external interrupts handling: interrupt.*[] commands
-//#define FEATURE_EXTERNAL_INTERRUPT_ENABLE
+#define FEATURE_EXTERNAL_INTERRUPT_ENABLE
 
 // Uncomment to enable encoder handling with external interrupts: encoder.*[] commands
 //#define FEATURE_ENCODER_ENABLE
@@ -44,10 +43,10 @@
 /****      1-Wire bus      ****/
 
 // Uncomment to enable 1-Wire common functions: OW.Scan[]
-#define FEATURE_OW_ENABLE
+//#define FEATURE_OW_ENABLE
 
 // Uncomment to enable Dallas DS18x20 family functions: DS18x20.*[] commands
-#define FEATURE_DS18X20_ENABLE
+//#define FEATURE_DS18X20_ENABLE
 
 /****        I2C bus       ****/
 
@@ -55,17 +54,17 @@
 // Note #2: I2C library (Wire.h) activate internal pullups for SDA & SCL pins when Wire.begin() called
 
 // Uncomment to enable I2C commands: I2C.Scan[], I2C.Read[], I2C.Write[], I2C.BitRead[], I2C.BitWrite[]
-#define FEATURE_I2C_ENABLE
+//#define FEATURE_I2C_ENABLE
 
 // Uncomment to enable BMP pressure sensors functions: BMP.*[] commands
 #define FEATURE_BMP_ENABLE
-// #define SUPPORT_BMP180_INCLUDE
-#define SUPPORT_BMP280_INCLUDE
+#define SUPPORT_BMP180_INCLUDE
+//#define SUPPORT_BMP280_INCLUDE
 // BME280 is BMP280+Humidity sensor. If you want to get all, uncomment SUPPORT_BMP280_INCLUDE too
-#define SUPPORT_BME280_INCLUDE
+//#define SUPPORT_BME280_INCLUDE
 
 // Uncomment to enable BH1750 light sensors functions: BH1750.*[] commands
-#define FEATURE_BH1750_ENABLE
+//#define FEATURE_BH1750_ENABLE
 
 // LCD connected via PCF8574 I2C expander enable
 //#define FEATURE_PCF8574_LCD_ENABLE
@@ -81,7 +80,7 @@
 /****    DHT/AM family    ****/
 
 // Uncomment to enable DHT/AM humidity sensors functions: DHT.*[] commands
-// #define FEATURE_DHT_ENABLE
+#define FEATURE_DHT_ENABLE
 
 /****    Ultrasonic    ****/
 
@@ -93,17 +92,17 @@
 //#define FEATURE_ACS7XX_ENABLE
 
 // InfraRed transmitters emulator enable: ir.*[] commands
-// #define FEATURE_IR_ENABLE
-// #define SUPPORT_IR_RC5
-// #define SUPPORT_IR_RC6
-// #define SUPPORT_IR_SONY
-// #define SUPPORT_IR_NEC
-// #define SUPPORT_IR_SAMSUNG
-// #define SUPPORT_IR_WHYNTER
-// #define SUPPORT_IR_LG
-// #define SUPPORT_IR_DISH
-// #define SUPPORT_IR_SHARP
-// #define SUPPORT_IR_DENON
+//#define FEATURE_IR_ENABLE
+//#define SUPPORT_IR_RC5
+//#define SUPPORT_IR_RC6
+//#define SUPPORT_IR_SONY
+//#define SUPPORT_IR_NEC
+//#define SUPPORT_IR_SAMSUNG
+//#define SUPPORT_IR_WHYNTER
+//#define SUPPORT_IR_LG
+//#define SUPPORT_IR_DISH
+//#define SUPPORT_IR_SHARP
+//#define SUPPORT_IR_DENON
 
 /****      System        ****/
 
@@ -120,7 +119,7 @@
 // // // // #define FEATURE_AREF_ENABLE
 
 // Uncomment to be able to store runtime settings in EEPROM and use its on start
- #define FEATURE_EEPROM_ENABLE
+#define FEATURE_EEPROM_ENABLE
 
 // debug only option, must be removed on releasing 
 #define FEATURE_EEPROM_SET_COMMANDS_ENABLE
@@ -132,7 +131,7 @@
 #define FEATURE_DEBUG_COMMANDS_ENABLE
 
 // Uncomment to view the debug messages on the Serial Monitor
-#define FEATURE_DEBUG_TO_SERIAL
+//#define FEATURE_DEBUG_TO_SERIAL
 
 // Uncomment to enable using time+interrupt for internal metric gathering
 #define GATHER_METRIC_USING_TIMER_INTERRUPT
@@ -167,14 +166,14 @@
 #define NET_DEFAULT_MAC_ADDRESS     	                        {0xDE,0xAD,0xBE,0xEF,0xFE,0xF4}
 
 #ifdef USE_NETWORK_192_168_0_1
-  #define NET_DEFAULT_IP_ADDRESS      	                        {192,168,0,228}
-  #define NET_DEFAULT_GATEWAY         	                        {192,168,0,1}
+  #define NET_DEFAULT_IP_ADDRESS      	                      {192,168,0,228}
+  #define NET_DEFAULT_GATEWAY         	                      {192,168,0,1}
 #else
-  #define NET_DEFAULT_IP_ADDRESS      	                        {172,16,100,228}
-  #define NET_DEFAULT_GATEWAY         	                        {172,16,100,254}
+  #define NET_DEFAULT_IP_ADDRESS      	                      {172,16,100,228}
+  #define NET_DEFAULT_GATEWAY         	                      {172,16,100,254}
 #endif
  
-#define NET_DEFAULT_NETMASK           	                        {255,255,255,0}
+#define NET_DEFAULT_NETMASK           	                      {255,255,255,0}
 
 // How often do ENC28J60 module reinit for more stable network
 #define NET_ENC28J60_REINIT_PERIOD  	                        10000UL  // 10 sec

@@ -3,7 +3,7 @@
 *  Return "Free" memory size
 *
 **************************************************************************************************************************** */
-uint32_t ramFree(void) {
+uint32_t getRamFree(void) {
   extern uint16_t __heap_start, *__brkval;
   uint16_t v;
   return (uint32_t) &v - (__brkval == 0 ? (uint32_t) &__heap_start : (uint32_t) __brkval);
@@ -12,23 +12,10 @@ uint32_t ramFree(void) {
 
 /* ****************************************************************************************************************************
 *
-*   
+*  Timer1 initialization 
 *
 **************************************************************************************************************************** */
-ISR(TIMER1_COMPA_vect)
-{
-  // Gather internal metric
-  gatherMetrics();
-  // Let's count from the begin
-  TCNT1 = 0;
-}
-
-/* ****************************************************************************************************************************
-*
-*   
-*
-**************************************************************************************************************************** */
-uint8_t timerOneInit(const uint16_t _milliseconds) 
+uint8_t initTimerOne(const uint16_t _milliseconds) 
 {
   // Don't allow more that 5 sec to avoid overflow on 16Mhz with prescaler 1024 
   if ((1000 > _milliseconds) && (5000 < _milliseconds)) { return false; }
@@ -49,7 +36,7 @@ uint8_t timerOneInit(const uint16_t _milliseconds)
 *   Gathering internal metrics and save its to global array
 *
 **************************************************************************************************************************** */
-void gatherMetrics(){
+void gatherSystemMetrics(){
   // repeat measuring on next round
   if (skipMetricGathering) { return; }
   // = IDX_METRICS_FIRST_CRONNED to skip "gathering" uncronned metric (IDX_METRIC_SYS_CMD_COUNT and so) 
@@ -61,13 +48,13 @@ void gatherMetrics(){
     case IDX_METRIC_SYS_VCC:
     //case IDX_METRIC_SYS_VCCMIN:
     //case IDX_METRIC_SYS_VCCMAX:
-        sysMetrics[IDX_METRIC_SYS_VCC] = MeasureVoltage(ANALOG_CHAN_VBG);
+        sysMetrics[IDX_METRIC_SYS_VCC] = getADCVoltage(ANALOG_CHAN_VBG);
         correctVCCMetrics(sysMetrics[IDX_METRIC_SYS_VCC]);
       metricIdx += 2; // Three metrics taken at once  
       break;
     case IDX_METRIC_SYS_RAM_FREE:
     //case IDX_METRIC_SYS_RAM_FREEMIN:
-      sysMetrics[IDX_METRIC_SYS_RAM_FREE] = (int32_t) ramFree(); 
+      sysMetrics[IDX_METRIC_SYS_RAM_FREE] = (int32_t) getRamFree(); 
       correctMemoryMetrics(sysMetrics[IDX_METRIC_SYS_RAM_FREE]);
       metricIdx += 1; // Two metrics taken at once  
       break;
@@ -82,7 +69,7 @@ void gatherMetrics(){
 
 /* ****************************************************************************************************************************
 *
-*   Correct minmem metric when FreeMem just taken
+*   Correct sys.ram.freemin metric when FreeMem just taken
 *
 **************************************************************************************************************************** */
 void correctMemoryMetrics(uint32_t _currMemFree) {
@@ -92,7 +79,7 @@ void correctMemoryMetrics(uint32_t _currMemFree) {
 
 /* ****************************************************************************************************************************
 *
-*   Correct minvcc/maxvcc metrics when VCC just taken
+*   Correct sys.vccmin/sys.vccmax metrics when VCC just taken
 *
 **************************************************************************************************************************** */
 void correctVCCMetrics(uint32_t _currVCC) {

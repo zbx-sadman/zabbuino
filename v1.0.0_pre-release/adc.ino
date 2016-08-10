@@ -1,38 +1,14 @@
 #define ADC_SAMPLES                         1000  // for median sampling algo: every sample is int16_t number, total memory consumption is (ADC_SAMPLES * 2) bytes
 
-int32_t MeasureVoltage(const uint8_t _analogChannel) {  
+/* ****************************************************************************************************************************
+*
+*   Measure the voltage on given analogChannel.
+*
+**************************************************************************************************************************** */
+int32_t getADCVoltage(const uint8_t _analogChannel) {  
   uint8_t i, oldADCSRA, oldADMUX;
   uint32_t avgADC=0;
   
-    /* • Bit 7:6 – REFS[1:0]: Reference Selection Bits
-       These bits select the voltage reference for the ADC, as shown in Table 24-3. If these bits are changed during a
-       conversion, the change will not go in effect until this conversion is complete (ADIF in ADCSRA is set). The
-       internal voltage reference options may not be used if an external reference voltage is being applied to the AREF
-       pin.
-
-       Table 24-3. Voltage Reference Selections for ADC
-       REFS1 REFS0 Voltage Reference Selection
-       0     0     AREF, Internal Vref turned off
-       0     1     AVCC with __external capacitor__ at AREF pin
-       1     0     Reserved
-       1     1     Internal 2.56V Voltage Reference with external capacitor at AREF pin
-
-     • Bit 7 – ADEN: ADC Enable
-       Writing this bit to one enables the ADC. By writing it to zero, the ADC is turned off. Turning the ADC off while a
-       conversion is in progress, will terminate this conversion.
-       
-     • Bit 6 – ADSC: ADC Start Conversion
-       In Single Conversion mode, write this bit to one to start each conversion. In Free Running mode, write this bit to
-       one to start the first conversion. The first conversion after ADSC has been written after the ADC has been
-       enabled, or if ADSC is written at the same time as the ADC is enabled, will take 25 ADC clock cycles instead of
-       the normal 13. This first conversion performs initialization of the ADC.
-       ADSC will read as one as long as a conversion is in progress. When the conversion is complete, it returns to
-       zero. Writing zero to this bit has no effect.
-       
-     • Bits 2:0 – ADPS[2:0]: ADC Prescaler Select Bits
-       These bits determine the division factor between the system clock frequency and the input clock to the ADC.
-       
-  */
   oldADMUX = ADMUX;
   ADMUX = (0 << REFS1) | (1 << REFS0) | _analogChannel;
   //  save ADCSRA register
@@ -61,7 +37,12 @@ int32_t MeasureVoltage(const uint8_t _analogChannel) {
   return avgADC;
 }
 
-int32_t ACS7XXCurrent(const uint8_t _sensorPin, uint32_t _aRefVoltage,  const uint8_t _metric, const uint8_t _sensitivity, const int32_t _ZeroCurrentPoint, char* _outBuffer)
+/* ****************************************************************************************************************************
+*
+*   Get Zero current point, AC & DC value from ACS712 sensor
+*
+**************************************************************************************************************************** */
+int32_t getACS7XXMetric(const uint8_t _sensorPin, uint32_t _aRefVoltage,  const uint8_t _metric, const uint8_t _sensitivity, const int32_t _ZeroCurrentPoint, char* _outBuffer)
 {  
   uint32_t sampleInterval, mVperUnit, prevMicros = 0;
   int32_t result, adcValue, numUnits = 0;
@@ -73,7 +54,7 @@ int32_t ACS7XXCurrent(const uint8_t _sensorPin, uint32_t _aRefVoltage,  const ui
   // _aRef point to use internal voltage (very unstable with onboard Ethernet, sensors, etc. But show some digits ;) 
   if (DEFAULT == _aRefVoltage) {
      // Take internal MCU's VCC
-     _aRefVoltage = (uint32_t) MeasureVoltage(ANALOG_CHAN_VBG);
+     _aRefVoltage = (uint32_t) getADCVoltage(ANALOG_CHAN_VBG);
   } else {
      // Otherwise - use _aRef as referenve voltage value that is given in mV
      //aRefVoltage = _aRefVoltage;
@@ -83,9 +64,6 @@ int32_t ACS7XXCurrent(const uint8_t _sensorPin, uint32_t _aRefVoltage,  const ui
     delay(2);
 #endif
   }
-
-//  Serial.print("aRefVoltage: ");
-//  Serial.println(_aRefVoltage);
 
   /**** Gathering ****/
   // need to find reliable gathering algo. 

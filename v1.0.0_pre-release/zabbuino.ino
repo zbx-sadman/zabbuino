@@ -1,7 +1,7 @@
 // My Freeduino is not listed, but is analogue to ARDUINO_AVR_DUEMILANOVE
 #define ARDUINO_AVR_DUEMILANOVE
 // Just for compilation with various default network configs
-//#define USE_NETWORK_192_168_0_1
+#define USE_NETWORK_192_168_0_1
 
 /* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
                                                              !!! WizNet W5xxx users !!!
@@ -9,8 +9,8 @@
     1. Comment #include <UIPEthernet.h>
     2. Uncomment #include <Ethernet.h> and <SPI.h> headers
 */
-#include <Ethernet.h>
-#include <SPI.h>
+//#include <Ethernet.h>
+//#include <SPI.h>
 
 /* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
                                                                 !!! ENC28J60 users !!!
@@ -34,7 +34,7 @@
              ...
 
 */
-//#include <UIPEthernet.h>
+#include <UIPEthernet.h>
 //#define USE_DIRTY_HACK_AND_REBOOT_ENC28J60_IF_ITS_SEEMS_FREEZE
 
 
@@ -98,8 +98,8 @@ void setup() {
 #endif
 
   // Init metrics
-  sysMetrics[IDX_METRIC_SYS_VCCMIN] = sysMetrics[IDX_METRIC_SYS_VCCMAX] = MeasureVoltage(ANALOG_CHAN_VBG);
-  sysMetrics[IDX_METRIC_SYS_RAM_FREE] = sysMetrics[IDX_METRIC_SYS_RAM_FREEMIN] = (int32_t) ramFree();
+  sysMetrics[IDX_METRIC_SYS_VCCMIN] = sysMetrics[IDX_METRIC_SYS_VCCMAX] = getADCVoltage(ANALOG_CHAN_VBG);
+  sysMetrics[IDX_METRIC_SYS_RAM_FREE] = sysMetrics[IDX_METRIC_SYS_RAM_FREEMIN] = (int32_t) getRamFree();
   sysMetrics[IDX_METRIC_SYS_CMD_COUNT] = sysMetrics[IDX_METRIC_SYS_CMD_TIMEMAX] = 0;
   
 #ifdef FEATURE_DEBUG_TO_SERIAL
@@ -126,8 +126,8 @@ void setup() {
     delay(HOLD_TIME_TO_FACTORY_RESET);
     // PIN_FACTORY_RESET still shorted?
     if (LOW == digitalRead(PIN_FACTORY_RESET)){
-       setDefaults(netConfig);
-       saveConfig(&netConfig);
+       setConfigDefaults(netConfig);
+       saveConfigToEEPROM(&netConfig);
        // Blink fast while PIN_FACTORY_RESET shorted to GND
        while (LOW == digitalRead(PIN_FACTORY_RESET)) {
           digitalWrite(PIN_STATE_LED, millis() % 100 < 50);
@@ -143,17 +143,17 @@ void setup() {
   SerialPrintln_P(PSTR("Load configuration from EEPROM"));
 #endif
   // Try to load configuration from EEPROM
-  if (false == loadConfig(&netConfig)) {
+  if (false == loadConfigFromEEPROM(&netConfig)) {
      // bad CRC detected, use default values for this run
-     setDefaults(netConfig);
-     saveConfig(&netConfig);
+     setConfigDefaults(netConfig);
+     saveConfigToEEPROM(&netConfig);
   }
 #else // FEATURE_EEPROM_ENABLE
 #ifdef FEATURE_DEBUG_TO_SERIAL
      SerialPrintln_P(PSTR("Use default network settings"));
 #endif
      // Use hardcoded values if EEPROM feature disabled
-     setDefaults(netConfig);
+     setConfigDefaults(netConfig);
 #endif // FEATURE_EEPROM_ENABLE
 
 #ifdef FEATURE_NET_DHCP_FORCE
@@ -241,7 +241,7 @@ void setup() {
 
 #ifdef GATHER_METRIC_USING_TIMER_INTERRUPT
    // need to analyze return code?
-   timerOneInit(SYS_METRIC_RENEW_PERIOD);
+   initTimerOne(SYS_METRIC_RENEW_PERIOD);
 #endif
 
 #if defined(FEATURE_I2C_ENABLE) || defined(FEATURE_BMP_ENABLE) || defined(FEATURE_BH1750_ENABLE) || defined (FEATURE_PCF8574_LCD_ENABLE) || defined (FEATURE_SHT2X_ENABLE)
@@ -677,11 +677,11 @@ uint8_t executeCommand()
          // need check for arg existsience?
          // cBuffer[argOffset[1]] != \0 if argument #2 given
          if (cBuffer[argOffset[1]]) {
-            sethostname(netConfig.hostname, &cBuffer[argOffset[1]]);
+            setHostname(netConfig.hostname, &cBuffer[argOffset[1]]);
             // strncpy(netConfig.hostname, &cBuffer[argOffset[1]], ZBX_AGENT_HOSTNAME_MAXLEN-1);
             // netConfig.hostname[ZBX_AGENT_HOSTNAME_MAXLEN]='\0';
             //        Serial.println(netConfig.hostname);
-            saveConfig(&netConfig);
+            saveConfigToEEPROM(&netConfig);
             result = RESULT_IS_OK;
          }
       }
@@ -695,7 +695,7 @@ uint8_t executeCommand()
          if (cBuffer[argOffset[1]]) {
             // take new password from argument #2
             netConfig.password = arg[1];
-            saveConfig(&netConfig);
+            saveConfigToEEPROM(&netConfig);
             result = RESULT_IS_OK;
          }
       }
@@ -709,7 +709,7 @@ uint8_t executeCommand()
          if (cBuffer[argOffset[1]]) {
             // take new password from argument #2
             netConfig.useProtection = (1 == arg[1]) ? true : false;
-            saveConfig(&netConfig);
+            saveConfigToEEPROM(&netConfig);
             result = RESULT_IS_OK;
          }
       }
@@ -745,7 +745,7 @@ uint8_t executeCommand()
          // netConfig.ipGateway.printTo(Serial);
          // Save config to EEProm if success
          if (success) {
-            saveConfig(&netConfig);
+            saveConfigToEEPROM(&netConfig);
             result = RESULT_IS_OK;
          }
        }
@@ -758,7 +758,7 @@ uint8_t executeCommand()
       /=/  portWrite[port, value]
       /*/
       if (PORTS_NUM < (arg[0] - 96)) {
-         portWrite((byte) arg[0] - 96, arg[1]);
+         writeToPort((byte) arg[0] - 96, arg[1]);
          result = RESULT_IS_OK;
       }
       break;
@@ -772,7 +772,7 @@ uint8_t executeCommand()
       i = ('\0' != arg[2]) && isSafePin(arg[2]);   // << корректный способ проверки или нет?  
       if (isSafePin(arg[0]) &&  isSafePin(arg[1])) {
          if (i) { digitalWrite(arg[2], LOW); }
-         advShiftOut(arg[0], arg[1], arg[3], &cBuffer[argOffset[4]]);
+         shiftOutAdvanced(arg[0], arg[1], arg[3], &cBuffer[argOffset[4]]);
          if (i) { digitalWrite(arg[2], HIGH);}
          result = RESULT_IS_OK;
       }
@@ -861,7 +861,7 @@ uint8_t executeCommand()
       /=/ sys.vcc
       /*/
       // Take VCC
-      result = MeasureVoltage(ANALOG_CHAN_VBG);
+      result = getADCVoltage(ANALOG_CHAN_VBG);
       // VCC may be bigger than max or smaller than min. 
       // To avoid wrong results and graphs in monitoring system - correct min/max metrics
       correctVCCMetrics(result);
@@ -1016,7 +1016,7 @@ uint8_t executeCommand()
       /=/  OW.scan[pin]
       /*/
       if (isSafePin(arg[0])) {
-         result = oneWireScan(arg[0]);
+         result = scanOneWire(arg[0]);
       }
       break;
 #endif // FEATURE_ONEWIRE_ENABLE
@@ -1028,7 +1028,7 @@ uint8_t executeCommand()
       /=/  I2C.scan[sdaPin, sclPin]
       /*/
       if (isSafePin(arg[0]) && isSafePin(arg[1])) {
-         result = i2CScan();
+         result = scanI2C();
       }
       break;
 
@@ -1038,7 +1038,7 @@ uint8_t executeCommand()
       /*/
       if (isSafePin(arg[0]) && isSafePin(arg[1])) {
          // i2COption used as 'data'
-         result = i2CWriteByte(i2CAddress, (('\0' != cBuffer[argOffset[3]]) ? i2CRegister : I2C_NO_REG_SPECIFIED), i2COption);
+         result = writeByteToI2C(i2CAddress, (('\0' != cBuffer[argOffset[3]]) ? i2CRegister : I2C_NO_REG_SPECIFIED), i2COption);
          result = (0 == result) ? RESULT_IS_OK : RESULT_IS_FAIL;
       }
       break;
@@ -1050,7 +1050,7 @@ uint8_t executeCommand()
       if (isSafePin(arg[0]) && isSafePin(arg[1])) {
          // i2COption used as 'length' - how much bytes must be read: 0..4 byte
          i2COption = constrain(i2COption, 1, 4);
-         result = i2CReadBytes(i2CAddress, (('\0' != cBuffer[argOffset[3]]) ? i2CRegister : I2C_NO_REG_SPECIFIED), i2CValue, i2COption);
+         result = readBytesFromi2C(i2CAddress, (('\0' != cBuffer[argOffset[3]]) ? i2CRegister : I2C_NO_REG_SPECIFIED), i2CValue, i2COption);
          // make int32 from i2C's bytes
          if (0 != result) {result = RESULT_IS_FAIL; break; }
          for (i=0; i < i2COption; i++) {
@@ -1071,11 +1071,11 @@ uint8_t executeCommand()
             break;
          }
          // Use device's register if specified, read 1 byte
-         result = i2CReadBytes(i2CAddress, (('\0' != cBuffer[argOffset[3]]) ? i2CRegister : I2C_NO_REG_SPECIFIED), i2CValue, 1);
+         result = readBytesFromi2C(i2CAddress, (('\0' != cBuffer[argOffset[3]]) ? i2CRegister : I2C_NO_REG_SPECIFIED), i2CValue, 1);
          // "!!" convert value 0100 to 1.
          bitWrite (i2CValue[0], i2COption, (!!arg[5]));
          // Use device's register if specified, write 1 byte, returns Wire lib state
-         result = i2CWriteByte(i2CAddress, (('\0' != cBuffer[argOffset[3]]) ? i2CRegister : I2C_NO_REG_SPECIFIED), i2CValue[0]);
+         result = writeByteToI2C(i2CAddress, (('\0' != cBuffer[argOffset[3]]) ? i2CRegister : I2C_NO_REG_SPECIFIED), i2CValue[0]);
          result = (0 == result) ? RESULT_IS_OK : RESULT_IS_FAIL;
       }
       break;
@@ -1091,7 +1091,7 @@ uint8_t executeCommand()
             break;
          }
          // Use device's register if specified, read 1 byte
-         result = i2CReadBytes(i2CAddress, (('\0' != cBuffer[argOffset[3]]) ? i2CRegister : I2C_NO_REG_SPECIFIED), i2CValue, 1);
+         result = readBytesFromi2C(i2CAddress, (('\0' != cBuffer[argOffset[3]]) ? i2CRegister : I2C_NO_REG_SPECIFIED), i2CValue, 1);
          result = bitRead(i2CValue[0], i2COption);
       }
       break;
@@ -1105,7 +1105,7 @@ uint8_t executeCommand()
       /=/  DS18x20.temperature[pin, resolution, id]
       /*/
       if (isSafePin(arg[0])) {
-         result = DS18X20Read(arg[0], arg[1], &cBuffer[argOffset[2]], cBuffer);
+         result = getDS18X20Metric(arg[0], arg[1], &cBuffer[argOffset[2]], cBuffer);
       }
       break;
 #endif // FEATURE_DS18X20_ENABLE
@@ -1116,7 +1116,7 @@ uint8_t executeCommand()
       /=/  DHT.humidity[pin, model]
       /*/
       if (isSafePin(arg[0])) {
-        result = DHTRead(arg[0], arg[1], SENS_READ_HUMD, cBuffer);
+        result = getDHTMetric(arg[0], arg[1], SENS_READ_HUMD, cBuffer);
       }
       break;
 
@@ -1125,7 +1125,7 @@ uint8_t executeCommand()
       /=/  DHT.temperature[pin, model]
       /*/
       if (isSafePin(arg[0])) {
-        result = DHTRead(arg[0], arg[1], SENS_READ_TEMP, cBuffer);
+        result = getDHTMetric(arg[0], arg[1], SENS_READ_TEMP, cBuffer);
       }
       break;
    
@@ -1139,7 +1139,7 @@ uint8_t executeCommand()
       /*/
       if (isSafePin(arg[0]) && isSafePin(arg[1])) {
           // (uint8_t) arg[2] is i2c address, 7 bytes size
-         result = BMPRead(arg[0], arg[1], i2CAddress, arg[3], arg[4], SENS_READ_PRSS, cBuffer);
+         result = getBMPMetric(arg[0], arg[1], i2CAddress, arg[3], arg[4], SENS_READ_PRSS, cBuffer);
       }
       break;
 
@@ -1149,7 +1149,7 @@ uint8_t executeCommand()
       /*/
       if (isSafePin(arg[0]) && isSafePin(arg[1])) {
          // (uint8_t) arg[2] is i2c address, 7 bytes size
-         result = BMPRead(arg[0], arg[1], i2CAddress, arg[3], arg[4], SENS_READ_TEMP, cBuffer);
+         result = getBMPMetric(arg[0], arg[1], i2CAddress, arg[3], arg[4], SENS_READ_TEMP, cBuffer);
       }
       break;
 
@@ -1161,7 +1161,7 @@ uint8_t executeCommand()
       /*/
       if (isSafePin(arg[0]) && isSafePin(arg[1])) {
           // (uint8_t) arg[2] is i2c address, 7 bytes size
-         result = BMPRead(arg[0], arg[1], i2CAddress, arg[3], arg[4], SENS_READ_HUMD, cBuffer);
+         result = getBMPMetric(arg[0], arg[1], i2CAddress, arg[3], arg[4], SENS_READ_HUMD, cBuffer);
       }
       break;      
 #endif // SUPPORT_BME280_INCLUDE 
@@ -1176,7 +1176,7 @@ uint8_t executeCommand()
       /*/
       if (isSafePin(arg[0]) && isSafePin(arg[1])) {
          // (uint8_t) arg[2] is i2c address, 7 bytes size
-         result = BH1750Read(arg[0], arg[1], i2CAddress, arg[3], SENS_READ_LUX, cBuffer);
+         result = getBH1750Metric(arg[0], arg[1], i2CAddress, arg[3], SENS_READ_LUX, cBuffer);
       }
       break;
 #endif // FEATURE_BH1750_ENABLE
@@ -1187,7 +1187,7 @@ uint8_t executeCommand()
       /=/  MAX7219.write[dataPin, clockPin, loadPin, intensity, value]
       /*/
       if (isSafePin(arg[0]) && isSafePin(arg[1])  && isSafePin(arg[2])) {
-         max7219DrawOn8x8(arg[0], arg[1], arg[2], arg[3], &cBuffer[argOffset[4]]);
+         drawOnMAX7219Matrix8x8(arg[0], arg[1], arg[2], arg[3], &cBuffer[argOffset[4]]);
          result = RESULT_IS_OK;
       }
       break;
@@ -1199,7 +1199,7 @@ uint8_t executeCommand()
       /=/  PCF8574.LCDPrint[sdaPin, sclPin, i2cAddress, lcdBacklight, lcdType, data]
       /*/
       if (isSafePin(arg[0]) && isSafePin(arg[1])) {
-         result = pcf8574LCDOutput(arg[0], arg[1], i2CAddress, arg[3], arg[4], &cBuffer[argOffset[5]]);
+         result = printToPCF8574LCD(arg[0], arg[1], i2CAddress, arg[3], arg[4], &cBuffer[argOffset[5]]);
       }
       break;
 
@@ -1213,7 +1213,7 @@ uint8_t executeCommand()
       /*/
       if (isSafePin(arg[0]) && isSafePin(arg[1])) {
          // (uint8_t) arg[2] is i2c address, 7 bytes size
-         result = SHT2XRead(arg[0], arg[1], i2CAddress, SENS_READ_HUMD, cBuffer);
+         result = getSHT2XMetric(arg[0], arg[1], i2CAddress, SENS_READ_HUMD, cBuffer);
       }
       break;
 
@@ -1223,7 +1223,7 @@ uint8_t executeCommand()
       /*/
       if (isSafePin(arg[0]) && isSafePin(arg[1])) {
          // (uint8_t) arg[2] is i2c address, 7 bytes size
-         result = SHT2XRead(arg[0], arg[1], i2CAddress, SENS_READ_TEMP, cBuffer);
+         result = getSHT2XMetric(arg[0], arg[1], i2CAddress, SENS_READ_TEMP, cBuffer);
       }
       break;
 #endif // FEATURE_SHT2X_ENABLE  
@@ -1250,7 +1250,7 @@ uint8_t executeCommand()
          if ('\0' != cBuffer[argOffset[1]]) {
            arg[1] = DEFAULT;
          }
-         result = ACS7XXCurrent(arg[0], arg[1], SENS_READ_ZC, 0, 0, cBuffer);
+         result = getACS7XXMetric(arg[0], arg[1], SENS_READ_ZC, 0, 0, cBuffer);
       }
       break;
 
@@ -1263,7 +1263,7 @@ uint8_t executeCommand()
          if ('\0' != cBuffer[argOffset[1]]) {
            arg[1] = DEFAULT;
          }
-         result = ACS7XXCurrent(arg[0], arg[1], SENS_READ_AC, arg[2], (int32_t) arg[3], cBuffer);
+         result = getACS7XXMetric(arg[0], arg[1], SENS_READ_AC, arg[2], (int32_t) arg[3], cBuffer);
       }
       break;
 
@@ -1276,7 +1276,7 @@ uint8_t executeCommand()
          if ('\0' != cBuffer[argOffset[1]]) {
            arg[1] = DEFAULT;
          }
-         result = ACS7XXCurrent(arg[0], arg[1], SENS_READ_DC, arg[2], (int32_t) arg[3], cBuffer);
+         result = getACS7XXMetric(arg[0], arg[1], SENS_READ_DC, arg[2], (int32_t) arg[3], cBuffer);
       }
       break;
 
@@ -1289,7 +1289,7 @@ uint8_t executeCommand()
       /=/  ultrasonic.distance[triggerPin, echoPin]
       /*/
       if (isSafePin(arg[0]) & isSafePin(arg[1])) {
-         result = ultrasonicDistance(arg[0], arg[1]);
+         result = getUltrasonicMetric(arg[0], arg[1]);
       }
       break;
 #endif // FEATURE_ULTRASONIC_ENABLE
@@ -1305,7 +1305,7 @@ uint8_t executeCommand()
       if (isSafePin(arg[0]) && TIMER2B == digitalPinToTimer(arg[0])) {
          // irPWMPin - global wariable that replace IRremote's TIMER_PWM_PIN
          irPWMPin = arg[0];
-         result = irSend(arg[1], arg[2], arg[3], arg[4], arg[5]);
+         result = sendCommandByIR(arg[1], arg[2], arg[3], arg[4], arg[5]);
          result = (result) ? RESULT_IS_OK : RESULT_IS_FAIL;
       }
       break;
@@ -1320,7 +1320,7 @@ uint8_t executeCommand()
       if (isSafePin(arg[0]) && TIMER2B == digitalPinToTimer(arg[0])) {
          // irPWMPin - global wariable that replace IRremote's TIMER_PWM_PIN
          irPWMPin = arg[0];
-         result = irSendRaw(arg[1], arg[2], &cBuffer[argOffset[3]]);
+         result = sendRawByIR(arg[1], arg[2], &cBuffer[argOffset[3]]);
          result = (result) ? RESULT_IS_OK : RESULT_IS_FAIL;
       }
       break;

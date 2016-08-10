@@ -4,7 +4,7 @@
 *  Can get HEX-string as the data to shift out
 *
 **************************************************************************************************************************** */
-void advShiftOut(const uint8_t _dataPin, const uint8_t _clockPin, const uint8_t _bitOrder, char* _dataBuffer)
+void shiftOutAdvanced(const uint8_t _dataPin, const uint8_t _clockPin, const uint8_t _bitOrder, char* _dataBuffer)
 {
   uint16_t len = 0;
   uint8_t dataPinBit, clockPinBit;

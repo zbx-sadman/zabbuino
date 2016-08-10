@@ -3,12 +3,12 @@
 *   Set default values of network configuration
 *
 **************************************************************************************************************************** */
-void setDefaults(netconfig_t& _configStruct)
+void setConfigDefaults(netconfig_t& _configStruct)
 {
   char hostname[] = ZBX_AGENT_DEFAULT_HOSTNAME;  
   //  memcpy(_configStruct.hostname, hostname, ZBX_AGENT_HOSTNAME_MAXLEN-1);
   //_configStruct.hostname[ZBX_AGENT_HOSTNAME_MAXLEN]='\0';
-  sethostname(_configStruct.hostname, hostname);
+  setHostname(_configStruct.hostname, hostname);
   uint8_t mac[] = NET_DEFAULT_MAC_ADDRESS;
   memcpy(_configStruct.macAddress, mac, sizeof(netConfig.macAddress));
   _configStruct.useDHCP = NET_DEFAULT_USE_DHCP;
@@ -22,7 +22,7 @@ void setDefaults(netconfig_t& _configStruct)
 }
 
 
-void sethostname(char* _dest, const char* _src){
+void setHostname(char* _dest, const char* _src){
    strncpy(_dest, _src, ZBX_AGENT_HOSTNAME_MAXLEN-1);
    _dest[ZBX_AGENT_HOSTNAME_MAXLEN]='\0';
 //   return _dest;

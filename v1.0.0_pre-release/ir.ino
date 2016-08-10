@@ -1,6 +1,6 @@
 /*
 
-Original code on: https://github.com/z3t0/Arduino-IRremote
+Based on: https://github.com/z3t0/Arduino-IRremote
 version 2.2.1 is used
 
 */
@@ -58,7 +58,7 @@ version 2.2.1 is used
 
 
 //  ir.send[pwmPin, irPacketType, data, nbits, repeat, address]
-uint8_t irSend(const uint8_t _irPacketType, const uint8_t _nbits, const uint32_t _data, const uint8_t _repeat, const uint32_t _address)
+uint8_t sendCommandByIR(const uint8_t _irPacketType, const uint8_t _nbits, const uint32_t _data, const uint8_t _repeat, const uint32_t _address)
 {
 /*
 //void  sendJVC (unsigned long data,  int nbits,  bool repeat)
@@ -131,7 +131,7 @@ uint8_t irSend(const uint8_t _irPacketType, const uint8_t _nbits, const uint32_t
 }
 
 #ifdef FEATURE_IR_ENABLE
-uint8_t irSendRaw (const uint16_t _frequency, unsigned int _nBits, const char* _data)
+uint8_t sendRawByIR(const uint16_t _frequency, unsigned int _nBits, const char* _data)
 {
    uint16_t i=0, packet;
 

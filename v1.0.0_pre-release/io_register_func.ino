@@ -28,7 +28,7 @@ void setPortMode(const uint8_t _port, const uint8_t _mode, const uint8_t _pullup
 *   Write to I/O port
 *
 **************************************************************************************************************************** */
-void portWrite(const uint8_t _port, const uint8_t _value)
+void writeToPort(const uint8_t _port, const uint8_t _value)
 {
   volatile uint8_t *portRegister;
   uint8_t oldSREG;

@@ -1,16 +1,14 @@
-// Based on:
-//          Ultrasonic - Library for HR-SC04 Ultrasonic Ranging Module.
-//          GitHub: https://github.com/JRodrigoTech/Ultrasonic-HC-SR04
+// Based on: https://github.com/JRodrigoTech/Ultrasonic-HC-SR04
 
 
-uint32_t ultrasonicDistance(const uint8_t _triggerPin, const uint8_t _echoPin)
+uint32_t getUltrasonicMetric(const uint8_t _triggerPin, const uint8_t _echoPin)
 {
   uint32_t result;
   // timeout in microseconds. 38000 * 10 / 58 => 6551. It is out of distance range (too close or too far).
   uint16_t timeOut =  38000;  
 
   // Between pings must be silence period for 50ms or more
-  // delay(50);
+  // delay(50); // Zabbuino will execute command more that 50ms (~300ms on ATMega328P), lets save some progspace
   pinMode(_triggerPin, OUTPUT);
   pinMode(_echoPin, INPUT);
   
