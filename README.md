@@ -8,7 +8,7 @@ Actual release is v1.0.0.
 Implemented:
 - A few Zabbix agent commands;
 - Wraps a lot of Arduino Language functions;
-- Onewire and I2C bus scaning to detect sensors ID or adresses;
+- OneWire and I2C bus scaning to detect sensors ID or adresses;
 - Network DHCP and static IP support;
 - Remote configuring & rebooting, system protection;
 - Storing system setting in EEPROM;
@@ -29,7 +29,9 @@ Implemented:
 - Support simple I2C devices (expanders, digital linear potentiometers, etc.);
 - Support One- or Two- (and maybe Four-) lines LCD Character displays with PC8574 I2C expander;
 - Support any actuators or indicators via `digitalwrite` command;
-- Support WS2801 Led stripe and any indicators on shift registers via extended `shiftout` command.
+- Support WS2801 Led stripe and any indicators on shift registers via extended `shiftout` command;
+- Simulate varuious vendor's IR transmitters.
+
 
 Minimum requirements: 
 - ENC28J60 / W5100 Ethernet Module with ATMega 328.
