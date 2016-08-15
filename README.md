@@ -34,7 +34,7 @@ Implemented:
 
 
 Minimum requirements: 
-- ENC28J60 / W5100 Ethernet Module with ATMega 328.
+- Arduino board with ATMega328 & ENC28J60 / W5100 Ethernet Module.
 
 Manuals:
 - In [Russian](https://github.com/zbx-sadman/zabbuino/wiki/Zabbuino-in-Russian);
