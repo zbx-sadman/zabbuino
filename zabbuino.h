@@ -13,85 +13,177 @@
 
 */
 
-/****       Network      ****/
+/****       Network              ****/
 
-// Uncomment to use DHCP address obtaining
+
+/*/ 
+/=/      Obtain an IP-address using DHCP
+/*/
+
 //#define FEATURE_NET_DHCP_ENABLE
 
-// Uncomment to force using DHCP even netConfig.useDHCP = false
+/*/ 
+/=/      Force obtain IP-address using DHCP even netConfig.useDHCP = false
+/*/
 //#define FEATURE_NET_DHCP_FORCE
 
-/****       Arduino      ****/
-
-// Uncomment to enable Arduino's tone[], noTone[] commands
+/****       Arduino wrappers     ****/
+  
+/*/ 
+/=/      Enable commands:
+/=/        - Tone[];
+/=/        - NoTone[]
+/*/
 //#define FEATURE_TONE_ENABLE
 
-// Uncomment to enable Arduino's randomSeed, random[] commands
+
+/*/ 
+/=/      Enable commands:
+/=/        - RandomSeed[]; 
+/=/        - Random[]
+/*/
 //#define FEATURE_RANDOM_ENABLE
 
-// Uncomment to enable shiftOut[] command
-//#define FEATURE_SHIFTOUT_ENABLE
+/*/ 
+/=/      Enable command:
+/=/        - ShiftOut[]
+/*/
+#define FEATURE_SHIFTOUT_ENABLE
 
-/****    Other   ****/
+/****       Interrupts related   ****/
 
-// Uncomment to enable external interrupts handling: interrupt.*[] commands
+/*/ 
+/=/      Enable external interrupts handling and commands:
+/=/        - ExtInt.Count[]
+/*/
 #define FEATURE_EXTERNAL_INTERRUPT_ENABLE
 
-// Uncomment to enable encoder handling with external interrupts: encoder.*[] commands
-//#define FEATURE_ENCODER_ENABLE
+/* 
+/=/     Handle incremental encoder that connected to interrupt-pin and enable command:
+/=/     - IncEnc.Count[]
+/*/
+//#define FEATURE_INCREMENTAL_ENCODER_ENABLE
 
 /****      1-Wire bus      ****/
 
-// Uncomment to enable 1-Wire common functions: OW.Scan[]
-//#define FEATURE_OW_ENABLE
+/*/ 
+/=/     Enable 1-Wire processing and command:
+/=/       - OW.Scan[]
+/*/
+#define FEATURE_OW_ENABLE
 
-// Uncomment to enable Dallas DS18x20 family functions: DS18x20.*[] commands
-//#define FEATURE_DS18X20_ENABLE
+/*/ 
+/=/     Enable Dallas DS18x20 sensors handling and command:
+/=/       - DS18x20.Temperature[]
+/*/
+#define FEATURE_DS18X20_ENABLE
 
-/****        I2C bus       ****/
+/****       I2C bus        ****/
 
 // Note #1: I2C library (Wire.h) takes at least 32bytes of memory for internal buffers
 // Note #2: I2C library (Wire.h) activate internal pullups for SDA & SCL pins when Wire.begin() called
 
-// Uncomment to enable I2C commands: I2C.Scan[], I2C.Read[], I2C.Write[], I2C.BitRead[], I2C.BitWrite[]
-//#define FEATURE_I2C_ENABLE
+/*/ 
+/=/     Enable I2C processing and commands:
+/=/       - I2C.Scan[];
+/=/       - I2C.Write[];
+/=/       - I2C.Read[];
+/=/       - I2C.BitWrite[];
+/=/       - I2C.BitRead[]
+/*/
+#define FEATURE_I2C_ENABLE
 
-// Uncomment to enable BMP pressure sensors functions: BMP.*[] commands
+/*/ 
+/=/     Enable BOSCH BMP sensors handling and commands:
+/=/       - BMP.Pressure[];
+/=/       - BMP.Temperature[]
+/=/ 
+/=/     Note: See below to specify BMP model
+/=/
+/*/
 #define FEATURE_BMP_ENABLE
+
+/*/ 
+/=/     BMP180 / BMP085
+/*/
 #define SUPPORT_BMP180_INCLUDE
+
+/*/ 
+/=/     BMP280
+/*/
 //#define SUPPORT_BMP280_INCLUDE
-// BME280 is BMP280+Humidity sensor. If you want to get all, uncomment SUPPORT_BMP280_INCLUDE too
+
+/*/ 
+/=/     BME280 and enable command:
+/=/       - BME.Humidity[]
+/=/
+/=/     Note: BME280 is BMP280+Humidity sensor. If you want to get all, uncomment SUPPORT_BMP280_INCLUDE too.
+/*/
 //#define SUPPORT_BME280_INCLUDE
 
-// Uncomment to enable BH1750 light sensors functions: BH1750.*[] commands
+/*/ 
+/=/     Enable ROHM BH1750 ambient light sensor handling and command:
+/=/       - BH1750.Light[]
+/=/ 
+/*/
 //#define FEATURE_BH1750_ENABLE
 
-// LCD connected via PCF8574 I2C expander enable
+/*/ 
+/=/     Enable LCD that connected via PCF8574(A)-based I2C expander and command:
+/=/       - PCF8574.LCDPrint[]
+/=/ 
+/*/
 //#define FEATURE_PCF8574_LCD_ENABLE
 
-//
+/*/ 
+/=/     Enable Sensirion SHT2x sensors handling and commands:
+/=/       - SHT2x.Humidity[];
+/=/       - SHT2x.Temperature[]
+/*/
 //#define FEATURE_SHT2X_ENABLE
 
-/****        MicroWire bus       ****/
+/****       MicroWire bus       ****/
+/*/ 
+/=/     Enable MAX7219 with 8x8 LED matrix handling and command:
+/=/       - MAX7219.Write[]
+/=/
+/*/
+// #define FEATURE_MAX7219_ENABLE
 
-// Uncomment to enable MAX7219 8x8 led matrix functions: MAX7219.*[] commands
-#define FEATURE_MAX7219_ENABLE
+/****       DHT/AM family    ****/
 
-/****    DHT/AM family    ****/
-
-// Uncomment to enable DHT/AM humidity sensors functions: DHT.*[] commands
+/*/
+/=/     Enable DHT/AM humidity sensors handling and commands:
+/=/       - DHT.Humidity[];
+/=/       - DHT.Temperature[]
+/*/
 #define FEATURE_DHT_ENABLE
 
-/****    Ultrasonic    ****/
+/****       Ultrasonic    ****/
 
-// HC-SR04 sensor
+/*/ 
+/=/     Enable HC-SR04 sensor and command:
+/=/       - Ultrasonic.Distance[];
+/*/
 //#define FEATURE_ULTRASONIC_ENABLE
 
-/****    ACS7XX family    ****/
+/****       ACS7XX family    ****/
 
+/*/
+/=/     Enable Allegro ACS7XX current sensor and commands:
+/=/       - ACS7XX.ZC[];
+/=/       - ACS7XX.AC[]
+/*/
 //#define FEATURE_ACS7XX_ENABLE
 
-// InfraRed transmitters emulator enable: ir.*[] commands
+/****       InfraRed transmitters emulation    ****/
+/*/ 
+/=/     Enable commands:
+/=/       - IR.Send[];
+/=/       - IR.SendRAW[]
+/=/
+/=/     Note: See below to include special signal types supporting
+/*/
 //#define FEATURE_IR_ENABLE
 //#define SUPPORT_IR_RC5
 //#define SUPPORT_IR_RC6
@@ -104,36 +196,56 @@
 //#define SUPPORT_IR_SHARP
 //#define SUPPORT_IR_DENON
 
-/****      System        ****/
+/****       System        ****/
 
-// Uncomment to enable AVR watchdog
-//                                                                     !!! BEWARE !!!
-//                                                     NOT ALL BOOTLOADERS HANDLE WATCHDOG PROPERLY 
-//                                                    http://forum.arduino.cc/index.php?topic=157406.0 
-// 
-// Note: OptiBoot is watchdog compatible and use less flash space that stock bootloader.
-// Note: watchdog timeout may be vary for many controllers, see comments to macro WTD_TIMEOUT in zabbuino.h
+/*/ 
+/=/     Enable AVR watchdog
+/=/     !!! BEWARE !!!
+/=/     NOT ALL BOOTLOADERS HANDLE WATCHDOG PROPERLY: http://forum.arduino.cc/index.php?topic=157406.0 
+/=/ 
+/=/     Note: OptiBoot is watchdog compatible and use less flash space that stock bootloader.
+/=/     Note: watchdog timeout may be vary for many controllers, see comments to macro WTD_TIMEOUT in zabbuino.h
+/=/
+/*/
 //#define FEATURE_WATCHDOG_ENABLE
 
-// Uncomment ***only*** if you know all about AREF pin using ***risks***
+
+/*/
+/=/     Use analogReference() function in analogread[] and acs7xx.*[] commands
+/=/
+/=/     Uncomment ***only*** if you know all about AREF pin using ***risks***
+/*/
 // // // // #define FEATURE_AREF_ENABLE
 
-// Uncomment to be able to store runtime settings in EEPROM and use its on start
+/*/
+/=/     Store runtime settings in EEPROM and use its on start
+/*/
 #define FEATURE_EEPROM_ENABLE
 
-// debug only option, must be removed on releasing 
-#define FEATURE_EEPROM_SET_COMMANDS_ENABLE
-
-// Uncomment to force protect (enable even netConfig.useProtection is true) your system from illegal access for change runtime settings and reboots 
+/*/
+/=/     Force protect (enable even netConfig.useProtection is false) your system from illegal access for change runtime settings and reboots 
+/*/
 //#define FEATURE_PASSWORD_PROTECTION_FORCE
 
-// Uncomment to enable system's command which can be used in system debug process: sys.cmd.count, sys.ram.free and so
+/*/
+/=/     Enable system's command which can be used in system debug process:
+/=/       - Sys.MCU.Name[];
+/=/       - Sys.Net.Module[];
+/=/       - Sys.Cmd.Count[];
+/=/       - Sys.Cmd.TimeMax[];
+/=/       - Sys.RAM.Free[];
+/=/       - Sys.RAM.FreeMin[]
+/*/
 #define FEATURE_DEBUG_COMMANDS_ENABLE
 
-// Uncomment to view the debug messages on the Serial Monitor
-//#define FEATURE_DEBUG_TO_SERIAL
+/*/
+/=/     View the debug messages on the Serial Monitor
+/*/
+#define FEATURE_DEBUG_TO_SERIAL
 
-// Uncomment to enable using time+interrupt for internal metric gathering
+/*/
+/=/     Use interrupt on Timer1 for internal metric gathering
+/*/
 #define GATHER_METRIC_USING_TIMER_INTERRUPT
 
 
@@ -165,7 +277,7 @@
 #define NET_DEFAULT_USE_DHCP        	                        false
 #define NET_DEFAULT_MAC_ADDRESS     	                        {0xDE,0xAD,0xBE,0xEF,0xFE,0xF4}
 
-#ifdef USE_NETWORK_192_168_0_1
+#ifdef USE_NETWORK_192_168_0_0
   #define NET_DEFAULT_IP_ADDRESS      	                      {192,168,0,228}
   #define NET_DEFAULT_GATEWAY         	                      {192,168,0,1}
 #else
@@ -655,7 +767,7 @@ const char* const commands[] PROGMEM = {
   command_CMD_ZBX_NOPE,
 #endif
 
-#ifdef FEATURE_ENCODER_ENABLE
+#ifdef FEATURE_INCREMENTAL_ENCODER_ENABLE
   command_CMD_ENCODER_COUNT,
 #else
   command_CMD_ZBX_NOPE,

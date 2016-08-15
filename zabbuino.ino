@@ -1,7 +1,8 @@
-// My Freeduino is not listed, but is analogue to ARDUINO_AVR_DUEMILANOVE
-#define ARDUINO_AVR_DUEMILANOVE
+// My Freeduino is not listed in platforms.h, but is analogue to ARDUINO_AVR_DUEMILANOVE
+//#define ARDUINO_AVR_DUEMILANOVE
+
 // Just for compilation with various default network configs
-#define USE_NETWORK_192_168_0_1
+//#define USE_NETWORK_192_168_0_0
 
 /* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
                                                              !!! WizNet W5xxx users !!!
@@ -9,8 +10,8 @@
     1. Comment #include <UIPEthernet.h>
     2. Uncomment #include <Ethernet.h> and <SPI.h> headers
 */
-//#include <Ethernet.h>
-//#include <SPI.h>
+#include <Ethernet.h>
+#include <SPI.h>
 
 /* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
                                                                 !!! ENC28J60 users !!!
@@ -34,7 +35,7 @@
              ...
 
 */
-#include <UIPEthernet.h>
+//#include <UIPEthernet.h>
 //#define USE_DIRTY_HACK_AND_REBOOT_ENC28J60_IF_ITS_SEEMS_FREEZE
 
 
@@ -67,7 +68,7 @@
 */
 
 netconfig_t netConfig;
-#if defined(FEATURE_EXTERNAL_INTERRUPT_ENABLE) || defined(FEATURE_ENCODER_ENABLE)
+#if defined(FEATURE_EXTERNAL_INTERRUPT_ENABLE) || defined(FEATURE_INCREMENTAL_ENCODER_ENABLE)
 // need to #include <wiring_private.h> for compilation
 volatile extInterrupt_t extInterrupt[EXTERNAL_NUM_INTERRUPTS];
 #endif
@@ -220,7 +221,7 @@ void setup() {
     setPortMode(i, port_mode[i], port_pullup[i]);
   }
 
-#if defined(FEATURE_EXTERNAL_INTERRUPT_ENABLE) || defined(FEATURE_ENCODER_ENABLE)
+#if defined(FEATURE_EXTERNAL_INTERRUPT_ENABLE) || defined(FEATURE_INCREMENTAL_ENCODER_ENABLE)
   // Init external interrupts info structure
   for (i = 0; i < EXTERNAL_NUM_INTERRUPTS; i++) { 
     // -1 - interrupt is detached
@@ -355,7 +356,7 @@ void loop() {
              uint8_t cmdIdx = executeCommand();
              processEndTime = millis();
              // use processEndTime as processDurationTime
-             processEndTime = (processStartTime <= processEndTime) ? (processEndTime - processStartTime) : (4294967295UL - processStartTime + processEndTime);
+             processEndTime = processStartTime;
              if (sysMetrics[IDX_METRIC_SYS_CMD_TIMEMAX] < processEndTime){
                 sysMetrics[IDX_METRIC_SYS_CMD_TIMEMAX] = processEndTime;
                 sysMetrics[IDX_METRIC_SYS_CMD_TIMEMAX_N] = cmdIdx;
@@ -393,23 +394,16 @@ uint8_t analyzeStream(char charFromClient) {
 
   // If there is not room in buffer - simulate EOL recieving
   if (BUFFER_SIZE <= bufferWritePosition ) { charFromClient = '\n'; 
-//     Serial.println("End of buffer reached, stop analyzing");
   }
   
   // Put next char to buffer
-//  Serial.print("[");  Serial.print(bufferWritePosition);  Serial.print("] ");  
-//   if (charFromClient > 32) { Serial.print(charFromClient); } else {Serial.print(" ");}
-//  Serial.print(" => "); Serial.print(charFromClient, HEX); Serial.print(" = tolower => "); 
   cBuffer[bufferWritePosition] = tolower(charFromClient); 
-//  if (cBuffer[bufferWritePosition] > 32) { Serial.print(cBuffer[bufferWritePosition]); } else {Serial.print(" ");}
-//  Serial.print(" => "); Serial.println(cBuffer[bufferWritePosition], HEX);
   
   // When ZBX_HEADER_PREFIX_LENGTH chars is saved to buffer - test its for Zabbix2 protocol header prefix ("ZBXD\01") presence
   if (ZBX_HEADER_PREFIX_LENGTH == bufferWritePosition) {
      if (0 == memcmp(&cBuffer, ZBX_HEADER_PREFIX, ZBX_HEADER_PREFIX_LENGTH)) {
         // If packet have prefix - set 'skip whole header' flag
         needSkipZabbix2Header = true;
-//        Serial.println("Header detected, skipping it");
      }
   }
 
@@ -419,7 +413,6 @@ uint8_t analyzeStream(char charFromClient) {
      bufferWritePosition = 0;
      needSkipZabbix2Header = false;
      // Return 'Need next char' and save a lot cpu time 
- //    Serial.println("Header skipped");
      return true;
   }
 
@@ -430,19 +423,15 @@ uint8_t analyzeStream(char charFromClient) {
         case 0x20:
           // Space or final square bracket found. Do nothing and next char will be written to same position. 
           // Return 'Need next char'
-//          Serial.println("Skip ' ' or ']'");
           return true;
         case '[':
         case ',':
-//          Serial.println("Delimiter or separator found, processing");
           // Delimiter or separator found. Push begin of next argument (bufferWritePosition+1) on buffer to arguments offset array. 
           argOffset[argIndex] = bufferWritePosition+1; argIndex++; 
           // Make current buffer segment like C-string
           cBuffer[bufferWritePosition] = '\0'; 
           break;
         case '\n':
-//Serial.println();  
-//           Serial.println("EOL detected");
           // EOL detected
           // Save last argIndex that pointed to <null> item. All unused argOffset[] items must be pointed to this <null> item too.
           cBuffer[bufferWritePosition] = '\0'; 
@@ -667,8 +656,6 @@ uint8_t executeCommand()
 
 
 #ifdef FEATURE_EEPROM_ENABLE
-// TODO: remove on release
-#ifdef FEATURE_EEPROM_SET_COMMANDS_ENABLE
     case CMD_SET_HOSTNAME:
       /*/
       /=/  set.hostname[password, hostname]
@@ -751,7 +738,6 @@ uint8_t executeCommand()
        }
        break;
 #endif // FEATURE_EEPROM_ENABLE
-#endif // 
 
     case CMD_SYS_PORTWRITE:
       /*/
@@ -961,7 +947,7 @@ uint8_t executeCommand()
        break;
 #endif // FEATURE_EXTERNAL_INTERRUPT_ENABLE
 
-#ifdef FEATURE_ENCODER_ENABLE
+#ifdef FEATURE_INCREMENTAL_ENCODER_ENABLE
     case CMD_ENCODER_COUNT:
       /*/
       /=/  incEnc.count[terminalAPin, terminalBPin, intNumber, initialValue]
@@ -1006,7 +992,7 @@ uint8_t executeCommand()
          } // if (EXTERNAL_NUM_INTERRUPTS > interruptNumber)
        } // ((isSafePin(arg[0]) && isSafePin(arg[1]))
        break;
-#endif // FEATURE_ENCODER_ENABLE
+#endif // FEATURE_INCREMENTAL_ENCODER_ENABLE
      
 
 

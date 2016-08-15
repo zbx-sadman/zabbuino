@@ -46,7 +46,7 @@ void handleINT1() { extInterrupt[INT1].count++; }
                                                                  ENCODER INTERRUPTS HANDLING SECTION
 */
 
-#ifdef FEATURE_ENCODER_ENABLE
+#ifdef FEATURE_INCREMENTAL_ENCODER_ENABLE
 void handleINT0ForEncoder() {
   volatile static uint8_t   stateTerminalA = 0, statePrevTerminalA = 0, stateTerminalB = 0;
   // Wait some time to mechanical encoder debounce
@@ -79,5 +79,5 @@ void handleINT1ForEncoder() {
   statePrevTerminalA = stateTerminalA;   
 }
 
-#endif // FEATURE_ENCODER_ENABLE
+#endif // FEATURE_INCREMENTAL_ENCODER_ENABLE
 
