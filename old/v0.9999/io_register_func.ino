@@ -1,9 +1,10 @@
+
 /* ****************************************************************************************************************************
 *
-*   Set I/O port mode
+*   Функция установки режима порта ввода/вывода.
 *
 **************************************************************************************************************************** */
-void setPortMode(const uint8_t _port, const uint8_t _mode, const uint8_t _pullup)
+void setPortMode(uint8_t _port, uint8_t _mode, uint8_t _pullup)
 {
   volatile uint8_t *modeRegister, *pullUpRegister;
   uint8_t oldSREG;
@@ -14,8 +15,7 @@ void setPortMode(const uint8_t _port, const uint8_t _mode, const uint8_t _pullup
   modeRegister = portModeRegister(_port);
 
   if (modeRegister == NOT_A_PORT) return;
-  // Port write transaction:
-  // Save SREG => disable interrupts => write to port => SREG restore.
+  // Сохранение значение регистра SREG / запрет прерываний / совершение записи / восстановление регистра SREG.
   oldSREG = SREG;
   cli();
   *modeRegister |= _mode;
@@ -23,23 +23,21 @@ void setPortMode(const uint8_t _port, const uint8_t _mode, const uint8_t _pullup
   SREG = oldSREG;
 }
 
-/* ****************************************************************************************************************************
-*
-*   Write to I/O port
-*
-**************************************************************************************************************************** */
-void writeToPort(const uint8_t _port, const uint8_t _value)
+/*
+  Функция записи в порта ввода/вывода.
+*/
+void portWrite(uint8_t _port, uint8_t _value)
 {
   volatile uint8_t *portRegister;
   uint8_t oldSREG;
 
   portRegister = portOutputRegister(_port);
   if (portRegister == NOT_A_PORT) return;
-  // Port write transaction:
-  // Save SREG => disable interrupts => write to port => SREG restore.
+  // Атомарная запись в порт.
+  // Сохранение значение регистра SREG / запрет прерываний / совершение записи / восстановление регистра SREG.
   oldSREG = SREG;
   cli();
-  // Use protection mask when write to port
+  // Запись значения в порт с применением защитной маски.
   *portRegister = (*portRegister & port_protect[_port]) | (_value & ~port_protect[_port]);
   SREG = oldSREG;
 }
@@ -47,15 +45,15 @@ void writeToPort(const uint8_t _port, const uint8_t _value)
 
 /* ****************************************************************************************************************************
 *
-*   Pin protection testing. Refer to zabbuino.h -> port_protect[] array
+*   Функция проверки существования защиты пина
 *
 **************************************************************************************************************************** */
-boolean isSafePin(const uint8_t _pin)
+boolean isSafePin(uint8_t _pin)
 {
-  // Pin's correspondent bit place taking 
+  // Определение байта в порте, соотносящегося с заданным пином
   uint8_t result = digitalPinToBitMask(_pin);
   if (result == NOT_A_PIN) return false;
-  // Protection ckecking
+  // Проверка на "защищенность"
   result &= ~port_protect[digitalPinToPort(_pin)];
   // pinmask=B00100000, safemask=B11011100. result = B00100000 & ~B11011100 = B00100000 & B00100011 = B00100000. B00100000 > 0, pin is safe (not protected)
   // pinmask=B00100000, safemask=B11111100. result = B00100000 & ~B11111100 = B00100000 & B00000011 = B00000000. B00000000 == 0, pin is unsafe (protected)

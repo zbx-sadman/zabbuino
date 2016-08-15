@@ -1,14 +1,12 @@
-
 /* ****************************************************************************************************************************
 *
-*  Расширенный аналог Функции shiftOut().
-*  Поддерживает вывод на сдвиговый регистр значения в шестнадцатеричной форме.
-*  Размер шестнадцатеричного числа ограничен размером буфера за вычетом длины остальных аргументов, служебных символов и длины команды.
+*  Advanced shiftOut()
+*  Can get HEX-string as the data to shift out
 *
 **************************************************************************************************************************** */
-void advShiftOut(uint8_t _dataPin, uint8_t _clockPin, uint8_t _bitOrder, char* _dataBuffer)
+void shiftOutAdvanced(const uint8_t _dataPin, const uint8_t _clockPin, const uint8_t _bitOrder, char* _dataBuffer)
 {
-  uint16_t bufferReadPosition;
+  uint16_t len = 0;
   uint8_t dataPinBit, clockPinBit;
   volatile uint8_t *dataPortOutputRegister, *clockPortOutputRegister;
   uint8_t oldSREG;
@@ -25,55 +23,48 @@ void advShiftOut(uint8_t _dataPin, uint8_t _clockPin, uint8_t _bitOrder, char* _
   if (dataPinTimer != NOT_ON_TIMER) turnOffPWM(dataPinTimer);
   */
 
-  // Выводимая величина задана в шестнацатеричном формате?
-  if (_dataBuffer[0] == '0' && _dataBuffer[1] == 'x')
-  {
-    // Выводимое значение содержится в буфере, начиная с позиции 2 (после "0x")
-    bufferReadPosition = 2;
-    // Вывод в порядке "Least Significant Bit First"?
-    if (_bitOrder == LSBFIRST)
-    {
-      // Необходимо найти конец буфера
-      while (_dataBuffer[bufferReadPosition]) {
-        bufferReadPosition++;
+  // Do special procedure if incoming data is the hexadecimal string 
+  if (haveHexPrefix(_dataBuffer)) {
+    // Skip "0x"
+    _dataBuffer += 2; 
+    // "Least Significant Bit First" bit order must be used? 
+    if (_bitOrder == LSBFIRST) {
+       // Walk over buffer to the '\0' - calculate its length
+       while (*_dataBuffer) { len++; _dataBuffer++; }
+       // disable interrupt
+       oldSREG = SREG; cli();
+       // Repeat cycle for a 'len' times - to take all chars by moving pointer to backward
+       while (len--) {
+         _dataBuffer--;
+        // Convert one HEX char to DEC and push that 4 bit to Shift Register 
+         shiftOut4bits(dataPortOutputRegister, dataPinBit, clockPortOutputRegister, clockPinBit, _bitOrder, htod(*_dataBuffer));
       }
-      // Запрещаем прерывая для обеспечения атомарности операций манипуляций с портами
-      oldSREG = SREG;
-      cli();
-      // Движение по данным происходит от конца буфера к началу.
-      for (; bufferReadPosition > 1; bufferReadPosition--)
-      {
-        // Данные выводятся по 4 бита - один шестнадцатеричный символ
-        shiftOut4bits(dataPortOutputRegister, dataPinBit, clockPortOutputRegister, clockPinBit, _bitOrder, htod(_dataBuffer[bufferReadPosition]));
-      }
-      // разрешаем прерывания
-      SREG = oldSREG;
     } else  {
-      // Запрещаем прерывания для обеспечения атомарности операций манипуляций с портами
-      oldSREG = SREG;
-      cli();
-      // Движение по данным происходит от начала буфера к концу.
-      while (_dataBuffer[bufferReadPosition])
-      {
-        // Данные выводятся по 4 бита - один шестнадцатеричный символ
-        shiftOut4bits(dataPortOutputRegister, dataPinBit, clockPortOutputRegister, clockPinBit, _bitOrder, htod(_dataBuffer[bufferReadPosition]));
-        bufferReadPosition++;
+      // "Most Significant Bit First" bit order is used
+      // disable interrupt
+      oldSREG = SREG; cli();
+      // Walk to the buffer end ('\0' char)
+      while (*_dataBuffer) {
+        // Convert one HEX char to DEC and push that 4 bit to Shift Register 
+        shiftOut4bits(dataPortOutputRegister, dataPinBit, clockPortOutputRegister, clockPinBit, _bitOrder, htod(*_dataBuffer));
+        // Move pointer to next char
+        _dataBuffer++;
       }
-      // разрешаем прерывания
-      SREG = oldSREG;
     }
+    // enable interrupts
+    SREG = oldSREG;
   } else {
-    // Выводимая величина задана в десятичном формате. Необходима конвертация и вызов штатной подпрограммы.
+    // Data is not hex-string. Push its to Shift Register as integer
     shiftOut(_dataPin, _clockPin, _bitOrder, atoi(_dataBuffer));
   }
 }
 
 /* ****************************************************************************************************************************
 *
-*  Аналог функции shiftOut, но для вывода 4-х бит (одного шестнацатеричного числа) с помощью манипуляций состоянием портов
+*  Four-bit (one HEX-char) shiftOut(). Use direct port manipulation.
 *
 **************************************************************************************************************************** */
-void  shiftOut4bits(volatile uint8_t *_dataPortOutputRegister, uint8_t _dataPinBit, volatile uint8_t *_clockPortOutputRegister, uint8_t _clockPinBit, uint8_t _bitOrder, uint8_t _val)
+void  shiftOut4bits(volatile uint8_t *_dataPortOutputRegister, const uint8_t _dataPinBit, volatile uint8_t *_clockPortOutputRegister, const uint8_t _clockPinBit, const uint8_t _bitOrder, const uint8_t _val)
 {
   uint8_t i, currBit;
   for (i = 0; i < 4; i++)  {

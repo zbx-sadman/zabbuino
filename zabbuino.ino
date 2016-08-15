@@ -1,732 +1,1362 @@
-/*
- Zabbix Agent для Arduino.
- Поддерживает протокол Zabbix2, Ethernet-модули WizNet и ENC28J60.
- Основан на коде Evgeny Levkov, Schotte Vincent.
- Prigodin Grigory (sadman@sfi.comi.com)
+// My Freeduino is not listed, but is analogue to ARDUINO_AVR_DUEMILANOVE
+#define ARDUINO_AVR_DUEMILANOVE
+// Just for compilation with various default network configs
+#define USE_NETWORK_192_168_0_1
 
-v 0.9999 (20 May 2015)
-         В команде получения температуры с датчика DS18x20 (DS18x20.temperature[]) появилась возможность задавать точность замера через параметр resolution (9-12bit).
-         Достигнуто паспортное значение точности - 1/16 С. Введена функция поиска датчика при при отсутствии заданного идентификатора.
-         Добавлена поддержка датчиков DHT11/DHT21/DHT22/AM2301/AM2302 и аналогичных. Команды: DHT.Temperature[], DHT.Humidity[]. Точность замера паспортная - 0.1 ед.
-         Добавлена поддержка датчиков BMP085/180. Комнды BMP.Temperature[], BMP.Pressure[]. Точность замера паспортная.
+/* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
+                                                             !!! WizNet W5xxx users !!!
 
-v 0.999 (14 May 2015)
-         Введена возможность подключения блоков команд через определение соответствующих макросов
-         Переписаны функции, связанные с командой shiftOut[]. Теперь вывод происходит путем прямого манипулирования портами.
-         Добавлена поддержка цифровых термометров Dallas DS18x20.
-         Реализована установка состояния пина при инициализации микроконтроллера.
-         Испытывалась на Freeduino 2009 (ATmega 328) с Ethernet-модулем W5100.
-         Опытная эксплуатация показала невозможность использования ENC28J60 в долговременной перспективе без применения функций watchdog совместно с бутлоадером optiboot.
+    1. Comment #include <UIPEthernet.h>
+    2. Uncomment #include <Ethernet.h> and <SPI.h> headers
+*/
+//#include <Ethernet.h>
+//#include <SPI.h>
 
- v 0.99 (07 May 2015)
-         Первая публичная версия
-         Испытывалась на Freeduino 2009 (ATmega 168) с Ethernet-модулем W5100 и Deek-Robot Arduino Mini Pro clone (ATmega 328) с Ethernet-модулем ENC28J60
+/* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
+                                                                !!! ENC28J60 users !!!
+
+    0. Please try to use https://github.com/ntruchsess/arduino_uip/tree/fix_errata12 brahch of UIPEthernet if your ENC28J60 freeze or loose connection.
+    
+    1. Comment #include <Ethernet.h> and <SPI.h> headers
+    2. Uncomment #include <UIPEthernet.h> 
+    
+    Tested on UIPEthernet v1.09
+    
+    When UIPEthernet's fix_errata12 brahch did not help to add stability, you can buy W5100 shield.
+    Also u can try uncomment USE_DIRTY_HACK_AND_REBOOT_ENC28J60_IF_ITS_SEEMS_FREEZE declaration (then ENC will be periodically re-intit if EIR.TXERIF and EIR.RXERIF is 1), 
+    but you eed to do one change in UIPEthernet\utility\Enc28J60Network.h :
+         private:
+            ...    
+            static uint8_t readReg(uint8_t address);  // << move its to __public__ section
+            ...
+             
+         public: 
+             ...
+
+*/
+#include <UIPEthernet.h>
+//#define USE_DIRTY_HACK_AND_REBOOT_ENC28J60_IF_ITS_SEEMS_FREEZE
+
+
+/* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
+                                                                 PROGRAMM FEATURES SECTION
+                                                                        MOVED  TO
+                                                                        zabuino.h
+                   
+                Please refer to the zabbuino.h file for enabling or disabling Zabbuino's features  and tuning (like set State LED pin, network addresses, agent hostname and so)
+
+        if connected sensors seems not work - first check setting in port_protect[], port_mode[], port_pullup[] arrays in I/O PORTS SETTING SECTION
+
 */
 
-//#define ENC28J60
 
-// tone[], noTone[]
-#define TONE_COMMANDS_ENABLE
-// randomSeed, random[]
-#define RND_COMMANDS_ENABLE
-// agent.cmdCount, agent.cmdStr, sys.freeRAM
-#define DEBUG_COMMANDS_ENABLE
-// shiftOut[]
-#define SHIFTOUT_COMMANDS_ENABLE
+#include "zabbuino.h"
 
-#define DS18X20_COMMANDS_ENABLE
-#define DHT_COMMANDS_ENABLE
-#define BMP085_COMMANDS_ENABLE
-
-//#define DEBUG_MSG_TO_ETHCLIENT
-
-// Библиотека для модуля ENC28J60
-// Испытано с UIPEthernet version 1.09
-//#include <UIPEthernet.h>
-// Стандартная библиотека Arduino Ethernet для использования с модулями, построенными на базе WizNet W5100
-#include <SPI.h>
-#include <Ethernet.h>
-
-// Wire (I2C) для BMP085/BMP180
+// Wire lib for I2C sensors
 #include <Wire.h>
-// OneWire для DS18x20
+// OneWire lib for Dallas sensors
 #include <OneWire.h>
+#include <EEPROM.h>
+#include <avr/pgmspace.h>
+#include <avr/wdt.h>
+// used by interrupts-related macroses
+#include <wiring_private.h>
 
-#define SENS_READ_TEMP 0x00
-#define SENS_READ_HUMD 0x01
-#define SENS_READ_PRSS 0x02
-
-#define RESULT_IS_FAIL    -0xFFAL
-#define RESULT_IS_OK      -0xFFBL
-#define RESULT_IN_BUFFER  -0xFFCL
-#define RESULT_IS_PRINTED -0xFFDL
-
-// Error Codes
-#define DEVICE_DISCONNECTED_C -127
-#define DEVICE_DISCONNECTED_F -196.6
-#define DEVICE_DISCONNECTED_RAW -7040
-
-
-/*
-  Аналоговые пины (A0..A7) могут быть использованны в некоторых функциях, подразумевающих использование цифровых пинов (D0..Dn).
-  Их номера для определенной платформы содержатся в заголовочном файле ..\hardware\arduino\avr\variants\___платформа___\pins_arduino.h
-  Например, для стандартной Arduino соответствие выглядит как: A0 = 14 .. A7 = 21;
-  Соответственно, вызов функции digitalWrite(A0)можно записать как digitalWrite(14)
+/* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
+                                                                 GLOBAL VARIABLES SECTION
 */
 
-/*
-  Количество портов (не пинов!) ввода/вывода на плате. Порты обозначаются как PORTB, PORTC, PORTD, PORTE...
-  Их число также можно найти в файле ..\hardware\arduino\avr\variants\___платформа___\pins_arduino.h. См. массив array port_to_mode_PGM
-*/
-#define PORTS_NUM 5
+netconfig_t netConfig;
+#if defined(FEATURE_EXTERNAL_INTERRUPT_ENABLE) || defined(FEATURE_ENCODER_ENABLE)
+// need to #include <wiring_private.h> for compilation
+volatile extInterrupt_t extInterrupt[EXTERNAL_NUM_INTERRUPTS];
+#endif
 
-/*
-  Защитные маски портов ввода/вывода.
-  Значение '1' в определенной битовой позиции означает то, что при операциях записи в порт данный бит не будет изменен (находится под защитой). Эта маски
-  также применяются для проверки безопасности при операциях изменения состояния определенного пина. Функция isSafePin() проверяет не установлена ли защита
-  для конкретного пина.
-
-  Вы можете изменять как сами маски, так и их количество. Однако, количество элементов данного массива должно соответствовать параметру PORTS_NUM.
-
-  Например: Необходимо защитить от изменения pin D13, так как он используется библиотекой Ethernet и его изменение извне приведет к некорректной работе
-  сетевого адаптера. В заголовочном файле pins_arduino.h определенном для необходимой платформы находим массив digital_pin_to_bit_mask_PGM. Элемент #13 указывает на
-  связь данного пина с портом B (PORTB) и битом 5. Значит, для защиты данного пина необходимо установить в нижележащем массиве port_protect 5-й символ справа
-  в строке "B..... // PORTB" в значение '1'.
-*/
-
-const byte port_protect[PORTS_NUM] = {
-  B00000000, // not a port
-  B00000000, // not a port
-  // Защита установлена для битов 2, 3, 4, 5 (пины D10, D11, D12, D13), так как они используются SPI (ethernet shield)
-  // и для битов 6, 7 потому что они не используются в Arduino Pro / Freeduino 2009
-  B11111100, // PORTB (D8-D13)
-  B00000000, // PORTC (A0-A7)
-  // Защита установлена для битов 0,1 (пины D0, D1) в связи с тем, что они обслуживают линии RX, TX и нужны для отладки.
-  B00000011  // PORTD (D0-D7)
-};
-
-/*
-   Маски для задания направления ввода/вывода выходов микроконтроллера.
-   Значение '1' в определенной битовой позиции означает то, что при инициализации соответствующий биту пин будет установлен в состояние OUTPUT.
-   В противном случае он будет оставлен с состоянии по умолчанию для платформы, на которой выполняется программный код.
-
-   Вы можете изменять как сами маски, так и их количество. Однако, количество элементов данного массива должно соответствовать параметру PORTS_NUM.
-
-   Например: Необходимо при инициализации установить пин D8 в режим OUTPUT, а пин D9 оставить в состоянии по умолчанию - INPUT.
-   В заголовочном файле pins_arduino.h определенном для необходимой платформы находим массив digital_pin_to_bit_mask_PGM. Элемент #8 связан с битом 0 порта B,
-   а элемент #9 с битом 1 того же порта. Значит, для правильной инициализации следует установить в нижележащем массиве port_mode 0-й символ справа
-   в строке "B..... // PORTB" в значение '1', а 1-й символ справа в значение '0'
-
-   Будьте внимательны и осторожны. Установка пина в состояние INPUT увеличивает при неаккуратном обращении с устройством вероятность вывода из строя
-   соответствующего вывода микроконтроллера.
-*/
-
-const byte port_mode[PORTS_NUM] = {
-  B00000000, // not a port
-  B00000000, // not a port
-  // Все пины установлены в режим OUTPUT (см. так же описание массива port_protect[..])
-  B11111111, // PORTB (D8-D13)
-  B11111110, // PORTC (A0-A7)
-  B11111111  // PORTD (D0-D7)
-};
-
-/*
-  Маски для установки состояния выходов микроконтроллера.
-  Значение '1' в определенной битовой позиции задает высокое состояние пина при инициализации (см. описание функции Arduino pinMode()). Если маской port_mode
-  соответствующий пин определен, как OUTPUT, то его итоговое состояние станет OUTPUT+HIGH. В случае с определением пина, как работающего в режиме INPUT, итоговым
-  состоянием будет INPUT_PULLUP.
-
-  Вы можете изменять как сами маски, так и их количество. Однако, количество элементов данного массива должно соответствовать параметру PORTS_NUM.
-  Вычисление битов, соотвующих пинам аналогично способам, применяемым в port_protect и port_mode.
-*/
-const byte port_pullup[PORTS_NUM] = {
-  B00000000, // not a port
-  B00000000, // not a port
-  B00000000, // PORTB (D8-D13)
-  B00000000, // PORTC (A0-A7)
-  B00000000  // PORTD (D0-D7)
-};
-
-#define CPUTEMP_CORRECTION 32431
-
-// Количество ожидаемых аргументов
-#define ARGS_NUM 6
-
-// Размер буфера для всех аргументов команды.
-#define ARGS_SIZE 50
-// Размер буфера для команды
-#define CMD_SIZE 25
-// Общий размер буфера - команды и аргументов. +1 => количество разделителей аргументов=кол-во аргументов-1, + '[' +']'
-#define BUFFER_SIZE CMD_SIZE+ARGS_SIZE+ARGS_NUM+1
-
-// Префикс заголовка запроса Zabbix сервера v2.x - 'ZBXD\1'.
-// Для функции определения заголовка необходимо использовать длину заголовка == length('ZBXD\1')-1
-#define ZBX_HEADER_PREFIX_LENGTH 4
-// Длина всего заголовка запроса Zabbix сервера v2.x.
-#define ZBX_HEADER_LENGTH 12
-
-// Если директива ON_ALARM_STATE_BLINK определена, то при аварийной ситуации светодиод будет мигать.
-#define ON_ALARM_STATE_BLINK 1
-
-// FDQN устройства. Отдается по команде agent.hostname
-#define ZBX_HOSTNAME "zabbuino.local.net"
-// Версия агента. Отдается по команде agent.version
-#define ZBX_AGENT_VERISON "Zabbuino 0.9999"
-// Сообщение "Не поддерживается". Отдается в случае, если команда не была опознана
-#define ZBX_NOTSUPPORTED_MSG "ZBX_NOTSUPPORTED"
-
-// Таймаут состояния покоя. 60 sec
-#define IDLE_TIMEOUT 60000UL
-
-// Буфер принятой команды
-char cmd[CMD_SIZE];
-// "Массив" аргументов принятой команды
-char* arg[ARGS_NUM];
-
-// if buffsize >255 then parce cmdline is buggy
-// Рабочий буфер.
-char cBuffer[BUFFER_SIZE];
-
-/* 
-   Пин, к которому подключено устройство сигнализации состояния. Не используйте в качестве этого устройства светодиод, расположенный на плате Arduino.
-   Пин D13, к которому присоединен данный светодиод, используется SPI (SPI pins is: 10 (SS), 11 (MOSI), 12 (MISO), __13__ (SCK))
-*/
-
-const byte stateLedPin = 8;
-
-unsigned int bufferWritePosition;
-boolean clntIsConnected, needSkipZabbix2Header;
-unsigned long prevExecuteTime, prevConnectTime, cmdCounter;
-
-//  arg2 = atoi(arg[2]); // frequency in tone[] - uint
-//  arg3 = atol(arg[3]); // duration  in tone[] - ulong
+#ifdef FEATURE_IR_ENABLE
+uint8_t irPWMPin;
+#endif
 
 EthernetServer ethServer(10050);
 EthernetClient ethClient;
 
+char cBuffer[BUFFER_SIZE+1]; // +1 for trailing \0
+int16_t argOffset[ARGS_MAX];
+int32_t sysMetrics[IDX_METRICS_MAX];
+// skipMetricGathering used in interrupt's subroutine - must be `volatile` 
+volatile uint8_t skipMetricGathering = false;
+
+/* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
+                                                                      STARTUP SECTION
+*/
+
 void setup() {
-  byte i;
-  // Сетевые настройки устройства
-  IPAddress ip(192, 168, 0, 2);
-  IPAddress gateway(192, 168, 0, 1);
-  IPAddress subnet(255, 255, 255, 0);
-  // MAC-адрес устройства
-  byte mac[] = { 0xDE, 0xAD, 0xBE, 0xEF, 0xFE, 0xED };
+  uint8_t i;
 
-  /* Инициализация элементов массива аргументов производится через конструкцию itemN[]="0\0\...", так как это занимает меньше программного пространства
-     контроллера, нежели при использовании других методов: arg0=char[..] & arg[0]=arg0 или malloc().
-     Не стоит использовать одинаковые значения для всех аргументов. Компилятор производит излишнюю оптимизацияю и все элементы начинают указывать на
-     один адрес памяти.
-  */
-  arg[0] = cmd;
-  arg[1] = "\0\1";
-  arg[2] = "\0\0\0\0\2";
-  // max len = 16 is ID arg of DS18B20Read[] command
-  arg[3] = "\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\3";
-  arg[4] = "\0\4";
-  arg[5] = cBuffer;
-  // Инициализация портов ввода/вывода - установка режима работы.
-  for (i = 0; i < PORTS_NUM; i++) setPortMode(i, port_mode[i], port_pullup[i]);
+#ifdef ADVANCED_BLINKING
+  // blink on start
+  blinkMore(6, 50, 500);
+#endif
 
-  // Запуск Ethernet сервера.
-  Ethernet.begin(mac, ip, gateway, subnet);
+  // Init metrics
+  sysMetrics[IDX_METRIC_SYS_VCCMIN] = sysMetrics[IDX_METRIC_SYS_VCCMAX] = getADCVoltage(ANALOG_CHAN_VBG);
+  sysMetrics[IDX_METRIC_SYS_RAM_FREE] = sysMetrics[IDX_METRIC_SYS_RAM_FREEMIN] = (int32_t) getRamFree();
+  sysMetrics[IDX_METRIC_SYS_CMD_COUNT] = sysMetrics[IDX_METRIC_SYS_CMD_TIMEMAX] = 0;
+  
+#ifdef FEATURE_DEBUG_TO_SERIAL
+  Serial.begin(9600);
+  while (!Serial);             // Leonardo: wait for serial monitor
+#endif
+
+#ifdef FEATURE_EEPROM_ENABLE
+
+/* -=-=-=-=-=-=-=-=-=-=-=-
+    FACTORY RESET BLOCK
+   -=-=-=-=-=-=-=-=-=-=-=- */
+
+  // Set mode of PIN_FACTORY_RESET and turn on internal pull resistor
+  pinMode(PIN_STATE_LED, OUTPUT);
+  digitalWrite(PIN_STATE_LED, LOW);
+  pinMode(PIN_FACTORY_RESET, INPUT_PULLUP);
+  // Check for PIN_FACTORY_RESET shorting to ground?
+  // (when pulled INPUT pin shorted to GND - digitalRead() return LOW)
+  if (LOW == digitalRead(PIN_FACTORY_RESET)){
+    // Fire up state LED
+    digitalWrite(PIN_STATE_LED, HIGH);
+    // Wait some msecs
+    delay(HOLD_TIME_TO_FACTORY_RESET);
+    // PIN_FACTORY_RESET still shorted?
+    if (LOW == digitalRead(PIN_FACTORY_RESET)){
+       setConfigDefaults(netConfig);
+       saveConfigToEEPROM(&netConfig);
+       // Blink fast while PIN_FACTORY_RESET shorted to GND
+       while (LOW == digitalRead(PIN_FACTORY_RESET)) {
+          digitalWrite(PIN_STATE_LED, millis() % 100 < 50);
+      }
+    }
+    digitalWrite(PIN_STATE_LED, LOW);
+  } // if (LOW == digitalRead(PIN_FACTORY_RESET))
+
+/* -=-=-=-=-=-=-=-=-=-=-=-
+    CONFIGURATION LOAD BLOCK
+   -=-=-=-=-=-=-=-=-=-=-=- */
+#ifdef FEATURE_DEBUG_TO_SERIAL
+  SerialPrintln_P(PSTR("Load configuration from EEPROM"));
+#endif
+  // Try to load configuration from EEPROM
+  if (false == loadConfigFromEEPROM(&netConfig)) {
+     // bad CRC detected, use default values for this run
+     setConfigDefaults(netConfig);
+     saveConfigToEEPROM(&netConfig);
+  }
+#else // FEATURE_EEPROM_ENABLE
+#ifdef FEATURE_DEBUG_TO_SERIAL
+     SerialPrintln_P(PSTR("Use default network settings"));
+#endif
+     // Use hardcoded values if EEPROM feature disabled
+     setConfigDefaults(netConfig);
+#endif // FEATURE_EEPROM_ENABLE
+
+#ifdef FEATURE_NET_DHCP_FORCE
+     netConfig.useDHCP = true;
+#endif
+
+
+/* -=-=-=-=-=-=-=-=-=-=-=-
+    NETWORK START BLOCK
+   -=-=-=-=-=-=-=-=-=-=-=- */
+#ifdef FEATURE_NET_DHCP_ENABLE
+  // User want to use DHCP with Zabbuino?
+  if (true == netConfig.useDHCP) {
+#ifdef FEATURE_DEBUG_TO_SERIAL
+     SerialPrintln_P(PSTR("Obtaining address from DHCP..."));
+#endif
+       // Try to ask DHCP server
+      if (0 == Ethernet.begin(netConfig.macAddress)) {
+#ifdef FEATURE_DEBUG_TO_SERIAL
+         SerialPrintln_P(PSTR("No successfully"));
+#endif
+         // No offer recieved - switch off DHCP feature for that session
+         netConfig.useDHCP = false;
+      }
+  }
+#else // FEATURE_NET_DHCP_ENABLE
+  netConfig.useDHCP=false;
+#endif // FEATURE_NET_DHCP_ENABLE
+
+  // No DHCP offer recieved or no DHCP need - start with stored/default IP config
+  if (false == netConfig.useDHCP) {
+#ifdef FEATURE_DEBUG_TO_SERIAL
+     SerialPrintln_P(PSTR("Use static IP"));
+#endif
+     // That overloaded .begin() function return nothing
+     Ethernet.begin(netConfig.macAddress, netConfig.ipAddress, netConfig.ipNetmask, netConfig.ipGateway);
+  }
+  
+#ifdef FEATURE_DEBUG_TO_SERIAL
+  SerialPrintln_P(PSTR("Begin internetworking"));
+  SerialPrint_P(PSTR("MAC     : ")); printArray(netConfig.macAddress, sizeof(netConfig.macAddress), DBG_PRINT_AS_MAC);
+  SerialPrint_P(PSTR("Hostname: ")); Serial.println(netConfig.hostname);
+  SerialPrint_P(PSTR("IP      : ")); Serial.println(Ethernet.localIP());
+  SerialPrint_P(PSTR("Subnet  : ")); Serial.println(Ethernet.subnetMask());
+  SerialPrint_P(PSTR("Gateway : ")); Serial.println(Ethernet.gatewayIP());
+  SerialPrint_P(PSTR("Password: ")); Serial.println(netConfig.password, DEC);
+  // This codeblock is compiled if UIPethernet.h is included
+#ifdef UIPETHERNET_H
+  SerialPrint_P(PSTR("ENC28J60: rev ")); Serial.println(Enc28J60.getrev());
+#endif
+
+  //netConfig.ipGateway.printTo(Serial);
+#endif
+
+  // Start listen sockets
   ethServer.begin();
+
+/* -=-=-=-=-=-=-=-=-=-=-=-
+    OTHER STUFF INIT BLOCK
+   -=-=-=-=-=-=-=-=-=-=-=- */
+
+  // I/O ports initialization. Refer to "I/O PORTS SETTING SECTION" in zabbuino.h
+  for (i = 0; i < PORTS_NUM; i++) { 
+    setPortMode(i, port_mode[i], port_pullup[i]);
+  }
+
+#if defined(FEATURE_EXTERNAL_INTERRUPT_ENABLE) || defined(FEATURE_ENCODER_ENABLE)
+  // Init external interrupts info structure
+  for (i = 0; i < EXTERNAL_NUM_INTERRUPTS; i++) { 
+    // -1 - interrupt is detached
+    // just use NOT_AN_INTERRUPT = -1 macro from Arduino.h
+    extInterrupt[i].mode = NOT_AN_INTERRUPT;
+  }
+#endif
+
+  // Uncomment to force protect (enable even useProtection is false) your system from illegal access for change runtime settings and reboots 
+#ifdef FEATURE_PASSWORD_PROTECTION_FORCE
+  netConfig.useProtection = true;
+#endif
+
+#ifdef FEATURE_WATCHDOG_ENABLE
+  // Watchdog activation
+  wdt_enable(WTD_TIMEOUT);
+#endif
+
+#ifdef GATHER_METRIC_USING_TIMER_INTERRUPT
+   // need to analyze return code?
+   initTimerOne(SYS_METRIC_RENEW_PERIOD);
+#endif
+
+#if defined(FEATURE_I2C_ENABLE) || defined(FEATURE_BMP_ENABLE) || defined(FEATURE_BH1750_ENABLE) || defined (FEATURE_PCF8574_LCD_ENABLE) || defined (FEATURE_SHT2X_ENABLE)
+Wire.begin();
+#endif
+
+#ifdef ADVANCED_BLINKING
+  // blink on init end
+  blinkMore(2, 1000, 1000);
+#endif
+
 }
 
+
+/* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
+                                                                      RUN SECTION
+*/
 void loop() {
-  unsigned long nowTime;
+  uint32_t nowTime, processStartTime, processEndTime;
+  uint32_t prevDHCPRenewTime, prevENCReInitTime, prevNetProblemTime, prevSysMetricGatherTime;
+  uint8_t errorCode, blinkType = (uint8_t) BLINK_NOPE;
+    
+  // Correcting timestamps
 
-  nowTime = millis();
+  prevDHCPRenewTime = prevENCReInitTime = prevNetProblemTime = prevSysMetricGatherTime = millis();
 
-  // Если давно не выполняли команд - сигнализируем об этом.
-  if (nowTime - prevExecuteTime >= IDLE_TIMEOUT )
-  {
+  // if no exist while() here - netProblemTime must be global or static - its will be 0 every loop() and time-related cases will be processeed abnormally
+  // ...and while save some cpu ticks because do not call everytime from "hidden main()" subroutine, and do not init var, and so.
+  while (true) { 
+    nowTime = millis();
+
+#ifndef GATHER_METRIC_USING_TIMER_INTERRUPT
+    // Gather internal metrics periodically
+    if (SYS_METRIC_RENEW_PERIOD <= (uint32_t) (nowTime - prevSysMetricGatherTime)) { gatherMetrics(); prevSysMetricGatherTime = nowTime; }
+#endif 
+
+#ifdef FEATURE_NET_DHCP_ENABLE
+    // DHCP used in this session and time to renew lease?
+      // how many overhead give Ethernet.maintain() ?
+//    if (true == netConfig.useDHCP && (NET_DHCP_RENEW_PERIOD <= (uint32_t) (nowTime - prevDHCPRenewTime))) {
+       // Ethernet library's manual say that Ethernet.maintain() can be called every loop for DHCP renew, but i won't do this so often
+       errorCode = Ethernet.maintain();
+       // Renew procedure finished with success
+       if (DHCP_CHECK_RENEW_OK == errorCode || DHCP_CHECK_REBIND_OK  == errorCode) { 
+          // No alarm blink  need, network activity registred, renewal period restarted
+          blinkType = (uint8_t) BLINK_NOPE;
+//          prevDHCPRenewTime = prevNetProblemTime = nowTime;
+       } else {
+          // Got some errors - blink with "DHCP problem message"
+          blinkType = (uint8_t) BLINK_DHCP_PROBLEM;
+#ifdef FEATURE_DEBUG_TO_SERIAL
+//            SerialPrintln_P(PSTR("DHCP renew problem occured"));
+#endif 
+       }
+//    }
+#endif // FEATURE_NET_DHCP_ENABLE
+
+    // No DHCP problem found but no data recieved or network activity for a long time
+    if (BLINK_NOPE == blinkType && (NET_IDLE_TIMEOUT <= (uint32_t) (nowTime - prevNetProblemTime))) { 
+#ifdef FEATURE_DEBUG_TO_SERIAL
+//            SerialPrintln_P(PSTR("No data recieved for a long time"));
+#endif 
+       blinkType =(uint8_t) BLINK_NET_PROBLEM; 
+    }
+
+#ifdef USE_DIRTY_HACK_AND_REBOOT_ENC28J60_IF_ITS_SEEMS_FREEZE
+    // Time to reinit ENC28J60?
+    if (NET_ENC28J60_REINIT_PERIOD <= (uint32_t) (nowTime - prevENCReInitTime)) {
+       // if EIR.TXERIF or EIR.RXERIF is set - ENC28J60 detect error, re-init module 
+       if (Enc28J60.readReg(EIR) & (EIR_TXERIF | EIR_RXERIF)) {
+#ifdef FEATURE_DEBUG_TO_SERIAL
+          SerialPrintln_P(PSTR("ENC28J60 reinit"));
+#endif
+          Enc28J60.init(netConfig.macAddress); 
+          delay(NET_STABILIZATION_DELAY);
+       } 
+         prevENCReInitTime = nowTime;
+
+    }
+#endif // USE_DIRTY_HACK_AND_REBOOT_ENC28J60_IF_ITS_SEEMS_FREEZE
+
+    // No errors in the loop?
+    if (BLINK_NOPE == blinkType) {
+       // Switch off state led
+       digitalWrite(PIN_STATE_LED, LOW);
+    } else {
+      // Error caused
 #ifdef ON_ALARM_STATE_BLINK
-    // Светодиод мигает
-    digitalWrite(stateLedPin, nowTime % 1000 < 500);
+      // Do LED blink...
+      digitalWrite(PIN_STATE_LED, nowTime % 1000 < blinkType);
 #else
-    // Или просто горит
-    digitalWrite(stateLedPin, HIGH);
+      // ...or just fired up
+      digitalWrite(PIN_STATE_LED, HIGH);
+#endif
+    }
+
+    // Test state of active session: client still connected or unread data is exist in buffer?
+    if (ethClient.connected()) {
+       // A lot of chars wait for reading
+       if (ethClient.available()) {
+          // Do not need next char to analyze - EOL detected or there no room in buffer or max number or args parsed...   
+          if (false == analyzeStream(ethClient.read())) {
+             /*****  processing command *****/
+             // Destroy unused client's data 
+             ethClient.flush(); 
+             // Fire up State led, than will be turned off on next loop
+             digitalWrite(PIN_STATE_LED, HIGH);
+             //
+             // may be need test for client.connected()? 
+             processStartTime = millis();
+             uint8_t cmdIdx = executeCommand();
+             processEndTime = millis();
+             // use processEndTime as processDurationTime
+             processEndTime = (processStartTime <= processEndTime) ? (processEndTime - processStartTime) : (4294967295UL - processStartTime + processEndTime);
+             if (sysMetrics[IDX_METRIC_SYS_CMD_TIMEMAX] < processEndTime){
+                sysMetrics[IDX_METRIC_SYS_CMD_TIMEMAX] = processEndTime;
+                sysMetrics[IDX_METRIC_SYS_CMD_TIMEMAX_N] = cmdIdx;
+             }
+             // Wait some time to finishing answer send
+             delay(NET_STABILIZATION_DELAY);
+             // close connection           
+             ethClient.stop(); 
+          }
+          // Restart network activity control cycle
+          prevENCReInitTime = prevNetProblemTime = millis();
+          blinkType = (uint8_t) BLINK_NOPE;
+       }
+    } else {
+       // Active session is not exist. Try to take new for processing.
+       ethClient = ethServer.available();
+    }
+#ifdef FEATURE_WATCHDOG_ENABLE
+    // reset watchdog every loop
+    wdt_reset();
 #endif
   }
+}
 
-  ethClient = ethServer.available();
-  if (ethClient) {
-    // В оригинальном коде использован закомментированный фрагмент, но в моем случае все работает корректно и без него.
-    // При использовании ENC28J60 .flush() дропает часть входящего сообщения, W5100 обрабатывает его корректно (или просто игнорирует вызов функции)
-    //    if (!clntIsConnected) {
-    //      ethClient.flush();
-    //      clntIsConnected = true;
-    //      prevConnectTime=nowTime;
-    //    }
-    // Read bytes from clients buffer
-    if (ethClient.available()) {
-      analyzeStream(ethClient.read());
-    }
+
+/* ****************************************************************************************************************************
+*
+*  Stream analyzing subroutine
+*  Detect Zabbix packets, on-fly spit incoming stream to command & arguments
+*
+**************************************************************************************************************************** */
+uint8_t analyzeStream(char charFromClient) {
+  uint8_t static needSkipZabbix2Header, argIndex;
+  uint16_t static bufferWritePosition;
+
+  // If there is not room in buffer - simulate EOL recieving
+  if (BUFFER_SIZE <= bufferWritePosition ) { charFromClient = '\n'; 
+//     Serial.println("End of buffer reached, stop analyzing");
   }
+  
+  // Put next char to buffer
+//  Serial.print("[");  Serial.print(bufferWritePosition);  Serial.print("] ");  
+//   if (charFromClient > 32) { Serial.print(charFromClient); } else {Serial.print(" ");}
+//  Serial.print(" => "); Serial.print(charFromClient, HEX); Serial.print(" = tolower => "); 
+  cBuffer[bufferWritePosition] = tolower(charFromClient); 
+//  if (cBuffer[bufferWritePosition] > 32) { Serial.print(cBuffer[bufferWritePosition]); } else {Serial.print(" ");}
+//  Serial.print(" => "); Serial.println(cBuffer[bufferWritePosition], HEX);
+  
+  // When ZBX_HEADER_PREFIX_LENGTH chars is saved to buffer - test its for Zabbix2 protocol header prefix ("ZBXD\01") presence
+  if (ZBX_HEADER_PREFIX_LENGTH == bufferWritePosition) {
+     if (0 == memcmp(&cBuffer, ZBX_HEADER_PREFIX, ZBX_HEADER_PREFIX_LENGTH)) {
+        // If packet have prefix - set 'skip whole header' flag
+        needSkipZabbix2Header = true;
+//        Serial.println("Header detected, skipping it");
+     }
+  }
+
+  // When ZBX_HEADER_LENGTH chars is saved to buffer - ckeck 'skip whole header' flag
+  if (ZBX_HEADER_LENGTH == bufferWritePosition && needSkipZabbix2Header) {
+     // If is setted - just begin write new data from begin of buffer. It's operation 'drop' Zabbix2 header
+     bufferWritePosition = 0;
+     needSkipZabbix2Header = false;
+     // Return 'Need next char' and save a lot cpu time 
+ //    Serial.println("Header skipped");
+     return true;
+  }
+
+  // Process all chars if its not from header data
+  if (!needSkipZabbix2Header) {
+     switch (charFromClient) {
+        case ']':
+        case 0x20:
+          // Space or final square bracket found. Do nothing and next char will be written to same position. 
+          // Return 'Need next char'
+//          Serial.println("Skip ' ' or ']'");
+          return true;
+        case '[':
+        case ',':
+//          Serial.println("Delimiter or separator found, processing");
+          // Delimiter or separator found. Push begin of next argument (bufferWritePosition+1) on buffer to arguments offset array. 
+          argOffset[argIndex] = bufferWritePosition+1; argIndex++; 
+          // Make current buffer segment like C-string
+          cBuffer[bufferWritePosition] = '\0'; 
+          break;
+        case '\n':
+//Serial.println();  
+//           Serial.println("EOL detected");
+          // EOL detected
+          // Save last argIndex that pointed to <null> item. All unused argOffset[] items must be pointed to this <null> item too.
+          cBuffer[bufferWritePosition] = '\0'; 
+          while (ARGS_MAX > argIndex) { argOffset[argIndex++] = bufferWritePosition;}
+          // increase argIndex++ to pass (ARGS_MAX < argIndex) condition 
+          argIndex++; break;
+      }
+      // EOL reached or there is not room to store args. Stop stream analyzing and do command executing
+      if (ARGS_MAX < argIndex) {
+         // clear vars for next round
+         bufferWritePosition = argIndex = 0;
+         needSkipZabbix2Header = false;
+         // Return 'Do not need next char'
+         return false;
+       }             
+  }
+  // 
+  bufferWritePosition++;
+  // Return 'Need next char' and save a lot cpu time 
+  return true;
 }
 
 /* ****************************************************************************************************************************
 *
-*  Функция выполнения принятой команды
-*  Проверяет аргументы, вызывает соответствующую команде подпрограмму
-*  Все используемые переменные глобальны.
-*
+*  Command execution subroutine
+*  
 **************************************************************************************************************************** */
-void executeCommand()
+uint8_t executeCommand()
 {
-  boolean latchPinDefined;
-  byte arg1, arg4, arg5;
-  unsigned int arg2;
-  long result = RESULT_IN_BUFFER;
-  unsigned long arg3;
+  uint8_t AccessGranted, i;
+  int32_t result = RESULT_IS_FAIL;
+  // duration  in tone[] - ulong
+  uint32_t arg[ARGS_MAX];
+  int16_t cmdIdx = -1;
+  
+  sysMetrics[IDX_METRIC_SYS_CMD_COUNT]++;
 
-#ifdef DEBUG_MSG_TO_ETHCLIENT
-  ethClient.print("executeCommand: "); ethClient.println(cmd);
-  ethClient.print("cmdCounter: "); ethClient.println(cmdCounter);
-  ethClient.print("buffer: "); ethClient.println(cBuffer);
-#endif
-
-  // Приращение счетчика принятых команд
-  cmdCounter++;
-
-  // Конвертация C-string в int-переменные
-  // arg[0] содержит выделенную команду: arg[0] = cmd;
-  arg1 = atoi(arg[1]);
-  arg2 = atoi(arg[2]); // frequency in tone[] - uint
-  arg3 = atol(arg[3]); // duration  in tone[] - ulong
-  arg4 = atoi(arg[4]);
-  arg5 = atoi(arg[5]);
-
-
-  // Для защелкивания сдвигового регистра перед использованием команды shiftout значение пина latch должно быть определено.
-  // В противном случае защелкивания сдвигового регистра не производится.
-  latchPinDefined = false;
-  if (arg[3][0] != '\0' && isSafePin(arg2)) {
-    latchPinDefined = true;
-  }
-
-  // Анализ команды. Вывод текста, если таковой подразумевается результатом работы, происходит в рабочий буфер, который в конце пересылается клиенту.
-
-  if (strcmp(cmd, "agent.ping") == 0) {
-    // Команда: agent.ping
-    // Параметры: не требуются
-    // Результат: возвращается значение '1'
-    result = RESULT_IS_OK;
-
-  } else if (strcmp(cmd, "agent.hostname") == 0) {
-    // Команда: agent.hostname
-    // Параметры: не требуются
-    // Результат: возвращается имя узла
-    strcpy(cBuffer, ZBX_HOSTNAME);
-
-  } else if (strcmp(cmd, "agent.version") == 0) {
-    // Команда: agent.version
-    // Параметры: не требуются
-    // Результат: возвращается версия агента
-    strcpy(cBuffer, ZBX_AGENT_VERISON);
-
-#ifdef DEBUG_COMMANDS_ENABLE
-  } else if (strcmp(cmd, "agent.cmdcount") == 0) {
-    // Команда: agent.cmdCount
-    // Параметры: не требуются
-    // Результат: возвращается количество обработанных команд
-    result = cmdCounter;
-
-  } else if (strcmp(cmd, "agent.cmdstr") == 0) {
-    // Команда: agent.cmdStr
-    // Параметры: не требуются.
-    // Результат: возвращается принятая команда.
-    // Примечание: используется в целях отладки
-    // Используется в целях отладки. Никакого действия предпринимать не требуется,
-    // так как выводимое значение уже помещено в рабочий буфер функцией parseBuffer();
-    ;
-
-  } else if (strcmp(cmd, "sys.freeram") == 0) {
-    // Команда: sys.freeRAM
-    // Параметры: не требуются.
-    // Результат: возвращается объем свободной оперативной памяти контроллера.
-    result = (long) freeRam();
-#endif
-
-    // Need to unFloat routine for this sub
-    //  } else if (strcmp(cmd, "sys.cputemp") == 0) {
-    // Команда: sys.cpuTemp
-    // Параметры: не требуются.
-    // Результат: возвращается показания внутреннего датчика температуры микроконтроллера
-    // http://playground.arduino.cc/Main/InternalTemperatureSensor
-    // ....
-    // ATmega168 : No
-    // ATmega168P : Yes
-    // ATmega328P : Yes
-    // ATmega1280 (Arduino Mega) : No
-    // ....
-    //     result=(long) getInternalTemperature();
-
-  } else if (strcmp(cmd, "portwrite") == 0) {
-    // Команда: portWrite[port, value]
-    // Параметры: port - символьное обозначение порта (B,C,D..),
-    //            value - значение, которое требуется записать в заданный порт ввода/вывода
-    // Результат: изменяется состояние порта ввода/вывода (PORTB, PORTC, PORTD...) и происходит возврат значения '1'.
-    // Примечание: если ваш экземпляр Arduino имеет более, чем три порта, то на данный момент вам необходимо самостоятельно добавить в скетч информацию о них.
-    //
-    // Номер порта представляет собой разницу между ASCII-кодом аргумента port и 96. Таким образом b=2, c=3, d=4 и т.д.
-    portWrite((byte) *arg[1] - 96, arg2);
-    result = RESULT_IS_OK;
-
-  } else if (strcmp(cmd, "analogwrite") == 0) {
-    // Команда: analogWrite[pin, value]
-    // Параметры: pin - цифровое обозначение пина, value - значение скважности, которое требуется задать для данного пина.
-    // Результат: изменяется скважности PWM для пина. Удачное выполнение команды влечет за собой возврат значения '1', неудачное - значения '0'.
-    // Примечание: команда является оберткой функции analogWrite() http://www.arduino.cc/en/Reference/AnalogWrite
-    // Состояние OUTPUT для пина должно быть задано в коде скетча. Если пин защищен, изменения режима не происходит. Если пин не является PWM-совместимым, на нем выставляется значение HIGH.
-    // Внимание! Функция analogWrite() самостоятельно устанавливает пин в режим работы OUTPUT
-    result = RESULT_IS_FAIL;
-    if (isSafePin(arg1)) {
-      analogWrite(arg1, arg2);
-      result = RESULT_IS_OK;
-    }
-
-  } else if (strcmp(cmd, "analogread") == 0) {
-    // Команда: analogread[pin]
-    // Параметры: pin - цифровое обозначение пина
-    // Результат: возврат величины, "считанной" с пина. Диапазон значений 0...1023 (возможные варианты диапазона значений зависят от способа подключения сигнала к пину и внутренних настроек Arduino)
-    // Примечание: команда является оберткой функции analogRead() www.arduino.cc/en/Reference/AnalogRead
-    // Данная команда имеет смысл только для аналоговых пинов.
-    // Состояние INPUT для пина должно быть определено в коде скетча. В противном случае совпадения считываемых данных с ожидаемыми может не произойти.    result = (long) analogRead(arg1);
-    result = (long) analogRead(arg1);
-
-  } else if (strcmp(cmd, "analogreference") == 0) {
-    // Команда: analogReference[source]
-    // Параметры: source - источник опорного напряжения (0..N). Значения можно найти в заголовочном файле Arduino.h
-    // Результат: устанавливается источник опорного напряжения относительно которого происходят аналоговые измерения и происходит возврат значения '1'
-    // Примечание: команда является оберткой функции analogReference() www.arduino.cc/en/Reference/AnalogReference
-    analogReference(arg1);
-    result = RESULT_IS_OK;
-
-  } else if (strcmp(cmd, "digitalwrite") == 0) {
-    // Команда: digitalWrite[pin, value]
-    // Параметры: pin - цифровое обозначение пина, value - значение, которое требуется выставить на заданном пине.
-    // Результат: изменяется состояние пина. Удачное выполнение команды влечет за собой возврат значения '1', неудачное - значения '0'.
-    // Примечание: команда является оберткой функции digitalWrite() www.arduino.cc/en/Reference/DigitalWrite
-    // Состояние OUTPUT для пина должно быть задано в коде скетча. Если пин защищен, изменения режима не происходит.    result = RESULT_IS_FAIL;
-    if (isSafePin(arg1)) {
-      digitalWrite(arg1, arg2);
-      result = RESULT_IS_OK;
-    }
-
-  } else if (strcmp(cmd, "digitalread") == 0) {
-    // Команда: digitalRead[pin]
-    // Параметры: pin - цифровое обозначение пина
-    // Результат: возвращается значение, "считанное" с пина. Диапазон значений - HIGH/LOW.
-    // Примечание: команда является оберткой функции DigitalRead() http://www.arduino.cc/en/Reference/DigitalRead
-    // Состояние INPUT для пина должно быть определено в коде скетча. В противном случае совпадения считываемых данных с ожидаемыми может не произойти.
-    result = (long) digitalRead(arg1);
-
-#ifdef TONE_COMMANDS_ENABLE
-  } else if (strcmp(cmd, "tone") == 0) {
-    // Команда: tone[pin, frequency, duration]
-    // Параметры: pin - цифровое обозначение пина, frequency - частота сигнала, duration - длительность сигнала
-    // Результат: начинается генерация на указанном пине сигнала "прямоугольная волна" заданной частоты.
-    // Примечание: команда является оберткой функции tone() http://www.arduino.cc/en/Reference/Tone
-    // Состояние OUTPUT для пина должно быть задано в коде скетча. Если пин защищен, изменения режима не происходит.
-    result = RESULT_IS_FAIL;
-    if (isSafePin(arg1)) {
-      tone(arg1, arg2, arg3);
-      result = RESULT_IS_OK;
-    }
-
-  } else if (strcmp(cmd, "notone") == 0) {
-    // Команда: noTone[pin]
-    // Параметры: pin - цифровое обозначение пина
-    // Результат: завершается генерация на указанном пине сигнала "прямоугольная волна"
-    // Примечание: команда является оберткой функции noTone() http://www.arduino.cc/en/Reference/NoTone
-    // Состояние OUTPUT для пина должно быть задано в коде скетча. Если пин защищен, изменения режима не происходит.
-    result = RESULT_IS_FAIL;
-    if (isSafePin(arg1)) {
-      noTone(arg1);
-      result = RESULT_IS_OK;
-    }
-#endif
-
-#ifdef RND_COMMANDS_ENABLE
-  } else if (strcmp(cmd, "randomseed") == 0) {
-    // Команда: randomSeed[value]
-    // Параметры: value - начальное число ряда псевдослучайных значений
-    // Результат: инициализируется генератор псевдослучайных чисел
-    // Примечание: команда является оберткой функции randomSeed() http://www.arduino.cc/en/Reference/randomSeed
-    randomSeed(arg1);
-    result = RESULT_IS_OK;
-
-  } else if (strcmp(cmd, "random") == 0) {
-    // Команда: random[min, max]
-    // Параметры: min, max - нижняя и верхняя границы псевдослучайных значений
-    // Результат: возвращается псевдослучайное число
-    // Примечание: команда является оберткой функции random() http://www.arduino.cc/en/Reference/random
-    //  !! random return long
-    result = (long) random(arg1, arg2);
-#endif
-
-#ifdef SHIFTOUT_COMMANDS_ENABLE
-  } else if (strcmp(cmd, "shiftout") == 0) {
-    // Команда: shiftOut[dataPin, clockPin, latchPin, bitOrder, value]
-    // Параметры: dataPin, clockPin, latchPin - цифровое обозначения пинов вывода данных, синхронизации, защелкивания.
-    //            bitOrder - последовательность вывода бит, value значение для вывода.
-    // Результат: устанавливается соответствующее параметру value состояние выводов подключенного сдвигового регистра.
-    //            Удачное выполнение команды влечет за собой возврат значения `1`, неудачное - значения '0'.
-    // Примечание: команда является расширением функции shiftOut().
-    //            Параметр value может быть задан как в десятичной и шестнадцатеричной форме (с префиксом 0x).
-    //            Длина числа в шестнадцатеричной форме ограничена размером внутреннего буфера.
-    // Состояние OUTPUT для пинов должно быть задано в коде скетча. Если пины защищены, вызова соотвествующих функций не происходит.
-    result = RESULT_IS_FAIL;
-    if (isSafePin(arg1) && isSafePin(arg2))
-    {
-      if (latchPinDefined) {
-        digitalWrite(arg3, LOW);
-      }
-      advShiftOut(arg1, arg2, arg4, cBuffer);
-      if (latchPinDefined) {
-        digitalWrite(arg3, HIGH);
-      }
-      result = RESULT_IS_OK;
-    }
-#endif
-
-#ifdef DS18X20_COMMANDS_ENABLE
-  } else if (strcmp(cmd, "ds18x20.temperature") == 0) {
-    // Команда: DS18x20.Temperature[pin, resolution, id]
-    // Параметры: pin - цифровое обозначение пина, к которому подключен цифровой термометр DS18x20. resolution - разрешение термометра 9..12бит,
-    //            id - идентификатор (адрес) термометра.
-    // Результат: с цифрового термометра считывается температура и значение в градусах Цельсия возвращается пользователю.
-    // Примечание: Точность показаний (1/2 ... 1/16 C) зависит от параметра resolution, от него, также зависит время выполнения команды.
-    //             Максимальный временной промежуток - 825ms (resolution = 12bit).
-    //             Идентификатор (адрес) термометра можно получить через Serial Monitor при выполнении скетча DallasTemperature -> Single.
-    //             Значение -127 выдается при какой-либо ошибке в функции - невозможности считать данные с термометра вследствии ошибки подсоединения или ошибочно указанном ID.
-    //             Так же это значение выдается при попытке обращения к термометру неподдерживаемой модели.
-    if (isSafePin(arg1)) {
-      result = DS18X20Read(arg1, arg2, arg[3], cBuffer);
-    }
-#endif
-
-#ifdef DHT_COMMANDS_ENABLE
-  } else if (strcmp(cmd, "dht.temperature") == 0) {
-    // Команда: DHT.Temperature[pin, model]
-    // Параметры: pin - цифровое обозначение пина, к которому подключен цифровой датчик DHT/AM/..
-    //            model - идентификатор модели датчика - 11 (DHT11), 21 (DHT21, AM2301), 22 (DHT22, AM2302).
-    // Результат: с цифрового датчика DHT11/21/22 считывается температура и значение в градусах Цельсия возвращается пользователю.
-    // Примечание: Значение -127 выдается при какой-либо ошибке - например несовпадении CRC.
-    //             Если модель датчика не указана или указана неверно, то расчет температуры производится по формуле, применяемой для DHT22.
-    //             Команда самостоятельно устанавливает состояние INPUT/OUTPUT пина. В целях безопасности стоит инициализировать пин как OUTPUT.
-    if (isSafePin(arg1)) {
-      result = DHTRead(arg1, arg2, SENS_READ_TEMP, cBuffer);
-    }
-
-  } else if (strcmp(cmd, "dht.humidity") == 0) {
-    // Команда: DHT.Humidity[pin, model]
-    // Параметры: pin - цифровое обозначение пина, к которому подключен цифровой датчик DHT/AM/..
-    //            model - идентификатор модели датчика - 11 (DHT11), 21 (DHT21, AM2301), 22 (DHT22, AM2302).
-    // Результат: с цифрового датчика считывается величина влажности и значение в процентах возвращается пользователю.
-    // Примечание: Значение -127 выдается при какой-либо ошибке - например несовпадении CRC.
-    //             Если модель датчика не указана или указана неверно, то расчет величины влажности производится по формуле, применяемой для DHT22.
-    //             Команда самостоятельно устанавливает состояние INPUT/OUTPUT пина. В целях безопасности стоит инициализировать пин как OUTPUT.
-    if (isSafePin(arg1)) {
-      result = DHTRead(arg1, arg2, SENS_READ_HUMD, cBuffer);
-    }
-#endif
-
-#ifdef BMP085_COMMANDS_ENABLE
-  } else if (strcmp(cmd, "bmp.temperature") == 0) {
-    // Команда: BMP.Temperature[sdaPin, sclPin]
-    // Параметры: sdaPin, sclPin - цифровые обозначение пинов, к которым подключена шина I2C.
-    // Результат: с цифрового датчика BMP085/BMP180 считывается температура и значение в градусах цельсия возвращается пользователю.
-    // Примечание: Точность датчика - 0,1C.
-    //             sdaPin, sclPin на данный момент не применяются (используются стандартные пины для I2C подключения) и зарезервированы для внедрения SoftTWI интерфейсов.
-    //if (isSafePin(arg1) && isSafePin(arg2)) {
-      result = BMP085Read(arg1, arg2, arg3, SENS_READ_TEMP, cBuffer);
-    //}
-
-  } else if (strcmp(cmd, "bmp.pressure") == 0) {
-    // Команда: BMP.Pressure[sdaPin, sclPin, overSampling]
-    // Параметры: sdaPin, sclPin - цифровые обозначение пинов, к которым подключена шина I2C.
-    //            overSampling - значение, определяющее точность и длительность измерения.
-    //            0 - ultra low power, RMS noise = 6Pa, conversion time = 4,5ms ... 3 - ultra high resolution, RMS noise = 3Pa, conversion time = 25,5ms
-    // Результат: с цифрового датчика считывается величина атмосферного давления и значение в Паскалях возвращается пользователю.
-    // Примечание: sdaPin, sclPin на данный момент не применяются (используются стандартные пины для I2C подключения) и зарезервированы для внедрения SoftTWI интерфейсов.
-    //  if (isSafePin(arg1) && isSafePin(arg2)) {
-      result = BMP085Read(arg1, arg2, arg3, SENS_READ_PRSS, cBuffer);
-    //  }
-#endif
-
-  } else {
-    // В любом ином случае команда считается неопределенной.
-    strcpy(cBuffer, ZBX_NOTSUPPORTED_MSG);
-    // Прирощенный ранее счетчик сматывается
-    cmdCounter--;
-  }
-
-  //  ethClient.println(result);
-  // Результат уже выведен исполняемой командой?
-  if  (RESULT_IS_PRINTED != result)
+  for (i = 0; i < CMD_MAX; i++)
   {
-    // Результат помещен в буфер заранее?
-    if (RESULT_IN_BUFFER != result) {
-      //  Необходимо возвратить '1'
-      if (RESULT_IS_OK == result) {
-        result = 1L;
-        // или '0'
-      } else if (RESULT_IS_FAIL == result) {
-        result = 0L;
-      }
-      //  Если результатом работы команды является число, оно преобразуется в C-string.
-      ltoa (result, cBuffer, 10);
-    }
-    //  Буфер отдается клиенту
-    ethClient.println(cBuffer);
+//    Serial.print(i, HEX); Serial.print(": ");
+//    SerialPrintln_P((char*)pgm_read_word(&(commands[i])));
+    if (0 == strcmp_P(cBuffer, (char*)pgm_read_word(&(commands[i])))) {cmdIdx = i; break;}
   }
 
-}
-
-
-/* ****************************************************************************************************************************
-*
-*  Функция разбора буфера.
-*  Извлекает из буфера команду, аргументы.
-*  Все используемые переменные глобальны.
-*
-**************************************************************************************************************************** */
-void parseBuffer()
-{
-  char currChar;
-  byte argPointer, nByteCounter;
-  unsigned int bufferWritePosition, bufferReadPosition;
-
-  bufferReadPosition = 0;
-  bufferWritePosition = 0;
-  argPointer = 0;
-
-  // Need to find way to calculate size of arg[x] and dont increase bufferWritePosition if its = sizeof
-  // Основной цикл.
-  // В нем для анализа используется буфер, являющийся последним аргументом.
-  // Все прочтенные из него символы, являющиеся допустимымы, пишутся в начало этого же самого буфера, а после обнаружения разделителя, фрагмент буфера [0...n]
-  // копируется в соотв. элемент массива аргументов. Так достигается экономия оперативной памяти.
-  do
+#ifdef FEATURE_DEBUG_TO_SERIAL
+  SerialPrint_P(PSTR("Execute command #")); Serial.print(cmdIdx, HEX); SerialPrint_P(PSTR(" =>")); Serial.println(cBuffer);
+#endif 
+  
+  // batch convert args to number values
+  for (i = 0; i < ARGS_MAX; i++)
   {
-    // Получение очередного символа из рабочего буфера, перевод в нижний регистр
-    currChar = (char) tolower(cBuffer[bufferReadPosition]);
-    cBuffer[bufferReadPosition] = currChar;
+     arg[i] = ('\0' == cBuffer[argOffset[i]]) ? 0 : strtoul(&cBuffer[argOffset[i]], NULL,0);
 
-    // Проверка на предмет соответствия символа знакам-разделителям или признаку конца буфера ('\0')
-    if ('[' == currChar || ',' == currChar  || ']' == currChar || !currChar) {
-      // Копирование найденного фрагмента в соотв. элемент массива аргументов
-      copyChars(arg[argPointer], cBuffer, bufferReadPosition - bufferWritePosition, bufferWritePosition);
-      // Формирование C-строки
-      arg[argPointer][bufferWritePosition] = '\0';
-
-      // ethClient.print("arg[");ethClient.print(argPointer);ethClient.print("]: "); ethClient.println(arg[argPointer]);
-      // Запись в рабочий буфер начинается с начала
-      bufferWritePosition = 0;
-      argPointer++;
-
-    } else if (0x20 != currChar) {
-      // Если элемент не является пробелом - указатель записи в буфер должен быть приращен.
-      // Таким образом пробелы исключаются из финальных данных
-      bufferWritePosition++;
-    }
-    // Приращение указателя чтения из буфера.
-    bufferReadPosition++;
-    // Цикл выполняется до достижения финального ограничителя - ']' или конца буфера - '\0' или до исчерпания массива аргументов.
-  } while (currChar && currChar != ']' && ARGS_NUM > argPointer);
-}
-
-
-/* ****************************************************************************************************************************
-*
-*  Функция анализа потока данных.
-*  Помещает байты считанные из буфера Ethernet, в рабочий буфер, принимает решение о типе пакета,
-*  инициирует выполнение принятой команды
-*
-**************************************************************************************************************************** */
-void analyzeStream(char charFromClient) {
-
-  // Заполнение буфера принятым элементом
-  cBuffer[bufferWritePosition] = charFromClient;
-
-#ifdef DEBUG_MSG_TO_ETHCLIENT
-  ethClient.println(cBuffer[bufferWritePosition], HEX);
-#endif
-
-  // Проверка на наличие префикса заголовка  == "ZXBD"
-  if (bufferWritePosition == ZBX_HEADER_PREFIX_LENGTH && strcmp(cBuffer, "ZBXD\01") == 0)
-  { // Если префикс означает пакет Zabbix2, необходимо пропустить весь заголовок
-
-#ifdef DEBUG_MSG_TO_ETHCLIENT
-    ethClient.println("zbxd detected");
-#endif
-
-    needSkipZabbix2Header = true;
+#ifdef FEATURE_DEBUG_TO_SERIAL
+     SerialPrint_P(PSTR("arg[")); Serial.print(i); SerialPrint_P(PSTR("] => \"")); 
+     if ('\0' == cBuffer[argOffset[i]]) {
+        SerialPrint_P(PSTR("<null>")); 
+     } else {
+        Serial.print(&cBuffer[argOffset[i]]); 
+     }
+     SerialPrint_P(PSTR("\" => ")); Serial.print(arg[i]);
+     SerialPrint_P(PSTR(", offset =")); Serial.println(argOffset[i]);
+#endif 
   }
 
-  // Заголовок опускается
-  if (needSkipZabbix2Header && bufferWritePosition >= ZBX_HEADER_LENGTH)
-  { // Запись в буфер начинается с начала
+  
+  // Check rights for password protected commands
+  AccessGranted = (!netConfig.useProtection || arg[0] == netConfig.password); 
 
-#ifdef DEBUG_MSG_TO_ETHCLIENT
-    ethClient.println("header dropped");
+  uint8_t i2CAddress, i2COption;
+  uint8_t i2CValue[4];
+  int16_t i2CRegister;
+
+  i2CAddress = (uint8_t) arg[2];
+  i2CRegister = (int16_t) arg[3];
+  // i2COption can be length, bitNumber or data
+  i2COption = (uint8_t) arg[4];
+
+ 
+   switch (cmdIdx) {
+//  case  CMD_ZBX_NOPE: 
+//        break;
+    case CMD_ZBX_AGENT_PING:
+      /*/
+      //   agent.ping 
+      /=*/
+      result = RESULT_IS_OK;
+      break;
+
+    case CMD_ZBX_AGENT_HOSTNAME:
+      /*/
+      /=/   agent.hostname
+      /*/
+      strcpy(cBuffer, netConfig.hostname);
+      result = RESULT_IN_BUFFER;
+      break;
+         
+    case CMD_ZBX_AGENT_VERSION:
+      /*/
+      /=/  agent.version
+      /*/
+      strcpy_P(cBuffer, PSTR(ZBX_AGENT_VERISON));
+      result = RESULT_IN_BUFFER;
+      break;
+
+    case CMD_SYS_UPTIME:
+      /*/
+      /=/  sys.uptime
+      /*/
+      result = millis() / 1000;
+      break;
+   
+
+
+    case CMD_ARDUINO_ANALOGWRITE:
+      /*/
+      /=/  analogWrite[pin, value]
+      /*/
+      if (isSafePin(arg[0])) {
+         analogWrite(arg[0], arg[1]);
+         result = RESULT_IS_OK;
+      }
+      break;
+      
+    case CMD_ARDUINO_ANALOGREAD:
+      /*/
+      /=/  analogRead[pin, analogReferenceSource]
+      /*/
+#ifdef FEATURE_AREF_ENABLE
+      // change source of the reference voltage if its given
+      if ('\0' != cBuffer[argOffset[1]]) {
+         analogReference(arg[1]);
+         delayMicroseconds(2000);
+      }
+#endif
+      // Do not disturb processes by internal routines 
+      skipMetricGathering = true;
+      result = (int32_t) analogRead(arg[0]);
+      skipMetricGathering = false;
+      break;      
+  
+#ifdef FEATURE_AREF_ENABLE
+    case CMD_ARDUINO_ANALOGREFERENCE:
+      /*/
+      /=/  analogReference[source]
+      /*/
+      analogReference(arg[0]);
+      result = RESULT_IS_OK;
+      break;
+#endif
+  
+    
+    case CMD_ARDUINO_DELAY:
+      /*/
+      /=/  delay[time]
+      /*/
+      delay(arg[0]);
+      result = RESULT_IS_OK;
+      break;
+
+    case CMD_ARDUINO_DIGITALWRITE:
+      /*/
+      /=/  digitalWrite[pin, value]
+      /*/
+      if (isSafePin(arg[0])) {
+         digitalWrite(arg[0], arg[1]);
+         result = RESULT_IS_OK;
+      }
+      break;
+      
+    case CMD_ARDUINO_DIGITALREAD:
+      /*/
+      /=/  digitalRead[pin]
+      /*/
+      result = (int32_t) digitalRead(arg[0]);
+      break;
+
+
+#ifdef FEATURE_TONE_ENABLE
+    case CMD_ARDUINO_TONE:
+      /*/
+      /=/  tone[pin, frequency, duration]
+      /*/
+      if (isSafePin(arg[0])) {
+        if ('\0' != cBuffer[argOffset[2]]) {
+           tone(arg[0], arg[1], arg[2]);
+         } else {
+           tone(arg[0], arg[1]);
+         }
+        result = RESULT_IS_OK;
+      }
+      break;
+  
+    case CMD_ARDUINO_NOTONE:
+      /*/
+      /*/
+      if (isSafePin(arg[0])) {
+        noTone(arg[0]);
+        result = RESULT_IS_OK;
+      }
+      break;
+  
 #endif
 
-    bufferWritePosition = 0;
-    needSkipZabbix2Header = false;
-    // 'return' here save a lot cpu time
-    return;
-  }
+#ifdef FEATURE_RANDOM_ENABLE
+    case CMD_ARDUINO_RANDOMSEED:
+      /*/
+      /=/  randomSeed[value]
+      /*/
+      randomSeed((0 == arg[0]) ? (int32_t) millis() : arg[0]);
+      result = RESULT_IS_OK;
+      break;
+   
+    case CMD_ARDUINO_RANDOM:
+      /*/
+      /=/  random[min, max]
+      /*/
+      //  !! random return long
+      result = ('\0' == cBuffer[argOffset[1]]) ? (int32_t) random(arg[0]) : (int32_t) random(arg[0], arg[1]);
+      break;
+#endif // FEATURE_RANDOM_ENABLE
 
-  // Обнаружен конец строки (пакета)
-  if (charFromClient == '\n' && !needSkipZabbix2Header) {
-    // Формируется C-строка
-    cBuffer[bufferWritePosition] = '\0';
-    // Сигнализируется начало обработки команды
-    digitalWrite(stateLedPin, HIGH);
 
-#ifdef DEBUG_MSG_TO_ETHCLIENT
-    ethClient.println("EOL catched");
+#ifdef FEATURE_EEPROM_ENABLE
+// TODO: remove on release
+#ifdef FEATURE_EEPROM_SET_COMMANDS_ENABLE
+    case CMD_SET_HOSTNAME:
+      /*/
+      /=/  set.hostname[password, hostname]
+      /*/
+      if (AccessGranted) {
+         // need check for arg existsience?
+         // cBuffer[argOffset[1]] != \0 if argument #2 given
+         if (cBuffer[argOffset[1]]) {
+            setHostname(netConfig.hostname, &cBuffer[argOffset[1]]);
+            // strncpy(netConfig.hostname, &cBuffer[argOffset[1]], ZBX_AGENT_HOSTNAME_MAXLEN-1);
+            // netConfig.hostname[ZBX_AGENT_HOSTNAME_MAXLEN]='\0';
+            //        Serial.println(netConfig.hostname);
+            saveConfigToEEPROM(&netConfig);
+            result = RESULT_IS_OK;
+         }
+      }
+      break;
+  
+    case CMD_SET_PASSWORD:
+      /*/
+      /=/  set.password[oldPassword, newPassword]
+      /*/
+      if (AccessGranted) {
+         if (cBuffer[argOffset[1]]) {
+            // take new password from argument #2
+            netConfig.password = arg[1];
+            saveConfigToEEPROM(&netConfig);
+            result = RESULT_IS_OK;
+         }
+      }
+      break;
+  
+    case CMD_SET_SYSPROTECT:
+      /*/
+      /=/  set.sysprotect[password, protection]
+      /*/
+      if (AccessGranted) {
+         if (cBuffer[argOffset[1]]) {
+            // take new password from argument #2
+            netConfig.useProtection = (1 == arg[1]) ? true : false;
+            saveConfigToEEPROM(&netConfig);
+            result = RESULT_IS_OK;
+         }
+      }
+      break;
+   
+    case CMD_SET_NETWORK:
+      /*/
+      /=/  set.network[password, useDHCP, macAddress, ipAddress, ipNetmask, ipGateway]
+      /*/
+      if (AccessGranted) {
+         uint8_t ip[4], mac[6], success = 1;
+         // useDHCP flag coming from first argument and must be numeric (boolean) - 1 or 0, 
+         // arg[0] data contain in cBuffer[argOffset[1]] placed from argOffset[0]
+         netConfig.useDHCP = (uint8_t) arg[1];
+         // ip, netmask and gateway have one structure - 4 byte
+         // take 6 bytes from second argument of command and use as new MAC-address
+         // if convertation is failed (return false) succes variable must be falsed too via logic & operator
+         success &= hstoba((uint8_t*) mac, &cBuffer[argOffset[2]], sizeof(netConfig.macAddress));
+         memcpy(&netConfig.macAddress, &mac, sizeof(netConfig.macAddress));
+      
+         // use 4 bytes from third argument of command as new IP-address. sizeof(IPAddress) returns 6 instead 4
+         success &= hstoba((uint8_t*) &ip, &cBuffer[argOffset[3]], 4);
+         netConfig.ipAddress = IPAddress(ip);
+  
+         // take 4 bytes from third argument of command an use as new IP Netmask
+         success &= hstoba((uint8_t*) &ip, &cBuffer[argOffset[4]], 4);
+         netConfig.ipNetmask = IPAddress(ip);
+  
+         // convert 4 bytes from fourth argument to default gateway
+         success &= hstoba((uint8_t*) &ip, &cBuffer[argOffset[5]], 4);
+         netConfig.ipGateway = IPAddress(ip);
+  
+         // netConfig.ipGateway.printTo(Serial);
+         // Save config to EEProm if success
+         if (success) {
+            saveConfigToEEPROM(&netConfig);
+            result = RESULT_IS_OK;
+         }
+       }
+       break;
+#endif // FEATURE_EEPROM_ENABLE
+#endif // 
+
+    case CMD_SYS_PORTWRITE:
+      /*/
+      /=/  portWrite[port, value]
+      /*/
+      if (PORTS_NUM < (arg[0] - 96)) {
+         writeToPort((byte) arg[0] - 96, arg[1]);
+         result = RESULT_IS_OK;
+      }
+      break;
+  
+#ifdef FEATURE_SHIFTOUT_ENABLE
+    case CMD_SYS_SHIFTOUT:
+      /*/
+      /=/  shiftOut[dataPin, clockPin, latchPin, bitOrder, value]
+      /*/
+      // i used as latchPinDefined
+      i = ('\0' != arg[2]) && isSafePin(arg[2]);   // << корректный способ проверки или нет?  
+      if (isSafePin(arg[0]) &&  isSafePin(arg[1])) {
+         if (i) { digitalWrite(arg[2], LOW); }
+         shiftOutAdvanced(arg[0], arg[1], arg[3], &cBuffer[argOffset[4]]);
+         if (i) { digitalWrite(arg[2], HIGH);}
+         result = RESULT_IS_OK;
+      }
+      break;
 #endif
 
-    // Вызов подпрограммы разбора буфера. Все необходимые ей переменные глобальны.
-    parseBuffer();
-    // Вызов подпрограммы выполнения команды. Все необходимые ей переменные глобальны.
-    executeCommand();
+    case CMD_SYS_REBOOT:
+      /*/
+      /=/  reboot[password]
+      /*/
+      if (AccessGranted) {
+         ethClient.println("1");
+         // hang-up if no delay
+         delay(NET_STABILIZATION_DELAY);
+         ethClient.stop();
+#ifdef FEATURE_WATCHDOG_ENABLE
+         // Watchdog deactivation
+         wdt_disable();
+#endif
+         asm volatile ("jmp 0");  
+      }
+      break;
 
-    prevExecuteTime = millis();
-    // Соединение закрывается, все переменные переинициализируются
-    ethClient.stop();
-    cleanVars();
-  }
-  else if (bufferWritePosition <= BUFFER_SIZE) {
-    // Если анализ не закончен и последний элементы буфера не достигнут - продвигаем указатель записи.
-    bufferWritePosition++;
-  }
-}
 
 
-/* ****************************************************************************************************************************
-*
-*   Функция переинициализации переменных при завершении сеанса.
-*
-**************************************************************************************************************************** */
-void cleanVars()
-{
-  byte i;
+#ifdef FEATURE_DEBUG_COMMANDS_ENABLE
+    case CMD_SYS_MCU_NAME:
+      /*/
+      /=/  sys.mcu.name
+      /*/
+      strcpy_P(cBuffer, PSTR(_AVR_CPU_NAME_));
+      result = RESULT_IN_BUFFER;
+      break;
+   
+    case CMD_SYS_NET_MODULE:
+      /*/
+      /=/  sys.net.module
+      /*/
+      strcpy_P(cBuffer, PSTR(NET_MODULE_NAME));
+      result = RESULT_IN_BUFFER;
+      break;
 
-  // Зачистка элементов массива аргументов путем формирования пустых C-строк.
-  for (i = 0; i < ARGS_NUM; i++) arg[i][0] = '\0';
-  //  bufferReadPosition = 0;  argPointer = 0;
-  bufferWritePosition = 0;
-  needSkipZabbix2Header = false;
-  //  clntIsConnected = false;
-  // Для корректной работы операции сравнения (strcmp(cBuffer, "ZBXD\01") == 0) необходимо, чтобы фрагмент буфера представлял собой C-строку в ZBX_HEADER_PREFIX_LENGTH символов
-  cBuffer[ZBX_HEADER_PREFIX_LENGTH + 1] = '\0';
-  // Сигнал обработки команды отключается
-  digitalWrite(stateLedPin, LOW);
+    case CMD_SYS_CMD_COUNT:
+      /*/
+      /=/  sys.cmd.count
+      /*/
+      if (arg[0]) { sysMetrics[IDX_METRIC_SYS_CMD_COUNT] = 0; } 
+      result = sysMetrics[IDX_METRIC_SYS_CMD_COUNT];
+      break;
+
+    case CMD_SYS_CMD_TIMEMAX:
+      /*/
+      /=/  sys.cmd.timemax[resetCounter]
+      /*/
+      if (cBuffer[argOffset[0]]) { sysMetrics[IDX_METRIC_SYS_CMD_TIMEMAX] = 0; sysMetrics[IDX_METRIC_SYS_CMD_TIMEMAX_N] = 0; } 
+      result = sysMetrics[IDX_METRIC_SYS_CMD_TIMEMAX];
+      break;
+
+    case CMD_SYS_CMD_TIMEMAX_N:
+      /*/
+      /=/  sys.cmd.timemax.n
+      /*/
+      ethClient.println(sysMetrics[IDX_METRIC_SYS_CMD_TIMEMAX_N], HEX);
+      result = RESULT_IS_PRINTED;
+      break;
+   
+    case CMD_SYS_RAM_FREE:
+      /*/
+      /=/  sys.ram.free
+      /*/
+      result = sysMetrics[IDX_METRIC_SYS_RAM_FREE];
+      break;
+
+    case CMD_SYS_RAM_FREEMIN:
+      /*/
+      /=/  sys.ram.freemin
+      /*/
+      result = sysMetrics[IDX_METRIC_SYS_RAM_FREEMIN];
+      break;
+
+#endif
+
+
+    case CMD_SYS_VCC:
+      /*/
+      /=/ sys.vcc
+      /*/
+      // Take VCC
+      result = getADCVoltage(ANALOG_CHAN_VBG);
+      // VCC may be bigger than max or smaller than min. 
+      // To avoid wrong results and graphs in monitoring system - correct min/max metrics
+      correctVCCMetrics(result);
+      break;
+  
+    case CMD_SYS_VCCMIN:
+      /*/
+      /=/ sys.vccMin
+      /*/
+      result = sysMetrics[IDX_METRIC_SYS_VCCMIN];
+      break;
+  
+    case CMD_SYS_VCCMAX:
+      /*/
+      /=/ sys.vccMax
+      /*/
+      result = sysMetrics[IDX_METRIC_SYS_VCCMAX];
+      break;
+  
+
+#ifdef FEATURE_EXTERNAL_INTERRUPT_ENABLE
+    case CMD_EXTINT_COUNT:
+      /*/
+      /=/  extInt.count[intPin, intNumber, mode]
+      /*/
+      // TODO: maybe need to rework code block
+      if (isSafePin(arg[0])) {
+         int8_t interruptNumber=digitalPinToInterrupt(arg[0]);
+         voidFuncPtr interruptHandler;
+         // Interrupt number and mode is correct?
+         if ((EXTERNAL_NUM_INTERRUPTS > interruptNumber) && (RISING >= arg[2])) {
+            // Interrupt mode is changed
+            //Serial.println("[1] Interrupt number and mode is correct"); 
+            //Serial.print("[1*] Old interrupt mode is: ");  Serial.println(extInterrupt[interruptNumber].mode); 
+            // just use NOT_AN_INTERRUPT = -1 macro from Arduino.h
+            if (extInterrupt[interruptNumber].mode != arg[2] && NOT_AN_INTERRUPT != extInterrupt[interruptNumber].mode) {
+               //Serial.println("[2] Interrupt mode is changed, detach"); 
+               detachInterrupt(arg[1]);
+               extInterrupt[interruptNumber].mode = -1;
+            } 
+
+           // Interrupt not attached?
+           if (NOT_AN_INTERRUPT == extInterrupt[interruptNumber].mode) {
+              extInterrupt[interruptNumber].mode = arg[2];
+              switch (interruptNumber) {
+// Basic configuration => EXTERNAL_NUM_INTERRUPTS == 3
+                case INT0:
+                  interruptHandler = handleINT0;
+                  break;
+                case INT1:
+                  interruptHandler = handleINT1;
+                  break;
+// AVR_ATmega1284, AVR_ATmega1284P, AVR_ATmega644, AVR_ATmega644A, AVR_ATmega644P, AVR_ATmega644PA => EXTERNAL_NUM_INTERRUPTS == 3
+#if (EXTERNAL_NUM_INTERRUPTS > 2)
+                case INT2:
+                  interruptHandler = handleINT2;
+                  break;
+#endif // EXTERNAL_NUM_INTERRUPTS > 2
+// AVR_ATmega32U4 => EXTERNAL_NUM_INTERRUPTS == 5
+#if (EXTERNAL_NUM_INTERRUPTS > 3)
+                case INT3:
+                  interruptHandler = handleINT3;
+                  break;
+                case INT4:
+                  interruptHandler = handleINT4;
+                  break;
+#endif // EXTERNAL_NUM_INTERRUPTS > 3
+// AVR_ATmega1280, AVR_ATmega2560, AVR_ATmega128RFA1, AVR_ATmega256RFR2 => EXTERNAL_NUM_INTERRUPTS == 8
+#if (EXTERNAL_NUM_INTERRUPTS > 5)
+                case INT5:
+                  interruptHandler = handleINT5;
+                  break;
+                case INT6:
+                  interruptHandler = handleINT6;
+                  break;
+                case INT7:
+                  interruptHandler = handleINT7;
+                  break;
+#endif // EXTERNAL_NUM_INTERRUPTS > 5
+                default:
+                // still not attached
+                extInterrupt[interruptNumber].mode = NOT_AN_INTERRUPT;
+              }  // switch (interruptNumber)
+              // check again to take in account 'No interrupt choosed' case
+              if (NOT_AN_INTERRUPT != extInterrupt[interruptNumber].mode) {
+                 // if pin still not INPUT_PULLUP - system will hang up
+                 pinMode(arg[0], INPUT_PULLUP);
+                 attachInterrupt(interruptNumber, interruptHandler, arg[2]);
+                 // reinit counter
+                 extInterrupt[interruptNumber].count = 0;
+              }
+            
+           } // if (NOT_AN_INTERRUPT == extInterrupt[interruptNumber].mode)
+           result = extInterrupt[interruptNumber].count;
+         } // if ((EXTERNAL_NUM_INTERRUPTS > interruptNumber) && (RISING >= arg[2])) 
+       } // if (isSafePin(arg[0]))
+       break;
+#endif // FEATURE_EXTERNAL_INTERRUPT_ENABLE
+
+#ifdef FEATURE_ENCODER_ENABLE
+    case CMD_ENCODER_COUNT:
+      /*/
+      /=/  incEnc.count[terminalAPin, terminalBPin, intNumber, initialValue]
+      /*/
+      // TODO: maybe need to rework code block
+      // 
+      if (isSafePin(arg[0]) && isSafePin(arg[1])) {
+         int8_t interruptNumber=digitalPinToInterrupt(arg[0]);
+         voidFuncPtr interruptHandler;
+         // Interrupt number is correct?
+         if (EXTERNAL_NUM_INTERRUPTS > interruptNumber) {
+            // Interrupt mode is changed
+            // just use NOT_AN_INTERRUPT = -1 macro from Arduino.h
+           // Interrupt not attached?
+           if (NOT_AN_INTERRUPT == extInterrupt[interruptNumber].mode) {
+              extInterrupt[interruptNumber].mode = CHANGE;
+              switch (interruptNumber) {
+// Basic configuration => EXTERNAL_NUM_INTERRUPTS == 3
+                case INT0:
+                  interruptHandler = handleINT0ForEncoder;
+                  break;
+                case INT1:
+                  interruptHandler = handleINT1ForEncoder;
+                  break;
+                default:
+                // still not attached
+                extInterrupt[interruptNumber].mode = NOT_AN_INTERRUPT;
+              }  // switch (interruptNumber)
+              // check again to take in account 'No interrupt choosed' case
+              if (NOT_AN_INTERRUPT != extInterrupt[interruptNumber].mode) {
+                 // if pin still not INPUT_PULLUP - system will hang up
+                 pinMode(arg[0], INPUT_PULLUP);
+                 pinMode(arg[1], INPUT_PULLUP);
+                 attachInterrupt(interruptNumber, interruptHandler, CHANGE);
+                 // reinit counter
+                 extInterrupt[interruptNumber].encTerminalAPin = arg[0];
+                 extInterrupt[interruptNumber].encTerminalBPin = arg[1];
+                 extInterrupt[interruptNumber].count = arg[3];
+              }
+           } // if (NOT_AN_INTERRUPT == extInterrupt[interruptNumber].mode)
+           result = extInterrupt[interruptNumber].count;
+         } // if (EXTERNAL_NUM_INTERRUPTS > interruptNumber)
+       } // ((isSafePin(arg[0]) && isSafePin(arg[1]))
+       break;
+#endif // FEATURE_ENCODER_ENABLE
+     
+
+
+#ifdef FEATURE_OW_ENABLE
+    case CMD_OW_SCAN:
+      /*/
+      /=/  OW.scan[pin]
+      /*/
+      if (isSafePin(arg[0])) {
+         result = scanOneWire(arg[0]);
+      }
+      break;
+#endif // FEATURE_ONEWIRE_ENABLE
+
+
+#ifdef FEATURE_I2C_ENABLE
+    case CMD_I2C_SCAN:
+      /*/
+      /=/  I2C.scan[sdaPin, sclPin]
+      /*/
+      if (isSafePin(arg[0]) && isSafePin(arg[1])) {
+         result = scanI2C();
+      }
+      break;
+
+    case CMD_I2C_WRITE:
+      /*/
+      /=/ i2c.write(sdaPin, sclPin, i2cAddress, register, data)
+      /*/
+      if (isSafePin(arg[0]) && isSafePin(arg[1])) {
+         // i2COption used as 'data'
+         result = writeByteToI2C(i2CAddress, (('\0' != cBuffer[argOffset[3]]) ? i2CRegister : I2C_NO_REG_SPECIFIED), i2COption);
+         result = (0 == result) ? RESULT_IS_OK : RESULT_IS_FAIL;
+      }
+      break;
+
+    case CMD_I2C_READ:
+      /*/
+      /=/ i2c.read(sdaPin, sclPin, i2cAddress, register, length)
+      /*/
+      if (isSafePin(arg[0]) && isSafePin(arg[1])) {
+         // i2COption used as 'length' - how much bytes must be read: 0..4 byte
+         i2COption = constrain(i2COption, 1, 4);
+         result = readBytesFromi2C(i2CAddress, (('\0' != cBuffer[argOffset[3]]) ? i2CRegister : I2C_NO_REG_SPECIFIED), i2CValue, i2COption);
+         // make int32 from i2C's bytes
+         if (0 != result) {result = RESULT_IS_FAIL; break; }
+         for (i=0; i < i2COption; i++) {
+             result <<= 8;
+             result |= i2CValue[i];
+          }
+      }
+      break;
+
+    case CMD_I2C_BITWRITE:
+      /*/
+      /=/  i2c.bitWrite(sdaPin, sclPin, i2cAddress, register, bitNumber, value)
+      /*/
+      if (isSafePin(arg[0]) && isSafePin(arg[1])) {
+         // i2COption used as 'bit number'
+         if (0 > i2COption || 7 < i2COption){
+            result = RESULT_IS_FAIL;
+            break;
+         }
+         // Use device's register if specified, read 1 byte
+         result = readBytesFromi2C(i2CAddress, (('\0' != cBuffer[argOffset[3]]) ? i2CRegister : I2C_NO_REG_SPECIFIED), i2CValue, 1);
+         // "!!" convert value 0100 to 1.
+         bitWrite (i2CValue[0], i2COption, (!!arg[5]));
+         // Use device's register if specified, write 1 byte, returns Wire lib state
+         result = writeByteToI2C(i2CAddress, (('\0' != cBuffer[argOffset[3]]) ? i2CRegister : I2C_NO_REG_SPECIFIED), i2CValue[0]);
+         result = (0 == result) ? RESULT_IS_OK : RESULT_IS_FAIL;
+      }
+      break;
+      
+    case CMD_I2C_BITREAD:
+      /*/
+      /=/  i2c.bitRead(sdaPin, sclPin, i2cAddress, register, bit)
+      /*/
+      if (isSafePin(arg[0]) && isSafePin(arg[1])) {
+         // i2COption used as 'bit number'
+         if (0 > i2COption || 7 < i2COption){
+            result = RESULT_IS_FAIL;
+            break;
+         }
+         // Use device's register if specified, read 1 byte
+         result = readBytesFromi2C(i2CAddress, (('\0' != cBuffer[argOffset[3]]) ? i2CRegister : I2C_NO_REG_SPECIFIED), i2CValue, 1);
+         result = bitRead(i2CValue[0], i2COption);
+      }
+      break;
+
+
+#endif // FEATURE_I2C_ENABLE
+
+#ifdef FEATURE_DS18X20_ENABLE
+    case CMD_DS18X20_TEMPERATURE:
+      /*/
+      /=/  DS18x20.temperature[pin, resolution, id]
+      /*/
+      if (isSafePin(arg[0])) {
+         result = getDS18X20Metric(arg[0], arg[1], &cBuffer[argOffset[2]], cBuffer);
+      }
+      break;
+#endif // FEATURE_DS18X20_ENABLE
+
+#ifdef FEATURE_DHT_ENABLE
+    case CMD_DHT_HUMIDITY:
+      /*/
+      /=/  DHT.humidity[pin, model]
+      /*/
+      if (isSafePin(arg[0])) {
+        result = getDHTMetric(arg[0], arg[1], SENS_READ_HUMD, cBuffer);
+      }
+      break;
+
+    case CMD_DHT_TEMPERATURE:
+      /*/
+      /=/  DHT.temperature[pin, model]
+      /*/
+      if (isSafePin(arg[0])) {
+        result = getDHTMetric(arg[0], arg[1], SENS_READ_TEMP, cBuffer);
+      }
+      break;
+   
+#endif // FEATURE_DHT_ENABLE
+
+       
+#ifdef FEATURE_BMP_ENABLE
+    case CMD_BMP_PRESSURE:
+      /*/
+      /=/  BMP.Pressure[sdaPin, sclPin, i2cAddress, overSampling, filterCoef]
+      /*/
+      if (isSafePin(arg[0]) && isSafePin(arg[1])) {
+          // (uint8_t) arg[2] is i2c address, 7 bytes size
+         result = getBMPMetric(arg[0], arg[1], i2CAddress, arg[3], arg[4], SENS_READ_PRSS, cBuffer);
+      }
+      break;
+
+    case CMD_BMP_TEMPERATURE:
+      /*/
+      /=/ BMP.Temperature[sdaPin, sclPin, i2cAddress, overSampling]
+      /*/
+      if (isSafePin(arg[0]) && isSafePin(arg[1])) {
+         // (uint8_t) arg[2] is i2c address, 7 bytes size
+         result = getBMPMetric(arg[0], arg[1], i2CAddress, arg[3], arg[4], SENS_READ_TEMP, cBuffer);
+      }
+      break;
+
+      
+#ifdef SUPPORT_BME280_INCLUDE
+      case CMD_BME_HUMIDITY:
+      /*/
+      /=/  BME.Humidity[sdaPin, sclPin, i2cAddress, overSampling, filterCoef]
+      /*/
+      if (isSafePin(arg[0]) && isSafePin(arg[1])) {
+          // (uint8_t) arg[2] is i2c address, 7 bytes size
+         result = getBMPMetric(arg[0], arg[1], i2CAddress, arg[3], arg[4], SENS_READ_HUMD, cBuffer);
+      }
+      break;      
+#endif // SUPPORT_BME280_INCLUDE 
+
+#endif // FEATURE_BMP_ENABLE  
+
+
+#ifdef FEATURE_BH1750_ENABLE
+    case CMD_BH1750_LIGHT:
+      /*/
+      /=/  BH1750.light[sdaPin, sclPin, i2cAddress, mode]
+      /*/
+      if (isSafePin(arg[0]) && isSafePin(arg[1])) {
+         // (uint8_t) arg[2] is i2c address, 7 bytes size
+         result = getBH1750Metric(arg[0], arg[1], i2CAddress, arg[3], SENS_READ_LUX, cBuffer);
+      }
+      break;
+#endif // FEATURE_BH1750_ENABLE
+
+#ifdef FEATURE_MAX7219_ENABLE
+    case CMD_MAX7219_WRITE:
+      /*/
+      /=/  MAX7219.write[dataPin, clockPin, loadPin, intensity, value]
+      /*/
+      if (isSafePin(arg[0]) && isSafePin(arg[1])  && isSafePin(arg[2])) {
+         drawOnMAX7219Matrix8x8(arg[0], arg[1], arg[2], arg[3], &cBuffer[argOffset[4]]);
+         result = RESULT_IS_OK;
+      }
+      break;
+#endif // FEATURE_MAX7219_ENABLE
+
+#ifdef FEATURE_PCF8574_LCD_ENABLE
+    case CMD_PCF8574_LCDPRINT:
+      /*/
+      /=/  PCF8574.LCDPrint[sdaPin, sclPin, i2cAddress, lcdBacklight, lcdType, data]
+      /*/
+      if (isSafePin(arg[0]) && isSafePin(arg[1])) {
+         result = printToPCF8574LCD(arg[0], arg[1], i2CAddress, arg[3], arg[4], &cBuffer[argOffset[5]]);
+      }
+      break;
+
+#endif // FEATURE_PCF8574_LCD_ENABLE
+
+
+#ifdef FEATURE_SHT2X_ENABLE
+    case CMD_SHT2X_HUMIDITY:
+      /*/
+      /=/  SHT2X.Humidity[sdaPin, sclPin, i2cAddress]
+      /*/
+      if (isSafePin(arg[0]) && isSafePin(arg[1])) {
+         // (uint8_t) arg[2] is i2c address, 7 bytes size
+         result = getSHT2XMetric(arg[0], arg[1], i2CAddress, SENS_READ_HUMD, cBuffer);
+      }
+      break;
+
+    case CMD_SHT2X_TEMPERATURE:
+      /*/
+      /=/  SHT2X.Temperature[sdaPin, sclPin, i2cAddress]
+      /*/
+      if (isSafePin(arg[0]) && isSafePin(arg[1])) {
+         // (uint8_t) arg[2] is i2c address, 7 bytes size
+         result = getSHT2XMetric(arg[0], arg[1], i2CAddress, SENS_READ_TEMP, cBuffer);
+      }
+      break;
+#endif // FEATURE_SHT2X_ENABLE  
+
+
+
+#ifdef FEATURE_ACS7XX_ENABLE
+    case CMD_ACS7XX_ZC:
+      /*/
+      /=/  acs7xx.zc[sensorPin, refVoltage]
+      /*/
+      if (isSafePin(arg[0])) {
+         /*
+            for ATmega1280, ATmega2560, ATmega1284, ATmega1284P, ATmega644, ATmega644A, ATmega644P, ATmega644PA
+               INTERNAL1V1 	2  - 1,1V
+               INTERNAL2V56 	3  - 2,56V
+            ATmega328 and so
+               INTERNAL 	3  - 1,1V
+            Both
+               DEFAULT 	        1  - VCC
+               EXTERNAL 	0  - AREF << mV on AREF, more than '3'
+*/
+         // if refVoltage skipped - use DEFAULT source
+         if ('\0' != cBuffer[argOffset[1]]) {
+           arg[1] = DEFAULT;
+         }
+         result = getACS7XXMetric(arg[0], arg[1], SENS_READ_ZC, 0, 0, cBuffer);
+      }
+      break;
+
+    case CMD_ACS7XX_AC:
+      /*/
+      /=/  acs7xx.ac[sensorPin, refVoltage, sensitivity, zeroPoint] 
+      /*/
+      if (isSafePin(arg[0])) {
+         // if refVoltage skipped - use DEFAULT source
+         if ('\0' != cBuffer[argOffset[1]]) {
+           arg[1] = DEFAULT;
+         }
+         result = getACS7XXMetric(arg[0], arg[1], SENS_READ_AC, arg[2], (int32_t) arg[3], cBuffer);
+      }
+      break;
+
+    case CMD_ACS7XX_DC:
+      /*/
+      /=/  acs7xx.dc[sensorPin, refVoltage, sensitivity, zeroPoint] 
+      /*/
+      if (isSafePin(arg[0])) {
+         // if refVoltage skipped - use DEFAULT source
+         if ('\0' != cBuffer[argOffset[1]]) {
+           arg[1] = DEFAULT;
+         }
+         result = getACS7XXMetric(arg[0], arg[1], SENS_READ_DC, arg[2], (int32_t) arg[3], cBuffer);
+      }
+      break;
+
+#endif // FEATURE_ACS7XX_ENABLE
+
+
+#ifdef FEATURE_ULTRASONIC_ENABLE
+    case CMD_ULTRASONIC_DISTANCE:
+      /*/
+      /=/  ultrasonic.distance[triggerPin, echoPin]
+      /*/
+      if (isSafePin(arg[0]) & isSafePin(arg[1])) {
+         result = getUltrasonicMetric(arg[0], arg[1]);
+      }
+      break;
+#endif // FEATURE_ULTRASONIC_ENABLE
+
+
+#ifdef FEATURE_IR_ENABLE
+    case CMD_IR_SEND:
+      /*/
+      /=/  ir.send[pwmPin, irPacketType, nBits, data, repeat, address]
+      /*/
+      // ATmega328: Use D3 only at this time
+      // Refer to other Arduino's pinouts to find OC2B pin
+      if (isSafePin(arg[0]) && TIMER2B == digitalPinToTimer(arg[0])) {
+         // irPWMPin - global wariable that replace IRremote's TIMER_PWM_PIN
+         irPWMPin = arg[0];
+         result = sendCommandByIR(arg[1], arg[2], arg[3], arg[4], arg[5]);
+         result = (result) ? RESULT_IS_OK : RESULT_IS_FAIL;
+      }
+      break;
+
+    case CMD_IR_SENDRAW:
+      /*/
+      /=/  ir.sendRaw[pwmPin, irFrequency, nBits, data]
+      /=/  >> need to increase ARGS_PART_SIZE, because every data`s Integer number take _four_ HEX-chars => 70 RAW array items take 282 (2+70*4) byte of incoming buffer only
+      /*/
+      // ATmega328: Use D3 only at this time
+      // Refer to other Arduino's pinouts to find OC2B pin
+      if (isSafePin(arg[0]) && TIMER2B == digitalPinToTimer(arg[0])) {
+         // irPWMPin - global wariable that replace IRremote's TIMER_PWM_PIN
+         irPWMPin = arg[0];
+         result = sendRawByIR(arg[1], arg[2], &cBuffer[argOffset[3]]);
+         result = (result) ? RESULT_IS_OK : RESULT_IS_FAIL;
+      }
+      break;
+#endif // FEATURE_IR_ENABLE
+
+
+    default:
+      // In default case command  is considered unknown.
+      strcpy(cBuffer, ZBX_NOTSUPPORTED_MSG);
+      // Early increased command counter is decremented
+      sysMetrics[IDX_METRIC_SYS_CMD_COUNT]--;
+      result = RESULT_IN_BUFFER;
+   }
+
+
+   // The result is already printed?
+   if (RESULT_IS_PRINTED != result) {
+      // The result is placed to buffer?
+      if (RESULT_IN_BUFFER != result) {
+         //  '1' must be returned
+         if (RESULT_IS_OK == result) {
+            result = 1L;
+         // or '0'
+         } else if (RESULT_IS_FAIL == result) {
+            result = 0L;
+         }
+         //  If result is number - convert its to C-string.
+         ltoa (result, cBuffer, 10);
+      }
+      //  Push the buffer
+      ethClient.println(cBuffer);
+#ifdef FEATURE_DEBUG_TO_SERIAL
+     SerialPrint_P(PSTR("Result: ")); Serial.println(cBuffer); Serial.println(); 
+#endif
+   }
+   return cmdIdx;
 }
 
 
