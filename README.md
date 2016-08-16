@@ -3,7 +3,7 @@ An Zabbix agent firmware for Arduino (**AVR only**)
 
 Actual release is v1.0.0. 
 
-**You can help to the project** by providing hardware to testing and integrating. Or yo can just donate for it. Contact to me via email: [zbx.sadman@gmail.com](mailto://zbx.sadman@gmail.com)
+**You can help to the project** by providing hardware to testing and integrating. Or yoг can just donate for it. Contact to me via email: [zbx.sadman@gmail.com](mailto://zbx.sadman@gmail.com)
 
 Implemented:
 - A few Zabbix agent commands;
@@ -15,13 +15,13 @@ Implemented:
 - AVR WatchDog feature support;
 - MCU and runtime metrics (current/min/max VCC, current/min RAM, uptime, MCU name) obtaining;
 - Support WS5100 or ENC25J60 network modules;
-- Support one or more DS18X20 thermometer;
+- Support one or more Dallas DS18X20 thermometer;
 - Support DHT11/21/22/33/44 or AM2301/2302 humidity and temperature sensors;
-- Support SHT2X humidity and temperature sensors serie;
+- Support Sensirion SHT2X humidity and temperature sensors serie;
 - Support BOSCH BMP180/Allegro ACS7xx sensor, BMP280/BME280 pressure temperature and humidity sensors;
 - Support ROHM BH1750 light sensor;
-- Support incremental Encoder (on interrupt's pin);
-- Support any devices that can be used with hardware interrupt - tilt switches, dry contacts, water flow sensor, and so;
+- Support incremental encoder (on interrupt's pin);
+- Support devices that can be used with hardware interrupt - tilt switches, dry contacts, water flow sensor, and so;
 - Support Allegro ACS7xx sensor;
 - Support HC-SR04 ultrasonic ranging module;
 - Support any other analog or digital sensor via `analogread` /`digitalread` commands;
