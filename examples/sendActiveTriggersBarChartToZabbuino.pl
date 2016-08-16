@@ -1,9 +1,9 @@
 #!/usr/bin/perl
 #
 #
-# Script to send active tiggers hystogram to Zabbuino
+# Script to show active tiggers hystogram on Zabbuino's 8x8 LED matrix
 #
-# Created 27 Jun 2016 by zbx.sadman@gmail.com
+# Created 16 Aug 2016 by zbx.sadman@gmail.com
 #
 
 use strict;
@@ -14,28 +14,29 @@ use IO::Socket;
 use LWP ();
 use JSON::XS ("decode_json");
 
-my ($zbxUser, $zbxPass, $zbxAPI, $zbxData, $ua, $response, $authToken);
+my ($zbxUser, $zbxPass, $zbxAPI, $zbxData, $ua, $response, $authToken, $fromRightToLeft, $fromUpToBottom, $priority, $i);
 my ($zabbuinoIP, $zabbuinoPort, $dataPin, $loadPin, $clockPin, @triggersActive, @hexes, $max, $barHeight, $pixelWeight);
 
 # Zabbuino address and port
-$zabbuinoIP = '172.16.100.228';
+$zabbuinoIP = '192.168.0.99';
 $zabbuinoPort = '10050';
 
 # pins to which MAX7219 with 8x8 led matrix connected
-$dataPin = 5;
-$clockPin = 6;
-$loadPin = 7;
-
+$dataPin = 7;
+$clockPin = 5;
+$loadPin = 6;
 
 # test set
 #@triggersActive=(0,0,1,3,5,0,0,0);
 #@triggersActive=(0,0,0,0,0,0,0,0);
 
-# HEX-strings which used to fill lines with a number of pixels: 1, 2, 3 ... 8.
-@hexes=('00', '01', '03', '07', '0F', '1F', '3F', '7F', 'FF');
-# Use that array to get reverse drawing on led matrix
-# @hexes=('00', '80', 'C0', 'E0', 'F0', 'F8', 'FC', 'FE', 'FF');
+# 0 - draw triggers priority from left to right, 1 -> in reverse order
+$fromRightToLeft = 0;
+# 0 - fill col like an stalagmite, 1 -> like an stalactite
+$fromUpToBottom = 1;
 
+# HEX-strings which used to fill lines with a number of pixels: 1, 2, 3 ... 8.
+@hexes = $fromUpToBottom ? ('00', '80', 'C0', 'E0', 'F0', 'F8', 'FC', 'FE', 'FF') : ('00', '01', '03', '07', '0F', '1F', '3F', '7F', 'FF') ;
 
 # Who have access to API
 $zbxUser='Admin'; #Make user with API access and put name here
@@ -67,20 +68,24 @@ foreach (@{$zbxData -> {'result'}}) {
 $pixelWeight = ($max <= 8 ) ? 1 : (8 / $max);
 $zbxData = '';
 # no priority #0 on Zabbix server, begin pushing from priority #1 and walk thru array for 8 lines processing
-foreach my $i (1..8) {
+for $i (1..8) {
+  # need going from end to begin if reverse order need
+  $priority = ($fromRightToLeft) ? (9-$i) : $i;
+
   # if no data for current priority - push '00'
-  if (!$triggersActive[$i]) {
+  if (!$triggersActive[$priority]) {
     $zbxData .= $hexes[0]; next;
   }
-  # print "priority #$i => ". $triggersActive[$i]."\n";
-  $barHeight = $pixelWeight * $triggersActive[$i];
+  # print "priority #$i => ". $triggersActive[$priority]."\n";
+  $barHeight = $pixelWeight * $triggersActive[$priority];
+  $barHeight = 1 if (1 > $barHeight);
   # push HEX from array to fill part of line 
   $zbxData .= $hexes[$barHeight];
 }
 
-# form Zabbix key
-$zbxData = "max7219.write[$dataPin,$loadPin,$clockPin,1,0x${zbxData}]";
-# send key to Zabbuino
+# Make Zabbix key
+$zbxData = "max7219.write[$dataPin,$clockPin,$loadPin,1,0x${zbxData}]";
+# Send key to Zabbuino
 sendToAgent($zabbuinoIP, $zabbuinoPort, $zbxData);
 
 
