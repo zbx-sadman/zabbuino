@@ -1,14 +1,17 @@
 #!/usr/bin/perl
 #
 #
-# Script to show active tiggers hystogram on Zabbuino's 8x8 LED matrix
+# Script to show active tiggers bar chart on Zabbuino's 8x8 LED matrix
 #
 # Created 16 Aug 2016 by zbx.sadman@gmail.com
+#
+# And beeps if high priority active trigger found since 19 Aug 2016
+#
 #
 
 use strict;
 use warnings;
-use Data::Dumper;
+#use Data::Dumper;
 use POSIX;
 use IO::Socket;
 use LWP ();
@@ -16,15 +19,25 @@ use JSON::XS ("decode_json");
 
 my ($zbxUser, $zbxPass, $zbxAPI, $zbxData, $ua, $response, $authToken, $fromRightToLeft, $fromUpToBottom, $priority, $i);
 my ($zabbuinoIP, $zabbuinoPort, $dataPin, $loadPin, $clockPin, @triggersActive, @hexes, $max, $barHeight, $pixelWeight);
+my ($buzzerPin, $buzzerFrequency, $buzzerDuration, $buzzOnPriority, $needBuzz);
 
 # Zabbuino address and port
-$zabbuinoIP = '192.168.0.99';
+$zabbuinoIP = '172.16.100.223';
 $zabbuinoPort = '10050';
 
 # pins to which MAX7219 with 8x8 led matrix connected
 $dataPin = 7;
 $clockPin = 5;
 $loadPin = 6;
+
+# buzzer settings for tone[] command
+$buzzerPin = 3;
+$buzzerFrequency = 1000;
+$buzzerDuration = 50;
+# script send buzz command if exist active triggers with priority $buzzOnPriority and hight
+# set $buzzOnPriority > max priority (6, for example) to turn off buzzer feature
+$buzzOnPriority = 3;
+$needBuzz = 0;
 
 # test set
 #@triggersActive=(0,0,1,3,5,0,0,0);
@@ -39,9 +52,9 @@ $fromUpToBottom = 1;
 @hexes = $fromUpToBottom ? ('00', '80', 'C0', 'E0', 'F0', 'F8', 'FC', 'FE', 'FF') : ('00', '01', '03', '07', '0F', '1F', '3F', '7F', 'FF') ;
 
 # Who have access to API
-$zbxUser='Admin'; #Make user with API access and put name here
+$zbxUser='sysop'; #Make user with API access and put name here
 # His pass
-$zbxPass='zabbix'; #Make user with API access and put password here
+$zbxPass='ua0xto13'; #Make user with API access and put password here
 # API location
 $zbxAPI='http://localhost/zabbix/api_jsonrpc.php';
 
@@ -76,6 +89,7 @@ for $i (1..8) {
   if (!$triggersActive[$priority]) {
     $zbxData .= $hexes[0]; next;
   }
+  $needBuzz = 1 if ($priority >= $buzzOnPriority);
   # print "priority #$i => ". $triggersActive[$priority]."\n";
   $barHeight = $pixelWeight * $triggersActive[$priority];
   $barHeight = 1 if (1 > $barHeight);
@@ -88,6 +102,8 @@ $zbxData = "max7219.write[$dataPin,$clockPin,$loadPin,1,0x${zbxData}]";
 # Send key to Zabbuino
 sendToAgent($zabbuinoIP, $zabbuinoPort, $zbxData);
 
+# Buzz by Zabbuino
+sendToAgent($zabbuinoIP, $zabbuinoPort, "tone[$buzzerPin,$buzzerFrequency,$buzzerDuration]") if ($needBuzz);
 
 ####
 #
