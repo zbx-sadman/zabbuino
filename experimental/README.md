@@ -1,9 +1,9 @@
-# Zabbuino 1.0.0 (pre-release)
+# Zabbuino 1.0.1
 
 Implemented:
 - A few Zabbix agent commands;
 - Wraps a lot of Arduino Language functions;
-- Onewire and I2C bus scaning to detect sensors ID or adresses;
+- OneWire and I2C bus scaning to detect sensors ID or adresses;
 - Network DHCP and static IP support;
 - Remote configuring & rebooting, system protection;
 - Storing system setting in EEPROM;
@@ -13,18 +13,38 @@ Implemented:
 - Support one or more DS18X20 thermometer;
 - Support DHT11/21/22/33/44 or AM2301/2302 humidity and temperature sensors;
 - Support SHT2X humidity and temperature sensors serie;
-- Support BMP085/180, BMP280/BME280 pressure and temperature sensors;
+- Support BMP180/085, BMP280/BME280 pressure and temperature sensors;
 - Support BH1750 light sensor;
-- Support incremental Encoder (on interrupt's pin);
+- Support incremental encoder (on interrupt's pin);
 - Support any devices that can be used with hardware interrupt - tilt switches, dry contacts, water flow sensor, and so;
-- Support ACS712-XX sensor;
+- Support ACS7xx sensors;
 - Support HC-SR04 ultrasonic ranging module;
 - Support any other analog or digital sensor via `analogread` /`digitalread` commands;
 - Support indicators, that connected to MAX7219, 8x8 Led matrix for example;
 - Support simple I2C devices (expanders, digital linear potentiometers, etc.);
 - Support One- or Two- (and maybe Four-) lines LCD Character displays with PC8574 I2C expander;
 - Support any actuators or indicators via `digitalwrite` command;
-- Support WS2801 Led stripe and any indicators on shift registers via extended `shiftout` command.
+- Support WS2801 Led stripe and any indicators on shift registers via extended `shiftout` command;
+- Support WS2812 Led stripe;
+- Simulate varuious vendor's IR transmitters.
+
+####25 Aug 2016
+
+New commands:
+ - _WS2812.SendRaw[dataPin, data]_ - send data to WS2812 led stripe.
+   - _pwmPin_ - pin to which WS2812's DIN connected;
+   - _data_ - prefixed HEX-string that contain encoded color data. Every led color specify by group of six HEX-numbers - two number (one byte) for every color in GRB order. Number of HEX groups is equal to number of leds in stripe. [8 leds bar](https://ru.aliexpress.com/item/Free-Shipping-NeoPixel-Stick-8-channel-WS2812-5050-RGB-LED-lights-built-in-full-color-driven/32582877809.html) example: zabbix_get.exe -s 192.168.0.1 -k "ws2812.sendraw[5,0x00FF00 001100 0000FF 000011 FF0000 110000 003333 330033]" (max red, min red, max blue, min blue and etc.);
+
+**Note #1** Code was taken from [Adafruit's NeoPixel](https://github.com/adafruit/Adafruit_NeoPixel) library and handles 800 KHz bitstreams on 16 MHz ATmega MCUs only.
+
+**Note #2** The _shiftOut[]_ command can be temporary broken due bit-banging code refactored and not tested yet on real hardware. It's will be tested soon.
+
+
+####15 Aug 2016
+
+**Zabbuino 1.0.0 released** 
+
+Work on Zabbuino 1.1.x is begin.
 
 ####10 Aug 2016
 
