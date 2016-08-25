@@ -33,7 +33,7 @@ Implemented:
 New commands:
  - _WS2812.SendRaw[dataPin, data]_ - send data to WS2812 led stripe.
    - _pwmPin_ - pin to which WS2812's DIN connected;
-   - _data_ - prefixed HEX-string that contain encoded color data. Every led color specify by group of six HEX-numbers - two number (one byte) for every color in GRB order. Number of HEX groups is equal to number of leds in stripe. [8 leds bar](https://ru.aliexpress.com/item/Free-Shipping-NeoPixel-Stick-8-channel-WS2812-5050-RGB-LED-lights-built-in-full-color-driven/32582877809.html) example: zabbix_get.exe -s 192.168.0.1 -k "ws2812.sendraw[5,0x00FF00 001100 0000FF 000011 FF0000 110000 003333 330033]" (max red, min red, max blue, min blue and etc.);
+   - _data_ - prefixed HEX-string that contain encoded color data. Every led color specify by group of six HEX-numbers - two number (one byte) for every color in GRB order. Number of HEX groups is equal to number of leds in stripe. [8 leds bar](https://ru.aliexpress.com/item/Free-Shipping-NeoPixel-Stick-8-channel-WS2812-5050-RGB-LED-lights-built-in-full-color-driven/32582877809.html) example: `zabbix_get.exe -s 192.168.0.1 -k "ws2812.sendraw[5,0x00FF00 001100 0000FF 000011 FF0000 110000 003333 330033]"` (max red, min red, max blue, min blue and etc.);
 
 **Note #1** Code was taken from [Adafruit's NeoPixel](https://github.com/adafruit/Adafruit_NeoPixel) library and handles 800 KHz bitstreams on 16 MHz ATmega MCUs only.
 
