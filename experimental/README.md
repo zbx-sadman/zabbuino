@@ -38,6 +38,7 @@ New commands:
 **Note #1** Code was taken from [Adafruit's NeoPixel](https://github.com/adafruit/Adafruit_NeoPixel) library and handles 800 KHz bitstreams on 16 MHz ATmega MCUs only.
 
 **Note #2** The _shiftOut[]_ command can be temporary broken due bit-banging code refactored and not tested yet on real hardware. It's will be tested soon.
+**Note #2 update** The _shiftOut[]_ command has been tested and fixed.
 
 
 ####15 Aug 2016
