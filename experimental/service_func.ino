@@ -1,3 +1,10 @@
+void setHostname(char* _dest, const char* _src){
+   strncpy(_dest, _src, ZBX_AGENT_HOSTNAME_MAXLEN-1);
+   _dest[ZBX_AGENT_HOSTNAME_MAXLEN]='\0';
+//   return _dest;
+
+}
+
 /* ****************************************************************************************************************************
 *
 *   Set default values of network configuration
@@ -15,18 +22,20 @@ void setConfigDefaults(netconfig_t& _configStruct)
   _configStruct.ipAddress = IPAddress(NET_DEFAULT_IP_ADDRESS);
   _configStruct.ipNetmask = IPAddress(NET_DEFAULT_NETMASK);
   _configStruct.ipGateway = IPAddress(NET_DEFAULT_GATEWAY);
+
+#ifdef FEATURE_NET_USE_MCUID_FOR_MAC
+   // Interrupts must be disabled before boot_signature_byte_get will be called to avoid code crush
+   noInterrupts();
+   // rewrite last MAC's two byte with MCU ID's bytes
+   _configStruct.macAddress[4] = boot_signature_byte_get(22);
+   _configStruct.macAddress[5] = boot_signature_byte_get(23);
+   interrupts();
+#endif
+
 //#ifdef PASSWORD_PROTECTION_FEATURE_ENABLE
   _configStruct.password = SYS_DEFAULT_PASSWORD;
   _configStruct.useProtection = SYS_DEFAULT_PROTECTION;
 //#endif
-}
-
-
-void setHostname(char* _dest, const char* _src){
-   strncpy(_dest, _src, ZBX_AGENT_HOSTNAME_MAXLEN-1);
-   _dest[ZBX_AGENT_HOSTNAME_MAXLEN]='\0';
-//   return _dest;
-
 }
 
 /* ****************************************************************************************************************************

@@ -3,6 +3,10 @@
 Based on: https://github.com/z3t0/Arduino-IRremote
 version 2.2.1 is used
 
+ !!! BEWARE !!! 
+ Not all Arduino IRremote code is implemented to Zabbuino. Compilation may stops or hangs.
+ #define's for Timer2 & Timer4  are included only to this .ino file. 
+
 */
 
 #define IR_UNKNOWN      -0x01
@@ -34,37 +38,143 @@ version 2.2.1 is used
 #	define SYSCLOCK  16000000  // main Arduino clock
 #endif
 
+
+//------------------------------------------------------------------------------
+// Define which timer to use
+//
+// Uncomment the timer you wish to use on your board.
+// If you are using another library which uses timer2, you have options to
+//   switch IRremote to use a different timer.
+//
+
+// Arduino Mega
+#if defined(__AVR_ATmega1280__) || defined(__AVR_ATmega2560__)
+	//#define IR_USE_TIMER1   // tx = pin 11
+	#define IR_USE_TIMER2     // tx = pin 9
+	//#define IR_USE_TIMER3   // tx = pin 5
+	//#define IR_USE_TIMER4   // tx = pin 6
+	//#define IR_USE_TIMER5   // tx = pin 46
+
+// Teensy 1.0
+#elif defined(__AVR_AT90USB162__)
+	#define IR_USE_TIMER1     // tx = pin 17
+
+// Teensy 2.0
+#elif defined(__AVR_ATmega32U4__)
+	//#define IR_USE_TIMER1   // tx = pin 14
+	//#define IR_USE_TIMER3   // tx = pin 9
+	#define IR_USE_TIMER4_HS  // tx = pin 10
+
+// Teensy 3.0 / Teensy 3.1
+#elif defined(__MK20DX128__) || defined(__MK20DX256__) || defined(__MK64FX512__) || defined(__MK66FX1M0__)
+	#define IR_USE_TIMER_CMT  // tx = pin 5
+
+// Teensy-LC
+#elif defined(__MKL26Z64__)
+  #define IR_USE_TIMER_TPM1 // tx = pin 16
+
+// Teensy++ 1.0 & 2.0
+#elif defined(__AVR_AT90USB646__) || defined(__AVR_AT90USB1286__)
+	//#define IR_USE_TIMER1   // tx = pin 25
+	#define IR_USE_TIMER2     // tx = pin 1
+	//#define IR_USE_TIMER3   // tx = pin 16
+
+// MightyCore - ATmega1284
+#elif defined(__AVR_ATmega1284__) || defined(__AVR_ATmega1284P__)
+	//#define IR_USE_TIMER1   // tx = pin 13
+	#define IR_USE_TIMER2     // tx = pin 14
+	//#define IR_USE_TIMER3   // tx = pin 6
+
+// MightyCore - ATmega164, ATmega324, ATmega644
+#elif defined(__AVR_ATmega644__) || defined(__AVR_ATmega644P__) \
+|| defined(__AVR_ATmega324P__) || defined(__AVR_ATmega324A__) \
+|| defined(__AVR_ATmega324PA__) || defined(__AVR_ATmega164A__) \
+|| defined(__AVR_ATmega164P__)
+	//#define IR_USE_TIMER1   // tx = pin 13
+	#define IR_USE_TIMER2     // tx = pin 14
+	
+//MegaCore - ATmega64, ATmega128
+#elif defined(__AVR_ATmega64__) || defined(__AVR_ATmega128__)
+ 	#define IR_USE_TIMER1     // tx = pin 13
+
+// MightyCore - ATmega8535, ATmega16, ATmega32
+#elif defined(__AVR_ATmega8535__) || defined(__AVR_ATmega16__) || defined(__AVR_ATmega32__)
+ 	#define IR_USE_TIMER1     // tx = pin 13
+
+// Atmega8
+#elif defined(__AVR_ATmega8__)
+	#define IR_USE_TIMER1     // tx = pin 9
+
+// ATtiny84
+#elif defined(__AVR_ATtiny84__)
+  #define IR_USE_TIMER1     // tx = pin 6
+
+//ATtiny85
+#elif defined(__AVR_ATtiny85__)
+  #define IR_USE_TIMER_TINY0   // tx = pin 1
+
+// Arduino Duemilanove, Diecimila, LilyPad, Mini, Fio, Nano, etc
+// ATmega48, ATmega88, ATmega168, ATmega328
+#else
+	//#define IR_USE_TIMER1   // tx = pin 9
+	#define IR_USE_TIMER2     // tx = pin 3
+
+#endif
+
 //------------------------------------------------------------------------------
 // Defines for Timer
 
 //---------------------------------------------------------
 // Timer2 (8 bits)
 //
-#define TIMER_ENABLE_PWM    (TCCR2A |= _BV(COM2B1))
-#define TIMER_DISABLE_PWM   (TCCR2A &= ~(_BV(COM2B1)))
-#define TIMER_ENABLE_INTR   (TIMSK2 = _BV(OCIE2A))
-#define TIMER_DISABLE_INTR  (TIMSK2 = 0)
-//#define TIMER_INTR_NAME     TIMER2_COMPA_vect
-#define TIMER_CONFIG_KHZ(val) ({ \
-	const uint8_t pwmval = SYSCLOCK / 2000 / (val); \
-	TCCR2A               = _BV(WGM20); \
-	TCCR2B               = _BV(WGM22) | _BV(CS20); \
-	OCR2A                = pwmval; \
-	OCR2B                = pwmval / 3; \
+#if defined(IR_USE_TIMER2)
+    #define TIMER_ENABLE_PWM    (TCCR2A |= _BV(COM2B1))
+    #define TIMER_DISABLE_PWM   (TCCR2A &= ~(_BV(COM2B1)))
+    #define TIMER_ENABLE_INTR   (TIMSK2 = _BV(OCIE2A))
+    #define TIMER_DISABLE_INTR  (TIMSK2 = 0)
+    #define TIMER_CONFIG_KHZ(val) ({ \
+       const uint8_t pwmval = SYSCLOCK / 2000 / (val); \
+          TCCR2A               = _BV(WGM20); \
+          TCCR2B               = _BV(WGM22) | _BV(CS20); \
+          OCR2A                = pwmval; \
+          OCR2B                = pwmval / 3; \
+       })
+
+
+//---------------------------------------------------------
+// Timer4 (10 bits, high speed option)
+//
+#elif defined(IR_USE_TIMER4_HS)
+
+   #define TIMER_RESET
+   #define TIMER_ENABLE_PWM    (TCCR4A |= _BV(COM4A1))
+   #define TIMER_DISABLE_PWM   (TCCR4A &= ~(_BV(COM4A1)))
+   #define TIMER_ENABLE_INTR   (TIMSK4 = _BV(TOIE4))
+   #define TIMER_DISABLE_INTR  (TIMSK4 = 0)
+
+   #define TIMER_CONFIG_KHZ(val) ({ \
+      const uint16_t pwmval = SYSCLOCK / 2000 / (val); \
+         TCCR4A                = (1<<PWM4A); \
+         TCCR4B                = _BV(CS40); \
+         TCCR4C                = 0; \
+         TCCR4D                = (1<<WGM40); \
+         TCCR4E                = 0; \
+         TC4H                  = pwmval >> 8; \
+         OCR4C                 = pwmval; \
+         TC4H                  = (pwmval / 3) >> 8; \
+         OCR4A                 = (pwmval / 3) & 255; \
 })
-
-
-
+#endif
 
 
 //  ir.send[pwmPin, irPacketType, data, nbits, repeat, address]
 uint8_t sendCommandByIR(const uint8_t _irPacketType, const uint8_t _nbits, const uint32_t _data, const uint8_t _repeat, const uint32_t _address)
 {
-/*
+
 //void  sendJVC (unsigned long data,  int nbits,  bool repeat)
 //void  sendAiwaRCT501 (int code)
 //void  sendDenon (unsigned long data,  int nbits)  so long codes, no example
-*/
+
 
 //Serial.print("_irPacketType: "); Serial.println(_irPacketType);
 //Serial.print("_nbits: "); Serial.println(_nbits);
@@ -198,7 +308,7 @@ void  space (unsigned int time)
 //
 void  enableIROut (int khz)
 {
-	// Disable the Timer2 Interrupt (which is used for receiving IR)
+  	// Disable the Timer2 Interrupt (which is used for receiving IR)
 	TIMER_DISABLE_INTR; //Timer2 Overflow Interrupt
 
 	pinMode(irPWMPin, OUTPUT);
@@ -214,8 +324,8 @@ void  enableIROut (int khz)
 
 //+=============================================================================
 // Custom delay function that circumvents Arduino's delayMicroseconds limit
-
 void custom_delay_usec(unsigned long uSecs) {
+
   if (uSecs > 4) {
     unsigned long start = micros();
     unsigned long endMicros = start + uSecs - 4;
@@ -227,6 +337,7 @@ void custom_delay_usec(unsigned long uSecs) {
   //else {
   //  __asm__("nop\n\t"); // must have or compiler optimizes out
   //}
+
 }
 #endif
 

@@ -4,6 +4,16 @@
 #include <Arduino.h>
 #include <IPAddress.h>
 #include "platforms.h"
+// Wire lib for I2C sensors
+#include <Wire.h>
+// OneWire lib for Dallas sensors
+#include <OneWire.h>
+#include <EEPROM.h>
+#include <avr/pgmspace.h>
+#include <avr/wdt.h>
+#include <avr/boot.h>
+// used by interrupts-related macroses
+#include <wiring_private.h>
 
 
 /* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
@@ -16,7 +26,7 @@
 
 /****       New              ****/
 // WS2812 led stripe support
-#define FEATURE_WS2812_ENABLE
+//#define FEATURE_WS2812_ENABLE
 
 
 /****       Network              ****/
@@ -25,13 +35,20 @@
 /*/ 
 /=/      Obtain an IP-address using DHCP
 /*/
-
 //#define FEATURE_NET_DHCP_ENABLE
 
 /*/ 
 /=/      Force obtain IP-address using DHCP even netConfig.useDHCP = false
 /*/
 //#define FEATURE_NET_DHCP_FORCE
+
+/*/ 
+/=/      Use last two bytes of MCU ID as MAC`s last two bytes
+/=/      Note, that changing MAC or IP-address separately may cause "strange" network errors until the moment when the router delete old ARP-records from the cache.
+/*/
+// Not ready to production
+//#define FEATURE_NET_USE_MCUID_FOR_MAC
+//#define FEATURE_NET_USE_MCUID_FOR_NAME
 
 /****       Arduino wrappers     ****/
   
@@ -236,13 +253,14 @@
 /*/
 /=/     Enable system's command which can be used in system debug process:
 /=/       - Sys.MCU.Name[];
+/=/       - Sys.MCU.ID[];
 /=/       - Sys.Net.Module[];
 /=/       - Sys.Cmd.Count[];
 /=/       - Sys.Cmd.TimeMax[];
 /=/       - Sys.RAM.Free[];
 /=/       - Sys.RAM.FreeMin[]
 /*/
-#define FEATURE_DEBUG_COMMANDS_ENABLE
+//#define FEATURE_DEBUG_COMMANDS_ENABLE
 
 /*/
 /=/     View the debug messages on the Serial Monitor
@@ -252,7 +270,7 @@
 /*/
 /=/     Use interrupt on Timer1 for internal metric gathering
 /*/
-#define GATHER_METRIC_USING_TIMER_INTERRUPT
+//#define GATHER_METRIC_USING_TIMER_INTERRUPT
 
 
 
@@ -278,29 +296,62 @@
 
 /* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
                                                             NETWORK MODULE SECTION 
+
+       Note, that changing MAC or IP-address separately may cause "strange" network errors until the moment when the router delete old ARP-records from the cache.
+
 */
 
-#define NET_DEFAULT_USE_DHCP        	                        false
-#define NET_DEFAULT_MAC_ADDRESS     	                        {0xDE,0xAD,0xBE,0xEF,0xF0,0x0F}
-
+#define NET_DEFAULT_USE_DHCP                                  false
+/*
+#define NET_DEFAULT_MAC_ADDRESS     	                       {0xDE,0xAD,0xBE,0xEF,0xFE,0xF7}
 #ifdef USE_NETWORK_192_168_0_0
-  #define NET_DEFAULT_IP_ADDRESS      	                      {192,168,0,228}
-  #define NET_DEFAULT_GATEWAY         	                      {192,168,0,1}
+  #define NET_DEFAULT_IP_ADDRESS                              {192,168,0,228}
+  #define NET_DEFAULT_GATEWAY                                 {192,168,0,1}
 #else
-  #define NET_DEFAULT_IP_ADDRESS      	                      {172,16,100,228}
-  #define NET_DEFAULT_GATEWAY         	                      {172,16,100,254}
+  #define NET_DEFAULT_IP_ADDRESS                              {172,16,100,226}
+  #define NET_DEFAULT_GATEWAY                                 {172,16,100,254}
 #endif
- 
 #define NET_DEFAULT_NETMASK           	                      {255,255,255,0}
+*/ 
 
 // How often do ENC28J60 module reinit for more stable network
 #define NET_ENC28J60_REINIT_PERIOD  	                        10000UL  // 10 sec
 // Network activity timeout (for which no packets processed or no DHCP lease renews finished with success)
 #define NET_IDLE_TIMEOUT            	                        60000UL  // 60 sec
+
+// How long active client can transmit packets
+#ifdef FEATURE_DEBUG_TO_SERIAL
+  // on debug serial's output can make network processing slow
+  #define NET_ACTIVE_CLIENT_CONNECTION_TIMEOUT                    5000UL  // 5 sec
+#else
+  #define NET_ACTIVE_CLIENT_CONNECTION_TIMEOUT                    1000UL  // 1 sec
+#endif
+
 // How often do renew DHCP lease
 #define NET_DHCP_RENEW_PERIOD       	                        30000UL  // 30 sec
 // How often do renew DHCP lease
 #define NET_STABILIZATION_DELAY     	                        100L     // 0.1 sec
+
+
+// Include headers for an network module
+#if (NETWORK_MODULE == 0x01)
+   #include <Ethernet.h>
+   #include <SPI.h>
+#elif (NETWORK_MODULE == 0x03)
+   #include <Ethernet2.h>
+#elif (NETWORK_MODULE == 0x04)
+   #include <UIPEthernet.h>
+   /* You need to do one change in UIPEthernet\utility\Enc28J60Network.h before uncomment USE_DIRTY_HACK_AND_REBOOT_ENC28J60_IF_ITS_SEEMS_FREEZE:         
+    *  private:
+            ...    
+            static uint8_t readReg(uint8_t address);  // << move its to __public__ section
+            ...
+             
+         public: 
+             ...
+   */
+   //#define USE_DIRTY_HACK_AND_REBOOT_ENC28J60_IF_ITS_SEEMS_FREEZE
+#endif
 
 #ifdef ethernet_h
   #define NET_MODULE_NAME         	                        "W5xxx"
@@ -344,6 +395,7 @@
 */
 
 #define ZBX_AGENT_DEFAULT_HOSTNAME  	                        "zabbuino.local.net"
+//#define ZBX_AGENT_DEFAULT_HOSTNAME  	                        "zabbuino.local.net"
 
 // How much bytes will be allocated to hostname store
 #define ZBX_AGENT_HOSTNAME_MAXLEN   	                        25
@@ -388,7 +440,7 @@ D13 -^    ^- D8    <- pins   */
   B00000000, /*     PORTC 
    ^-A7   ^-A0   <- pins    */
   // Pins D0, D1 is protected by settings 0, 1 bits, due its used to RX/TX lines of UART and make it possible to transmit data to Serial Monitor  
-  B00000011  /*     PORTD 
+  B00000000  /*     PORTD 
    ^-D7   ^-D0   <- pins    */
 #elif defined(ARDUINO_AVR_LEONARDO) || defined (ARDUINO_AVR_MICRO) || defined(ARDUINO_AVR_ROBOT_CONTROL) || defined(ARDUINO_AVR_ROBOT_MOTOR) || defined (ARDUINO_AVR_YUN)
   // check ports settings for your platform
@@ -516,7 +568,7 @@ D13 -^    ^- D8    <- pins   */
                                                             COMMAND NAMES SECTION 
 */
 // Increase this if add new command 
-#define CMD_MAX                                                 0x40
+#define CMD_MAX                                                 0x3A
 
 // Add command macro with new sequental number
 #define CMD_ZBX_NOPE                                            0x00
@@ -599,8 +651,7 @@ D13 -^    ^- D8    <- pins   */
 
 #define CMD_WS2812_SENDRAW                                      0x39
 
-
-
+#define CMD_SYS_MCU_ID                                          0x3A
 
 
 // add new command as "const char command_<COMMAND_MACRO> PROGMEM". Only 'const' push string to PROGMEM. Tanx, Arduino.
@@ -636,6 +687,7 @@ const char command_CMD_SYS_SHIFTOUT[]                           PROGMEM = "shift
 const char command_CMD_SYS_REBOOT[]                             PROGMEM = "reboot";              
 
 const char command_CMD_SYS_MCU_NAME[]                           PROGMEM = "sys.mcu.name";
+const char command_CMD_SYS_MCU_ID[]                             PROGMEM = "sys.mcu.id";
 const char command_CMD_SYS_NET_MODULE[]                         PROGMEM = "sys.net.module";
 
 const char command_CMD_SYS_CMD_COUNT[]                          PROGMEM = "sys.cmd.count";
@@ -688,7 +740,7 @@ const char command_CMD_IR_SENDRAW[]                             PROGMEM = "ir.se
 
 const char command_CMD_WS2812_SENDRAW[]                         PROGMEM = "ws2812.sendraw";
 
-// do not insert new command to any position without syncing indexes. Tanx, Arduino, for this method of string array pushing to PROGMEM
+// do not insert new command to any position without syncing indexes. Tanx, Arduino and AVR, for this method of string array pushing to PROGMEM
 // ~300 bytes of PROGMEM space can be saved with crazy "#ifdef-#else-#endif" dance
 const char* const commands[] PROGMEM = {
   command_CMD_ZBX_NOPE,
@@ -888,6 +940,12 @@ const char* const commands[] PROGMEM = {
   command_CMD_ZBX_NOPE,
 #endif
 
+#ifdef FEATURE_DEBUG_COMMANDS_ENABLE
+  command_CMD_SYS_MCU_ID
+#else
+  command_CMD_ZBX_NOPE,
+#endif
+
  
 };
 /*
@@ -960,6 +1018,9 @@ ADC channels
 
 #define ENCODER_STABILIZATION_DELAY                             2000L // 2000 microseconds
 #define I2C_NO_REG_SPECIFIED                                    -0x01 //
+
+// On Leonardo, Micro and other ATmega32u4 boards wait to Serial Monitor ready for 5sec 
+#define SERIAL_WAIT_TIMEOUT            	                        5000UL  // 5 sec
 
 
 

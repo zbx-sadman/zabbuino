@@ -4,64 +4,52 @@
 // Just for compilation with various default network configs
 //#define USE_NETWORK_192_168_0_0
 
+#ifdef USE_NETWORK_192_168_0_0
+  #define NET_DEFAULT_MAC_ADDRESS                              {0xDE,0xAD,0xBE,0xEF,0xFE,0xF9}
+  #define NET_DEFAULT_IP_ADDRESS                              {192,168,0,228}
+  #define NET_DEFAULT_GATEWAY                                 {192,168,0,1}
+#else
+  #define NET_DEFAULT_MAC_ADDRESS                              {0xDE,0xAD,0xBE,0xEF,0xFE,0xF7}
+  #define NET_DEFAULT_IP_ADDRESS                              {172,16,100,226}
+  #define NET_DEFAULT_GATEWAY                                 {172,16,100,254}
+#endif
+#define NET_DEFAULT_NETMASK                                   {255,255,255,0}
+
+
 /* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
-                                                             !!! WizNet W5xxx users !!!
+   
+                                                             NETWORK MODULE SECTION
+   
+   Old releases of Arduino IDE can do not processing #includes inside #if pragmas (see zabbuino.h, NETWORK MODULE SECTION) and hangs on compiling or show errors
+   If you use that release - comment all #includes, exclude your's module related block 
 
-    1. Comment #include <UIPEthernet.h>
-    2. Uncomment #include <Ethernet.h> and <SPI.h> headers
-*/
-#include <Ethernet.h>
-#include <SPI.h>
+                                                              !!! ENC28J60 users !!!
 
-/* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
-                                                                !!! ENC28J60 users !!!
-
-    0. Please try to use https://github.com/ntruchsess/arduino_uip/tree/fix_errata12 brahch of UIPEthernet if your ENC28J60 freeze or loose connection.
-    
-    1. Comment #include <Ethernet.h> and <SPI.h> headers
-    2. Uncomment #include <UIPEthernet.h> 
-    
+    Please try to use https://github.com/ntruchsess/arduino_uip/tree/fix_errata12 brahch of UIPEthernet if your ENC28J60 freeze or loose connection.
+   
     Tested on UIPEthernet v1.09
     
-    When UIPEthernet's fix_errata12 brahch did not help to add stability, you can buy W5100 shield.
-    Also u can try uncomment USE_DIRTY_HACK_AND_REBOOT_ENC28J60_IF_ITS_SEEMS_FREEZE declaration (then ENC will be periodically re-intit if EIR.TXERIF and EIR.RXERIF is 1), 
-    but you eed to do one change in UIPEthernet\utility\Enc28J60Network.h :
-         private:
-            ...    
-            static uint8_t readReg(uint8_t address);  // << move its to __public__ section
-            ...
-             
-         public: 
-             ...
-
+    When UIPEthernet's fix_errata12 brahch did not help to add stability, you can buy W5xxx shield.
+    
+    Also u can try uncomment USE_DIRTY_HACK_AND_REBOOT_ENC28J60_IF_ITS_SEEMS_FREEZE declaration in zabbuino.h to periodically ENC28J60 re-intit if EIR.TXERIF and EIR.RXERIF == 1
+    
 */
-//#include <UIPEthernet.h>
-//#define USE_DIRTY_HACK_AND_REBOOT_ENC28J60_IF_ITS_SEEMS_FREEZE
 
+#define NETWORK_MODULE      0x01     // Wiznet __W5100__ network modules,  Arduino Ethernet Shield
+//#define NETWORK_MODULE      0x02
+//#define NETWORK_MODULE      0x03     // Wiznet __W5500__ network modules, Arduino Ethernet Shield 2, Arduino LEONARDO ETH, 
+//#define NETWORK_MODULE      0x04     // Microchip __ENC28J60__ network modules
+//#define NETWORK_MODULE      0x05     // ESP2866
 
 /* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
                                                                  PROGRAMM FEATURES SECTION
-                                                                        MOVED  TO
-                                                                        zabuino.h
                    
-                Please refer to the zabbuino.h file for enabling or disabling Zabbuino's features  and tuning (like set State LED pin, network addresses, agent hostname and so)
-
-        if connected sensors seems not work - first check setting in port_protect[], port_mode[], port_pullup[] arrays in I/O PORTS SETTING SECTION
+   Please refer to the zabbuino.h file for enabling or disabling Zabbuino's features  and tuning (like set State LED pin, network addresses, agent hostname and so)
+   if connected sensors seems not work - first check setting in port_protect[], port_mode[], port_pullup[] arrays in I/O PORTS SETTING SECTION
 
 */
-
-
 #include "zabbuino.h"
 
-// Wire lib for I2C sensors
-#include <Wire.h>
-// OneWire lib for Dallas sensors
-#include <OneWire.h>
-#include <EEPROM.h>
-#include <avr/pgmspace.h>
-#include <avr/wdt.h>
-// used by interrupts-related macroses
-#include <wiring_private.h>
 
 /* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
                                                                  GLOBAL VARIABLES SECTION
@@ -69,7 +57,7 @@
 
 netconfig_t netConfig;
 #if defined(FEATURE_EXTERNAL_INTERRUPT_ENABLE) || defined(FEATURE_INCREMENTAL_ENCODER_ENABLE)
-// need to #include <wiring_private.h> for compilation
+// EXTERNAL_NUM_INTERRUPTS its a macro from <wiring_private.h>
 volatile extInterrupt_t extInterrupt[EXTERNAL_NUM_INTERRUPTS];
 #endif
 
@@ -93,6 +81,9 @@ volatile uint8_t skipMetricGathering = false;
 void setup() {
   uint8_t i;
 
+  pinMode(PIN_FACTORY_RESET, INPUT_PULLUP);
+  pinMode(PIN_STATE_LED, OUTPUT);
+
 #ifdef ADVANCED_BLINKING
   // blink on start
   blinkMore(6, 50, 500);
@@ -105,7 +96,30 @@ void setup() {
   
 #ifdef FEATURE_DEBUG_TO_SERIAL
   Serial.begin(9600);
-  while (!Serial);             // Leonardo: wait for serial monitor
+  uint32_t startSerial = millis();
+
+/*
+On ATMega32u4 (may be breadboard and dupont wires is bad)
+
+wait for serial with timeout: 
+64 bytes from 172.16.100.226: icmp_req=382 ttl=64 time=755 ms
+64 bytes from 172.16.100.226: icmp_req=383 ttl=64 time=1076 ms
+...
+64 bytes from 172.16.100.226: icmp_req=389 ttl=64 time=1270 ms
+64 bytes from 172.16.100.226: icmp_req=390 ttl=64 time=1104 ms
+
+no wait for serial: 
+64 bytes from 172.16.100.226: icmp_req=400 ttl=64 time=1.29 ms
+64 bytes from 172.16.100.226: icmp_req=401 ttl=64 time=1.25 ms
+...
+64 bytes from 172.16.100.226: icmp_req=407 ttl=64 time=1.25 ms
+64 bytes from 172.16.100.226: icmp_req=408 ttl=64 time=1.27 ms
+
+So... no debug with Serial Monitor at this time
+*/
+//  while (!Serial && (SERIAL_WAIT_TIMEOUT < (millis() - startSerial) )) {;}   // Leonardo: wait for serial monitor a little bit
+//  while (!Serial);   // Leonardo: wait for serial monitor a little bit
+
 #endif
 
 #ifdef FEATURE_EEPROM_ENABLE
@@ -115,9 +129,7 @@ void setup() {
    -=-=-=-=-=-=-=-=-=-=-=- */
 
   // Set mode of PIN_FACTORY_RESET and turn on internal pull resistor
-  pinMode(PIN_STATE_LED, OUTPUT);
   digitalWrite(PIN_STATE_LED, LOW);
-  pinMode(PIN_FACTORY_RESET, INPUT_PULLUP);
   // Check for PIN_FACTORY_RESET shorting to ground?
   // (when pulled INPUT pin shorted to GND - digitalRead() return LOW)
   if (LOW == digitalRead(PIN_FACTORY_RESET)){
@@ -162,6 +174,15 @@ void setup() {
 #endif
 
 
+#ifdef FEATURE_NET_USE_MCUID_FOR_MAC
+   // Interrupts must be disabled before boot_signature_byte_get will be called to avoid code crush
+   noInterrupts();
+   // rewrite last MAC's two byte with MCU ID's bytes
+   netConfig.macAddress[4] = boot_signature_byte_get(22);
+   netConfig.macAddress[5] = boot_signature_byte_get(23);
+   interrupts();
+#endif
+
 /* -=-=-=-=-=-=-=-=-=-=-=-
     NETWORK START BLOCK
    -=-=-=-=-=-=-=-=-=-=-=- */
@@ -190,7 +211,8 @@ void setup() {
      SerialPrintln_P(PSTR("Use static IP"));
 #endif
      // That overloaded .begin() function return nothing
-     Ethernet.begin(netConfig.macAddress, netConfig.ipAddress, netConfig.ipNetmask, netConfig.ipGateway);
+     // Second netConfig.ipAddress used as dns-address
+     Ethernet.begin(netConfig.macAddress, netConfig.ipAddress, netConfig.ipAddress, netConfig.ipGateway, netConfig.ipNetmask);
   }
   
 #ifdef FEATURE_DEBUG_TO_SERIAL
@@ -227,6 +249,7 @@ void setup() {
     // -1 - interrupt is detached
     // just use NOT_AN_INTERRUPT = -1 macro from Arduino.h
     extInterrupt[i].mode = NOT_AN_INTERRUPT;
+    extInterrupt[i].count = 0;
   }
 #endif
 
@@ -262,7 +285,7 @@ Wire.begin();
 */
 void loop() {
   uint32_t nowTime, processStartTime, processEndTime;
-  uint32_t prevDHCPRenewTime, prevENCReInitTime, prevNetProblemTime, prevSysMetricGatherTime;
+  uint32_t prevDHCPRenewTime, prevENCReInitTime, prevNetProblemTime, prevSysMetricGatherTime,clentConnectTime;
   uint8_t errorCode, blinkType = (uint8_t) BLINK_NOPE;
     
   // Correcting timestamps
@@ -276,7 +299,7 @@ void loop() {
 
 #ifndef GATHER_METRIC_USING_TIMER_INTERRUPT
     // Gather internal metrics periodically
-    if (SYS_METRIC_RENEW_PERIOD <= (uint32_t) (nowTime - prevSysMetricGatherTime)) { gatherMetrics(); prevSysMetricGatherTime = nowTime; }
+    if (SYS_METRIC_RENEW_PERIOD <= (uint32_t) (nowTime - prevSysMetricGatherTime)) { gatherSystemMetrics(); prevSysMetricGatherTime = nowTime; }
 #endif 
 
 #ifdef FEATURE_NET_DHCP_ENABLE
@@ -341,38 +364,46 @@ void loop() {
 
     // Test state of active session: client still connected or unread data is exist in buffer?
     if (ethClient.connected()) {
-       // A lot of chars wait for reading
-       if (ethClient.available()) {
-          // Do not need next char to analyze - EOL detected or there no room in buffer or max number or args parsed...   
-          if (false == analyzeStream(ethClient.read())) {
-             /*****  processing command *****/
-             // Destroy unused client's data 
-             ethClient.flush(); 
-             // Fire up State led, than will be turned off on next loop
-             digitalWrite(PIN_STATE_LED, HIGH);
-             //
-             // may be need test for client.connected()? 
-             processStartTime = millis();
-             uint8_t cmdIdx = executeCommand();
-             processEndTime = millis();
-             // use processEndTime as processDurationTime
-             processEndTime = processStartTime;
-             if (sysMetrics[IDX_METRIC_SYS_CMD_TIMEMAX] < processEndTime){
-                sysMetrics[IDX_METRIC_SYS_CMD_TIMEMAX] = processEndTime;
-                sysMetrics[IDX_METRIC_SYS_CMD_TIMEMAX_N] = cmdIdx;
-             }
-             // Wait some time to finishing answer send
-             delay(NET_STABILIZATION_DELAY);
-             // close connection           
-             ethClient.stop(); 
-          }
-          // Restart network activity control cycle
-          prevENCReInitTime = prevNetProblemTime = millis();
-          blinkType = (uint8_t) BLINK_NOPE;
-       }
+       if (NET_ACTIVE_CLIENT_CONNECTION_TIMEOUT <= (uint32_t) (nowTime - clentConnectTime)) {
+           ethClient.stop(); 
+       } else {
+           // A lot of chars wait for reading
+           if (ethClient.available()) {
+              // Do not need next char to analyze - EOL detected or there no room in buffer or max number or args parsed...   
+              if (false == analyzeStream(ethClient.read())) {
+                 /*****  processing command *****/
+                 // Destroy unused client's data 
+                 ethClient.flush(); 
+                 // Fire up State led, than will be turned off on next loop
+                 digitalWrite(PIN_STATE_LED, HIGH);
+                 //
+                 // may be need test for client.connected()? 
+                 processStartTime = millis();
+                 uint8_t cmdIdx = executeCommand();
+                 processEndTime = millis();
+                 // use processEndTime as processDurationTime
+                 processEndTime = processStartTime;
+                 if (sysMetrics[IDX_METRIC_SYS_CMD_TIMEMAX] < processEndTime) {
+                    sysMetrics[IDX_METRIC_SYS_CMD_TIMEMAX] = processEndTime;
+                    sysMetrics[IDX_METRIC_SYS_CMD_TIMEMAX_N] = cmdIdx;
+                 }
+  //             ethClient.println("1");
+                 // Wait some time to finishing answer send
+                 delay(NET_STABILIZATION_DELAY);
+                // close connection           
+                ethClient.stop(); 
+              }
+              // Restart network activity control cycle
+              prevENCReInitTime = prevNetProblemTime = millis();
+              blinkType = (uint8_t) BLINK_NOPE;
+           }
+        }
     } else {
        // Active session is not exist. Try to take new for processing.
        ethClient = ethServer.available();
+       if (ethClient) {
+         clentConnectTime = millis();
+       }
     }
 #ifdef FEATURE_WATCHDOG_ENABLE
     // reset watchdog every loop
@@ -389,16 +420,18 @@ void loop() {
 *
 **************************************************************************************************************************** */
 uint8_t analyzeStream(char charFromClient) {
-  uint8_t static needSkipZabbix2Header, argIndex;
+  uint8_t static needSkipZabbix2Header = 0, 
+                 cmdSliceNumber        = 0,
+                 isEscapedChar         = 0,
+                 dontConvertChars      = false;
   uint16_t static bufferWritePosition;
 
   // If there is not room in buffer - simulate EOL recieving
-  if (BUFFER_SIZE <= bufferWritePosition ) { charFromClient = '\n'; 
-  }
+  if (BUFFER_SIZE <= bufferWritePosition ) { charFromClient = '\n'; }
   
   // Put next char to buffer
-  cBuffer[bufferWritePosition] = tolower(charFromClient); 
-  
+  cBuffer[bufferWritePosition] = (dontConvertChars) ? charFromClient : tolower(charFromClient); 
+    
   // When ZBX_HEADER_PREFIX_LENGTH chars is saved to buffer - test its for Zabbix2 protocol header prefix ("ZBXD\01") presence
   if (ZBX_HEADER_PREFIX_LENGTH == bufferWritePosition) {
      if (0 == memcmp(&cBuffer, ZBX_HEADER_PREFIX, ZBX_HEADER_PREFIX_LENGTH)) {
@@ -418,35 +451,51 @@ uint8_t analyzeStream(char charFromClient) {
 
   // Process all chars if its not from header data
   if (!needSkipZabbix2Header) {
-     switch (charFromClient) {
-        case ']':
-        case 0x20:
-          // Space or final square bracket found. Do nothing and next char will be written to same position. 
-          // Return 'Need next char'
-          return true;
-        case '[':
-        case ',':
-          // Delimiter or separator found. Push begin of next argument (bufferWritePosition+1) on buffer to arguments offset array. 
-          argOffset[argIndex] = bufferWritePosition+1; argIndex++; 
-          // Make current buffer segment like C-string
-          cBuffer[bufferWritePosition] = '\0'; 
-          break;
-        case '\n':
-          // EOL detected
-          // Save last argIndex that pointed to <null> item. All unused argOffset[] items must be pointed to this <null> item too.
-          cBuffer[bufferWritePosition] = '\0'; 
-          while (ARGS_MAX > argIndex) { argOffset[argIndex++] = bufferWritePosition;}
-          // increase argIndex++ to pass (ARGS_MAX < argIndex) condition 
-          argIndex++; break;
+    if (isEscapedChar) {
+       // Char is escaped. Just drop the sign and do nothing - char already saved
+       isEscapedChar = false;
+    } else {
+       // char is not escaped
+       switch (charFromClient) {
+          // Next char after \ is escaped
+          case '\\':
+            isEscapedChar = true;
+            return true;
+          case '"':
+            // Do not convert to lower case chars that placed inside doublequotes
+            dontConvertChars = !dontConvertChars;
+            return true;
+          case ']':
+          case 0x20:
+            // Space or final square bracket found. Do nothing and next char will be written to same position. 
+            // Return 'Need next char'
+            return true;
+          case '[':
+          case ',':
+            // Delimiter or separator found. If 'argOffset' array is not exhausted - push begin of next argument (bufferWritePosition+1) on buffer to arguments offset array. 
+            if (ARGS_MAX > cmdSliceNumber) { argOffset[cmdSliceNumber] = bufferWritePosition + 1; }
+            cmdSliceNumber++; 
+            // Make current buffer segment like C-string
+            cBuffer[bufferWritePosition] = '\0'; 
+            break;
+          case '\n':
+            // EOL detected
+            // Save last argIndex that pointed to <null> item. All unused argOffset[] items must be pointed to this <null> item too.
+            cBuffer[bufferWritePosition] = '\0'; 
+            while (ARGS_MAX > cmdSliceNumber) { argOffset[cmdSliceNumber++] = bufferWritePosition;}
+            // Change argIndex value to pass (ARGS_MAX < argIndex) condition 
+            cmdSliceNumber = ARGS_MAX+1; break;
+         }
+
+         // EOL reached or there is not room to store args. Stop stream analyzing and do command executing
+         if (ARGS_MAX < cmdSliceNumber) {
+           // clear vars for next round
+            bufferWritePosition = cmdSliceNumber = isEscapedChar = dontConvertChars = 0;
+            needSkipZabbix2Header = false;
+            // Return 'Do not need next char'
+            return false;
+         }             
       }
-      // EOL reached or there is not room to store args. Stop stream analyzing and do command executing
-      if (ARGS_MAX < argIndex) {
-         // clear vars for next round
-         bufferWritePosition = argIndex = 0;
-         needSkipZabbix2Header = false;
-         // Return 'Do not need next char'
-         return false;
-       }             
   }
   // 
   bufferWritePosition++;
@@ -469,20 +518,22 @@ uint8_t executeCommand()
   
   sysMetrics[IDX_METRIC_SYS_CMD_COUNT]++;
 
-  for (i = 0; i < CMD_MAX; i++)
-  {
+  i = CMD_MAX;
+  while (i) {
 //    Serial.print(i, HEX); Serial.print(": ");
 //    SerialPrintln_P((char*)pgm_read_word(&(commands[i])));
     if (0 == strcmp_P(cBuffer, (char*)pgm_read_word(&(commands[i])))) {cmdIdx = i; break;}
+    i--;
   }
-
 #ifdef FEATURE_DEBUG_TO_SERIAL
   SerialPrint_P(PSTR("Execute command #")); Serial.print(cmdIdx, HEX); SerialPrint_P(PSTR(" =>")); Serial.println(cBuffer);
 #endif 
-  
+
+  // first argOffset item have index 0
+  i = ARGS_MAX;
   // batch convert args to number values
-  for (i = 0; i < ARGS_MAX; i++)
-  {
+  while (i) {
+     i--;
      arg[i] = ('\0' == cBuffer[argOffset[i]]) ? 0 : strtoul(&cBuffer[argOffset[i]], NULL,0);
 
 #ifdef FEATURE_DEBUG_TO_SERIAL
@@ -558,7 +609,7 @@ uint8_t executeCommand()
       
     case CMD_ARDUINO_ANALOGREAD:
       /*/
-      /=/  analogRead[pin, analogReferenceSource]
+      /=/  analogRead[pin, analogReferenceSource, mapToLow, mapToHigh]
       /*/
 #ifdef FEATURE_AREF_ENABLE
       // change source of the reference voltage if its given
@@ -569,8 +620,11 @@ uint8_t executeCommand()
 #endif
       // Do not disturb processes by internal routines 
       skipMetricGathering = true;
-      result = (int32_t) analogRead(arg[0]);
+      result = analogRead(arg[0]);
       skipMetricGathering = false;
+      if ('\0' != cBuffer[argOffset[2]] && '\0' != cBuffer[argOffset[3]]) {
+         result = map(result, 0, 1023, arg[2], arg[3]);
+      }
       break;      
   
 #ifdef FEATURE_AREF_ENABLE
@@ -793,6 +847,14 @@ uint8_t executeCommand()
       result = RESULT_IN_BUFFER;
       break;
    
+    case CMD_SYS_MCU_ID:
+      /*/
+      /=/  sys.mcu.id
+      /*/
+      getMCUID(cBuffer);
+      result = RESULT_IN_BUFFER;
+      break;
+
     case CMD_SYS_NET_MODULE:
       /*/
       /=/  sys.net.module
@@ -875,23 +937,24 @@ uint8_t executeCommand()
       /*/
       // TODO: maybe need to rework code block
       if (isSafePin(arg[0])) {
+//         ethClient.println("Pin is safe");
          int8_t interruptNumber=digitalPinToInterrupt(arg[0]);
          voidFuncPtr interruptHandler;
          // Interrupt number and mode is correct?
          if ((EXTERNAL_NUM_INTERRUPTS > interruptNumber) && (RISING >= arg[2])) {
             // Interrupt mode is changed
-            //Serial.println("[1] Interrupt number and mode is correct"); 
-            //Serial.print("[1*] Old interrupt mode is: ");  Serial.println(extInterrupt[interruptNumber].mode); 
+            // Serial.println("[1] Interrupt number and mode is correct"); 
+            // Serial.print("[1*] Old interrupt mode is: ");  Serial.println(extInterrupt[interruptNumber].mode); 
             // just use NOT_AN_INTERRUPT = -1 macro from Arduino.h
             if (extInterrupt[interruptNumber].mode != arg[2] && NOT_AN_INTERRUPT != extInterrupt[interruptNumber].mode) {
-               //Serial.println("[2] Interrupt mode is changed, detach"); 
                detachInterrupt(arg[1]);
                extInterrupt[interruptNumber].mode = -1;
             } 
 
            // Interrupt not attached?
            if (NOT_AN_INTERRUPT == extInterrupt[interruptNumber].mode) {
-              extInterrupt[interruptNumber].mode = arg[2];
+//             ethClient.println("Int is not attached");
+             extInterrupt[interruptNumber].mode = arg[2];
               switch (interruptNumber) {
 // Basic configuration => EXTERNAL_NUM_INTERRUPTS == 3
                 case INT0:
@@ -936,6 +999,7 @@ uint8_t executeCommand()
                  // if pin still not INPUT_PULLUP - system will hang up
                  pinMode(arg[0], INPUT_PULLUP);
                  attachInterrupt(interruptNumber, interruptHandler, arg[2]);
+//                 ethClient.println("Int reinited");
                  // reinit counter
                  extInterrupt[interruptNumber].count = 0;
               }
@@ -1288,12 +1352,12 @@ uint8_t executeCommand()
       /*/
       // ATmega328: Use D3 only at this time
       // Refer to other Arduino's pinouts to find OC2B pin
-      if (isSafePin(arg[0]) && TIMER2B == digitalPinToTimer(arg[0])) {
+//      if (isSafePin(arg[0]) && TIMER2B == digitalPinToTimer(arg[0])) {
          // irPWMPin - global wariable that replace IRremote's TIMER_PWM_PIN
-         irPWMPin = arg[0];
-         result = sendCommandByIR(arg[1], arg[2], arg[3], arg[4], arg[5]);
-         result = (result) ? RESULT_IS_OK : RESULT_IS_FAIL;
-      }
+//         irPWMPin = arg[0];
+//         result = sendCommandByIR(arg[1], arg[2], arg[3], arg[4], arg[5]);
+//         result = (result) ? RESULT_IS_OK : RESULT_IS_FAIL;
+//      }
       break;
 
     case CMD_IR_SENDRAW:
@@ -1303,29 +1367,14 @@ uint8_t executeCommand()
       /*/
       // ATmega328: Use D3 only at this time
       // Refer to other Arduino's pinouts to find OC2B pin
-      if (isSafePin(arg[0]) && TIMER2B == digitalPinToTimer(arg[0])) {
+ //     if (isSafePin(arg[0]) && TIMER2B == digitalPinToTimer(arg[0])) {
          // irPWMPin - global wariable that replace IRremote's TIMER_PWM_PIN
-         irPWMPin = arg[0];
-         result = sendRawByIR(arg[1], arg[2], &cBuffer[argOffset[3]]);
-         result = (result) ? RESULT_IS_OK : RESULT_IS_FAIL;
-      }
+//         irPWMPin = arg[0];
+//         result = sendRawByIR(arg[1], arg[2], &cBuffer[argOffset[3]]);
+//         result = (result) ? RESULT_IS_OK : RESULT_IS_FAIL;
+ //     }
       break;
 #endif // FEATURE_IR_ENABLE
-
-#ifdef FEATURE_WS2812_ENABLE
-    case CMD_WS2812_SENDRAW:
-      /*/
-      /=/  WS2812.sendRaw[_dataPin, data]
-      /=/  >> need to increase ARGS_PART_SIZE, because every encoded LED color take _six_ HEX-chars => 10 leds stripe take 302 (2+50*6) byte of incoming buffer only
-      /*/
-      // Tested on ATmega328@16 and 8 pcs WS2812 5050 RGB LED bar
-      if (isSafePin(arg[0])) {
-         WS2812Out(arg[0], &cBuffer[argOffset[1]]);
-         result = RESULT_IS_OK;
-      }
-      break;
-#endif // FEATURE_WS2812_ENABLE
-
 
 
     default:
@@ -1359,6 +1408,7 @@ uint8_t executeCommand()
    }
    return cmdIdx;
 }
+
 
 
 

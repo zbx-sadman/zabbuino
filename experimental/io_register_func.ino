@@ -6,7 +6,6 @@
 void setPortMode(const uint8_t _port, const uint8_t _mode, const uint8_t _pullup)
 {
   volatile uint8_t *modeRegister, *pullUpRegister;
-  uint8_t oldSREG;
 
   // pull-up on/off register
   pullUpRegister = portOutputRegister(_port);
@@ -16,11 +15,10 @@ void setPortMode(const uint8_t _port, const uint8_t _mode, const uint8_t _pullup
   if (modeRegister == NOT_A_PORT) return;
   // Port write transaction:
   // Save SREG => disable interrupts => write to port => SREG restore.
-  oldSREG = SREG;
-  cli();
+  noInterrupts();
   *modeRegister |= _mode;
   *pullUpRegister |= _pullup;
-  SREG = oldSREG;
+  interrupts();
 }
 
 /* ****************************************************************************************************************************
@@ -31,17 +29,14 @@ void setPortMode(const uint8_t _port, const uint8_t _mode, const uint8_t _pullup
 void writeToPort(const uint8_t _port, const uint8_t _value)
 {
   volatile uint8_t *portRegister;
-  uint8_t oldSREG;
 
   portRegister = portOutputRegister(_port);
   if (portRegister == NOT_A_PORT) return;
-  // Port write transaction:
-  // Save SREG => disable interrupts => write to port => SREG restore.
-  oldSREG = SREG;
-  cli();
+  // Port write transaction
+  noInterrupts();
   // Use protection mask when write to port
   *portRegister = (*portRegister & port_protect[_port]) | (_value & ~port_protect[_port]);
-  SREG = oldSREG;
+  interrupts();
 }
 
 

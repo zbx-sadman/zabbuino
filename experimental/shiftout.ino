@@ -9,7 +9,7 @@ void shiftOutAdvanced(const uint8_t _dataPin, const uint8_t _clockPin, const uin
   uint16_t lenOfBuffer = 0;
   uint8_t dataPinBit, clockPinBit;
   volatile uint8_t *dataPortOutputRegister, *clockPortOutputRegister;
-  uint8_t oldSREG, i, currByte;
+  uint8_t i, currByte;
 
   dataPinBit = digitalPinToBitMask(_dataPin);
   clockPinBit = digitalPinToBitMask(_clockPin);
@@ -27,7 +27,7 @@ void shiftOutAdvanced(const uint8_t _dataPin, const uint8_t _clockPin, const uin
   lenOfBuffer = prepareBufferForAdvShiftout(_bitOrder, _dataBuffer);
   // Focus on bit-banging
   noInterrupts();
-  // Walk over the buffer to end ('\0' char)
+  // Walk over the buffer 
   while (lenOfBuffer) {
      // Push 4 bit to Shift Register using direct port manipulation.
      i = 4;    
@@ -38,7 +38,7 @@ void shiftOutAdvanced(const uint8_t _dataPin, const uint8_t _clockPin, const uin
          *dataPortOutputRegister |= dataPinBit;
        } else  {
          // Set _dataPin to LOW
-          *dataPortOutputRegister &= ~dataPinBit;
+         *dataPortOutputRegister &= ~dataPinBit;
        }
        // blink by clockPin
        *clockPortOutputRegister &= ~clockPinBit;
@@ -144,40 +144,44 @@ void WS2812Out(const uint8_t _dataPin, char* _dataBuffer)
 uint16_t prepareBufferForAdvShiftout(const uint8_t _bitOrder, char* _dataBuffer)
 {
   static const uint8_t bitReverseTable16[] = {
-   // 0x00  0x01  0x02  0x03  0x04  0x05  0x06  0x07  0x08  0x09  0x0A  0x0B  0x0C  0x0D  0x0E  0x0F
-   // B0000 B0001 B0010 B0011 B0100 B0101 B0110 B0111 B1000 B1001 B1010 B1011 B1100 B1101 B1110 B1111
-   // B0000 B1000 B0100 B1100 B0010 B1010 B0110 B1110 B0001 B1001 B0101 B1101 B0011 B1011 B0111 B1111
-      0x00, 0x08, 0x04, 0x0C, 0x02, 0x0A, 0x06, 0x0E, 0x01, 0x09, 0x05, 0x0D, 0x03, 0x0B, 0x07, 0x0F
+   // 0x00  0x01  0x02  0x03  0x04  0x05  0x06  0x07  0x08  0x09  0x0A  0x0B  0x0C  0x0D  0x0E  0x0F       <- number
+   // B0000 B0001 B0010 B0011 B0100 B0101 B0110 B0111 B1000 B1001 B1010 B1011 B1100 B1101 B1110 B1111      <- number in binary
+   // B0000 B1000 B0100 B1100 B0010 B1010 B0110 B1110 B0001 B1001 B0101 B1101 B0011 B1011 B0111 B1111      <- number in binary reversed
+      0x00, 0x08, 0x04, 0x0C, 0x02, 0x0A, 0x06, 0x0E, 0x01, 0x09, 0x05, 0x0D, 0x03, 0x0B, 0x07, 0x0F  //   <- number reversed
   };
   uint16_t dataBufferPosition, dataBufferSwapPosition, halfLenOfBuffer, lenOfBuffer;
   uint8_t tmpVal;
   
-  // Is HEX-string specified?
+  dataBufferPosition = 2;
+  // Is HEX-string incoming?
   if (haveHexPrefix(_dataBuffer)) {
      // Skip prefix
-     dataBufferPosition = 2;
-     // Walk over buffer and convert HEX do DEC
+     // Walk over buffer, convert HEX do DEC and shift data to the left (destroy '0x' gap)
      while (_dataBuffer[dataBufferPosition]) {
         _dataBuffer[dataBufferPosition - 2] = htod(_dataBuffer[dataBufferPosition]);
         dataBufferPosition++;
      }
-     // Correct position for taking buffer new lenght
+     // Correct position to prefix length for taking buffer new lenght
      dataBufferPosition -= 2;
   } else {
-     // Is not HEX, probally DEC
-     dataBufferPosition = 1;
+     // Is not HEX, probally its DEC
      tmpVal = atoi(_dataBuffer);
-     // Write first nibble to buffer[0] 
-     _dataBuffer[0] = tmpVal & 0x0F;
-     // Write second nibble to buffer[1] if need
-     if (tmpVal > 0x0F) {
-        _dataBuffer[1] = tmpVal >> 4;
-        // Correct position for taking buffer new lenght
-        dataBufferPosition = 2;
-     }
+     // Write first nibble to buffer[0]
+     _dataBuffer[0] = tmpVal >> 4;
+     // Write last nibble to buffer[1] 
+     _dataBuffer[1] = tmpVal & 0x0F;
   }
   // lenght must be saved and used later because any HEX '0' will be converted to '\0' and stops while(*_dataBuffer) processing 
   lenOfBuffer = dataBufferPosition;
+  //    <---  LSB  ----
+  //    0 0 0 1 0 0 1 0     <= 18 (0x12)
+  //    ----  MSB  --->
+  // The expressions Most Significant Bit First and Least Significant Bit First are indications on the ordering of the sequence of the bits in the bytes sent over a wire in a transmission protocol or in a stream (e.g. an audio stream).
+  // Most Significant Bit First means that the most significant bit will arrive first: 
+  //      hence e.g. the hexadecimal number 0x12, 00010010 in binary representation, will arrive as the sequence 0 0 0 1 0 0 1 0 .
+  // Least Significant Bit First means that the least significant bit will arrive first: 
+  //      hence e.g. the same hexadecimal number 0x12, again 00010010 in binary representation, will arrive as the (reversed) sequence 0 1 0 0 1 0 0 0.
+  //
   // if reverse bit order specified - all bit chain must be reversed
   if (LSBFIRST == _bitOrder) {
      halfLenOfBuffer = lenOfBuffer >> 1;
@@ -196,10 +200,9 @@ uint16_t prepareBufferForAdvShiftout(const uint8_t _bitOrder, char* _dataBuffer)
      } 
      // Make fast bit reversing for all items
      // That procedure is stand separately because one central item not processeed on previous stage if buffer length is odd
-     dataBufferPosition = lenOfBuffer;
-     while (dataBufferPosition){
+     // usung for() _here_ give more pgmspace that using while() 
+     for (dataBufferPosition = 0; dataBufferPosition <= lenOfBuffer; dataBufferPosition++){
        _dataBuffer[dataBufferPosition] = bitReverseTable16[_dataBuffer[dataBufferPosition]];
-       dataBufferPosition--;
      }
   }
   return lenOfBuffer;

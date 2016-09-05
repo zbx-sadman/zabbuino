@@ -91,6 +91,8 @@ int32_t getACS7XXMetric(const uint8_t _sensorPin, uint32_t _aRefVoltage,  const 
        }
        samplesCount++;
        prevMicros = micros();
+       // ADC stabilization delay
+       delay(1);
     }
   }
   // enable interrupts

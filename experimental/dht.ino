@@ -44,7 +44,6 @@ int32_t getDHTMetric(const uint8_t _pin, const uint8_t _sensorModel, const uint8
   uint8_t leadingZeroBits, wakeupDelay;
   uint8_t bits[5];  // buffer to receive data
   uint32_t humidity, temperature, result;
-  uint8_t oldSREG;
   static uint32_t lastReadTime = 0;
   uint32_t waitTime = 0;
   
@@ -96,14 +95,13 @@ int32_t getDHTMetric(const uint8_t _pin, const uint8_t _sensorModel, const uint8
   lastReadTime = millis();
 
   // disable interrupt
-  oldSREG = SREG; cli();
-//  ATOMIC_BLOCK(ATOMIC_FORCEON);
+  noInterrupts();
   uint16_t loopCount = DHTLIB_TIMEOUT * 2;  // 200uSec max
   // while(digitalRead(_pin) == HIGH)
   while ((*PIR & bit) != LOW )
     {
        if (--loopCount == 0) { 
-          SREG = oldSREG;
+          interrupts();
           return DEVICE_ERROR_CONNECT; 
        }
     }
@@ -114,7 +112,7 @@ int32_t getDHTMetric(const uint8_t _pin, const uint8_t _sensorModel, const uint8
   while ((*PIR & bit) == LOW )  // T-rel
     {
       if (--loopCount == 0) {
-         SREG = oldSREG;
+         interrupts();
          return DEVICE_ERROR_ACK_L;
       }
     }
@@ -124,7 +122,7 @@ int32_t getDHTMetric(const uint8_t _pin, const uint8_t _sensorModel, const uint8
   while ((*PIR & bit) != LOW )  // T-reh
     {
       if (--loopCount == 0) {
-         SREG = oldSREG;
+         interrupts();
          return DEVICE_ERROR_ACK_H;
       }
     }
@@ -166,13 +164,12 @@ int32_t getDHTMetric(const uint8_t _pin, const uint8_t _sensorModel, const uint8
       // Check timeout
       if (--loopCount == 0)
          {
-           SREG = oldSREG;
+           interrupts();
            return DEVICE_ERROR_TIMEOUT;
          }
 
   }
-  SREG = oldSREG;
-//  ATOMIC_BLOCK(ATOMIC_RESTORESTATE);
+  interrupts();
   pinMode(_pin, OUTPUT);
   digitalWrite(_pin, HIGH);
      

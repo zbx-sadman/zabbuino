@@ -17,8 +17,13 @@ ISR(TIMER1_COMPA_vect)
 #ifdef FEATURE_EXTERNAL_INTERRUPT_ENABLE
 
 // Basic configuration => EXTERNAL_NUM_INTERRUPTS == 3
-void handleINT0() { extInterrupt[INT0].count++; }
-void handleINT1() { extInterrupt[INT1].count++; }
+void handleINT0() { extInterrupt[INT0].count++; 
+//     Serial.println(extInterrupt[INT0].count);
+}
+void handleINT1() { extInterrupt[INT1].count++; 
+//     Serial.println(extInterrupt[INT1].count);
+
+}
 
 
 // AVR_ATmega1284, AVR_ATmega1284P, AVR_ATmega644, AVR_ATmega644A, AVR_ATmega644P, AVR_ATmega644PA => EXTERNAL_NUM_INTERRUPTS == 3

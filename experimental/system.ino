@@ -1,3 +1,29 @@
+#include <avr/boot.h>
+
+/* ****************************************************************************************************************************
+*
+*  Write MCU ID to buffer 
+*  http://www.avrfreaks.net/forum/unique-id-atmega328pb
+*
+**************************************************************************************************************************** */
+void getMCUID (char* _dataBuffer) {
+ // *_dataBuffer++ = '0'; 
+ // *_dataBuffer++ = 'x';
+  // Interrupts must be disabled before boot_signature_byte_get will be called to avoid code crush
+  noInterrupts();
+  // Read 14..24 bytes from boot signature
+  for (uint8_t i = 14; i < 24; i ++) {
+    uint8_t currByte = boot_signature_byte_get(i);
+    // strange (()) need to evaluate dec value for #define'd inlie function
+    // Must be moved to dtoh()
+    *_dataBuffer++ = dtoh(((0x0F <= currByte) ? (currByte >> 4) : 0));
+    *_dataBuffer++ = dtoh((currByte & 0x0F));
+    }
+  interrupts();
+  // finalize string
+  *_dataBuffer = '\0';
+}
+
 /* ****************************************************************************************************************************
 *
 *  Return "Free" memory size
