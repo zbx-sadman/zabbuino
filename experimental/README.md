@@ -33,6 +33,7 @@ Implemented:
 Changes:
  - New macro - _NETWORK_MODULE_ . Now Interface's libs including depend of NETWORK_MODULE value. Its allow to recompile source code for various modules without headers #includes mass commenting/uncommenting.
    Unfortunatly, oldest releases of Arduino IDE may throw error when that trik used and you must plug in headers by own hand. IDE v1.6.11 works correctly with NETWORK_MODULE macro;
+ - To _analogRead[]_ command added _mapToLow_ and _mapToHigh_ arguments to be called with _map(..., 0, 1023, mapToLow, mapToHigh)_ Arduino function. Example _analogRead[15,, 0, 8]_ equal to _map(analogRead(15), 0, 1023, 0, 8)_ ;
 
 Fixes:
  - Zabbuino now tested on ATmega32u4-based boards (Arduino Micro, Leonardo). Small oddities in debugging with Serial exist at this moment, but basic functions performs well.
