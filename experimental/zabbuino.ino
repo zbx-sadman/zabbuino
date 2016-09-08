@@ -1,5 +1,6 @@
 // My Freeduino is not listed in platforms.h, but is analogue to ARDUINO_AVR_DUEMILANOVE
-#define ARDUINO_AVR_DUEMILANOVE
+//#define ARDUINO_AVR_DUEMILANOVE
+
 
 // Just for compilation with various default network configs
 //#define USE_NETWORK_192_168_0_0
