@@ -51,6 +51,8 @@
 #include "zabbuino.h"
 
 
+
+
 /* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
                                                                  GLOBAL VARIABLES SECTION
 */
@@ -64,6 +66,11 @@ volatile extInterrupt_t extInterrupt[EXTERNAL_NUM_INTERRUPTS];
 #ifdef FEATURE_IR_ENABLE
 uint8_t irPWMPin;
 #endif
+
+#ifdef FEATURE_PZEM004_ENABLE
+SoftwareSerial *swSerial;
+#endif
+
 
 EthernetServer ethServer(10050);
 EthernetClient ethClient;
@@ -173,16 +180,17 @@ So... no debug with Serial Monitor at this time
      netConfig.useDHCP = true;
 #endif
 
-
-#ifdef FEATURE_NET_USE_MCUID_FOR_MAC
+/*
+// REMOVE ON RELEASE
+#ifdef FEATURE_NET_USE_MCUID
    // Interrupts must be disabled before boot_signature_byte_get will be called to avoid code crush
    noInterrupts();
    // rewrite last MAC's two byte with MCU ID's bytes
-   netConfig.macAddress[4] = boot_signature_byte_get(22);
    netConfig.macAddress[5] = boot_signature_byte_get(23);
    interrupts();
+   netConfig.ipAddress[5] = netConfig.macAddress[5];
 #endif
-
+*/
 /* -=-=-=-=-=-=-=-=-=-=-=-
     NETWORK START BLOCK
    -=-=-=-=-=-=-=-=-=-=-=- */
@@ -717,11 +725,13 @@ uint8_t executeCommand()
       if (AccessGranted) {
          // need check for arg existsience?
          // cBuffer[argOffset[1]] != \0 if argument #2 given
-         if (cBuffer[argOffset[1]]) {
-            setHostname(netConfig.hostname, &cBuffer[argOffset[1]]);
-            // strncpy(netConfig.hostname, &cBuffer[argOffset[1]], ZBX_AGENT_HOSTNAME_MAXLEN-1);
-            // netConfig.hostname[ZBX_AGENT_HOSTNAME_MAXLEN]='\0';
-            //        Serial.println(netConfig.hostname);
+         if ('0' != cBuffer[argOffset[1]]) {
+            // copy <1-th arg length> bytes from 1-th arg of buffer (0-th arg contain password) to hostname 
+            uint8_t hostnameLen=argOffset[2]-argOffset[1];
+            memcpy(netConfig.hostname, &cBuffer[argOffset[1]], hostnameLen);
+            // Terminate string
+            netConfig.hostname[hostnameLen]='\0';
+            // Serial.println(netConfig.hostname);
             saveConfigToEEPROM(&netConfig);
             result = RESULT_IS_OK;
          }
@@ -1375,6 +1385,45 @@ uint8_t executeCommand()
  //     }
       break;
 #endif // FEATURE_IR_ENABLE
+
+
+#ifdef FEATURE_PZEM004_ENABLE
+    //
+    //  0x0101A8C0 - an IP address for PZEM (192.168.1.1)
+    //
+    case CMD_PZEM004_CURRENT:
+      /*/
+      /=/  pzem004.current[rxPin, txPin]
+      /*/
+      if (isSafePin(arg[0]) && isSafePin(arg[1])) {
+         result = getPZEM004Metric(arg[0], arg[1], SENS_READ_AC, 0x0101A8C0, cBuffer);
+      }
+      break;
+    case CMD_PZEM004_VOLTAGE:
+      /*/
+      /=/  pzem004.voltage[rxPin, txPin]
+      /*/
+      if (isSafePin(arg[0]) && isSafePin(arg[1])) {
+         result = getPZEM004Metric(arg[0], arg[1], SENS_READ_VOLTAGE, 0x0101A8C0, cBuffer);
+      }
+      break;
+    case CMD_PZEM004_POWER:
+      /*/
+      /=/  pzem004.power[rxPin, txPin]
+      /*/
+      if (isSafePin(arg[0]) && isSafePin(arg[1])) {
+         result = getPZEM004Metric(arg[0], arg[1], SENS_READ_POWER, 0x0101A8C0, cBuffer);
+      }
+      break;
+    case CMD_PZEM004_ENERGY:
+      /*/
+      /=/  pzem004.energy[rxPin, txPin]
+      /*/
+      if (isSafePin(arg[0]) && isSafePin(arg[1])) {
+         result = getPZEM004Metric(arg[0], arg[1], SENS_READ_ENERGY, 0x0101A8C0, cBuffer);
+      }
+      break;
+#endif // FEATURE_PZEM004_ENABLE
 
 
     default:

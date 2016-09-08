@@ -1,10 +1,3 @@
-void setHostname(char* _dest, const char* _src){
-   strncpy(_dest, _src, ZBX_AGENT_HOSTNAME_MAXLEN-1);
-   _dest[ZBX_AGENT_HOSTNAME_MAXLEN]='\0';
-//   return _dest;
-
-}
-
 /* ****************************************************************************************************************************
 *
 *   Set default values of network configuration
@@ -12,30 +5,41 @@ void setHostname(char* _dest, const char* _src){
 **************************************************************************************************************************** */
 void setConfigDefaults(netconfig_t& _configStruct)
 {
-  char hostname[] = ZBX_AGENT_DEFAULT_HOSTNAME;  
-  //  memcpy(_configStruct.hostname, hostname, ZBX_AGENT_HOSTNAME_MAXLEN-1);
-  //_configStruct.hostname[ZBX_AGENT_HOSTNAME_MAXLEN]='\0';
-  setHostname(_configStruct.hostname, hostname);
+  // Set defaults
   uint8_t mac[] = NET_DEFAULT_MAC_ADDRESS;
   memcpy(_configStruct.macAddress, mac, sizeof(netConfig.macAddress));
-  _configStruct.useDHCP = NET_DEFAULT_USE_DHCP;
+  _configStruct.useDHCP = (NET_DEFAULT_USE_DHCP);
   _configStruct.ipAddress = IPAddress(NET_DEFAULT_IP_ADDRESS);
   _configStruct.ipNetmask = IPAddress(NET_DEFAULT_NETMASK);
   _configStruct.ipGateway = IPAddress(NET_DEFAULT_GATEWAY);
+  _configStruct.password  = (SYS_DEFAULT_PASSWORD);
+  _configStruct.useProtection = (SYS_DEFAULT_PROTECTION);
 
-#ifdef FEATURE_NET_USE_MCUID_FOR_MAC
-   // Interrupts must be disabled before boot_signature_byte_get will be called to avoid code crush
-   noInterrupts();
-   // rewrite last MAC's two byte with MCU ID's bytes
-   _configStruct.macAddress[4] = boot_signature_byte_get(22);
-   _configStruct.macAddress[5] = boot_signature_byte_get(23);
-   interrupts();
+  // Make FDQN-hostname & modify MAC-address and IP-address if need
+#ifdef FEATURE_NET_USE_MCUID
+  // Write ID into hostname variable
+  getMCUID(_configStruct.hostname);
+  // Append domain name to ID 
+  memcpy(&_configStruct.hostname[SYS_MCU_ID_LEN], (ZBX_AGENT_DEFAULT_DOMAIN), sizeof(ZBX_AGENT_DEFAULT_DOMAIN));
+  // Terminate string
+  _configStruct.hostname[SYS_MCU_ID_LEN+sizeof(ZBX_AGENT_DEFAULT_DOMAIN)+1]='\0';
+  
+  // Modify MAC & IP
+  // Interrupts must be disabled before boot_signature_byte_get will be called to avoid code crush
+  noInterrupts();
+  // rewrite last MAC's two byte with MCU ID's bytes
+  _configStruct.macAddress[5] = boot_signature_byte_get(23);
+  interrupts();
+  _configStruct.ipAddress[5] = _configStruct.macAddress[5];
+
+#else
+  // Write default hostname into hostname variable
+  memcpy(_configStruct.hostname, (ZBX_AGENT_DEFAULT_HOSTNAME), sizeof(ZBX_AGENT_DEFAULT_HOSTNAME));
+  // Append domain name to default hostname  
+  memcpy(&_configStruct.hostname[sizeof(ZBX_AGENT_DEFAULT_HOSTNAME)-1], (ZBX_AGENT_DEFAULT_DOMAIN), sizeof(ZBX_AGENT_DEFAULT_DOMAIN));
+  // Terminate string
+  _configStruct.hostname[sizeof(ZBX_AGENT_DEFAULT_HOSTNAME)+sizeof(ZBX_AGENT_DEFAULT_DOMAIN)+1]='\0';
 #endif
-
-//#ifdef PASSWORD_PROTECTION_FEATURE_ENABLE
-  _configStruct.password = SYS_DEFAULT_PASSWORD;
-  _configStruct.useProtection = SYS_DEFAULT_PROTECTION;
-//#endif
 }
 
 /* ****************************************************************************************************************************

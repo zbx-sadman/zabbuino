@@ -1,4 +1,4 @@
-# Zabbuino 1.0.1
+# Zabbuino 1.1.0
 
 Implemented:
 - A few Zabbix agent commands;
@@ -26,12 +26,28 @@ Implemented:
 - Support any actuators or indicators via `digitalwrite` command;
 - Support WS2801 Led stripe and any indicators on shift registers via extended `shiftout` command;
 - Support WS2812 Led stripe;
+- Support PZEM-004 energy meter;
 - Simulate varuious vendor's IR transmitters.
+
+
+####08 Sep 2016
+Changes:
+  - New macro - _FEATURE\_NET\_USE\_MCUID_ . If its defined - ATMega's ID is used as Zabbuino's hostname, and the last byte of ATMega's ID is replace the last byte of default MAC/IP address.
+
+New commands:
+ - _pzem004.voltage[rxPin, txPin]_ command return voltage value that obtained from Peacefair PZEM-004 energy meter via TTL port;
+   - _rxPin_ SoftSerial's RX pin to which PZEM-004's TX connected;
+   - _rxPin_ SoftSerial's TX pin to which PZEM-004's RX connected;
+ - _pzem004.current[rxPin, txPin]_ command return PZEM-004's current value;
+ - _pzem004.power[rxPin, txPin]_ command return PZEM-004's power value;
+ - _pzem004.energy[rxPin, txPin]_ command return PZEM-004's energy value.
+
+**Note** For authorization on PZEM-004 hardcoded fixed default internal IP (192.168.1.1) is used at this time. It's haven't any relation to yours LAN IP.
 
 
 ####05 Sep 2016
 Changes:
- - New macro - _NETWORK_MODULE_ . Now Interface's libs including depend of NETWORK_MODULE value. Its allow to recompile source code for various modules without headers #includes mass commenting/uncommenting.
+ - New macro - _NETWORK\_MODULE_ . Now network interface's libs including depend of _NETWORK\_MODULE_ value. Its allow to recompile source code for various modules without headers #includes mass commenting/uncommenting.
    Unfortunatly, oldest releases of Arduino IDE may throw error when that trik used and you must plug in headers by own hand. IDE v1.6.11 works correctly with NETWORK_MODULE macro;
  - To _analogRead[]_ command added _mapToLow_ and _mapToHigh_ arguments to be called with _map(..., 0, 1023, mapToLow, mapToHigh)_ Arduino function. Example _analogRead[15,, 0, 8]_ equal to _map(analogRead(15), 0, 1023, 0, 8)_ ;
 
@@ -39,8 +55,8 @@ Fixes:
  - Zabbuino now tested on ATmega32u4-based boards (Arduino Micro, Leonardo). Small oddities in debugging with Serial exist at this moment, but basic functions performs well.
 
 
-New commands:
- - _sys.mcu.id_ command return ID of ATMega chip: http://www.avrfreaks.net/forum/unique-id-atmega328pb.
+New command:
+ - _sys.mcu.id_ command return ID of ATMega chip: http://www.avrfreaks.net/forum/unique-id-atmega328pb .
 
 
 ####25 Aug 2016

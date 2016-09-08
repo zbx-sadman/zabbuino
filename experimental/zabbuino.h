@@ -1,6 +1,10 @@
 #ifndef Zabbuino_h
 #define Zabbuino_h
 
+/* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
+                                                                 HEADERS SECTION
+*/
+
 #include <Arduino.h>
 #include <IPAddress.h>
 #include "platforms.h"
@@ -14,6 +18,8 @@
 #include <avr/boot.h>
 // used by interrupts-related macroses
 #include <wiring_private.h>
+//
+#include <SoftwareSerial.h>
 
 
 /* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
@@ -28,6 +34,8 @@
 // WS2812 led stripe support
 //#define FEATURE_WS2812_ENABLE
 
+// PZEM-004 energy monitor support
+#define FEATURE_PZEM004_ENABLE
 
 /****       Network              ****/
 
@@ -43,12 +51,11 @@
 //#define FEATURE_NET_DHCP_FORCE
 
 /*/ 
-/=/      Use last two bytes of MCU ID as MAC`s last two bytes
+/=/      Use last byte of MCU ID as MAC`s and IP's last byte 
 /=/      Note, that changing MAC or IP-address separately may cause "strange" network errors until the moment when the router delete old ARP-records from the cache.
 /*/
 // Not ready to production
-//#define FEATURE_NET_USE_MCUID_FOR_MAC
-//#define FEATURE_NET_USE_MCUID_FOR_NAME
+#define FEATURE_NET_USE_MCUID
 
 /****       Arduino wrappers     ****/
   
@@ -243,7 +250,7 @@
 /*/
 /=/     Store runtime settings in EEPROM and use its on start
 /*/
-#define FEATURE_EEPROM_ENABLE
+//#define FEATURE_EEPROM_ENABLE
 
 /*/
 /=/     Force protect (enable even netConfig.useProtection is false) your system from illegal access for change runtime settings and reboots 
@@ -260,12 +267,12 @@
 /=/       - Sys.RAM.Free[];
 /=/       - Sys.RAM.FreeMin[]
 /*/
-//#define FEATURE_DEBUG_COMMANDS_ENABLE
+#define FEATURE_DEBUG_COMMANDS_ENABLE
 
 /*/
 /=/     View the debug messages on the Serial Monitor
 /*/
-#define FEATURE_DEBUG_TO_SERIAL
+//#define FEATURE_DEBUG_TO_SERIAL
 
 /*/
 /=/     Use interrupt on Timer1 for internal metric gathering
@@ -334,12 +341,15 @@
 
 
 // Include headers for an network module
-#if (NETWORK_MODULE == 0x01)
+#if (0x01 == NETWORK_MODULE)
+   #define NET_MODULE_NAME                                   "W5100"
    #include <Ethernet.h>
    #include <SPI.h>
-#elif (NETWORK_MODULE == 0x03)
+#elif (0x03 == NETWORK_MODULE)
+  #define NET_MODULE_NAME                                   "W5500"
    #include <Ethernet2.h>
-#elif (NETWORK_MODULE == 0x04)
+#elif (0x04 == NETWORK_MODULE)
+  #define NET_MODULE_NAME                                   "ENC28J60"
    #include <UIPEthernet.h>
    /* You need to do one change in UIPEthernet\utility\Enc28J60Network.h before uncomment USE_DIRTY_HACK_AND_REBOOT_ENC28J60_IF_ITS_SEEMS_FREEZE:         
     *  private:
@@ -353,11 +363,6 @@
    //#define USE_DIRTY_HACK_AND_REBOOT_ENC28J60_IF_ITS_SEEMS_FREEZE
 #endif
 
-#ifdef ethernet_h
-  #define NET_MODULE_NAME         	                        "W5xxx"
-#elif defined UIPETHERNET_H
-  #define NET_MODULE_NAME         	                        "ENC28J60"
-#endif
 
 /* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
                                                          SYSTEM CONFIGURATION SECTION 
@@ -389,20 +394,23 @@
 #define CMD_PART_SIZE          	                                25
 // The total size of the buffer
 #define BUFFER_SIZE                   	                        CMD_PART_SIZE + ARGS_PART_SIZE
+#define SYS_MCU_ID_LEN                                          20
 
 /* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
                                                           AGENT CONFIGURATION SECTION 
 */
 
-#define ZBX_AGENT_DEFAULT_HOSTNAME  	                        "zabbuino.local.net"
+#define ZBX_AGENT_DEFAULT_HOSTNAME                            "zabbuino"
+#define ZBX_AGENT_DEFAULT_DOMAIN                              ".local.net"
 //#define ZBX_AGENT_DEFAULT_HOSTNAME  	                        "zabbuino.local.net"
 
 // How much bytes will be allocated to hostname store
-#define ZBX_AGENT_HOSTNAME_MAXLEN   	                        25
+// sizeof() is not used here to get constant memory allocation due set.hostname() can operate longer strings
+#define ZBX_AGENT_HOSTNAME_MAXLEN   	                        32  // MCU ID as hostname take 20 chars
 
-#define ZBX_NOTSUPPORTED_MSG          	                        "ZBX_NOTSUPPORTED"
+#define ZBX_NOTSUPPORTED_MSG          	                      "ZBX_NOTSUPPORTED"
 
-#define ZBX_AGENT_VERISON             	                        "Zabbuino 1.0.1"
+#define ZBX_AGENT_VERISON             	                      "Zabbuino 1.1.0"
 
 
 /* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
@@ -568,7 +576,7 @@ D13 -^    ^- D8    <- pins   */
                                                             COMMAND NAMES SECTION 
 */
 // Increase this if add new command 
-#define CMD_MAX                                                 0x3A
+#define CMD_MAX                                                 0x3E
 
 // Add command macro with new sequental number
 #define CMD_ZBX_NOPE                                            0x00
@@ -652,6 +660,11 @@ D13 -^    ^- D8    <- pins   */
 #define CMD_WS2812_SENDRAW                                      0x39
 
 #define CMD_SYS_MCU_ID                                          0x3A
+
+#define CMD_PZEM004_CURRENT                                     0x3B 
+#define CMD_PZEM004_VOLTAGE                                     0x3C 
+#define CMD_PZEM004_POWER                                       0x3D  
+#define CMD_PZEM004_ENERGY                                      0x3E 
 
 
 // add new command as "const char command_<COMMAND_MACRO> PROGMEM". Only 'const' push string to PROGMEM. Tanx, Arduino.
@@ -739,6 +752,12 @@ const char command_CMD_IR_SEND[]                                PROGMEM = "ir.se
 const char command_CMD_IR_SENDRAW[]                             PROGMEM = "ir.sendraw";
 
 const char command_CMD_WS2812_SENDRAW[]                         PROGMEM = "ws2812.sendraw";
+
+const char command_CMD_PZEM004_CURRENT[]                        PROGMEM = "pzem004.current";
+const char command_CMD_PZEM004_VOLTAGE[]                        PROGMEM = "pzem004.voltage";
+const char command_CMD_PZEM004_POWER[]                          PROGMEM = "pzem004.power";
+const char command_CMD_PZEM004_ENERGY[]                         PROGMEM = "pzem004.energy";
+
 
 // do not insert new command to any position without syncing indexes. Tanx, Arduino and AVR, for this method of string array pushing to PROGMEM
 // ~300 bytes of PROGMEM space can be saved with crazy "#ifdef-#else-#endif" dance
@@ -941,12 +960,23 @@ const char* const commands[] PROGMEM = {
 #endif
 
 #ifdef FEATURE_DEBUG_COMMANDS_ENABLE
-  command_CMD_SYS_MCU_ID
+  command_CMD_SYS_MCU_ID,
 #else
   command_CMD_ZBX_NOPE,
 #endif
 
- 
+#ifdef FEATURE_PZEM004_ENABLE
+  command_CMD_PZEM004_CURRENT,
+  command_CMD_PZEM004_VOLTAGE,
+  command_CMD_PZEM004_POWER,
+  command_CMD_PZEM004_ENERGY,
+#else
+  command_CMD_ZBX_NOPE,
+  command_CMD_ZBX_NOPE,
+  command_CMD_ZBX_NOPE,
+  command_CMD_ZBX_NOPE,
+#endif
+
 };
 /*
 /* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
@@ -982,6 +1012,10 @@ const char* const commands[] PROGMEM = {
 #define SENS_READ_AC                                            0x09
 #define SENS_READ_DC                                            0x0A
 
+#define SENS_READ_VOLTAGE                                       0x0B
+#define SENS_READ_POWER                                         0x0C
+#define SENS_READ_ENERGY                                        0x0D
+
 #define SENS_READ_RAW                                           0xFF
 
 #define RESULT_IS_FAIL                                          -0xFFAL
@@ -996,6 +1030,8 @@ const char* const commands[] PROGMEM = {
 #define DEVICE_ERROR_ACK_H                                      -129
 #define DEVICE_ERROR_CHECKSUM                                   -131
 #define DEVICE_ERROR_TIMEOUT                                    -130
+#define DEVICE_ERROR_WRONG_ANSWER                               -132
+
 
 /*
 ADC channels 
