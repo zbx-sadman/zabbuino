@@ -35,7 +35,7 @@
 //#define FEATURE_WS2812_ENABLE
 
 // PZEM-004 energy monitor support
-#define FEATURE_PZEM004_ENABLE
+//#define FEATURE_PZEM004_ENABLE
 
 /****       Network              ****/
 
@@ -54,8 +54,8 @@
 /=/      Use last byte of MCU ID as MAC`s and IP's last byte 
 /=/      Note, that changing MAC or IP-address separately may cause "strange" network errors until the moment when the router delete old ARP-records from the cache.
 /*/
-// Not ready to production
-#define FEATURE_NET_USE_MCUID
+// need to test for ip rewriting
+//#define FEATURE_NET_USE_MCUID
 
 /****       Arduino wrappers     ****/
   
@@ -63,6 +63,11 @@
 /=/      Enable commands:
 /=/        - Tone[];
 /=/        - NoTone[]
+/=/      
+/=/      Note, gatherSystemMetrics() subroutine that called by Timer1 interrupt if GATHER_METRIC_USING_TIMER_INTERRUPT macro is enabled conflicts with the tone() function -
+/=/      the buzz stops for a short while. 
+/=/      The reason for this seems is delayed Timer0(Timer2) interrupts that service tone() due getADCVoltage() subroutine that called from gatherSystemMetrics() run so long.
+/=/      If you need loud and clear buzz's, at this time - you must disable GATHER_METRIC_USING_TIMER_INTERRUPT macro. I hope to fix it later.
 /*/
 //#define FEATURE_TONE_ENABLE
 
@@ -78,7 +83,7 @@
 /=/      Enable command:
 /=/        - ShiftOut[]
 /*/
-#define FEATURE_SHIFTOUT_ENABLE
+//#define FEATURE_SHIFTOUT_ENABLE
 
 /****       Interrupts related   ****/
 
@@ -121,7 +126,7 @@
 /=/       - I2C.BitWrite[];
 /=/       - I2C.BitRead[]
 /*/
-//#define FEATURE_I2C_ENABLE
+#define FEATURE_I2C_ENABLE
 
 /*/ 
 /=/     Enable BOSCH BMP sensors handling and commands:
@@ -163,7 +168,7 @@
 /=/       - PCF8574.LCDPrint[]
 /=/ 
 /*/
-//#define FEATURE_PCF8574_LCD_ENABLE
+#define FEATURE_PCF8574_LCD_ENABLE
 
 /*/ 
 /=/     Enable Sensirion SHT2x sensors handling and commands:
@@ -250,7 +255,7 @@
 /*/
 /=/     Store runtime settings in EEPROM and use its on start
 /*/
-//#define FEATURE_EEPROM_ENABLE
+#define FEATURE_EEPROM_ENABLE
 
 /*/
 /=/     Force protect (enable even netConfig.useProtection is false) your system from illegal access for change runtime settings and reboots 
@@ -277,7 +282,7 @@
 /*/
 /=/     Use interrupt on Timer1 for internal metric gathering
 /*/
-//#define GATHER_METRIC_USING_TIMER_INTERRUPT
+#define GATHER_METRIC_USING_TIMER_INTERRUPT
 
 
 

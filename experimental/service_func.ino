@@ -30,7 +30,7 @@ void setConfigDefaults(netconfig_t& _configStruct)
   // rewrite last MAC's two byte with MCU ID's bytes
   _configStruct.macAddress[5] = boot_signature_byte_get(23);
   interrupts();
-  _configStruct.ipAddress[5] = _configStruct.macAddress[5];
+  _configStruct.ipAddress[3] = _configStruct.macAddress[5];
 
 #else
   // Write default hostname into hostname variable
@@ -135,6 +135,7 @@ uint8_t hstoba(uint8_t* _array, const char* _data, uint8_t _len)
 {
   // don't fill _array and return false if mailformed string detected
   if (!haveHexPrefix(_data)) { return false; }
+  
   // skip prefix
   _data += 2;
   // for all bytes do...

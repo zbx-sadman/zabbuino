@@ -22,6 +22,7 @@ uint8_t saveConfigToEEPROM(const netconfig_t* _configStruct)
   // Store its to EEPROM at next position
   EEPROM[index+1]=calculatedCRC;
 */
+
   // Save every byte of _configStruct to EEPROM
   index = sizeof(netconfig_t);
   while (index) {

@@ -5,25 +5,10 @@ version 1.0 is used
 */
 
 #define PZEM_VOLTAGE (uint8_t)0xB0
-#define RESP_VOLTAGE (uint8_t)0xA0
-
 #define PZEM_CURRENT (uint8_t)0xB1
-#define RESP_CURRENT (uint8_t)0xA1
-
 #define PZEM_POWER   (uint8_t)0xB2
-#define RESP_POWER   (uint8_t)0xA2
-
 #define PZEM_ENERGY  (uint8_t)0xB3
-#define RESP_ENERGY  (uint8_t)0xA3
-
-#define PZEM_SET_ADDRESS (uint8_t)0xB4
-#define RESP_SET_ADDRESS (uint8_t)0xA4
-
-#define PZEM_POWER_ALARM (uint8_t)0xB5
-#define RESP_POWER_ALARM (uint8_t)0xA5
-
-#define PZEM_PACKET_SIZE 0x07
-
+#define PZEM_PACKET_SIZE      0x07
 #define DEFAULT_READ_TIMEOUT 1000
 
 uint8_t crcPZEM004(uint8_t *_data, uint8_t _size) {
@@ -33,33 +18,16 @@ uint8_t crcPZEM004(uint8_t *_data, uint8_t _size) {
     return (uint8_t)(crc & 0xFF);
 }
 
-//int32_t getPZEM004Metric(const uint8_t _rxPin, const uint8_t _txPin, uint8_t _metric, char* _outBuffer)
-int32_t getPZEM004Metric(const uint8_t _rxPin, const uint8_t _txPin, uint8_t _metric, uint32_t _ip, char* _outBuffer) {
-  static uint8_t rxPin = 0,
-                 txPin = 0;
-
-  uint8_t buffer[PZEM_PACKET_SIZE];
-  uint8_t command;
+int32_t getPZEM004Metric(const uint8_t _rxPin, const uint8_t _txPin, uint8_t _metric, const char* _ip, char* _outBuffer) {
+  uint8_t buffer[PZEM_PACKET_SIZE],
+          command;
   int32_t result;
+  SoftwareSerial *swSerial;
 
-  IPAddress addr=_ip;
-
-  if ((_rxPin != rxPin) && (_txPin != txPin)) {
-        Serial.println("New pins specified");
-        rxPin = _rxPin;
-        txPin = _txPin;
-        if (NULL != swSerial) { 
-//          Serial.println("Destroy current SoftwareSerial instance");
-          swSerial->~SoftwareSerial();// 
-        }
-  }
-
-  if (NULL == swSerial) {
-     // potential memory leak if rxPin/txPin will be changed frequently
-//     Serial.println("Create SoftwareSerial instance");
-     swSerial = new SoftwareSerial(rxPin, txPin); 
+  //if (NULL == swSerial) {
+     swSerial = new SoftwareSerial(_rxPin, _txPin); 
      swSerial->begin(9600);
-  }
+  //}
 
    switch (_metric) {
      case SENS_READ_AC:
@@ -81,16 +49,20 @@ int32_t getPZEM004Metric(const uint8_t _rxPin, const uint8_t _txPin, uint8_t _me
    }
 
    /*  Send to PZEM004 */
-    //Serial.println("Send commmand...");
+//    Serial.println("Send commmand...");
     
     // Make packet for PZEM
     // 1-th byte in the packet - metric (command)
     buffer[0] = command; 
-    // 2..5 bytes - ip address. Save a little bit of flash space with no for() cycle
-    buffer[1] = addr[0];
-    buffer[2] = addr[1];
-    buffer[3] = addr[2];
-    buffer[4] = addr[3];
+    // 2..5 bytes - ip address. Convert its from _ip or use default (192.168.1.1) if _ip is invalid
+    result = hstoba((uint8_t*) &buffer[1], _ip, 4);
+    if (!result) {
+       buffer[1] = 0xC0;  // 192
+       buffer[2] = 0xA8;  // 168
+       buffer[3] = 0x01;  // 1
+       buffer[4] = 0x01;  // 1
+    } 
+
     // 6-th byte - used to provide the value of the alarm threshold (in kW), 00 else
     buffer[5] = 0x00; 
     // 7-th byte - CRC
@@ -99,10 +71,11 @@ int32_t getPZEM004Metric(const uint8_t _rxPin, const uint8_t _txPin, uint8_t _me
     //for(int i=0; i < sizeof(buffer); i++) { Serial.print("Byte# "); Serial.print(i); Serial.print(" => "); Serial.println(buffer[i], HEX);  }
 
     if (swSerial) {
+       // cleaning PZEM's outgoing buffer
        while(swSerial->available()) { swSerial->read(); }
+       // Send request
        if (! swSerial->write(buffer, sizeof(buffer))) { return DEVICE_ERROR_TIMEOUT; };
     }
-
 
    /*  Recieve from PZEM004 */
     //Serial.println("Recieve answer...");
@@ -123,7 +96,10 @@ int32_t getPZEM004Metric(const uint8_t _rxPin, const uint8_t _txPin, uint8_t _me
         }
     }
 
-    // Connection timeout
+    // Serial.println("Destroy current SoftwareSerial instance");
+    swSerial->~SoftwareSerial();// 
+
+    // Connection timeout occurs
     if (len != PZEM_PACKET_SIZE) { return DEVICE_ERROR_TIMEOUT; }
     // Wrong answer. buffer[0] must contain command - 0x10 (command B1 -> reply A1)
     //command = command - 0x10;

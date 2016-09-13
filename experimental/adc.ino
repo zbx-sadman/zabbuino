@@ -6,23 +6,29 @@
 *
 **************************************************************************************************************************** */
 int32_t getADCVoltage(const uint8_t _analogChannel) {  
-  uint8_t i, oldADCSRA, oldADMUX;
+  uint8_t oldADCSRA, oldADMUX;
+  uint16_t i;
   uint32_t avgADC=0;
-  
   oldADMUX = ADMUX;
   ADMUX = (0 << REFS1) | (1 << REFS0) | _analogChannel;
+
   //  save ADCSRA register
   oldADCSRA = ADCSRA;
+  //ADCSRA &= ~(bit (ADPS0) | bit (ADPS1) | bit (ADPS2));
+  //ADCSRA |= bit (ADPS0);
   ADCSRA |= (1 << ADPS2) | (1 << ADPS1) | (1 << ADPS0); 
   ADCSRA |= (1 << ADEN);
   // Wait for Vref to settle. No delay() used because sub can be called from interrupt
-  delayMicroseconds(2000);
+  // if delayMicroseconds(2000) used - PWM routines (tone(), for example) work is break ;
+  i = 2000; while (i--){ delayMicroseconds(1);}
 
   // get 255 samples
-  for (i = 0; i < 255; i++ ) {
+  i = 255; 
+  while (i) {
     ADCSRA |= (1 << ADSC);  // start a new conversion
-    while (bit_is_set(ADCSRA, ADSC)); // wait for conversion finish
+    while (bit_is_set(ADCSRA, ADSC)) {;} // wait for conversion finish
     avgADC += ADC; 
+    i--;
   }
   // Calculate average
   avgADC /= 255;
@@ -30,10 +36,10 @@ int32_t getADCVoltage(const uint8_t _analogChannel) {
   //  restore ADCSRA register
   ADCSRA = oldADCSRA;
   ADMUX = oldADMUX;
-  // No delay() used because sub can be called from interrupt
-  delayMicroseconds(2000);
   avgADC = 1125300L / avgADC; // Calculate Vcc (in mV); 1125300 = 1.1*1023*1000
-
+  // No delay() used because sub can be called from interrupt
+  // i = 1500; while (i--){ delayMicroseconds(1);}
+  //  delayMicroseconds(2000);
   return avgADC;
 }
 

@@ -13,21 +13,11 @@ Second modification is by:
 
 */
 
-#define MAX7219_REGISTER_NOOP                                            0x00
-#define MAX7219_REGISTER_DIGIT_0                                         0x01
-#define MAX7219_REGISTER_DIGIT_1                                         0x02
-#define MAX7219_REGISTER_DIGIT_2                                         0x03
-#define MAX7219_REGISTER_DIGIT_3                                         0x04
-#define MAX7219_REGISTER_DIGIT_4                                         0x05
-#define MAX7219_REGISTER_DIGIT_5                                         0x06
-#define MAX7219_REGISTER_DIGIT_6                                         0x07
-#define MAX7219_REGISTER_DIGIT_7                                         0x08
 #define MAX7219_REGISTER_DECODE_MODE                                     0x09
 #define MAX7219_REGISTER_INTENSITY                                       0x0A
 #define MAX7219_REGISTER_SCANLIMIT                                       0x0B
 #define MAX7219_REGISTER_SHUTDOWN                                        0x0C
 #define MAX7219_REGISTER_DISPLAYTEST                                     0x0F
-
 
 void writeByteTOMAX7219(const uint8_t _dataPin, const uint8_t _clockPin, const uint8_t _data) 
 {
@@ -51,12 +41,12 @@ void pushDataToMAX7219(const uint8_t _dataPin, const uint8_t _clockPin, const ui
   digitalWrite(_loadPin,HIGH);
 }
 
-void drawOnMAX7219Matrix8x8(const uint8_t _dataPin, const uint8_t _clockPin, const uint8_t _loadPin, const uint8_t _intensity, char* _dataBuffer) {    
-  uint8_t col, dataByte;
+void drawOnMAX7219Matrix8x8(const uint8_t _dataPin, const uint8_t _clockPin, const uint8_t _loadPin, const uint8_t _intensity, char* _data) {    
+  uint8_t col, currByte,  isHexString = false;
   // Init the module 
   // Mark all columns as active
   pushDataToMAX7219(_dataPin, _clockPin, _loadPin, MAX7219_REGISTER_SCANLIMIT, 0x07);      
-  // No decode digits - led matrix mode
+  // No decode digits - led matrix mode, define active led segsments manually
   pushDataToMAX7219(_dataPin, _clockPin, _loadPin, MAX7219_REGISTER_DECODE_MODE, 0x00);
   // Switch on IC
   pushDataToMAX7219(_dataPin, _clockPin, _loadPin, MAX7219_REGISTER_SHUTDOWN, 0x01);
@@ -67,28 +57,125 @@ void drawOnMAX7219Matrix8x8(const uint8_t _dataPin, const uint8_t _clockPin, con
 
   // Draw line by line from first column...
   col = 1;
-  // Only HEX strings is processeed
-  if (haveHexPrefix(_dataBuffer)) {
-    // Skip "0x"
-    _dataBuffer += 2;
-    while (*_dataBuffer) {
-      // Make first four bits of byte to push from HEX.
-      dataByte = htod(*_dataBuffer); _dataBuffer++;
-      // Move first nibble to high
-      dataByte <<= 4;
-      // Check for second nibble existience
-      if (*_dataBuffer) {
-         // Add its to byte if HEX not '\0'
-         dataByte |= htod(*_dataBuffer);
-         _dataBuffer++;
-      }
-      // Pushing byte to column
-      pushDataToMAX7219(_dataPin, _clockPin, _loadPin, col, dataByte);
-      col++;
-      // only 8 columns must be processeed
-      if (0x08 < col) { break; }
-    }
+  
+  // HEX strings must be processeed specially
+  if (haveHexPrefix(_data)) {
+     // Skip "0x"
+     _data += 2;
+     isHexString = true;
   }
+  
+  while (*_data) {
+    // HEX processing
+    if (isHexString) {
+       // Make first four bits of byte to push from HEX.
+       currByte = htod(*_data); _data++;
+       // Move first nibble to high
+       currByte <<= 4;
+       // Check for second nibble existience
+       if (*_data) {
+          // Add its to byte if HEX not '\0'
+          currByte |= htod(*_data);
+       }
+    } else {
+      //
+      //  ASCII processing
+      //
+      // currByte '1111110' =>  LED SEG 'ABCDEFG' , if DP must be fired up - currByte |= 0x80
+      //    AAAA
+      //   F    B     
+      //   F    B    
+      //    GGGG
+      //   E    C
+      //   E    C
+      //    DDDD   DP
+      //
+      switch ((char) *_data) {
+         case '0':
+            currByte = B1111110;
+            break;
+         case '1':
+            currByte = B0110000;
+            break;
+         case '2':
+            currByte = B1101101;
+            break;
+         case '3':
+            currByte = B1111001;
+            break;
+         case '4':
+            currByte = B0110011;
+            break;
+         case '5':
+            currByte = B1011011;
+            break;
+         case '6':
+            currByte = B1011111;
+            break;
+         case '7':
+            currByte = B1110000;
+            break;
+         case '8':
+            currByte = B1111111;
+            break;
+         case '9':
+            currByte = B1111011;
+            break;
+         case 0x20:
+            currByte = B0000000;
+            break;
+         case '-':
+            currByte = B0000001;
+            break;
+         case 'C':
+            currByte = B1001110;
+            break;
+         case 'c':
+            currByte = B0001101;
+            break;
+         case 'H':
+            currByte = B0110111;
+            break;
+         case 'h':
+            currByte = B0010110;
+            break;
+         case 'E':
+            currByte = B1001111;
+            break;
+         case 'L':
+            currByte = B0001110;
+            break;
+         case 'l':
+            currByte = B0000110;
+            break;
+         case 'P':
+            currByte = B1100111;
+            break;
+         case 'n':
+            currByte = B0010101;
+            break;
+         case 'o':
+            currByte = B0011101;
+            break;
+         case 'r':
+            currByte = B0000101;
+            break;
+     }
+      // 'dot' sign is next? 
+      if ('.' == ((char) *(_data+1))) {
+         currByte |= 0x80;
+         _data++;
+      }
+    }
+
+    _data++;
+    // Pushing byte to column
+     pushDataToMAX7219(_dataPin, _clockPin, _loadPin, col, currByte);
+    col++;
+    // only 8 columns must be processeed, comment its if need more
+    if (0x08 < col) { break; }
+  }
+  
 }
 
 

@@ -45,17 +45,33 @@ int32_t scanI2C()
 
 /* ****************************************************************************************************************************
 *
-*  Write 1 byte to I2C device register or just to device
+*  Write 1 byte to I2C device register or just to device. All calls must be re-pointed to writeByte_s_ToI2C()
 *
 **************************************************************************************************************************** */
+//#define writeByteToI2C((_i2cAddress), (_registerAddress), (_data)) 
 uint8_t writeByteToI2C(const uint8_t _i2cAddress, const int16_t _registerAddress, const uint8_t _data)
+{
+  return writeBytesToI2C(_i2cAddress, _registerAddress, &_data, 1);
+}
+
+
+/* ****************************************************************************************************************************
+*
+*  Write N bytes to I2C device register or just to device
+*
+**************************************************************************************************************************** */
+uint8_t writeBytesToI2C(const uint8_t _i2cAddress, const int16_t _registerAddress, uint8_t* _data, uint8_t _length)
 {
   Wire.beginTransmission(_i2cAddress); // start transmission to device 
   // registerAddress is 0x00 and above ?
   if (I2C_NO_REG_SPECIFIED < _registerAddress) {
      Wire.write(_registerAddress); // sends register address to be written
   }
-  Wire.write(_data);  // write data
+  while (_length) {
+    Wire.write(*_data);  // write data
+    _data++;
+    _length--;
+  }
   return Wire.endTransmission(true); // end transmission
 }
 
@@ -64,9 +80,9 @@ uint8_t writeByteToI2C(const uint8_t _i2cAddress, const int16_t _registerAddress
 *  Reads N bytes from device's register (or not) over I2C
 *
 **************************************************************************************************************************** */
-uint8_t readBytesFromi2C(const uint8_t _i2cAddress, const int16_t _registerAddress, uint8_t _buff[], const uint8_t length)
+uint8_t readBytesFromi2C(const uint8_t _i2cAddress, const int16_t _registerAddress, uint8_t _buff[], const uint8_t _length)
 {
-    if (!length) return false;
+    if (!_length) return false;
     Wire.beginTransmission(_i2cAddress); 	// Adress + WRITE (0)
     if (I2C_NO_REG_SPECIFIED < _registerAddress) {
        Wire.write(_registerAddress);
@@ -74,8 +90,14 @@ uint8_t readBytesFromi2C(const uint8_t _i2cAddress, const int16_t _registerAddre
     }
 
     uint8_t i = 0;
-    Wire.requestFrom(_i2cAddress, length); 	// Address + READ (1)
-    while(i < length) {
+    uint32_t lastTimeCheck = millis();         
+    Wire.requestFrom(_i2cAddress, _length); 	// Address + READ (1)
+    while((i < _length) && (Wire.available() > 0)) {
+      // 100 => 0.1 sec timeout
+      if ((millis() - lastTimeCheck) > 100) {
+         Wire.endTransmission(true);
+         return false;
+      }
       _buff[i] = Wire.read();
       i++;
     }
@@ -86,7 +108,7 @@ uint8_t readBytesFromi2C(const uint8_t _i2cAddress, const int16_t _registerAddre
 
 /* ****************************************************************************************************************************
 *
-*  Ping I2C client
+*  Ping I2C slave
 *
 **************************************************************************************************************************** */
 uint8_t inline isI2CDeviceReady(uint8_t _i2cAddress)
@@ -95,7 +117,6 @@ uint8_t inline isI2CDeviceReady(uint8_t _i2cAddress)
   Wire.beginTransmission(_i2cAddress);
   return (0 == Wire.endTransmission(true));
 }
-
 
 /* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
                                                            SHT2x SECTION
@@ -850,52 +871,62 @@ version 1.1.2 is used
 
 void sendToLCD(const uint8_t _i2cAddress, const uint8_t _data, const uint8_t _mode)
 {
-  // Send high bit
+  // Send first nibble (first four bits) into high byte area
   write4bitsToLCD(_i2cAddress, (_data & 0xF0) | _mode);
-  // Send low bit
+  // Send second nibble (second four bits) into high byte area
   write4bitsToLCD(_i2cAddress, ((_data << 4) & 0xF0) | _mode);
 }
 
 void write4bitsToLCD(const uint8_t _i2cAddress, const uint8_t _data) 
 {
-  writeByteToI2C(_i2cAddress, I2C_NO_REG_SPECIFIED, _data);
+  writeBytesToI2C(_i2cAddress, I2C_NO_REG_SPECIFIED, &_data, 1);
   pulseEnableOnLCD(_i2cAddress, _data);
 }
 
 void pulseEnableOnLCD(const uint8_t _i2cAddress, const uint8_t _data)
 {
-  writeByteToI2C(_i2cAddress, I2C_NO_REG_SPECIFIED, _data | _BV(LCD_E));	// 'Enable' high
+  uint8_t sendByte;
+  sendByte = _data | _BV(LCD_E);
+  writeBytesToI2C(_i2cAddress, I2C_NO_REG_SPECIFIED, &sendByte, 1);	// 'Enable' high
   delayMicroseconds(1);		                        // enable pulse must be >450ns
-  writeByteToI2C(_i2cAddress, I2C_NO_REG_SPECIFIED, _data & ~_BV(LCD_E));	// 'Enable' low
+  sendByte = _data | _data & ~_BV(LCD_E);
+  writeBytesToI2C(_i2cAddress, I2C_NO_REG_SPECIFIED, &sendByte, 1);	// 'Enable' low
   delayMicroseconds(50);	                        // commands need > 37us to settle
 } 
 
 int32_t printToPCF8574LCD(const uint8_t _sdaPin, const uint8_t _sclPin, uint8_t _i2cAddress, uint8_t _lcdBacklight, const uint16_t _lcdType, const char *_data)
 {
-  uint8_t displayFunction, lastLine, currLine, currChar, i;
+  uint8_t displayFunction, lastLine, currLine, currChar, i, isHexString;
   uint8_t rowOffsets[] = { 0x00, 0x40, 0x14, 0x54 };
 
   if (!isI2CDeviceReady(_i2cAddress)) {return DEVICE_ERROR_CONNECT; }
 
   switch (_lcdType) {
-   case LCD_TYPE_1602:
-     displayFunction = LCD_2LINE;
-     // 0, 1 = 2 line
-     lastLine = 1;
-     break;
-   case LCD_TYPE_2002:
-     displayFunction = LCD_2LINE;
-     // 0, 1 = 2 line
-     lastLine = 1;
-     break;
-   case LCD_TYPE_2004:
-     // ???
-     displayFunction = LCD_2LINE;
-     // 0, 1, 2, 3 = 4 line
-     lastLine = 3;
-     break;
-   default:
-     return false;
+    case LCD_TYPE_801:
+    case LCD_TYPE_1601:
+      displayFunction = LCD_1LINE;
+      // 0 = 1 line
+      lastLine = 0;
+      break;
+
+    case LCD_TYPE_802:
+    case LCD_TYPE_1602:
+    case LCD_TYPE_2002:               // Tested on WinStar WH-2002A LCD
+    case LCD_TYPE_2402:
+    case LCD_TYPE_4002:
+      displayFunction = LCD_2LINE;
+      // 0, 1 = 2 line
+      lastLine = 1;
+      break;
+    case LCD_TYPE_1604:
+    case LCD_TYPE_2004:               // Tested on generic 2004A LCD
+    case LCD_TYPE_4004:
+      displayFunction = LCD_2LINE;
+      // 0, 1, 2, 3 = 4 line
+      lastLine = 3;
+      break;
+    default:
+      return false;
   }
 
   _lcdBacklight = _lcdBacklight ? _BV(LCD_BL) : 0;
@@ -903,10 +934,7 @@ int32_t printToPCF8574LCD(const uint8_t _sdaPin, const uint8_t _sclPin, uint8_t 
   // just tooggle backlight and go back if no data given 
   writeByteToI2C(_i2cAddress, I2C_NO_REG_SPECIFIED, _lcdBacklight);
   if (! *_data) {return RESULT_IS_OK; }
- 
-  if (!haveHexPrefix(_data)) {return RESULT_IS_FAIL;}
-  _data+=2;
-
+  
   // SEE PAGE 45/46 FOR INITIALIZATION SPECIFICATION!
   // according to datasheet, we need at least 40ms after power rises above 2.7V
   // before sending commands. Arduino can turn on way befer 4.5V so we'll wait 50
@@ -915,7 +943,7 @@ int32_t printToPCF8574LCD(const uint8_t _sdaPin, const uint8_t _sclPin, uint8_t 
   // Now we pull both RS and R/W low to begin commands
   // this is according to the hitachi HD44780 datasheet
   // figure 24, pg 46
-	
+  
   // we start in 8bit mode, try to set 4 bit mode
   write4bitsToLCD(_i2cAddress, (0x03 << 4) | _lcdBacklight);
   delayMicroseconds(4500); // wait min 4.1ms
@@ -937,73 +965,128 @@ int32_t printToPCF8574LCD(const uint8_t _sdaPin, const uint8_t _sclPin, uint8_t 
 
   // Always begin from 0,0
   currLine = 0; 
-  while(*_data && *(_data+1)) {
-    // restore full byte (ASCII char) from HEX nibbles
-    currChar = (htod(*_data) << 4) + htod(*(_data+1));
+ // HEX strings must be processeed specially
+  isHexString = false;
+  if (haveHexPrefix(_data)) {
+     // Skip "0x"
+     _data += 2;
+     isHexString = true;
+  }
+  // Walk over all string
+  while(*_data) {
+    //
+    // HEX processing
+    // 
+    if (isHexString) {
+       // restore full byte (ASCII char) from HEX nibbles
+       // Make first four bits of byte to push from HEX.
+       currChar = htod(*_data); _data++;
+       // Move first nibble to high
+       currChar <<= 4;
+       // Check for second nibble existience
+       if (*_data) {
+          // Add its to byte if HEX not '\0'
+          currChar |= htod(*_data);
+       }
+     } else {
+       //
+       //  ASCII processing
+       //
+       currChar = *_data;
+       // Escape sign detected
+       if ('\\' == currChar) {
+         // See for next char
+         switch (*(_data+1)) {
+           // Self-escaping, just skip next char and make no transformation for current char
+           case '\\':
+             _data++;
+             break;
+           // \t - horizontal tabulation
+           case 't':
+             currChar = LCD_CMD_HT;
+             _data++;
+             break;
+           // \n - new line
+           case 'n':
+             currChar = LCD_CMD_LF;
+             _data++;
+             break;
+           // \xHH - HEX byte HH, for example \x0C => LCD_CMD_CURSOROFF
+           case 'x':
+             // take next two char (+2 & +3) and move pointer 
+             if (*(_data+2) && *(_data+3)) { 
+                currChar = (htod(tolower(*(_data+2))) << 4) + htod(tolower(*(_data+3))); 
+                _data += 3; 
+             }
+             break;
+         } // switch (*(_data+1))
+      } // if ('\\' == currChar)
+    } // if (isHexString) ... else 
+
+  //  Serial.print("currChar: "); Serial.println(currChar);
+    
     if (currChar > 0x7F && currChar < 0x9F) {
-     sendToLCD(_i2cAddress, LCD_SETDDRAMADDR | ((currChar - 0x80) + rowOffsets[currLine]), 0 | _lcdBacklight);
-  } else {
+       // Jump to position 
+       sendToLCD(_i2cAddress, LCD_SETDDRAMADDR | ((currChar - 0x80) + rowOffsets[currLine]), 0 | _lcdBacklight);
+      } else {
+       // Analyze character
+       switch (currChar) {
+         // clear display, set cursor position to zero
+         case LCD_CMD_CLEARDISPLAY:
+           sendToLCD(_i2cAddress, LCD_CMD_CLEARDISPLAY, 0 | _lcdBacklight);
+           delayMicroseconds(2000);  // or 2000 ?  - this command run slowly by display 
+           break;
 
-    switch (currChar) {
-      case LCD_CMD_CLEARDISPLAY:
-        sendToLCD(_i2cAddress, LCD_CMD_CLEARDISPLAY, 0 | _lcdBacklight);// clear display, set cursor position to zero
-        delayMicroseconds(2000);  // or 2000 ?  - this command takes a long time!
-        break;
+         // Blink with backlight
+         case LCD_CMD_BACKLIGHT_BLINK:
+           for (i = 0; i < LCD_BLINK_TIMES; i++) {
+              // _lcdBacklight is not false/true, is 0x00 / 0x08
+              _lcdBacklight = _lcdBacklight ? 0x00 : _BV(LCD_BL);
+              writeByteToI2C(_i2cAddress, I2C_NO_REG_SPECIFIED, _lcdBacklight);
+              delay (LCD_BLINK_DUTY_CYCLE);
+            } 
+            break;
+          
+         // HD44780 control commands
+         case LCD_CMD_DISPLAYOFF:
+         case LCD_CMD_RETURNHOME:
+         case LCD_CMD_ENTRYMODE_RIGHTTOLEFT:
+         case LCD_CMD_ENTRYMODE_RIGHTTOLEFT_SCREENSHIFT:
+         case LCD_CMD_ENTRYMODE_LEFTTORIGHT:
+         case LCD_CMD_ENTRYMODE_LEFTTORIGHT_SCREENSHIFT:
+         case LCD_CMD_BLANKSCREEN:
+         case LCD_CMD_CURSOROFF:
+         case LCD_CMD_UNDERLINECURSORON:
+         case LCD_CMD_BLINKINGBLOCKCURSORON:
+         case LCD_CMD_CURSORMOVELEFT:
+         case LCD_CMD_CURSORMOVERIGHT:
+         case LCD_CMD_SCREENSHIFTLEFT:
+         case LCD_CMD_SCREENSHIFTRIGHT:
+           sendToLCD(_i2cAddress, currChar, 0 | _lcdBacklight);
+           delayMicroseconds(40); 
+           break;
 
-      case LCD_CMD_BACKLIGHT_BLINK:
-        for (i = 0; i < LCD_BLINK_TIMES; i++) {
-          // _lcdBacklight is not false/true, is 0x00 / 0x08
-          _lcdBacklight = _lcdBacklight ? 0x00 : _BV(LCD_BL);
-          writeByteToI2C(_i2cAddress, I2C_NO_REG_SPECIFIED, _lcdBacklight);
-          delay (LCD_BLINK_DUTY_CYCLE);
-        }
-        
-        break;
+         // Print 'Tab'
+         case LCD_CMD_HT:
+           // Space is 0x20 ASCII
+           for (i = 0; i < LCD_TAB_SIZE; i++) { sendToLCD(_i2cAddress, 0x20, 0 | _BV(LCD_RS) | _lcdBacklight); }
+           break;
+       
+         // Go to new line
+         case LCD_CMD_LF:
+           if (lastLine > currLine) { currLine++; }
+           sendToLCD(_i2cAddress, (LCD_SETDDRAMADDR | rowOffsets[currLine]), 0 | _lcdBacklight);
+           break;
 
-      case LCD_CMD_DISPLAYOFF:
-      case LCD_CMD_RETURNHOME:
-      case LCD_CMD_ENTRYMODE_RIGHTTOLEFT:
-      case LCD_CMD_ENTRYMODE_RIGHTTOLEFT_SCREENSHIFT:
-      case LCD_CMD_ENTRYMODE_LEFTTORIGHT:
-      case LCD_CMD_ENTRYMODE_LEFTTORIGHT_SCREENSHIFT:
-      case LCD_CMD_BLANKSCREEN:
-      case LCD_CMD_CURSOROFF:
-      case LCD_CMD_UNDERLINECURSORON:
-      case LCD_CMD_BLINKINGBLOCKCURSORON:
-      case LCD_CMD_CURSORMOVELEFT:
-      case LCD_CMD_CURSORMOVERIGHT:
-      case LCD_CMD_SCREENSHIFTLEFT:
-      case LCD_CMD_SCREENSHIFTRIGHT:
-        sendToLCD(_i2cAddress, currChar, 0 | _lcdBacklight);  // set cursor position to zero
-        delayMicroseconds(40);  // this command takes a long time!
-        break;
-
-
-      // Print 'Tab'
-      case LCD_CMD_HT:
-        for (i = 0; i < LCD_TAB_SIZE; i++) {
-            // Space is 0x20 ASCII
-            // 32 => htod('2') << 4
-            // 0  => htod('0') << 4
-            write4bitsToLCD(_i2cAddress, 32 | _BV(LCD_RS) | _lcdBacklight);
-            write4bitsToLCD(_i2cAddress, 0  | _BV(LCD_RS) | _lcdBacklight);
-        }
-        break;
-      // Go to new line
-      case LCD_CMD_LF:
-        if (lastLine > currLine) { currLine++; }
-        sendToLCD(_i2cAddress, (LCD_SETDDRAMADDR | rowOffsets[currLine]), 0 | _lcdBacklight);
-        break;
-
-      default:
-        // Send first nibble (first four bits) into high byte area
-        write4bitsToLCD(_i2cAddress, (htod(*_data) << 4) | _BV(LCD_RS) | _lcdBacklight);
-        // Send second nibble (second four bits) into high byte area
-        write4bitsToLCD(_i2cAddress, (htod(*(_data+1)) << 4) | _BV(LCD_RS) | _lcdBacklight);
-    }
-  }
-    _data += 2;
-  }
+         // Otherwise - print the char
+         default:
+           //Serial.print("push: "); Serial.println(currChar);
+           sendToLCD(_i2cAddress, currChar , 0 | _BV(LCD_RS) | _lcdBacklight);    
+       } //switch (currChar) {
+    } // if (currChar > 0x7F && currChar < 0x9F) .. else 
+    // move pointer to next char
+    _data++;
+  } // while(*_data)
   return RESULT_IS_OK;
 }
 
@@ -1110,7 +1193,7 @@ int32_t getBH1750Metric(const uint8_t _sdaPin, const uint8_t _sclPin, uint8_t _i
   if (SENS_READ_RAW == _metric) {
     ltoa(result, _outBuffer, 10);
   } else {
-    // Prepare to using with ltoaf() subroutine
+    // Prepare result's value to using in ltoaf() subroutine
     // level = level/1.2; // convert to lux
     // 5 / 1.2 => 4,16
     // (5 * 1000) / 12 => 416 ==> ltoaf (..., ..., 2) ==> 4.16

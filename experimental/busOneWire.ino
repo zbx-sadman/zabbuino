@@ -30,23 +30,23 @@ int32_t DS18X20Discovery(uint8_t _pin)
 *   Scan 1-Wire bus and print to ethernet client all detected ID's (Addresses)
 *
 **************************************************************************************************************************** */
-int32_t scanOneWire(const uint8_t _pin)
-{
-   uint8_t dsAddr[8], numDevices = 0, i;
-   OneWire ow(_pin);
-   ow.reset_search();
-   delay(250);
-   ow.reset();
-   while (ow.search(dsAddr)) {
-     numDevices++;
-     ethClient.print("0x");
-     for (i = 0; i < sizeof(dsAddr); i++ ) {
-       if (dsAddr[i] < 0x0F){ ethClient.print("0"); }
-       ethClient.print(dsAddr[i], HEX);
-     }
-     ethClient.println();
-   }
-   return ((0 < numDevices)  ? RESULT_IS_PRINTED : RESULT_IS_FAIL);
+int32_t scanOneWire(const uint8_t _pin) {
+  uint8_t dsAddr[8], numDevices = 0, i;
+  OneWire *owDevice;
+  owDevice = new OneWire(_pin);
+  owDevice->reset_search();
+  delay(250);
+  owDevice->reset();
+  while (owDevice->search(dsAddr)) {
+    numDevices++;
+    ethClient.print("0x");
+    for (i = 0; i < sizeof(dsAddr); i++ ) {
+      if (dsAddr[i] < 0x0F){ ethClient.print("0"); }
+      ethClient.print(dsAddr[i], HEX);
+    }
+    ethClient.println();
+  }
+  return ((0 < numDevices)  ? RESULT_IS_PRINTED : RESULT_IS_FAIL);
 }
 
 
@@ -106,21 +106,19 @@ int32_t getDS18X20Metric(const uint8_t _pin, uint8_t _resolution, char* _id, cha
   // Resolution must be: 9 <= _resolution <= 12 
   _resolution = constrain(_resolution, 9, 12);
 
-  OneWire ow(_pin);
+  OneWire* owDevice;
+  owDevice = new OneWire(_pin);
+  
 
   if ('\0' == _id[0]) {
      // If ID not valid - search any sensor on OneWire bus and use its. Or return error when no devices found.    
-     ow.reset_search();
-     if (!ow.search(dsAddr)) {return DEVICE_ERROR_CONNECT;}
+     owDevice->reset_search();
+     if (!owDevice->search(dsAddr)) {return DEVICE_ERROR_CONNECT;}
   } else {
-     if (!haveHexPrefix(_id)) {return DEVICE_ERROR_CONNECT;}
      // Convert sensor ID (if its given) from HEX string to byte array (DeviceAddress structure). 
      // Sensor ID is equal DeviceAddress.
-     _id+=2;
-     for (i = 0; i < 8; i++) {
-        dsAddr[i] = htod(*_id) << 4; _id++;
-        dsAddr[i] += htod(*_id); _id++;
-     }
+     // if converting not sucessfully - return DEVICE_ERROR_CONNECT because no sensor address here
+     if (!hstoba((uint8_t*) dsAddr, _id, 8)) {return DEVICE_ERROR_CONNECT;}
   }
 
   // Validate sensor. Model id saved in first byte of DeviceAddress (sensor ID).
@@ -129,15 +127,15 @@ int32_t getDS18X20Metric(const uint8_t _pin, uint8_t _resolution, char* _id, cha
 
   // Get values of CONFIGURATION, HIGH_ALARM_TEMP, LOW_ALARM_TEMP registers via ScratchPad reading.
   // Or return error if bad CRC detected
-  if (!getScratchPadFromDS18X20(ow, dsAddr, scratchPad))
+  if (!getScratchPadFromDS18X20(owDevice, dsAddr, scratchPad))
     return DEVICE_ERROR_CHECKSUM;
 
   // Detect power on sensor - parasite or not
   parasitePowerUsed = false;
-  ow.reset();
-  ow.select(dsAddr);
-  ow.write(DS18X20_CMD_READPOWERSUPPLY);
-  if (ow.read_bit() == 0) parasitePowerUsed = true;
+  owDevice->reset();
+  owDevice->select(dsAddr);
+  owDevice->write(DS18X20_CMD_READPOWERSUPPLY);
+  if (owDevice->read_bit() == 0) parasitePowerUsed = true;
 
   // Sensor already configured to use '_resolution'? Do not make write operation. 
   if (scratchPad[DS18X20_BYTE_CONFIGURATION] != _resolution) {
@@ -159,17 +157,17 @@ int32_t getDS18X20Metric(const uint8_t _pin, uint8_t _resolution, char* _id, cha
             break;
         }
 
-        ow.reset();
-        ow.select(dsAddr);
-        ow.write(DS18X20_CMD_WRITESCRATCH);
+        owDevice->reset();
+        owDevice->select(dsAddr);
+        owDevice->write(DS18X20_CMD_WRITESCRATCH);
         // Change only 3 byte. That is enough to sensor's resolution change
         for ( i = DS18X20_BYTE_HIGH_ALARM_TEMP; i <= DS18X20_BYTE_CONFIGURATION; i++) {
-          ow.write(scratchPad[i]); // configuration
+          owDevice->write(scratchPad[i]); // configuration
         }
         // When sensor used 'parasite' power settings must be copied to DS's EEPROM.
         // Otherwise its will be lost on 'ow.reset()' operation
         if (parasitePowerUsed) {
-           ow.write(DS18X20_CMD_COPYSCRATCH, 1);
+           owDevice->write(DS18X20_CMD_COPYSCRATCH, 1);
            delay(11);
        }
      } // if (DS18B20MODEL == dsAddr[0])
@@ -184,16 +182,16 @@ int32_t getDS18X20Metric(const uint8_t _pin, uint8_t _resolution, char* _id, cha
   // For some DS sensors you may need increase tCONV to 1250ms or more
   conversionTimeout = 825 / (1 << (12 - _resolution));
   
-  // Temperature read begin!
-  ow.reset();
-  ow.select(dsAddr);
+  // Temperature read begin
+  owDevice->reset();
+  owDevice->select(dsAddr);
   // start conversion, with parasite power on at the end
-  ow.write(DS18X20_CMD_STARTCONVO, 1); 
+  owDevice->write(DS18X20_CMD_STARTCONVO, 1); 
   // Wait to end conversion
   delay(conversionTimeout);
 
   // Read data from DS's ScratchPad or return 'Error' on failure
-  if (!getScratchPadFromDS18X20(ow, dsAddr, scratchPad))
+ if (!getScratchPadFromDS18X20(owDevice, dsAddr, scratchPad))
     return DEVICE_ERROR_CHECKSUM;
 
   // Temperature calculation
@@ -256,14 +254,13 @@ int32_t getDS18X20Metric(const uint8_t _pin, uint8_t _resolution, char* _id, cha
   return RESULT_IN_BUFFER;
 }
 
-uint8_t getScratchPadFromDS18X20(OneWire _ow, const uint8_t *_addr, uint8_t *_scratchPad)
-{
+uint8_t getScratchPadFromDS18X20(OneWire* _owDevice, const uint8_t* _addr, uint8_t* _scratchPad) {
   uint8_t i;
-  _ow.reset();
-  _ow.select(_addr);
-  _ow.write(DS18X20_CMD_READSCRATCH);
-  for ( i = 0; i < 9; i++) {
-    _scratchPad[i] = _ow.read();
+  _owDevice->reset();
+  _owDevice->select(_addr);
+  _owDevice->write(DS18X20_CMD_READSCRATCH);
+  for (i = 0; i < 9; i++) {
+    _scratchPad[i] = _owDevice->read();
   }
   // CRC checking and return result
   return (dallas_crc8(_scratchPad, 8) == _scratchPad[DS18X20_BYTE_SCRATCHPAD_CRC]);

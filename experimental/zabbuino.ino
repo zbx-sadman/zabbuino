@@ -1,5 +1,5 @@
 // My Freeduino is not listed in platforms.h, but is analogue to ARDUINO_AVR_DUEMILANOVE
-//#define ARDUINO_AVR_DUEMILANOVE
+#define ARDUINO_AVR_DUEMILANOVE
 
 
 // Just for compilation with various default network configs
@@ -11,7 +11,7 @@
   #define NET_DEFAULT_GATEWAY                                 {192,168,0,1}
 #else
   #define NET_DEFAULT_MAC_ADDRESS                              {0xDE,0xAD,0xBE,0xEF,0xFE,0xF7}
-  #define NET_DEFAULT_IP_ADDRESS                              {172,16,100,226}
+  #define NET_DEFAULT_IP_ADDRESS                              {172,16,100,228}
   #define NET_DEFAULT_GATEWAY                                 {172,16,100,254}
 #endif
 #define NET_DEFAULT_NETMASK                                   {255,255,255,0}
@@ -40,7 +40,7 @@
 //#define NETWORK_MODULE      0x02
 //#define NETWORK_MODULE      0x03     // Wiznet __W5500__ network modules, Arduino Ethernet Shield 2, Arduino LEONARDO ETH, 
 //#define NETWORK_MODULE      0x04     // Microchip __ENC28J60__ network modules
-//#define NETWORK_MODULE      0x05     // ESP2866
+//#define NETWORK_MODULE      0x05     // ESP2866, not implemented
 
 /* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
                                                                  PROGRAMM FEATURES SECTION
@@ -50,8 +50,6 @@
 
 */
 #include "zabbuino.h"
-
-
 
 
 /* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
@@ -67,11 +65,6 @@ volatile extInterrupt_t extInterrupt[EXTERNAL_NUM_INTERRUPTS];
 #ifdef FEATURE_IR_ENABLE
 uint8_t irPWMPin;
 #endif
-
-#ifdef FEATURE_PZEM004_ENABLE
-SoftwareSerial *swSerial;
-#endif
-
 
 EthernetServer ethServer(10050);
 EthernetClient ethClient;
@@ -104,7 +97,10 @@ void setup() {
   
 #ifdef FEATURE_DEBUG_TO_SERIAL
   Serial.begin(9600);
-  uint32_t startSerial = millis();
+#ifdef FEATURE_DEBUG_TO_SERIAL
+     SerialPrintln_P(PSTR("Zabbuino waked up"));
+#endif
+//  uint32_t startSerial = millis();
 
 /*
 On ATMega32u4 (may be breadboard and dupont wires is bad)
@@ -141,15 +137,24 @@ So... no debug with Serial Monitor at this time
   // Check for PIN_FACTORY_RESET shorting to ground?
   // (when pulled INPUT pin shorted to GND - digitalRead() return LOW)
   if (LOW == digitalRead(PIN_FACTORY_RESET)){
+#ifdef FEATURE_DEBUG_TO_SERIAL
+     SerialPrintln_P(PSTR("The factory reset button is pressed"));
+#endif
     // Fire up state LED
     digitalWrite(PIN_STATE_LED, HIGH);
     // Wait some msecs
     delay(HOLD_TIME_TO_FACTORY_RESET);
     // PIN_FACTORY_RESET still shorted?
     if (LOW == digitalRead(PIN_FACTORY_RESET)){
+#ifdef FEATURE_DEBUG_TO_SERIAL
+     SerialPrintln_P(PSTR("Rewrite EEPROM with defaults..."));
+#endif
        setConfigDefaults(netConfig);
        saveConfigToEEPROM(&netConfig);
        // Blink fast while PIN_FACTORY_RESET shorted to GND
+#ifdef FEATURE_DEBUG_TO_SERIAL
+     SerialPrintln_P(PSTR("Done. Release the factory reset button"));
+#endif
        while (LOW == digitalRead(PIN_FACTORY_RESET)) {
           digitalWrite(PIN_STATE_LED, millis() % 100 < 50);
       }
@@ -189,7 +194,7 @@ So... no debug with Serial Monitor at this time
    // rewrite last MAC's two byte with MCU ID's bytes
    netConfig.macAddress[5] = boot_signature_byte_get(23);
    interrupts();
-   netConfig.ipAddress[5] = netConfig.macAddress[5];
+   netConfig.ipAddress[4] = netConfig.macAddress[5];
 #endif
 */
 /* -=-=-=-=-=-=-=-=-=-=-=-
@@ -432,14 +437,15 @@ uint8_t analyzeStream(char charFromClient) {
   uint8_t static needSkipZabbix2Header = 0, 
                  cmdSliceNumber        = 0,
                  isEscapedChar         = 0,
-                 dontConvertChars      = false;
+                 doubleQuotedString    = false;
   uint16_t static bufferWritePosition;
 
   // If there is not room in buffer - simulate EOL recieving
   if (BUFFER_SIZE <= bufferWritePosition ) { charFromClient = '\n'; }
   
   // Put next char to buffer
-  cBuffer[bufferWritePosition] = (dontConvertChars) ? charFromClient : tolower(charFromClient); 
+  cBuffer[bufferWritePosition] = (doubleQuotedString) ? charFromClient : tolower(charFromClient); 
+  //Serial.print("Char: "); Serial.println(cBuffer[bufferWritePosition]);
     
   // When ZBX_HEADER_PREFIX_LENGTH chars is saved to buffer - test its for Zabbix2 protocol header prefix ("ZBXD\01") presence
   if (ZBX_HEADER_PREFIX_LENGTH == bufferWritePosition) {
@@ -460,51 +466,81 @@ uint8_t analyzeStream(char charFromClient) {
 
   // Process all chars if its not from header data
   if (!needSkipZabbix2Header) {
-    if (isEscapedChar) {
-       // Char is escaped. Just drop the sign and do nothing - char already saved
-       isEscapedChar = false;
-    } else {
-       // char is not escaped
-       switch (charFromClient) {
-          // Next char after \ is escaped
-          case '\\':
-            isEscapedChar = true;
-            return true;
-          case '"':
-            // Do not convert to lower case chars that placed inside doublequotes
-            dontConvertChars = !dontConvertChars;
-            return true;
-          case ']':
-          case 0x20:
-            // Space or final square bracket found. Do nothing and next char will be written to same position. 
-            // Return 'Need next char'
-            return true;
-          case '[':
-          case ',':
-            // Delimiter or separator found. If 'argOffset' array is not exhausted - push begin of next argument (bufferWritePosition+1) on buffer to arguments offset array. 
-            if (ARGS_MAX > cmdSliceNumber) { argOffset[cmdSliceNumber] = bufferWritePosition + 1; }
-            cmdSliceNumber++; 
-            // Make current buffer segment like C-string
-            cBuffer[bufferWritePosition] = '\0'; 
-            break;
-          case '\n':
-            // EOL detected
-            // Save last argIndex that pointed to <null> item. All unused argOffset[] items must be pointed to this <null> item too.
-            cBuffer[bufferWritePosition] = '\0'; 
-            while (ARGS_MAX > cmdSliceNumber) { argOffset[cmdSliceNumber++] = bufferWritePosition;}
-            // Change argIndex value to pass (ARGS_MAX < argIndex) condition 
-            cmdSliceNumber = ARGS_MAX+1; break;
-         }
+     // char is not escaped
+     switch (charFromClient) {
+        // Doublequote sign is arrived
+        case '"':
+          if (!isEscapedChar) {
+             // Doublequote is not escaped. 
+             // Just drop it and toggle doublequoted mode
+             // Doublequoted mode: do not convert char case, skip action on space, ']', '[', ','
+             doubleQuotedString = !doubleQuotedString;
+             //Serial.print("doublequote: "); Serial.println(doubleQuotedString );
+             // Jump out from subroutine to get next char from client
+             return true;
+          }
+          // Doublequote is escaped. Move write position backward to one step and write doublequote sign to '\' position
+          // Serial.println("escaped doublequote");
+          bufferWritePosition--;
+          cBuffer[bufferWritePosition] = '"';
+          isEscapedChar = false;
+          break;
+        // Backslash sign is arrived. If next char will be doublequote - its consider as escaped. But backslash is still in buffer as non-escape char
+        case '\\':
+          if (!isEscapedChar) {
+ //           Serial.println("next char is escaped ");            
+             isEscapedChar = true;
+          }            
+          break;
+        // Space found. Do nothing if its reached not in doublequoted string, and next char will be written to same position. 
+        case 0x20:
+          // Return 'Need next char'
+          if (!doubleQuotedString) { return true; }
+          // Serial.println("[*1]");
+          break;
 
-         // EOL reached or there is not room to store args. Stop stream analyzing and do command executing
-         if (ARGS_MAX < cmdSliceNumber) {
-           // clear vars for next round
-            bufferWritePosition = cmdSliceNumber = isEscapedChar = dontConvertChars = 0;
-            needSkipZabbix2Header = false;
-            // Return 'Do not need next char'
-            return false;
-         }             
-      }
+        // Delimiter or separator found.
+        case '[':
+        case ',':
+        //  Serial.println("[*2.1]");
+          // If its reached not in doublequoted string - process it as control char.
+          if (!doubleQuotedString) { 
+             //Serial.println("[*2.2]");
+             //  If 'argOffset' array is not exhausted - push begin of next argument (bufferWritePosition+1) on buffer to arguments offset array. 
+            if (ARGS_MAX > cmdSliceNumber) { argOffset[cmdSliceNumber] = bufferWritePosition + 1; }
+               cmdSliceNumber++; 
+               // Make current buffer segment like C-string
+               cBuffer[bufferWritePosition] = '\0'; 
+            }
+          //Serial.println("[*2.3]");
+          break;
+        // Final square bracket found. Do nothing and next char will be written to same position. 
+        case ']':
+          // If its reached in doublequoted string - just leave its as regular character
+          if (doubleQuotedString) { break; }
+          //   ...otherwise - process as 'EOL sign'
+        case '\n':
+          // EOL detected
+          // Save last argIndex that pointed to <null> item. All unused argOffset[] items must be pointed to this <null> item too.
+          // Serial.println("[*3]");
+          cBuffer[bufferWritePosition] = '\0'; 
+          while (ARGS_MAX > cmdSliceNumber) { argOffset[cmdSliceNumber++] = bufferWritePosition;}
+          // Change argIndex value to pass (ARGS_MAX < argIndex) condition 
+          cmdSliceNumber = ARGS_MAX+1; break;
+          break;
+        // All next chars is non-escaped
+        default: 
+            isEscapedChar = false; 
+     }
+
+     // EOL reached or there is not room to store args. Stop stream analyzing and do command executing
+     if (ARGS_MAX < cmdSliceNumber) {
+        // clear vars for next round
+        bufferWritePosition = cmdSliceNumber = isEscapedChar = doubleQuotedString = 0;
+        needSkipZabbix2Header = false;
+        // Return 'Do not need next char'
+        return false;
+     }             
   }
   // 
   bufferWritePosition++;
@@ -514,7 +550,6 @@ uint8_t analyzeStream(char charFromClient) {
 
 /* ****************************************************************************************************************************
 *
-*  Command execution subroutine
 *  
 **************************************************************************************************************************** */
 uint8_t executeCommand()
@@ -556,6 +591,7 @@ uint8_t executeCommand()
      SerialPrint_P(PSTR(", offset =")); Serial.println(argOffset[i]);
 #endif 
   }
+ 
 
   
   // Check rights for password protected commands
@@ -772,7 +808,7 @@ uint8_t executeCommand()
       /=/  set.network[password, useDHCP, macAddress, ipAddress, ipNetmask, ipGateway]
       /*/
       if (AccessGranted) {
-         uint8_t ip[4], mac[6], success = 1;
+         uint8_t ip[4], mac[6], success = true;
          // useDHCP flag coming from first argument and must be numeric (boolean) - 1 or 0, 
          // arg[0] data contain in cBuffer[argOffset[1]] placed from argOffset[0]
          netConfig.useDHCP = (uint8_t) arg[1];
@@ -1095,12 +1131,22 @@ uint8_t executeCommand()
 
     case CMD_I2C_WRITE:
       /*/
-      /=/ i2c.write(sdaPin, sclPin, i2cAddress, register, data)
+      /=/ i2c.write(sdaPin, sclPin, i2cAddress, register, data, numBytes)
       /*/
       if (isSafePin(arg[0]) && isSafePin(arg[1])) {
          // i2COption used as 'data'
-         result = writeByteToI2C(i2CAddress, (('\0' != cBuffer[argOffset[3]]) ? i2CRegister : I2C_NO_REG_SPECIFIED), i2COption);
-         result = (0 == result) ? RESULT_IS_OK : RESULT_IS_FAIL;
+         arg[5] = constrain(arg[5], 1, 4);
+         i = arg[5];
+         while(i){
+           i--;
+           i2CValue[i] = arg[4] & 0xFF;
+           Serial.print("i2CValue[i]: "); Serial.println(i2CValue[i]);
+           arg[4] = arg[4] >> 8;
+           Serial.print("arg[4]: "); Serial.println(arg[4]);
+         }
+         
+         result = writeBytesToI2C(i2CAddress, (('\0' != cBuffer[argOffset[3]]) ? i2CRegister : I2C_NO_REG_SPECIFIED), i2CValue, arg[5]);
+//         result = (0 == result) ? RESULT_IS_OK : RESULT_IS_FAIL;
       }
       break;
 
@@ -1394,34 +1440,34 @@ uint8_t executeCommand()
     //
     case CMD_PZEM004_CURRENT:
       /*/
-      /=/  pzem004.current[rxPin, txPin]
+      /=/  pzem004.current[rxPin, txPin, ip]
       /*/
       if (isSafePin(arg[0]) && isSafePin(arg[1])) {
-         result = getPZEM004Metric(arg[0], arg[1], SENS_READ_AC, 0x0101A8C0, cBuffer);
+         result = getPZEM004Metric(arg[0], arg[1], SENS_READ_AC, &cBuffer[argOffset[2]], cBuffer);
       }
       break;
     case CMD_PZEM004_VOLTAGE:
       /*/
-      /=/  pzem004.voltage[rxPin, txPin]
+      /=/  pzem004.voltage[rxPin, txPin, ip]
       /*/
       if (isSafePin(arg[0]) && isSafePin(arg[1])) {
-         result = getPZEM004Metric(arg[0], arg[1], SENS_READ_VOLTAGE, 0x0101A8C0, cBuffer);
+         result = getPZEM004Metric(arg[0], arg[1], SENS_READ_VOLTAGE, &cBuffer[argOffset[2]], cBuffer);
       }
       break;
     case CMD_PZEM004_POWER:
       /*/
-      /=/  pzem004.power[rxPin, txPin]
+      /=/  pzem004.power[rxPin, txPin, ip]
       /*/
       if (isSafePin(arg[0]) && isSafePin(arg[1])) {
-         result = getPZEM004Metric(arg[0], arg[1], SENS_READ_POWER, 0x0101A8C0, cBuffer);
+         result = getPZEM004Metric(arg[0], arg[1], SENS_READ_POWER, &cBuffer[argOffset[2]], cBuffer);
       }
       break;
     case CMD_PZEM004_ENERGY:
       /*/
-      /=/  pzem004.energy[rxPin, txPin]
+      /=/  pzem004.energy[rxPin, txPin, ip]
       /*/
       if (isSafePin(arg[0]) && isSafePin(arg[1])) {
-         result = getPZEM004Metric(arg[0], arg[1], SENS_READ_ENERGY, 0x0101A8C0, cBuffer);
+         result = getPZEM004Metric(arg[0], arg[1], SENS_READ_ENERGY, &cBuffer[argOffset[2]], cBuffer);
       }
       break;
 #endif // FEATURE_PZEM004_ENABLE

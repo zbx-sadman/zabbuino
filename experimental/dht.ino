@@ -33,19 +33,19 @@ version 0.1.13 is used
 int32_t getDHTMetric(const uint8_t _pin, const uint8_t _sensorModel, const uint8_t _metric, char* _outBuffer)
 {
   // INIT BUFFERVAR TO RECEIVE DATA
-  uint8_t mask = 128;
-  uint8_t idx = 0;
+  uint8_t mask = 128,
+          idx = 0,
+          data = 0,
+          state = LOW,
+          pstate = LOW,
+          leadingZeroBits, wakeupDelay,
+          bits[5];  // buffer to receive data
+  uint16_t zeroLoop = DHTLIB_TIMEOUT,
+           delta = 0;
+  uint32_t humidity, temperature, result,
+           waitTime = 0;
 
-  uint8_t data = 0;
-  uint8_t state = LOW;
-  uint8_t pstate = LOW;
-  uint16_t zeroLoop = DHTLIB_TIMEOUT;
-  uint16_t delta = 0;
-  uint8_t leadingZeroBits, wakeupDelay;
-  uint8_t bits[5];  // buffer to receive data
-  uint32_t humidity, temperature, result;
   static uint32_t lastReadTime = 0;
-  uint32_t waitTime = 0;
   
   switch (_sensorModel) {
     case DHT11_ID:
