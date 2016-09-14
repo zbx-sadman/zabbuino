@@ -1146,24 +1146,29 @@ uint8_t executeCommand()
          }
          
          result = writeBytesToI2C(i2CAddress, (('\0' != cBuffer[argOffset[3]]) ? i2CRegister : I2C_NO_REG_SPECIFIED), i2CValue, arg[5]);
-//         result = (0 == result) ? RESULT_IS_OK : RESULT_IS_FAIL;
+         result = (0 == result) ? RESULT_IS_OK : RESULT_IS_FAIL;
       }
       break;
 
     case CMD_I2C_READ:
       /*/
-      /=/ i2c.read(sdaPin, sclPin, i2cAddress, register, length)
+      /=/ i2c.read(sdaPin, sclPin, i2cAddress, register, length, doDoubleReading)
       /*/
+      //  May be make delay(doTwiceReading) before second reading if doTwiceReading > 0 ?
       if (isSafePin(arg[0]) && isSafePin(arg[1])) {
          // i2COption used as 'length' - how much bytes must be read: 0..4 byte
          i2COption = constrain(i2COption, 1, 4);
          result = readBytesFromi2C(i2CAddress, (('\0' != cBuffer[argOffset[3]]) ? i2CRegister : I2C_NO_REG_SPECIFIED), i2CValue, i2COption);
+         // Do second reading if need ( arg#5 defined )
+         if (('\0' != cBuffer[argOffset[5]]) { 
+            result = readBytesFromi2C(i2CAddress, (('\0' != cBuffer[argOffset[3]]) ? i2CRegister : I2C_NO_REG_SPECIFIED), i2CValue, i2COption); 
+         }
+         if (0 != result) { result = RESULT_IS_FAIL; break; }
          // make int32 from i2C's bytes
-         if (0 != result) {result = RESULT_IS_FAIL; break; }
          for (i=0; i < i2COption; i++) {
              result <<= 8;
              result |= i2CValue[i];
-          }
+         }
       }
       break;
 

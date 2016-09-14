@@ -30,10 +30,18 @@ Implemented:
 - Simulate varuious vendor's IR transmitters.
 
 
+####14 Sep 2016
+
+Changes:
+  - _I2C.Read[]_ command have new optional parameter - _doDoubleReading_ . Some sensors/IC's (like PCF8591) returns the value of previous conversion and need to reply reading to get actual data. Now Zabbuino can ask for result twice if you specify _doDoubleReading_ parameter greater that 0. For example, to get _actual_ 1-byte data from ADC3 (AIN3 pin) of PCF8591: `I2C.Read[18,19,0x48,0x03,1,1]`.
+
+
+**Note** Zabbuino _I2C.Read[] /I2C.Write[]_ commands tested with PCF8591 module (YL-40). Reading & writing is sucessfull. For example, set voltage on PCF8591 AOUT pin to ~0.75\*VDD Volts ( 255\*0.75 => ~191 ): `zabbix_get -s 192.168.0.1 -k I2C.Write[18,19,0x48,0x40,191]`.
+
 ####13 Sep 2016
 Changes:
-  - _I2C.Write[]_ command have new optional parameter. It's a _numBytes_ - how much bytes must be written to the register of I2C device. Example: `_I2C.Write[18,19,0x62,0x40,2048,2]_` - send value 2048 in two byte to register 0x40 of MCP4725 DAC IC. If no _numBytes_ specified - _data_ cast to uint8_t and send in one byte;
-  - _PZEM004.*[]_ commands have new optional parameter: _ip_ . It's used only for authorization on energymeters with default ip other than 192.168.1.1 and not replaced PZEM's ip. Example: `_PZEM004.voltage[5, 6, 0xC0A80001]_` - take voltage from PZEM004 that have 192.168.0.1 address;
+  - _I2C.Write[]_ command have new optional parameter. It's a _numBytes_ - how much bytes must be written to the register of I2C device. Example: _I2C.Write[18,19,0x62,0x40,2048,2]_ - send value 2048 in two byte to register 0x40 of MCP4725 DAC IC. If no _numBytes_ specified - _data_ cast to uint8_t and send in one byte;
+  - _PZEM004.*[]_ commands have new optional parameter: _ip_ . It's used only for authorization on energymeters with default ip other than 192.168.1.1 and not replaced PZEM's ip. Example: _PZEM004.voltage[5, 6, 0xC0A80001]_ - take voltage from PZEM004 that have 192.168.0.1 address;
   - _PCF8574.LCDPrint[]_ allow to use ASCII-string as _data_ parameter. _data_ must be doublequoted, internal doublequote must be escaped with '\'. Supported control symbols '\t' - horizontal tabulation, '\n' - new line, and '\xHH' for using other symbols with HEX representation. 
 Example: `zabbix_get -s 192.168.0.1 -k 'PCF8574.LCDPrint[18,19,0x20,1,2002,"\x06\x01\x0FHello\n\tJust \"testing\""]'`
     - _\x06_ - "Left to right" entry mode enable;
@@ -43,12 +51,10 @@ Example: `zabbix_get -s 192.168.0.1 -k 'PCF8574.LCDPrint[18,19,0x20,1,2002,"\x06
     - _\n\t_ - go to new line and make 'Tab';
     - _Just \"testing\"_ - the phrase with doublequotes.
   - _MAX7219.Write[]_ allow to use ASCII-string as _data_ parameter too. Its can be used on "MAX7219 8-Digit LED Display Module" from Aliexpress. Only next chars can be displayed: '0'..'9', '-', 'c', 'C', 'h', 'H', 'E', 'L', 'P', 'n', 'o', 'r', dot and space. Example: 
-`MAX7219.write[4, 5, 6, 5, "Co2 4851"]`
+`zabbix_get -s 192.168.0.1 -k MAX7219.write[4,5,6,5,"Co2 4851"]`
 
 **Note #1** Many LCD's have right codepage only for english chars. All national sythmbols images not mapped to the ASCII-table. You can use \xHH for its.
-
 **Note #2** MAX7219's ASCII-value feature haven't tested on real hardware.
-
 **Note #3** _I2C.Write[]_ have tested with PCF8574, and MCP4725 modules. All seems OK. Value of the "voltage" for MCP4725 (0...4095) must be multiplied by 16, because it's pushed in two bytes with left padding: D12.D11.D10.D09,D08,D07.D06.D05   D04.D03.D02.D01.X.X.X.X (X.X.X.X - unused bits).
 
 
