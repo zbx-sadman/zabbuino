@@ -18,7 +18,7 @@ Implemented:
 - Support one or more Dallas DS18X20 thermometer;
 - Support DHT11/21/22/33/44 or AM2301/2302 humidity and temperature sensors;
 - Support Sensirion SHT2X humidity and temperature sensors serie;
-- Support BOSCH BMP180/Allegro ACS7xx sensor, BMP280/BME280 pressure temperature and humidity sensors;
+- Support BOSCH BMP180/BMP085/BMP280/BME280 pressure, temperature and humidity sensors;
 - Support ROHM BH1750 light sensor;
 - Support incremental encoder (on interrupt's pin);
 - Support devices that can be used with hardware interrupt - tilt switches, dry contacts, water flow sensor, and so;
@@ -26,8 +26,8 @@ Implemented:
 - Support HC-SR04 ultrasonic ranging module;
 - Support any other analog or digital sensor via `analogread` /`digitalread` commands;
 - Support indicators, that connected to MAX7219, 8x8 Led matrix for example;
-- Support simple I2C devices (expanders, digital linear potentiometers, etc.);
-- Support One- or Two- (and maybe Four-) lines LCD Character displays with PC8574 I2C expander;
+- Support simple I2C devices (expanders, digital linear potentiometers, DAC's etc.);
+- Support One- or Two- and Four- lines LCD Character displays with PC8574 I2C expander;
 - Support any actuators or indicators via `digitalwrite` command;
 - Support WS2801 Led stripe and any indicators on shift registers via extended `shiftout` command;
 - Simulate various vendor's IR transmitters.
