@@ -3,8 +3,15 @@
 *  Handle Timer1 interrupt 
 *
 **************************************************************************************************************************** */
+/*
+ISR(TIMER1_OVF_vect)
+{
+  Serial.print("Timer OVF on: "); Serial.print(millis()); Serial.println(); 
+}
+*/
 ISR(TIMER1_COMPA_vect)
 {
+  //Serial.print("Timer on: "); Serial.print(millis()); Serial.println();
   // Gather internal metric
   gatherSystemMetrics();
   // Let's count from the begin

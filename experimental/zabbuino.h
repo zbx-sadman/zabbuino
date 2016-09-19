@@ -37,6 +37,10 @@
 // PZEM-004 energy monitor support
 //#define FEATURE_PZEM004_ENABLE
 
+// 
+#define FEATURE_APC_SMARTUPS_ENABLE
+
+
 /****       Network              ****/
 
 
@@ -126,7 +130,7 @@
 /=/       - I2C.BitWrite[];
 /=/       - I2C.BitRead[]
 /*/
-#define FEATURE_I2C_ENABLE
+//#define FEATURE_I2C_ENABLE
 
 /*/ 
 /=/     Enable BOSCH BMP sensors handling and commands:
@@ -168,7 +172,7 @@
 /=/       - PCF8574.LCDPrint[]
 /=/ 
 /*/
-#define FEATURE_PCF8574_LCD_ENABLE
+//#define FEATURE_PCF8574_LCD_ENABLE
 
 /*/ 
 /=/     Enable Sensirion SHT2x sensors handling and commands:
@@ -277,14 +281,13 @@
 /*/
 /=/     View the debug messages on the Serial Monitor
 /*/
-//#define FEATURE_DEBUG_TO_SERIAL
+#define FEATURE_DEBUG_TO_SERIAL
 
 /*/
 /=/     Use interrupt on Timer1 for internal metric gathering
 /*/
+// Need to try Phase Correct PWM mode - _BV(WGM13);
 #define GATHER_METRIC_USING_TIMER_INTERRUPT
-
-
 
 /* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
                                                                ALARM SECTION 
@@ -581,7 +584,7 @@ D13 -^    ^- D8    <- pins   */
                                                             COMMAND NAMES SECTION 
 */
 // Increase this if add new command 
-#define CMD_MAX                                                 0x3E
+#define CMD_MAX                                                 0x3F
 
 // Add command macro with new sequental number
 #define CMD_ZBX_NOPE                                            0x00
@@ -669,8 +672,9 @@ D13 -^    ^- D8    <- pins   */
 #define CMD_PZEM004_CURRENT                                     0x3B 
 #define CMD_PZEM004_VOLTAGE                                     0x3C 
 #define CMD_PZEM004_POWER                                       0x3D  
-#define CMD_PZEM004_ENERGY                                      0x3E 
-
+#define CMD_PZEM004_ENERGY                                      0x3E
+ 
+#define CMD_UPS_APC_SMART                                       0x3F
 
 // add new command as "const char command_<COMMAND_MACRO> PROGMEM". Only 'const' push string to PROGMEM. Tanx, Arduino.
 // command_* values must be in lower case
@@ -763,6 +767,7 @@ const char command_CMD_PZEM004_VOLTAGE[]                        PROGMEM = "pzem0
 const char command_CMD_PZEM004_POWER[]                          PROGMEM = "pzem004.power";
 const char command_CMD_PZEM004_ENERGY[]                         PROGMEM = "pzem004.energy";
 
+const char command_CMD_UPS_APC_SMART[]                          PROGMEM = "ups.apc.smart";
 
 // do not insert new command to any position without syncing indexes. Tanx, Arduino and AVR, for this method of string array pushing to PROGMEM
 // ~300 bytes of PROGMEM space can be saved with crazy "#ifdef-#else-#endif" dance
@@ -979,6 +984,13 @@ const char* const commands[] PROGMEM = {
   command_CMD_ZBX_NOPE,
   command_CMD_ZBX_NOPE,
   command_CMD_ZBX_NOPE,
+  command_CMD_ZBX_NOPE,
+#endif
+
+
+#ifdef FEATURE_APC_SMARTUPS_ENABLE
+  command_CMD_UPS_APC_SMART,
+#else
   command_CMD_ZBX_NOPE,
 #endif
 

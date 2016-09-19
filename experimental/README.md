@@ -30,6 +30,21 @@ Implemented:
 - Simulate varuious vendor's IR transmitters.
 
 
+####19 Sep 2016
+
+Fixes:
+  - _PZEM004.*_ memory leak caused the system hang.
+
+New commands:
+ - _ups.apc.smart[rxPin, txPin, command]_ command return APC Smart UPS answer to _command_. 
+   - _rxPin_ SoftSerial's RX pin to which UPS's (over RS232 convertor) TX connected;
+   - _rxPin_ SoftSerial's TX pin to which UPS's (over RS232 convertor) RX connected;
+   - _command_ Smart UPS command, that can be found on [APCUPSD User Manual](http://www.apcupsd.org/manual/#apc-smart-protocol). _Command_ can be specified as ASCII string like "c", or HEX-string like 0x01 (^A - command). Example: `zabbix_get -s 192.168.0.1 -k ups.apc.smart[2,3,"n"]` - get UPS's serial number.
+
+**Note #1** UPS must be connected to Arduino with RS232-TTL convertor (MAX232 IC). 
+**Note #2** APC Smart UPS have non-standart pinout, use APC-branded cables.
+
+
 ####14 Sep 2016
 
 Changes:

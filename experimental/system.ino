@@ -47,8 +47,8 @@ uint8_t initTimerOne(const uint16_t _milliseconds)
   if ((1000 > _milliseconds) && (5000 < _milliseconds)) { return false; }
   // Clear control register A 
   TCCR1A = 0;                 
-  // Set prescaler
-  TCCR1B = _BV(CS12) | _BV(CS10);
+  // Set  prescaler
+  TCCR1B =  _BV(CS12) | _BV(CS10);
   // Allow to do interrupt on counter overflow
   TIMSK1 |= _BV(OCIE1A); 
   // Set boundary
@@ -57,6 +57,9 @@ uint8_t initTimerOne(const uint16_t _milliseconds)
   return true; 
 }
 
+void stopTimerOne() { TCCR1B = 0; }
+void startTimerOne() { TCCR1B = _BV(CS12) | _BV(CS10); }
+
 /* ****************************************************************************************************************************
 *
 *   Gathering internal metrics and save its to global array
@@ -64,7 +67,7 @@ uint8_t initTimerOne(const uint16_t _milliseconds)
 **************************************************************************************************************************** */
 void gatherSystemMetrics(){
   // repeat measuring on next round
-  if (skipMetricGathering) { return; }
+  //if (skipMetricGathering) { return; }
   // = IDX_METRICS_FIRST_CRONNED to skip "gathering" uncronned metric (IDX_METRIC_SYS_CMD_COUNT and so) 
   static uint8_t metricIdx = IDX_METRICS_FIRST_CRONNED;
   // Gather only one metric at once to leave CPU time to other important procedures

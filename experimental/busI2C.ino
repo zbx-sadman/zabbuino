@@ -60,8 +60,7 @@ uint8_t writeByteToI2C(const uint8_t _i2cAddress, const int16_t _registerAddress
 *  Write N bytes to I2C device register or just to device
 *
 **************************************************************************************************************************** */
-uint8_t writeBytesToI2C(const uint8_t _i2cAddress, const int16_t _registerAddress, uint8_t* _data, uint8_t _length)
-{
+uint8_t writeBytesToI2C(const uint8_t _i2cAddress, const int16_t _registerAddress, const uint8_t* _data, uint8_t _length) {
   Wire.beginTransmission(_i2cAddress); // start transmission to device 
   // registerAddress is 0x00 and above ?
   if (I2C_NO_REG_SPECIFIED < _registerAddress) {
@@ -877,7 +876,7 @@ void sendToLCD(const uint8_t _i2cAddress, const uint8_t _data, const uint8_t _mo
   write4bitsToLCD(_i2cAddress, ((_data << 4) & 0xF0) | _mode);
 }
 
-void write4bitsToLCD(const uint8_t _i2cAddress, const uint8_t _data) 
+void write4bitsToLCD(const uint8_t _i2cAddress, uint8_t _data) 
 {
   writeBytesToI2C(_i2cAddress, I2C_NO_REG_SPECIFIED, &_data, 1);
   pulseEnableOnLCD(_i2cAddress, _data);
@@ -967,6 +966,8 @@ int32_t printToPCF8574LCD(const uint8_t _sdaPin, const uint8_t _sclPin, uint8_t 
   currLine = 0; 
  // HEX strings must be processeed specially
   isHexString = false;
+
+  // TODO: use hstoba() to preconvert hex-string
   if (haveHexPrefix(_data)) {
      // Skip "0x"
      _data += 2;

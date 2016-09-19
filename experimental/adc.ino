@@ -78,13 +78,15 @@ int32_t getACS7XXMetric(const uint8_t _sensorPin, uint32_t _aRefVoltage,  const 
   // 100000UL mcsec => 100 msec (for 50Hz)
   sampleInterval = 100000UL/ADC_SAMPLES; 
 
+#ifdef GATHER_METRIC_USING_TIMER_INTERRUPT
+      // Stop the Timer1 to prevent calling gatherMetrics and ADC disturb by getVoltage() and so
+      stopTimerOne(); 
+#endif
   // Do not disturb processes by internal routines 
-  skipMetricGathering = true;
+  //skipMetricGathering = true;
 
-  // *** Do not disable interrupts here - the system can hang ***
+  // *** Do not disable interrupts here - the system will hang ***
 
-  // disable interrupt
-  //oldSREG = SREG; cli();
   // ************ Simple algo for search arithmethic mean *****************
   while (samplesCount < ADC_SAMPLES) {
     if ((micros() - prevMicros) >= sampleInterval) {
@@ -101,9 +103,10 @@ int32_t getACS7XXMetric(const uint8_t _sensorPin, uint32_t _aRefVoltage,  const 
        delay(1);
     }
   }
-  // enable interrupts
-  //SREG = oldSREG;
-  skipMetricGathering = false;
+
+#ifdef GATHER_METRIC_USING_TIMER_INTERRUPT
+      startTimerOne(); 
+#endif
 
   switch (_metric) {
     case SENS_READ_ZC:

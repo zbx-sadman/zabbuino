@@ -73,7 +73,7 @@ char cBuffer[BUFFER_SIZE+1]; // +1 for trailing \0
 int16_t argOffset[ARGS_MAX];
 int32_t sysMetrics[IDX_METRICS_MAX];
 // skipMetricGathering used in interrupt's subroutine - must be `volatile` 
-volatile uint8_t skipMetricGathering = false;
+//volatile uint8_t skipMetricGathering = false;
 
 /* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
                                                                       STARTUP SECTION
@@ -559,7 +559,7 @@ uint8_t executeCommand()
   // duration  in tone[] - ulong
   uint32_t arg[ARGS_MAX];
   int16_t cmdIdx = -1;
-  
+ 
   sysMetrics[IDX_METRIC_SYS_CMD_COUNT]++;
 
   i = CMD_MAX;
@@ -663,10 +663,16 @@ uint8_t executeCommand()
          delayMicroseconds(2000);
       }
 #endif
-      // Do not disturb processes by internal routines 
-      skipMetricGathering = true;
+#ifdef GATHER_METRIC_USING_TIMER_INTERRUPT
+      // Stop the Timer1 to prevent calling gatherMetrics and ADC disturb by getVoltage() and so
+      stopTimerOne(); 
+#endif
+      //skipMetricGathering = true;
       result = analogRead(arg[0]);
-      skipMetricGathering = false;
+      //skipMetricGathering = false;
+#ifdef GATHER_METRIC_USING_TIMER_INTERRUPT
+      startTimerOne(); 
+#endif
       if ('\0' != cBuffer[argOffset[2]] && '\0' != cBuffer[argOffset[3]]) {
          result = map(result, 0, 1023, arg[2], arg[3]);
       }
@@ -1160,7 +1166,7 @@ uint8_t executeCommand()
          i2COption = constrain(i2COption, 1, 4);
          result = readBytesFromi2C(i2CAddress, (('\0' != cBuffer[argOffset[3]]) ? i2CRegister : I2C_NO_REG_SPECIFIED), i2CValue, i2COption);
          // Do second reading if need ( arg#5 defined )
-         if (('\0' != cBuffer[argOffset[5]]) { 
+         if (('\0' != cBuffer[argOffset[5]])) { 
             result = readBytesFromi2C(i2CAddress, (('\0' != cBuffer[argOffset[3]]) ? i2CRegister : I2C_NO_REG_SPECIFIED), i2CValue, i2COption); 
          }
          if (0 != result) { result = RESULT_IS_FAIL; break; }
@@ -1448,7 +1454,9 @@ uint8_t executeCommand()
       /=/  pzem004.current[rxPin, txPin, ip]
       /*/
       if (isSafePin(arg[0]) && isSafePin(arg[1])) {
-         result = getPZEM004Metric(arg[0], arg[1], SENS_READ_AC, &cBuffer[argOffset[2]], cBuffer);
+         // cBuffer cast to (uint8_t*) to use with subroutine math and SoftwareSerial subs, because used instead sub's internal buffer and save a little RAM size.
+         // Its will be casted to char* inside at moment when its need
+         result = getPZEM004Metric(arg[0], arg[1], SENS_READ_AC, &cBuffer[argOffset[2]], (uint8_t*) cBuffer);
       }
       break;
     case CMD_PZEM004_VOLTAGE:
@@ -1456,7 +1464,7 @@ uint8_t executeCommand()
       /=/  pzem004.voltage[rxPin, txPin, ip]
       /*/
       if (isSafePin(arg[0]) && isSafePin(arg[1])) {
-         result = getPZEM004Metric(arg[0], arg[1], SENS_READ_VOLTAGE, &cBuffer[argOffset[2]], cBuffer);
+         result = getPZEM004Metric(arg[0], arg[1], SENS_READ_VOLTAGE, &cBuffer[argOffset[2]], (uint8_t*) cBuffer);
       }
       break;
     case CMD_PZEM004_POWER:
@@ -1464,7 +1472,7 @@ uint8_t executeCommand()
       /=/  pzem004.power[rxPin, txPin, ip]
       /*/
       if (isSafePin(arg[0]) && isSafePin(arg[1])) {
-         result = getPZEM004Metric(arg[0], arg[1], SENS_READ_POWER, &cBuffer[argOffset[2]], cBuffer);
+         result = getPZEM004Metric(arg[0], arg[1], SENS_READ_POWER, &cBuffer[argOffset[2]], (uint8_t*) cBuffer);
       }
       break;
     case CMD_PZEM004_ENERGY:
@@ -1472,10 +1480,24 @@ uint8_t executeCommand()
       /=/  pzem004.energy[rxPin, txPin, ip]
       /*/
       if (isSafePin(arg[0]) && isSafePin(arg[1])) {
-         result = getPZEM004Metric(arg[0], arg[1], SENS_READ_ENERGY, &cBuffer[argOffset[2]], cBuffer);
+         result = getPZEM004Metric(arg[0], arg[1], SENS_READ_ENERGY, &cBuffer[argOffset[2]], (uint8_t*) cBuffer);
       }
       break;
 #endif // FEATURE_PZEM004_ENABLE
+
+#ifdef FEATURE_APC_SMARTUPS_ENABLE
+
+    case CMD_UPS_APC_SMART:
+      /*/
+      /=/  ups.apc.smart[rxPin, txPin, command]
+      /=/    command - HEX or ASCII
+      /*/  
+      if (isSafePin(arg[0]) && isSafePin(arg[1])) {
+         result = getAPCSmartUPSMetric(arg[0], arg[1], (uint8_t*) &cBuffer[argOffset[2]], (argOffset[3] - argOffset[2]) , (uint8_t*) cBuffer);
+      }
+      break;
+
+#endif // FEATURE_APC_SMARTUPS_ENABLE
 
 
     default:
