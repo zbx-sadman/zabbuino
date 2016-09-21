@@ -25,9 +25,27 @@ Implemented:
 - Support One- or Two- (and maybe Four-) lines LCD Character displays with PC8574 I2C expander;
 - Support any actuators or indicators via `digitalwrite` command;
 - Support WS2801 Led stripe and any indicators on shift registers via extended `shiftout` command;
-- Support WS2812 Led stripe;
+- Support WS2812 Led stripe;                                                                                                                                     I
 - Support PZEM-004 energy meter;
+- Support APC Smart UPS (with RS232 interface);
 - Simulate varuious vendor's IR transmitters.
+
+
+####21 Sep 2016
+
+Changes:
+ - _ups.apc.smart[]_ command renamed to _ups.apcsmart[]_. Just for name ordering;
+ - New macro - _FEATURE\_SERIAL\_LISTEN\_TOO_ . Entering the commands in Serial Monitor as Zabbix's keys available now, and you can check your sensors output without network connection.
+
+New commands:
+ - _ups.megatec[rxPin, txPin, command, fieldNumber]_ command return specified field data from Megatec-compatible UPS answer to _command_. 
+   - _rxPin_ SoftSerial's RX pin to which UPS's (over RS232 convertor) TX connected;
+   - _rxPin_ SoftSerial's TX pin to which UPS's (over RS232 convertor) RX connected;
+   - _command_ Megatec UPS command, that can be found on [Megatec Protocol information](http://networkupstools.org/protocols/megatec.html). _Command_ can be specified as ASCII string like "Q1", or HEX-string like 0x49 (I-command). 
+   - _fieldNumber_ the number of data field that must be found and returned. With _fieldNumber_ == 0 returns full answer string. If the field number is greater than the available, then use the data from the last field. Example: `zabbix_get -s 192.168.0.1 -k ups.megatec[2,3,"Q1", 6]` - get 6-th field from the UPS answer on "Status Inquiry" command.
+
+**Note #1** UPS must be connected to Arduino with RS232-TTL convertor (MAX232 IC). 
+**Note #2** _ups.megatec[]_ haven't tested on real hardware, user reports require.
 
 
 ####19 Sep 2016
@@ -39,7 +57,7 @@ New commands:
  - _ups.apc.smart[rxPin, txPin, command]_ command return APC Smart UPS answer to _command_. 
    - _rxPin_ SoftSerial's RX pin to which UPS's (over RS232 convertor) TX connected;
    - _rxPin_ SoftSerial's TX pin to which UPS's (over RS232 convertor) RX connected;
-   - _command_ Smart UPS command, that can be found on [APCUPSD User Manual](http://www.apcupsd.org/manual/#apc-smart-protocol). _Command_ can be specified as ASCII string like "c", or HEX-string like 0x01 (^A - command). Example: `zabbix_get -s 192.168.0.1 -k ups.apc.smart[2,3,"n"]` - get UPS's serial number.
+   - _command_ Smart UPS command, that can be found on [APC’s smart protocol page](http://networkupstools.org/protocols/apcsmart.html). _Command_ can be specified as ASCII string like "c", or HEX-string like 0x01 (^A - command). Example: `zabbix_get -s 192.168.0.1 -k ups.apcsmart[2,3,"n"]` - get UPS's serial number.
 
 **Note #1** UPS must be connected to Arduino with RS232-TTL convertor (MAX232 IC). 
 **Note #2** APC Smart UPS have non-standart pinout, use APC-branded cables.

@@ -7,8 +7,6 @@
 *
 **************************************************************************************************************************** */
 void getMCUID (char* _dataBuffer) {
- // *_dataBuffer++ = '0'; 
- // *_dataBuffer++ = 'x';
   // Interrupts must be disabled before boot_signature_byte_get will be called to avoid code crush
   noInterrupts();
   // Read 14..24 bytes from boot signature

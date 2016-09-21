@@ -51,12 +51,170 @@ uint8_t serialSend(SoftwareSerial* _swSerial, const uint8_t* _buffer, const uint
 }
 
 /* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
-                                                           APC SMART UPS SECTION
+                                                           Megatec protocol compatible UPS SECTION
+
+   http://networkupstools.org/protocols/megatec.html
 */
+#define MEGATEC_UPS_UART_SPEED                2400 // Megatec-compatible UPS works on 2400 baud speed
+#define MEGATEC_MAX_ANSWER_LENGTH             50   // Read no more 50 chars from UPS
+#define MEGATEC_DEFAULT_READ_TIMEOUT          1000L
+
+int32_t getMegatecUPSMetric(const uint8_t _rxPin, const uint8_t _txPin, uint8_t* _command, uint8_t _fieldNumber, uint8_t* _outBuffer) {
+  uint8_t command, len, srcPos, dstPos, fileldNumber;
+  SoftwareSerial swSerial(_rxPin, _txPin);
+
+  if (hstoba((char*) _command, (char*) _command, 1)) { _command[1] = '\0'; } ;
+  command = _command[0];
+  // Serial.print("command: "); Serial.println(command, HEX);
+  len = 1; // default length
+
+  switch (command) {
+     case 'F':   // UPS Rating Information
+     case 'I':   // UPS Information Command
+       break;
+     case 'Q':   // Q1 in real. Status Inquiry
+       len = 2;
+       break;
+     default:
+//       return RESULT_IS_FAIL;
+       return 0;
+  }
+  
+  Serial.println("Command allowed");
+
+
+/*
+     case 0x01:  // ^A,  Model string
+          command = 'I';
+          fieldNumber = 0x01;
+          break;
+     case 'B':   // Battery voltage, V
+          command = "Q1";
+          fieldNumber = 0x05;
+          break;
+     case 'C':   // Internal temperature, C
+          command = "Q1";
+          fieldNumber = 0x06;
+          break;
+     case 'F':   // Line frequency, Hz
+          command = "Q1";
+          fieldNumber = 0x04;
+          break;
+     case 'L':   // Input line voltage, V
+          command = "Q1";
+          fieldNumber = 0x00;
+          break;     
+     case 'O':   // Output voltage, V
+          command = "Q1";
+          fieldNumber = 0x02;
+          break;
+     case 'P':   // Power load, %
+          command = "Q1";
+          fieldNumber = 0x03;
+          break;
+     case 'l':   // Low transfer voltage, V
+          command = "Q1";
+          fieldNumber = 0x01;
+          break;
+*/
+
+  swSerial.begin(MEGATEC_UPS_UART_SPEED);
+#ifdef GATHER_METRIC_USING_TIMER_INTERRUPT
+  // Stop the Timer1 to prevent UART errors
+  stopTimerOne(); 
+#endif
+
+  //  Step #1. Send user's command & recieve answer
+  //
+  // Flush all device's transmitted data to avoid get excess data in recieve buffer
+  serialRXFlush(&swSerial, false);
+
+  if (! serialSend(&swSerial, _command, len , false)) {
+#ifdef GATHER_METRIC_USING_TIMER_INTERRUPT
+     startTimerOne();
+#endif
+     return DEVICE_ERROR_TIMEOUT; 
+  };
+  //Serial.println("recieve");
+  // Recieve answer from UPS. Answer placed to buffer directly for additional processing 
+  len = serialRecive(&swSerial, _outBuffer, MEGATEC_MAX_ANSWER_LENGTH, MEGATEC_DEFAULT_READ_TIMEOUT, '\r');
+  //Serial.print("len: "); Serial.println(len);
+  //Serial.print("_outBuffer: "); Serial.println((char) _outBuffer);
+  // return timeout sign if packet not finished by <CR>
+  if ('\r' != _outBuffer[len-1]) { 
+#ifdef GATHER_METRIC_USING_TIMER_INTERRUPT
+     startTimerOne();
+#endif
+     return DEVICE_ERROR_TIMEOUT; 
+  };
+  if ('(' != _outBuffer[0]) { 
+#ifdef GATHER_METRIC_USING_TIMER_INTERRUPT
+     startTimerOne();
+#endif
+     return DEVICE_ERROR_WRONG_ANSWER; 
+  };
+  _outBuffer[len-1] = '\0';
+  if (0 == fileldNumber) { 
+#ifdef GATHER_METRIC_USING_TIMER_INTERRUPT
+     startTimerOne();
+#endif
+     return RESULT_IN_BUFFER; 
+  }
+  
+  //  Step #2. Search the field that specified by number & move data to the output buffer begin
+  //           If the field number is greater than the available, then use the data from the last field.
+  //
+  srcPos = 1; // start from 1-th byte to skip '(' prefix
+  fileldNumber = dstPos = 0;
+  // Walk over the recieved string while no EOL reached
+  while ('\0' != _outBuffer[srcPos]) {
+    // Just copy chars from the current "field" to begin of the output buffer
+    _outBuffer[dstPos] = _outBuffer[srcPos];
+    // The separator was found
+    if (0x20 == _outBuffer[srcPos]) {
+       fileldNumber++;
+       // It is specified field number?
+       if (_fieldNumber == fileldNumber) { 
+          // jump out from copy-on-search cycle if it's true
+          break;
+       } else {
+          // Otherwise - start next field writing from begin of the output buffer
+          dstPos = 0;  
+       }
+    } else {
+      dstPos++;
+    } // if (0x20 == _outBuffer[srcPos]) .. else ..
+    srcPos++; 
+  };
+  // make C-string
+  _outBuffer[dstPos] = '\0';
+#ifdef GATHER_METRIC_USING_TIMER_INTERRUPT
+  // Start the Timer1
+  startTimerOne();
+#endif
+  //Serial.println("Destroy current SoftwareSerial instance");
+  swSerial.~SoftwareSerial();
+
+  return RESULT_IN_BUFFER;
+}
+
+
+
+/* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
+                                                           APC SMART UPS SECTION
+
+   Despite the lack of official information from APC, this table has been constructed. It’s standard RS-232 serial communications at 2400 bps/8N1. 
+   Don’t rush the UPS while transmitting or it may stop talking to you. This isn’t a problem with the normal single character queries, but it really 
+   does matter for multi-char things like "@000". Sprinkle a few calls to usleep() in your code and everything will work a lot better.
+   http://networkupstools.org/protocols/apcsmart.html
+*/
+
 #define APC_UPS_UART_SPEED                2400 // APC UPS works on 2400 baud speed
 #define APC_MAX_ANSWER_LENGTH             30   // Read no more 30 chars from UPS
 #define APC_DEFAULT_READ_TIMEOUT          1000L
 
+
+/****************************  need to optimise startTimerOne(); calls   *****************************************/
 int32_t getAPCSmartUPSMetric(const uint8_t _rxPin, const uint8_t _txPin, uint8_t* _command, uint8_t _commandLen,  uint8_t* _outBuffer) {
   uint8_t command, 
           len, 
@@ -99,8 +257,10 @@ int32_t getAPCSmartUPSMetric(const uint8_t _rxPin, const uint8_t _txPin, uint8_t
      case 'h':   // Measure-UPS: Ambient humidity. %
      case 'i':   // Measure-UPS: Dry contacts
      case 'j':   // Estimated runtime, min
+     case 'l':   // Low transfer voltage, V
      case 'm':   // Manufacturing date
      case 'n':   // Serial number
+     case 'u':   // Upper transfer voltage, V
      case 'v':   // Measure-UPS: Firmware
      case 'x':   // Last battery change 
      case 'y':   // Copyright notice
@@ -124,12 +284,27 @@ int32_t getAPCSmartUPSMetric(const uint8_t _rxPin, const uint8_t _txPin, uint8_t
   // APC UPS can be flushed in slow mode
   serialRXFlush(&swSerial, true);
   command = 'Y';
-  if (! serialSend(&swSerial, &command, 1, true)) { return DEVICE_ERROR_TIMEOUT; };
+  if (! serialSend(&swSerial, &command, 1, true)) { 
+#ifdef GATHER_METRIC_USING_TIMER_INTERRUPT
+     startTimerOne();
+#endif
+     return DEVICE_ERROR_TIMEOUT;      
+  };
   len = serialRecive(&swSerial, _outBuffer, 0x03, APC_DEFAULT_READ_TIMEOUT, '\0');
   // Connection timeout occurs (recieved less than 3 byte)
-  if (len < 0x03) { return DEVICE_ERROR_TIMEOUT; }
+  if (len < 0x03) { 
+#ifdef GATHER_METRIC_USING_TIMER_INTERRUPT
+     startTimerOne();
+#endif
+     return DEVICE_ERROR_TIMEOUT; 
+  }
   // Check for 'SM<>'
-  if ( 'S' != _outBuffer[0] || 'M' != _outBuffer[1] || '\r' != _outBuffer[2]) { return DEVICE_ERROR_WRONG_ANSWER; };    
+  if ( 'S' != _outBuffer[0] || 'M' != _outBuffer[1] || '\r' != _outBuffer[2]) { 
+#ifdef GATHER_METRIC_USING_TIMER_INTERRUPT
+     startTimerOne();
+#endif
+     return DEVICE_ERROR_WRONG_ANSWER; 
+  };    
   
   
   //  Step #2. Send user's command & recieve answer
@@ -139,12 +314,22 @@ int32_t getAPCSmartUPSMetric(const uint8_t _rxPin, const uint8_t _txPin, uint8_t
      serialRXFlush(&swSerial, true);
      // All commands fits to 1 byte
      //Serial.println("send");
-     if (! serialSend(&swSerial, _command, 1, true)) { return DEVICE_ERROR_TIMEOUT; };
+     if (! serialSend(&swSerial, _command, 1, true)) { 
+#ifdef GATHER_METRIC_USING_TIMER_INTERRUPT
+        startTimerOne();
+#endif
+        return DEVICE_ERROR_TIMEOUT; 
+     };
      //Serial.println("recieve");
       // Recieve answer from Smart UPS. Answer placed to buffer directly and does not require additional processing 
      len = serialRecive(&swSerial, _outBuffer, APC_MAX_ANSWER_LENGTH, APC_DEFAULT_READ_TIMEOUT, '\r');
      //Serial.print("len: "); Serial.println(len);
-     if ('\r' != _outBuffer[len-1]) { return DEVICE_ERROR_TIMEOUT; };
+     if ('\r' != _outBuffer[len-1]) { 
+#ifdef GATHER_METRIC_USING_TIMER_INTERRUPT
+        startTimerOne();
+#endif
+        return DEVICE_ERROR_TIMEOUT; 
+     };
      _outBuffer[len-1] = '\0';
      //Serial.print("reply: "); Serial.println((char*) _outBuffer);
      
@@ -159,7 +344,12 @@ int32_t getAPCSmartUPSMetric(const uint8_t _rxPin, const uint8_t _txPin, uint8_t
   //
   // 
   command = 'R';
-  if (! serialSend(&swSerial, &command, 1, true)) { return DEVICE_ERROR_TIMEOUT; };
+  if (! serialSend(&swSerial, &command, 1, true)) { 
+#ifdef GATHER_METRIC_USING_TIMER_INTERRUPT
+     startTimerOne();
+#endif
+     return DEVICE_ERROR_TIMEOUT; 
+  };
   serialRXFlush(&swSerial, true);
 #ifdef GATHER_METRIC_USING_TIMER_INTERRUPT
   // Start the Timer1

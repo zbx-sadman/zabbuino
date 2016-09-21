@@ -95,7 +95,7 @@ void setup() {
   sysMetrics[IDX_METRIC_SYS_RAM_FREE] = sysMetrics[IDX_METRIC_SYS_RAM_FREEMIN] = (int32_t) getRamFree();
   sysMetrics[IDX_METRIC_SYS_CMD_COUNT] = sysMetrics[IDX_METRIC_SYS_CMD_TIMEMAX] = 0;
   
-#ifdef FEATURE_DEBUG_TO_SERIAL
+#if defined (FEATURE_DEBUG_TO_SERIAL) || defined (FEATURE_SERIAL_LISTEN_TOO)
   Serial.begin(9600);
 #ifdef FEATURE_DEBUG_TO_SERIAL
      SerialPrintln_P(PSTR("Zabbuino waked up"));
@@ -300,7 +300,7 @@ Wire.begin();
 void loop() {
   uint32_t nowTime, processStartTime, processEndTime;
   uint32_t prevDHCPRenewTime, prevENCReInitTime, prevNetProblemTime, prevSysMetricGatherTime,clentConnectTime;
-  uint8_t errorCode, blinkType = (uint8_t) BLINK_NOPE;
+  uint8_t result, blinkType = (uint8_t) BLINK_NOPE;
     
   // Correcting timestamps
 
@@ -321,9 +321,9 @@ void loop() {
       // how many overhead give Ethernet.maintain() ?
 //    if (true == netConfig.useDHCP && (NET_DHCP_RENEW_PERIOD <= (uint32_t) (nowTime - prevDHCPRenewTime))) {
        // Ethernet library's manual say that Ethernet.maintain() can be called every loop for DHCP renew, but i won't do this so often
-       errorCode = Ethernet.maintain();
+       result = Ethernet.maintain();
        // Renew procedure finished with success
-       if (DHCP_CHECK_RENEW_OK == errorCode || DHCP_CHECK_REBIND_OK  == errorCode) { 
+       if (DHCP_CHECK_RENEW_OK == result || DHCP_CHECK_REBIND_OK  == result) { 
           // No alarm blink  need, network activity registred, renewal period restarted
           blinkType = (uint8_t) BLINK_NOPE;
 //          prevDHCPRenewTime = prevNetProblemTime = nowTime;
@@ -376,6 +376,18 @@ void loop() {
 #endif
     }
 
+#ifdef FEATURE_SERIAL_LISTEN_TOO
+    // Test state of active session: client still connected or unread data is exist in buffer?
+    if (ethClient.connected() || Serial.available()) {
+       if ((NET_ACTIVE_CLIENT_CONNECTION_TIMEOUT <= (uint32_t) (nowTime - clentConnectTime)) && !Serial.available())  {
+           ethClient.stop(); 
+       } else {
+           // A lot of chars wait for reading
+           if (ethClient.available() || Serial.available()) {
+              // Do not need next char to analyze - EOL detected or there no room in buffer or max number or args parsed...   
+              result = Serial.read();
+              if (ethClient.available()) { result = ethClient.read(); }
+#else
     // Test state of active session: client still connected or unread data is exist in buffer?
     if (ethClient.connected()) {
        if (NET_ACTIVE_CLIENT_CONNECTION_TIMEOUT <= (uint32_t) (nowTime - clentConnectTime)) {
@@ -384,22 +396,30 @@ void loop() {
            // A lot of chars wait for reading
            if (ethClient.available()) {
               // Do not need next char to analyze - EOL detected or there no room in buffer or max number or args parsed...   
-              if (false == analyzeStream(ethClient.read())) {
+              result = ethClient.read();
+#endif              
+
+//              Serial.print("incoming: "); Serial.print((char) result); Serial.print(" => "); Serial.println(result, HEX); 
+              result = analyzeStream((char) result);
+              if (false == result) {
                  /*****  processing command *****/
                  // Destroy unused client's data 
                  ethClient.flush(); 
+#ifdef FEATURE_SERIAL_LISTEN_TOO
+                 Serial.flush(); 
+#endif              
                  // Fire up State led, than will be turned off on next loop
                  digitalWrite(PIN_STATE_LED, HIGH);
                  //
                  // may be need test for client.connected()? 
                  processStartTime = millis();
-                 uint8_t cmdIdx = executeCommand();
+                 result = executeCommand();
                  processEndTime = millis();
                  // use processEndTime as processDurationTime
                  processEndTime = processStartTime;
                  if (sysMetrics[IDX_METRIC_SYS_CMD_TIMEMAX] < processEndTime) {
                     sysMetrics[IDX_METRIC_SYS_CMD_TIMEMAX] = processEndTime;
-                    sysMetrics[IDX_METRIC_SYS_CMD_TIMEMAX_N] = cmdIdx;
+                    sysMetrics[IDX_METRIC_SYS_CMD_TIMEMAX_N] = result;
                  }
   //             ethClient.println("1");
                  // Wait some time to finishing answer send
@@ -433,7 +453,7 @@ void loop() {
 *  Detect Zabbix packets, on-fly spit incoming stream to command & arguments
 *
 **************************************************************************************************************************** */
-uint8_t analyzeStream(char charFromClient) {
+uint8_t analyzeStream(char _charFromClient) {
   uint8_t static needSkipZabbix2Header = 0, 
                  cmdSliceNumber        = 0,
                  isEscapedChar         = 0,
@@ -441,10 +461,10 @@ uint8_t analyzeStream(char charFromClient) {
   uint16_t static bufferWritePosition;
 
   // If there is not room in buffer - simulate EOL recieving
-  if (BUFFER_SIZE <= bufferWritePosition ) { charFromClient = '\n'; }
+  if (BUFFER_SIZE <= bufferWritePosition ) { _charFromClient = '\n'; }
   
   // Put next char to buffer
-  cBuffer[bufferWritePosition] = (doubleQuotedString) ? charFromClient : tolower(charFromClient); 
+  cBuffer[bufferWritePosition] = (doubleQuotedString) ? _charFromClient : tolower(_charFromClient); 
   //Serial.print("Char: "); Serial.println(cBuffer[bufferWritePosition]);
     
   // When ZBX_HEADER_PREFIX_LENGTH chars is saved to buffer - test its for Zabbix2 protocol header prefix ("ZBXD\01") presence
@@ -467,7 +487,7 @@ uint8_t analyzeStream(char charFromClient) {
   // Process all chars if its not from header data
   if (!needSkipZabbix2Header) {
      // char is not escaped
-     switch (charFromClient) {
+     switch (_charFromClient) {
         // Doublequote sign is arrived
         case '"':
           if (!isEscapedChar) {
@@ -554,7 +574,7 @@ uint8_t analyzeStream(char charFromClient) {
 **************************************************************************************************************************** */
 uint8_t executeCommand()
 {
-  uint8_t AccessGranted, i;
+  uint8_t accessGranted, i;
   int32_t result = RESULT_IS_FAIL;
   // duration  in tone[] - ulong
   uint32_t arg[ARGS_MAX];
@@ -562,7 +582,7 @@ uint8_t executeCommand()
  
   sysMetrics[IDX_METRIC_SYS_CMD_COUNT]++;
 
-  i = CMD_MAX;
+  i = sizeof(commands);
   while (i) {
 //    Serial.print(i, HEX); Serial.print(": ");
 //    SerialPrintln_P((char*)pgm_read_word(&(commands[i])));
@@ -595,7 +615,7 @@ uint8_t executeCommand()
 
   
   // Check rights for password protected commands
-  AccessGranted = (!netConfig.useProtection || arg[0] == netConfig.password); 
+  accessGranted = (!netConfig.useProtection || arg[0] == netConfig.password); 
 
   uint8_t i2CAddress, i2COption;
   uint8_t i2CValue[4];
@@ -765,7 +785,7 @@ uint8_t executeCommand()
       /*/
       /=/  set.hostname[password, hostname]
       /*/
-      if (AccessGranted) {
+      if (accessGranted) {
          // need check for arg existsience?
          // cBuffer[argOffset[1]] != \0 if argument #2 given
          if ('0' != cBuffer[argOffset[1]]) {
@@ -785,7 +805,7 @@ uint8_t executeCommand()
       /*/
       /=/  set.password[oldPassword, newPassword]
       /*/
-      if (AccessGranted) {
+      if (accessGranted) {
          if (cBuffer[argOffset[1]]) {
             // take new password from argument #2
             netConfig.password = arg[1];
@@ -799,7 +819,7 @@ uint8_t executeCommand()
       /*/
       /=/  set.sysprotect[password, protection]
       /*/
-      if (AccessGranted) {
+      if (accessGranted) {
          if (cBuffer[argOffset[1]]) {
             // take new password from argument #2
             netConfig.useProtection = (1 == arg[1]) ? true : false;
@@ -813,7 +833,7 @@ uint8_t executeCommand()
       /*/
       /=/  set.network[password, useDHCP, macAddress, ipAddress, ipNetmask, ipGateway]
       /*/
-      if (AccessGranted) {
+      if (accessGranted) {
          uint8_t ip[4], mac[6], success = true;
          // useDHCP flag coming from first argument and must be numeric (boolean) - 1 or 0, 
          // arg[0] data contain in cBuffer[argOffset[1]] placed from argOffset[0]
@@ -876,7 +896,7 @@ uint8_t executeCommand()
       /*/
       /=/  reboot[password]
       /*/
-      if (AccessGranted) {
+      if (accessGranted) {
          ethClient.println("1");
          // hang-up if no delay
          delay(NET_STABILIZATION_DELAY);
@@ -1485,11 +1505,11 @@ uint8_t executeCommand()
       break;
 #endif // FEATURE_PZEM004_ENABLE
 
-#ifdef FEATURE_APC_SMARTUPS_ENABLE
+#ifdef FEATURE_UPS_APCSMART_ENABLE
 
-    case CMD_UPS_APC_SMART:
+    case CMD_UPS_APCSMART:
       /*/
-      /=/  ups.apc.smart[rxPin, txPin, command]
+      /=/  ups.apcsmart[rxPin, txPin, command]
       /=/    command - HEX or ASCII
       /*/  
       if (isSafePin(arg[0]) && isSafePin(arg[1])) {
@@ -1497,7 +1517,22 @@ uint8_t executeCommand()
       }
       break;
 
-#endif // FEATURE_APC_SMARTUPS_ENABLE
+#endif // FEATURE_UPS_APCSMART_ENABLE
+
+#ifdef FEATURE_UPS_MEGATEC_ENABLE
+    case CMD_UPS_MEGATEC:
+      /*/
+      /=/  ups.megatec[rxPin, txPin, command, fieldNumber]
+      /=/    command - HEX or ASCII
+      /*/  
+      if (isSafePin(arg[0]) && isSafePin(arg[1])) {
+         //result = getAPCSmartUPSMetric(arg[0], arg[1], (uint8_t*) &cBuffer[argOffset[2]], (argOffset[3] - argOffset[2]) , (uint8_t*) cBuffer);
+         result = getMegatecUPSMetric(arg[0], arg[1], (uint8_t*) &cBuffer[argOffset[2]], arg[3], (uint8_t*) cBuffer);
+
+      }
+      break;
+
+#endif // FEATURE_UPS_APCSMART_ENABLE
 
 
     default:

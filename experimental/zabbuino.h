@@ -38,7 +38,8 @@
 //#define FEATURE_PZEM004_ENABLE
 
 // 
-#define FEATURE_APC_SMARTUPS_ENABLE
+#define FEATURE_UPS_APCSMART_ENABLE
+#define FEATURE_UPS_MEGATEC_ENABLE
 
 
 /****       Network              ****/
@@ -282,6 +283,10 @@
 /=/     View the debug messages on the Serial Monitor
 /*/
 #define FEATURE_DEBUG_TO_SERIAL
+/*/
+/=/     Recieve command from Serial Monitor too
+/*/
+#define FEATURE_SERIAL_LISTEN_TOO
 
 /*/
 /=/     Use interrupt on Timer1 for internal metric gathering
@@ -584,7 +589,7 @@ D13 -^    ^- D8    <- pins   */
                                                             COMMAND NAMES SECTION 
 */
 // Increase this if add new command 
-#define CMD_MAX                                                 0x3F
+//#define CMD_MAX                                                 0x3F
 
 // Add command macro with new sequental number
 #define CMD_ZBX_NOPE                                            0x00
@@ -674,7 +679,9 @@ D13 -^    ^- D8    <- pins   */
 #define CMD_PZEM004_POWER                                       0x3D  
 #define CMD_PZEM004_ENERGY                                      0x3E
  
-#define CMD_UPS_APC_SMART                                       0x3F
+#define CMD_UPS_APCSMART                                        0x3F
+#define CMD_UPS_MEGATEC                                         0x40
+
 
 // add new command as "const char command_<COMMAND_MACRO> PROGMEM". Only 'const' push string to PROGMEM. Tanx, Arduino.
 // command_* values must be in lower case
@@ -767,7 +774,8 @@ const char command_CMD_PZEM004_VOLTAGE[]                        PROGMEM = "pzem0
 const char command_CMD_PZEM004_POWER[]                          PROGMEM = "pzem004.power";
 const char command_CMD_PZEM004_ENERGY[]                         PROGMEM = "pzem004.energy";
 
-const char command_CMD_UPS_APC_SMART[]                          PROGMEM = "ups.apc.smart";
+const char command_CMD_UPS_APCSMART[]                           PROGMEM = "ups.apcsmart";
+const char command_CMD_UPS_MEGATEC[]                            PROGMEM = "ups.megatec";
 
 // do not insert new command to any position without syncing indexes. Tanx, Arduino and AVR, for this method of string array pushing to PROGMEM
 // ~300 bytes of PROGMEM space can be saved with crazy "#ifdef-#else-#endif" dance
@@ -987,9 +995,14 @@ const char* const commands[] PROGMEM = {
   command_CMD_ZBX_NOPE,
 #endif
 
+#ifdef FEATURE_UPS_APCSMART_ENABLE
+  command_CMD_UPS_APCSMART,
+#else
+  command_CMD_ZBX_NOPE,
+#endif
 
-#ifdef FEATURE_APC_SMARTUPS_ENABLE
-  command_CMD_UPS_APC_SMART,
+#ifdef FEATURE_UPS_MEGATEC_ENABLE
+  command_CMD_UPS_MEGATEC,
 #else
   command_CMD_ZBX_NOPE,
 #endif
