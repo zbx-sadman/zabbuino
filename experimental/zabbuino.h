@@ -401,12 +401,17 @@
 
 // Number of expected arguments of the command
 #define ARGS_MAX                    	                        6
-// Size of buffer's argument part. All separators and delimiters must be taken into account
+// Size of buffer's argument part. All separators and delimiters must be taken into account. See note to BUFFER_SIZE macro too
 #define ARGS_PART_SIZE         	                                100
 // Size of buffer's command part
 #define CMD_PART_SIZE          	                                25
-// The total size of the buffer
+
+// ***NOTE****    
+// Total buffer size cannot be so small, because many subroutines use its too.
+// getMegatecUPSMetric() can write to its up to MEGATEC_MAX_ANSWER_LENGTH bytes, for example
+// The total size of the buffer. 
 #define BUFFER_SIZE                   	                        CMD_PART_SIZE + ARGS_PART_SIZE
+
 #define SYS_MCU_ID_LEN                                          20
 
 /* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
@@ -681,6 +686,7 @@ D13 -^    ^- D8    <- pins   */
  
 #define CMD_UPS_APCSMART                                        0x3F
 #define CMD_UPS_MEGATEC                                         0x40
+#define CMD_SYSTEM_RUN                                          0x41
 
 
 // add new command as "const char command_<COMMAND_MACRO> PROGMEM". Only 'const' push string to PROGMEM. Tanx, Arduino.
@@ -776,6 +782,8 @@ const char command_CMD_PZEM004_ENERGY[]                         PROGMEM = "pzem0
 
 const char command_CMD_UPS_APCSMART[]                           PROGMEM = "ups.apcsmart";
 const char command_CMD_UPS_MEGATEC[]                            PROGMEM = "ups.megatec";
+
+const char command_CMD_SYSTEM_RUN[]                             PROGMEM = "system.run";
 
 // do not insert new command to any position without syncing indexes. Tanx, Arduino and AVR, for this method of string array pushing to PROGMEM
 // ~300 bytes of PROGMEM space can be saved with crazy "#ifdef-#else-#endif" dance
@@ -1007,6 +1015,8 @@ const char* const commands[] PROGMEM = {
   command_CMD_ZBX_NOPE,
 #endif
 
+command_CMD_SYSTEM_RUN,
+
 };
 /*
 /* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
@@ -1052,6 +1062,7 @@ const char* const commands[] PROGMEM = {
 #define RESULT_IS_OK                                            -0xFFBL
 #define RESULT_IN_BUFFER                                        -0xFFCL
 #define RESULT_IS_PRINTED                                       -0xFFDL
+#define RUN_NEW_COMMAND                                         -0x2
 
 // Error Codes
 //#define DEVICE_DISCONNECTED_C         	-127

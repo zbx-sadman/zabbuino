@@ -25,10 +25,23 @@ Implemented:
 - Support One- or Two- (and maybe Four-) lines LCD Character displays with PC8574 I2C expander;
 - Support any actuators or indicators via `digitalwrite` command;
 - Support WS2801 Led stripe and any indicators on shift registers via extended `shiftout` command;
-- Support WS2812 Led stripe;                                                                                                                                     I
+- Support WS2812 Led stripe;                                                                                                                                     
 - Support PZEM-004 energy meter;
 - Support APC Smart UPS (with RS232 interface);
 - Simulate varuious vendor's IR transmitters.
+
+####22 Sep 2016
+
+Changes:
+ - _ups.apcsmart[]_ can send to APC Smart UPS _^N_ & _Z_ (Turn on UPS, Shutdown UPS) commands now.
+
+New command:
+ - _system.run[newCommand]_ command say to Zabbuino to run _newCommand_. It's allow to use Zabbuino's functionality directly from Zabbix's _Actions_. Just fill form as follows:
+  * Operation type: Remote command;
+  * Target list, Target: Current host;
+  * Type: Custom script;
+  * Execute on: Zabbix agent;
+  * Commands: any simple Zabbuino command, _ups.apcsmart[2,3,0x5A]_ for example to turn off APC Smart UPS, which controlled to Zabbuino.
 
 
 ####21 Sep 2016

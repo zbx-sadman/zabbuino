@@ -218,7 +218,9 @@ int32_t getMegatecUPSMetric(const uint8_t _rxPin, const uint8_t _txPin, uint8_t*
 int32_t getAPCSmartUPSMetric(const uint8_t _rxPin, const uint8_t _txPin, uint8_t* _command, uint8_t _commandLen,  uint8_t* _outBuffer) {
   uint8_t command, 
           len, 
-          sendTimes = 1;
+          sendTimes,
+          sendCommandTwice = false;
+          
   SoftwareSerial swSerial(_rxPin, _txPin);
 
   // _buffer used as input uint8_t array and output char array due it can save RAM. 
@@ -231,9 +233,10 @@ int32_t getAPCSmartUPSMetric(const uint8_t _rxPin, const uint8_t _txPin, uint8_t
   // Serial.print("command: "); Serial.println(command, HEX);
   switch (command) {
      // Shutdown commands not working yet
+     case 0x0E:  // ^N,  Turn on UPS
      case 'K':   // Shutdown with grace period
      case 'Z':   // Shutdown immediately
-          sendTimes = 2;
+          sendCommandTwice = true;
           
      case 0x01:  // ^A,  Model string
      case 'B':   // Battery voltage, V
@@ -298,7 +301,7 @@ int32_t getAPCSmartUPSMetric(const uint8_t _rxPin, const uint8_t _txPin, uint8_t
 #endif
      return DEVICE_ERROR_TIMEOUT; 
   }
-  // Check for 'SM<>'
+  // Check for "SM\r"
   if ( 'S' != _outBuffer[0] || 'M' != _outBuffer[1] || '\r' != _outBuffer[2]) { 
 #ifdef GATHER_METRIC_USING_TIMER_INTERRUPT
      startTimerOne();
@@ -309,9 +312,11 @@ int32_t getAPCSmartUPSMetric(const uint8_t _rxPin, const uint8_t _txPin, uint8_t
   
   //  Step #2. Send user's command & recieve answer
   //
+  // If not all data is recieved from talking device on step #1 - its RX buffer must be cleared 
+  serialRXFlush(&swSerial, true);
+  sendTimes = sendCommandTwice ? 2 : 1;
+
   while (sendTimes) {
-     // If not all data is recieved from talking device on step #1 - its RX buffer must be cleared 
-     serialRXFlush(&swSerial, true);
      // All commands fits to 1 byte
      //Serial.println("send");
      if (! serialSend(&swSerial, _command, 1, true)) { 
@@ -324,7 +329,7 @@ int32_t getAPCSmartUPSMetric(const uint8_t _rxPin, const uint8_t _txPin, uint8_t
       // Recieve answer from Smart UPS. Answer placed to buffer directly and does not require additional processing 
      len = serialRecive(&swSerial, _outBuffer, APC_MAX_ANSWER_LENGTH, APC_DEFAULT_READ_TIMEOUT, '\r');
      //Serial.print("len: "); Serial.println(len);
-     if ('\r' != _outBuffer[len-1]) { 
+     if (!sendCommandTwice && '\r' != _outBuffer[len-1]) { 
 #ifdef GATHER_METRIC_USING_TIMER_INTERRUPT
         startTimerOne();
 #endif
@@ -332,10 +337,12 @@ int32_t getAPCSmartUPSMetric(const uint8_t _rxPin, const uint8_t _txPin, uint8_t
      };
      _outBuffer[len-1] = '\0';
      //Serial.print("reply: "); Serial.println((char*) _outBuffer);
-     
+
      sendTimes--;
      if (0 < sendTimes) { 
-        // K-Command, Z-command - Send twice with > 1.5s delay between chars. 
+        // Zabbuino always return 1, because UPS always return nothing
+        _outBuffer[0] = '1';  _outBuffer[1] = '\0';
+        // ^N, K-, Z- commands must send twice with 1.5s...3s delay between chars. 
         delay(1700); 
      }
   }

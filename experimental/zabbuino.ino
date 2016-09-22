@@ -6,7 +6,7 @@
 //#define USE_NETWORK_192_168_0_0
 
 #ifdef USE_NETWORK_192_168_0_0
-  #define NET_DEFAULT_MAC_ADDRESS                              {0xDE,0xAD,0xBE,0xEF,0xFE,0xF9}
+  #define NET_DEFAULT_MAC_ADDRESS                             {0xDE,0xAD,0xBE,0xEF,0xFE,0xF9}
   #define NET_DEFAULT_IP_ADDRESS                              {192,168,0,228}
   #define NET_DEFAULT_GATEWAY                                 {192,168,0,1}
 #else
@@ -413,7 +413,14 @@ void loop() {
                  //
                  // may be need test for client.connected()? 
                  processStartTime = millis();
-                 result = executeCommand();
+                 int16_t cmdIdx = executeCommand();
+                 // system.run[] recieved, need to run another command, which taken from option #0 by cmdIdx() sub
+                 if (RUN_NEW_COMMAND == cmdIdx) {
+                     int16_t i = 0;
+                     // simulate command recievig to properly string parsing
+                     while( analyzeStream(cBuffer[i]) ) { i++; }
+                     cmdIdx = executeCommand();
+                 }
                  processEndTime = millis();
                  // use processEndTime as processDurationTime
                  processEndTime = processStartTime;
@@ -572,7 +579,7 @@ uint8_t analyzeStream(char _charFromClient) {
 *
 *  
 **************************************************************************************************************************** */
-uint8_t executeCommand()
+int16_t executeCommand()
 {
   uint8_t accessGranted, i;
   int32_t result = RESULT_IS_FAIL;
@@ -590,7 +597,7 @@ uint8_t executeCommand()
     i--;
   }
 #ifdef FEATURE_DEBUG_TO_SERIAL
-  SerialPrint_P(PSTR("Execute command #")); Serial.print(cmdIdx, HEX); SerialPrint_P(PSTR(" =>")); Serial.println(cBuffer);
+  SerialPrint_P(PSTR("Execute command #")); Serial.print(cmdIdx, HEX); SerialPrint_P(PSTR(" => `")); Serial.print(cBuffer); Serial.println("`");
 #endif 
 
   // first argOffset item have index 0
@@ -653,14 +660,27 @@ uint8_t executeCommand()
       result = RESULT_IN_BUFFER;
       break;
 
+    case CMD_SYSTEM_RUN:
+      if ('\0' != cBuffer[argOffset[0]]) {
+         // take length of 0-th arg + 1 byte for '\0'
+         i = (argOffset[1] - argOffset[0]) + 1;
+         // move it to begin of buffer to using as new incoming command
+         // Note: ~8bytes can be saved with copying bytes in while() cycle. But source code will not beauty
+         memmove(cBuffer, &cBuffer[argOffset[0]], i);
+#ifdef FEATURE_DEBUG_TO_SERIAL
+         SerialPrint_P(PSTR("Run new command: ")); Serial.println(cBuffer);
+#endif
+         cBuffer[i] = '\n';
+         return RUN_NEW_COMMAND;
+      }
+      break;
+
     case CMD_SYS_UPTIME:
       /*/
       /=/  sys.uptime
       /*/
       result = millis() / 1000;
       break;
-   
-
 
     case CMD_ARDUINO_ANALOGWRITE:
       /*/
@@ -1543,7 +1563,7 @@ uint8_t executeCommand()
       result = RESULT_IN_BUFFER;
    }
 
-
+  
    // The result is already printed?
    if (RESULT_IS_PRINTED != result) {
       // The result is placed to buffer?
