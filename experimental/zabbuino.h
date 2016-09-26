@@ -286,7 +286,7 @@
 /*/
 /=/     Recieve command from Serial Monitor too
 /*/
-#define FEATURE_SERIAL_LISTEN_TOO
+//#define FEATURE_SERIAL_LISTEN_TOO
 
 /*/
 /=/     Use interrupt on Timer1 for internal metric gathering
@@ -678,15 +678,16 @@ D13 -^    ^- D8    <- pins   */
 #define CMD_WS2812_SENDRAW                                      0x39
 
 #define CMD_SYS_MCU_ID                                          0x3A
+#define CMD_SYS_MCU_SIGN                                        0x3B
 
-#define CMD_PZEM004_CURRENT                                     0x3B 
-#define CMD_PZEM004_VOLTAGE                                     0x3C 
-#define CMD_PZEM004_POWER                                       0x3D  
-#define CMD_PZEM004_ENERGY                                      0x3E
+#define CMD_PZEM004_CURRENT                                     0x3C 
+#define CMD_PZEM004_VOLTAGE                                     0x3D 
+#define CMD_PZEM004_POWER                                       0x3E  
+#define CMD_PZEM004_ENERGY                                      0x3F
  
-#define CMD_UPS_APCSMART                                        0x3F
-#define CMD_UPS_MEGATEC                                         0x40
-#define CMD_SYSTEM_RUN                                          0x41
+#define CMD_UPS_APCSMART                                        0x40
+#define CMD_UPS_MEGATEC                                         0x41
+#define CMD_SYSTEM_RUN                                          0x42
 
 
 // add new command as "const char command_<COMMAND_MACRO> PROGMEM". Only 'const' push string to PROGMEM. Tanx, Arduino.
@@ -723,6 +724,7 @@ const char command_CMD_SYS_REBOOT[]                             PROGMEM = "reboo
 
 const char command_CMD_SYS_MCU_NAME[]                           PROGMEM = "sys.mcu.name";
 const char command_CMD_SYS_MCU_ID[]                             PROGMEM = "sys.mcu.id";
+const char command_CMD_SYS_MCU_SIGN[]                           PROGMEM = "sys.mcu.sign";
 const char command_CMD_SYS_NET_MODULE[]                         PROGMEM = "sys.net.module";
 
 const char command_CMD_SYS_CMD_COUNT[]                          PROGMEM = "sys.cmd.count";
@@ -987,7 +989,9 @@ const char* const commands[] PROGMEM = {
 
 #ifdef FEATURE_DEBUG_COMMANDS_ENABLE
   command_CMD_SYS_MCU_ID,
+  command_CMD_SYS_MCU_SIGN,
 #else
+  command_CMD_ZBX_NOPE,
   command_CMD_ZBX_NOPE,
 #endif
 
@@ -1140,6 +1144,7 @@ typedef struct {
 // if _source have hex prefix - return true
 #define haveHexPrefix(_source) ( (_source[0] == '0' && _source[1] == 'x') )
 
+#define arraySize(_array) sizeof(_array) / sizeof(*(_array))
 
 #endif
 

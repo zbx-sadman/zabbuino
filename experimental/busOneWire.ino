@@ -40,7 +40,7 @@ int32_t scanOneWire(const uint8_t _pin) {
   while (owDevice->search(dsAddr)) {
     numDevices++;
     ethClient.print("0x");
-    for (i = 0; i < sizeof(dsAddr); i++ ) {
+    for (i = 0; i < arraySize(dsAddr); i++ ) {
       if (dsAddr[i] < 0x0F){ ethClient.print("0"); }
       ethClient.print(dsAddr[i], HEX);
     }
@@ -97,7 +97,7 @@ int32_t scanOneWire(const uint8_t _pin) {
 *   Probably you can meet problems with the correct calculation of temperature due to incorrect 'tRaw' adjustment 
 *
 **************************************************************************************************************************** */
-int32_t getDS18X20Metric(const uint8_t _pin, uint8_t _resolution, char* _id, char* _outBuffer)
+int32_t getDS18X20Metric(const uint8_t _pin, uint8_t _resolution, char* _id, char* _dst)
 {
   uint8_t i, signBit, dsAddr[8], scratchPad[9], parasitePowerUsed;
   int16_t conversionTimeout;
@@ -248,7 +248,7 @@ int32_t getDS18X20Metric(const uint8_t _pin, uint8_t _resolution, char* _id, cha
     tRaw = -tRaw;
   }
 
-  ltoaf(tRaw, _outBuffer, 4);
+  ltoaf(tRaw, _dst, 4);
 
 
   return RESULT_IN_BUFFER;

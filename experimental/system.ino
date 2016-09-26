@@ -2,24 +2,22 @@
 
 /* ****************************************************************************************************************************
 *
-*  Write MCU ID to buffer 
-*  http://www.avrfreaks.net/forum/unique-id-atmega328pb
-*
+*  Read bytes from the MCU signature area to buffer 
+*  
 **************************************************************************************************************************** */
-void getMCUID (char* _dataBuffer) {
+void getBootSignatureBytes(char* _dst, uint8_t _startByte, uint8_t _len) {
   // Interrupts must be disabled before boot_signature_byte_get will be called to avoid code crush
   noInterrupts();
-  // Read 14..24 bytes from boot signature
-  for (uint8_t i = 14; i < 24; i ++) {
+  for (uint8_t i = _startByte; i < (_startByte+_len); i++) {
     uint8_t currByte = boot_signature_byte_get(i);
     // strange (()) need to evaluate dec value for #define'd inlie function
     // Must be moved to dtoh()
-    *_dataBuffer++ = dtoh(((0x0F <= currByte) ? (currByte >> 4) : 0));
-    *_dataBuffer++ = dtoh((currByte & 0x0F));
+    *_dst++ = dtoh(((0x0F <= currByte) ? (currByte >> 4) : 0));
+    *_dst++ = dtoh((currByte & 0x0F));
     }
   interrupts();
   // finalize string
-  *_dataBuffer = '\0';
+  *_dst = '\0';
 }
 
 /* ****************************************************************************************************************************

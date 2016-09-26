@@ -56,10 +56,11 @@
                                                                  GLOBAL VARIABLES SECTION
 */
 
-netconfig_t netConfig;
+netconfig_t* netConfig;
+
 #if defined(FEATURE_EXTERNAL_INTERRUPT_ENABLE) || defined(FEATURE_INCREMENTAL_ENCODER_ENABLE)
 // EXTERNAL_NUM_INTERRUPTS its a macro from <wiring_private.h>
-volatile extInterrupt_t extInterrupt[EXTERNAL_NUM_INTERRUPTS];
+volatile extInterrupt_t* extInterrupt;
 #endif
 
 #ifdef FEATURE_IR_ENABLE
@@ -70,8 +71,7 @@ EthernetServer ethServer(10050);
 EthernetClient ethClient;
 
 char cBuffer[BUFFER_SIZE+1]; // +1 for trailing \0
-int16_t argOffset[ARGS_MAX];
-int32_t sysMetrics[IDX_METRICS_MAX];
+int32_t *sysMetrics;
 // skipMetricGathering used in interrupt's subroutine - must be `volatile` 
 //volatile uint8_t skipMetricGathering = false;
 
@@ -81,6 +81,7 @@ int32_t sysMetrics[IDX_METRICS_MAX];
 
 void setup() {
   uint8_t i;
+  netConfig = new netconfig_t;
 
   pinMode(PIN_FACTORY_RESET, INPUT_PULLUP);
   pinMode(PIN_STATE_LED, OUTPUT);
@@ -91,6 +92,7 @@ void setup() {
 #endif
 
   // Init metrics
+  sysMetrics = new int32_t[IDX_METRICS_MAX];
   sysMetrics[IDX_METRIC_SYS_VCCMIN] = sysMetrics[IDX_METRIC_SYS_VCCMAX] = getADCVoltage(ANALOG_CHAN_VBG);
   sysMetrics[IDX_METRIC_SYS_RAM_FREE] = sysMetrics[IDX_METRIC_SYS_RAM_FREEMIN] = (int32_t) getRamFree();
   sysMetrics[IDX_METRIC_SYS_CMD_COUNT] = sysMetrics[IDX_METRIC_SYS_CMD_TIMEMAX] = 0;
@@ -150,7 +152,7 @@ So... no debug with Serial Monitor at this time
      SerialPrintln_P(PSTR("Rewrite EEPROM with defaults..."));
 #endif
        setConfigDefaults(netConfig);
-       saveConfigToEEPROM(&netConfig);
+       saveConfigToEEPROM(netConfig);
        // Blink fast while PIN_FACTORY_RESET shorted to GND
 #ifdef FEATURE_DEBUG_TO_SERIAL
      SerialPrintln_P(PSTR("Done. Release the factory reset button"));
@@ -169,10 +171,10 @@ So... no debug with Serial Monitor at this time
   SerialPrintln_P(PSTR("Load configuration from EEPROM"));
 #endif
   // Try to load configuration from EEPROM
-  if (false == loadConfigFromEEPROM(&netConfig)) {
+  if (false == loadConfigFromEEPROM(netConfig)) {
      // bad CRC detected, use default values for this run
      setConfigDefaults(netConfig);
-     saveConfigToEEPROM(&netConfig);
+     saveConfigToEEPROM(netConfig);
   }
 #else // FEATURE_EEPROM_ENABLE
 #ifdef FEATURE_DEBUG_TO_SERIAL
@@ -183,66 +185,55 @@ So... no debug with Serial Monitor at this time
 #endif // FEATURE_EEPROM_ENABLE
 
 #ifdef FEATURE_NET_DHCP_FORCE
-     netConfig.useDHCP = true;
+     netConfig->useDHCP = true;
 #endif
 
-/*
-// REMOVE ON RELEASE
-#ifdef FEATURE_NET_USE_MCUID
-   // Interrupts must be disabled before boot_signature_byte_get will be called to avoid code crush
-   noInterrupts();
-   // rewrite last MAC's two byte with MCU ID's bytes
-   netConfig.macAddress[5] = boot_signature_byte_get(23);
-   interrupts();
-   netConfig.ipAddress[4] = netConfig.macAddress[5];
-#endif
-*/
 /* -=-=-=-=-=-=-=-=-=-=-=-
     NETWORK START BLOCK
    -=-=-=-=-=-=-=-=-=-=-=- */
 #ifdef FEATURE_NET_DHCP_ENABLE
   // User want to use DHCP with Zabbuino?
-  if (true == netConfig.useDHCP) {
+  if (true == netConfig->useDHCP) {
 #ifdef FEATURE_DEBUG_TO_SERIAL
      SerialPrintln_P(PSTR("Obtaining address from DHCP..."));
 #endif
        // Try to ask DHCP server
-      if (0 == Ethernet.begin(netConfig.macAddress)) {
+      if (0 == Ethernet.begin(netConfig->macAddress)) {
 #ifdef FEATURE_DEBUG_TO_SERIAL
          SerialPrintln_P(PSTR("No successfully"));
 #endif
          // No offer recieved - switch off DHCP feature for that session
-         netConfig.useDHCP = false;
+         netConfig->useDHCP = false;
       }
   }
 #else // FEATURE_NET_DHCP_ENABLE
-  netConfig.useDHCP=false;
+  netConfig->useDHCP=false;
 #endif // FEATURE_NET_DHCP_ENABLE
 
   // No DHCP offer recieved or no DHCP need - start with stored/default IP config
-  if (false == netConfig.useDHCP) {
+  if (false == netConfig->useDHCP) {
 #ifdef FEATURE_DEBUG_TO_SERIAL
      SerialPrintln_P(PSTR("Use static IP"));
 #endif
      // That overloaded .begin() function return nothing
-     // Second netConfig.ipAddress used as dns-address
-     Ethernet.begin(netConfig.macAddress, netConfig.ipAddress, netConfig.ipAddress, netConfig.ipGateway, netConfig.ipNetmask);
+     // Second netConfig->ipAddress used as dns-address
+     Ethernet.begin(netConfig->macAddress, netConfig->ipAddress, netConfig->ipAddress, netConfig->ipGateway, netConfig->ipNetmask);
   }
   
 #ifdef FEATURE_DEBUG_TO_SERIAL
   SerialPrintln_P(PSTR("Begin internetworking"));
-  SerialPrint_P(PSTR("MAC     : ")); printArray(netConfig.macAddress, sizeof(netConfig.macAddress), DBG_PRINT_AS_MAC);
-  SerialPrint_P(PSTR("Hostname: ")); Serial.println(netConfig.hostname);
+  SerialPrint_P(PSTR("MAC     : ")); printArray(netConfig->macAddress, sizeof(netConfig->macAddress), DBG_PRINT_AS_MAC);
+  SerialPrint_P(PSTR("Hostname: ")); Serial.println(netConfig->hostname);
   SerialPrint_P(PSTR("IP      : ")); Serial.println(Ethernet.localIP());
   SerialPrint_P(PSTR("Subnet  : ")); Serial.println(Ethernet.subnetMask());
   SerialPrint_P(PSTR("Gateway : ")); Serial.println(Ethernet.gatewayIP());
-  SerialPrint_P(PSTR("Password: ")); Serial.println(netConfig.password, DEC);
+  SerialPrint_P(PSTR("Password: ")); Serial.println(netConfig->password, DEC);
   // This codeblock is compiled if UIPethernet.h is included
 #ifdef UIPETHERNET_H
   SerialPrint_P(PSTR("ENC28J60: rev ")); Serial.println(Enc28J60.getrev());
 #endif
 
-  //netConfig.ipGateway.printTo(Serial);
+  //netConfig->ipGateway.printTo(Serial);
 #endif
 
   // Start listen sockets
@@ -258,6 +249,7 @@ So... no debug with Serial Monitor at this time
   }
 
 #if defined(FEATURE_EXTERNAL_INTERRUPT_ENABLE) || defined(FEATURE_INCREMENTAL_ENCODER_ENABLE)
+  extInterrupt = new extInterrupt_t[EXTERNAL_NUM_INTERRUPTS];
   // Init external interrupts info structure
   for (i = 0; i < EXTERNAL_NUM_INTERRUPTS; i++) { 
     // -1 - interrupt is detached
@@ -269,7 +261,7 @@ So... no debug with Serial Monitor at this time
 
   // Uncomment to force protect (enable even useProtection is false) your system from illegal access for change runtime settings and reboots 
 #ifdef FEATURE_PASSWORD_PROTECTION_FORCE
-  netConfig.useProtection = true;
+  netConfig->useProtection = true;
 #endif
 
 #ifdef FEATURE_WATCHDOG_ENABLE
@@ -301,6 +293,9 @@ void loop() {
   uint32_t nowTime, processStartTime, processEndTime;
   uint32_t prevDHCPRenewTime, prevENCReInitTime, prevNetProblemTime, prevSysMetricGatherTime,clentConnectTime;
   uint8_t result, blinkType = (uint8_t) BLINK_NOPE;
+  int16_t *_argOffset;
+  
+  _argOffset = new int16_t[ARGS_MAX];
     
   // Correcting timestamps
 
@@ -319,7 +314,7 @@ void loop() {
 #ifdef FEATURE_NET_DHCP_ENABLE
     // DHCP used in this session and time to renew lease?
       // how many overhead give Ethernet.maintain() ?
-//    if (true == netConfig.useDHCP && (NET_DHCP_RENEW_PERIOD <= (uint32_t) (nowTime - prevDHCPRenewTime))) {
+//    if (true == netConfig->useDHCP && (NET_DHCP_RENEW_PERIOD <= (uint32_t) (nowTime - prevDHCPRenewTime))) {
        // Ethernet library's manual say that Ethernet.maintain() can be called every loop for DHCP renew, but i won't do this so often
        result = Ethernet.maintain();
        // Renew procedure finished with success
@@ -353,7 +348,7 @@ void loop() {
 #ifdef FEATURE_DEBUG_TO_SERIAL
           SerialPrintln_P(PSTR("ENC28J60 reinit"));
 #endif
-          Enc28J60.init(netConfig.macAddress); 
+          Enc28J60.init(netConfig->macAddress); 
           delay(NET_STABILIZATION_DELAY);
        } 
          prevENCReInitTime = nowTime;
@@ -400,7 +395,7 @@ void loop() {
 #endif              
 
 //              Serial.print("incoming: "); Serial.print((char) result); Serial.print(" => "); Serial.println(result, HEX); 
-              result = analyzeStream((char) result);
+              result = analyzeStream((char) result, _argOffset);
               if (false == result) {
                  /*****  processing command *****/
                  // Destroy unused client's data 
@@ -413,13 +408,13 @@ void loop() {
                  //
                  // may be need test for client.connected()? 
                  processStartTime = millis();
-                 int16_t cmdIdx = executeCommand();
+                 int16_t cmdIdx = executeCommand(_argOffset);
                  // system.run[] recieved, need to run another command, which taken from option #0 by cmdIdx() sub
                  if (RUN_NEW_COMMAND == cmdIdx) {
                      int16_t i = 0;
                      // simulate command recievig to properly string parsing
-                     while( analyzeStream(cBuffer[i]) ) { i++; }
-                     cmdIdx = executeCommand();
+                     while( analyzeStream(cBuffer[i], _argOffset) ) { i++; }
+                     cmdIdx = executeCommand(_argOffset);
                  }
                  processEndTime = millis();
                  // use processEndTime as processDurationTime
@@ -460,7 +455,7 @@ void loop() {
 *  Detect Zabbix packets, on-fly spit incoming stream to command & arguments
 *
 **************************************************************************************************************************** */
-uint8_t analyzeStream(char _charFromClient) {
+uint8_t analyzeStream(char _charFromClient, int16_t* _argOffset) {
   uint8_t static needSkipZabbix2Header = 0, 
                  cmdSliceNumber        = 0,
                  isEscapedChar         = 0,
@@ -533,8 +528,8 @@ uint8_t analyzeStream(char _charFromClient) {
           // If its reached not in doublequoted string - process it as control char.
           if (!doubleQuotedString) { 
              //Serial.println("[*2.2]");
-             //  If 'argOffset' array is not exhausted - push begin of next argument (bufferWritePosition+1) on buffer to arguments offset array. 
-            if (ARGS_MAX > cmdSliceNumber) { argOffset[cmdSliceNumber] = bufferWritePosition + 1; }
+             //  If '_argOffset' array is not exhausted - push begin of next argument (bufferWritePosition+1) on buffer to arguments offset array. 
+            if (ARGS_MAX > cmdSliceNumber) { _argOffset[cmdSliceNumber] = bufferWritePosition + 1; }
                cmdSliceNumber++; 
                // Make current buffer segment like C-string
                cBuffer[bufferWritePosition] = '\0'; 
@@ -548,10 +543,10 @@ uint8_t analyzeStream(char _charFromClient) {
           //   ...otherwise - process as 'EOL sign'
         case '\n':
           // EOL detected
-          // Save last argIndex that pointed to <null> item. All unused argOffset[] items must be pointed to this <null> item too.
+          // Save last argIndex that pointed to <null> item. All unused _argOffset[] items must be pointed to this <null> item too.
           // Serial.println("[*3]");
           cBuffer[bufferWritePosition] = '\0'; 
-          while (ARGS_MAX > cmdSliceNumber) { argOffset[cmdSliceNumber++] = bufferWritePosition;}
+          while (ARGS_MAX > cmdSliceNumber) { _argOffset[cmdSliceNumber++] = bufferWritePosition;}
           // Change argIndex value to pass (ARGS_MAX < argIndex) condition 
           cmdSliceNumber = ARGS_MAX+1; break;
           break;
@@ -579,7 +574,7 @@ uint8_t analyzeStream(char _charFromClient) {
 *
 *  
 **************************************************************************************************************************** */
-int16_t executeCommand()
+int16_t executeCommand(int16_t* _argOffset)
 {
   uint8_t accessGranted, i;
   int32_t result = RESULT_IS_FAIL;
@@ -600,29 +595,29 @@ int16_t executeCommand()
   SerialPrint_P(PSTR("Execute command #")); Serial.print(cmdIdx, HEX); SerialPrint_P(PSTR(" => `")); Serial.print(cBuffer); Serial.println("`");
 #endif 
 
-  // first argOffset item have index 0
+  // first _argOffset item have index 0
   i = ARGS_MAX;
   // batch convert args to number values
   while (i) {
      i--;
-     arg[i] = ('\0' == cBuffer[argOffset[i]]) ? 0 : strtoul(&cBuffer[argOffset[i]], NULL,0);
+     arg[i] = ('\0' == cBuffer[_argOffset[i]]) ? 0 : strtoul(&cBuffer[_argOffset[i]], NULL,0);
 
 #ifdef FEATURE_DEBUG_TO_SERIAL
      SerialPrint_P(PSTR("arg[")); Serial.print(i); SerialPrint_P(PSTR("] => \"")); 
-     if ('\0' == cBuffer[argOffset[i]]) {
+     if ('\0' == cBuffer[_argOffset[i]]) {
         SerialPrint_P(PSTR("<null>")); 
      } else {
-        Serial.print(&cBuffer[argOffset[i]]); 
+        Serial.print(&cBuffer[_argOffset[i]]); 
      }
      SerialPrint_P(PSTR("\" => ")); Serial.print(arg[i]);
-     SerialPrint_P(PSTR(", offset =")); Serial.println(argOffset[i]);
+     SerialPrint_P(PSTR(", offset =")); Serial.println(_argOffset[i]);
 #endif 
   }
  
 
   
   // Check rights for password protected commands
-  accessGranted = (!netConfig.useProtection || arg[0] == netConfig.password); 
+  accessGranted = (!netConfig->useProtection || arg[0] == netConfig->password); 
 
   uint8_t i2CAddress, i2COption;
   uint8_t i2CValue[4];
@@ -648,7 +643,7 @@ int16_t executeCommand()
       /*/
       /=/   agent.hostname
       /*/
-      strcpy(cBuffer, netConfig.hostname);
+      strcpy(cBuffer, netConfig->hostname);
       result = RESULT_IN_BUFFER;
       break;
          
@@ -661,12 +656,12 @@ int16_t executeCommand()
       break;
 
     case CMD_SYSTEM_RUN:
-      if ('\0' != cBuffer[argOffset[0]]) {
+      if ('\0' != cBuffer[_argOffset[0]]) {
          // take length of 0-th arg + 1 byte for '\0'
-         i = (argOffset[1] - argOffset[0]) + 1;
+         i = (_argOffset[1] - _argOffset[0]) + 1;
          // move it to begin of buffer to using as new incoming command
          // Note: ~8bytes can be saved with copying bytes in while() cycle. But source code will not beauty
-         memmove(cBuffer, &cBuffer[argOffset[0]], i);
+         memmove(cBuffer, &cBuffer[_argOffset[0]], i);
 #ifdef FEATURE_DEBUG_TO_SERIAL
          SerialPrint_P(PSTR("Run new command: ")); Serial.println(cBuffer);
 #endif
@@ -698,7 +693,7 @@ int16_t executeCommand()
       /*/
 #ifdef FEATURE_AREF_ENABLE
       // change source of the reference voltage if its given
-      if ('\0' != cBuffer[argOffset[1]]) {
+      if ('\0' != cBuffer[_argOffset[1]]) {
          analogReference(arg[1]);
          delayMicroseconds(2000);
       }
@@ -713,7 +708,7 @@ int16_t executeCommand()
 #ifdef GATHER_METRIC_USING_TIMER_INTERRUPT
       startTimerOne(); 
 #endif
-      if ('\0' != cBuffer[argOffset[2]] && '\0' != cBuffer[argOffset[3]]) {
+      if ('\0' != cBuffer[_argOffset[2]] && '\0' != cBuffer[_argOffset[3]]) {
          result = map(result, 0, 1023, arg[2], arg[3]);
       }
       break;      
@@ -761,7 +756,7 @@ int16_t executeCommand()
       /=/  tone[pin, frequency, duration]
       /*/
       if (isSafePin(arg[0])) {
-        if ('\0' != cBuffer[argOffset[2]]) {
+        if ('\0' != cBuffer[_argOffset[2]]) {
            tone(arg[0], arg[1], arg[2]);
          } else {
            tone(arg[0], arg[1]);
@@ -795,7 +790,7 @@ int16_t executeCommand()
       /=/  random[min, max]
       /*/
       //  !! random return long
-      result = ('\0' == cBuffer[argOffset[1]]) ? (int32_t) random(arg[0]) : (int32_t) random(arg[0], arg[1]);
+      result = ('\0' == cBuffer[_argOffset[1]]) ? (int32_t) random(arg[0]) : (int32_t) random(arg[0], arg[1]);
       break;
 #endif // FEATURE_RANDOM_ENABLE
 
@@ -807,15 +802,15 @@ int16_t executeCommand()
       /*/
       if (accessGranted) {
          // need check for arg existsience?
-         // cBuffer[argOffset[1]] != \0 if argument #2 given
-         if ('0' != cBuffer[argOffset[1]]) {
+         // cBuffer[_argOffset[1]] != \0 if argument #2 given
+         if ('0' != cBuffer[_argOffset[1]]) {
             // copy <1-th arg length> bytes from 1-th arg of buffer (0-th arg contain password) to hostname 
-            uint8_t hostnameLen=argOffset[2]-argOffset[1];
-            memcpy(netConfig.hostname, &cBuffer[argOffset[1]], hostnameLen);
+            uint8_t hostnameLen=_argOffset[2]-_argOffset[1];
+            memcpy(netConfig->hostname, &cBuffer[_argOffset[1]], hostnameLen);
             // Terminate string
-            netConfig.hostname[hostnameLen]='\0';
-            // Serial.println(netConfig.hostname);
-            saveConfigToEEPROM(&netConfig);
+            netConfig->hostname[hostnameLen]='\0';
+            // Serial.println(netConfig->hostname);
+            saveConfigToEEPROM(netConfig);
             result = RESULT_IS_OK;
          }
       }
@@ -826,10 +821,10 @@ int16_t executeCommand()
       /=/  set.password[oldPassword, newPassword]
       /*/
       if (accessGranted) {
-         if (cBuffer[argOffset[1]]) {
+         if (cBuffer[_argOffset[1]]) {
             // take new password from argument #2
-            netConfig.password = arg[1];
-            saveConfigToEEPROM(&netConfig);
+            netConfig->password = arg[1];
+            saveConfigToEEPROM(netConfig);
             result = RESULT_IS_OK;
          }
       }
@@ -840,10 +835,10 @@ int16_t executeCommand()
       /=/  set.sysprotect[password, protection]
       /*/
       if (accessGranted) {
-         if (cBuffer[argOffset[1]]) {
+         if (cBuffer[_argOffset[1]]) {
             // take new password from argument #2
-            netConfig.useProtection = (1 == arg[1]) ? true : false;
-            saveConfigToEEPROM(&netConfig);
+            netConfig->useProtection = (1 == arg[1]) ? true : false;
+            saveConfigToEEPROM(netConfig);
             result = RESULT_IS_OK;
          }
       }
@@ -856,30 +851,30 @@ int16_t executeCommand()
       if (accessGranted) {
          uint8_t ip[4], mac[6], success = true;
          // useDHCP flag coming from first argument and must be numeric (boolean) - 1 or 0, 
-         // arg[0] data contain in cBuffer[argOffset[1]] placed from argOffset[0]
-         netConfig.useDHCP = (uint8_t) arg[1];
+         // arg[0] data contain in cBuffer[_argOffset[1]] placed from _argOffset[0]
+         netConfig->useDHCP = (uint8_t) arg[1];
          // ip, netmask and gateway have one structure - 4 byte
          // take 6 bytes from second argument of command and use as new MAC-address
          // if convertation is failed (return false) succes variable must be falsed too via logic & operator
-         success &= hstoba((uint8_t*) mac, &cBuffer[argOffset[2]], sizeof(netConfig.macAddress));
-         memcpy(&netConfig.macAddress, &mac, sizeof(netConfig.macAddress));
+         success &= hstoba((uint8_t*) mac, &cBuffer[_argOffset[2]], arraySize(netConfig->macAddress));
+         memcpy(netConfig->macAddress, &mac, arraySize(netConfig->macAddress));
       
          // use 4 bytes from third argument of command as new IP-address. sizeof(IPAddress) returns 6 instead 4
-         success &= hstoba((uint8_t*) &ip, &cBuffer[argOffset[3]], 4);
-         netConfig.ipAddress = IPAddress(ip);
+         success &= hstoba((uint8_t*) &ip, &cBuffer[_argOffset[3]], 4);
+         netConfig->ipAddress = IPAddress(ip);
   
          // take 4 bytes from third argument of command an use as new IP Netmask
-         success &= hstoba((uint8_t*) &ip, &cBuffer[argOffset[4]], 4);
-         netConfig.ipNetmask = IPAddress(ip);
+         success &= hstoba((uint8_t*) &ip, &cBuffer[_argOffset[4]], 4);
+         netConfig->ipNetmask = IPAddress(ip);
   
          // convert 4 bytes from fourth argument to default gateway
-         success &= hstoba((uint8_t*) &ip, &cBuffer[argOffset[5]], 4);
-         netConfig.ipGateway = IPAddress(ip);
+         success &= hstoba((uint8_t*) &ip, &cBuffer[_argOffset[5]], 4);
+         netConfig->ipGateway = IPAddress(ip);
   
-         // netConfig.ipGateway.printTo(Serial);
+         // netConfig->ipGateway.printTo(Serial);
          // Save config to EEProm if success
          if (success) {
-            saveConfigToEEPROM(&netConfig);
+            saveConfigToEEPROM(netConfig);
             result = RESULT_IS_OK;
          }
        }
@@ -905,7 +900,7 @@ int16_t executeCommand()
       i = ('\0' != arg[2]) && isSafePin(arg[2]);   // << корректный способ проверки или нет?  
       if (isSafePin(arg[0]) &&  isSafePin(arg[1])) {
          if (i) { digitalWrite(arg[2], LOW); }
-         shiftOutAdvanced(arg[0], arg[1], arg[3], &cBuffer[argOffset[4]]);
+         shiftOutAdvanced(arg[0], arg[1], arg[3], &cBuffer[_argOffset[4]]);
          if (i) { digitalWrite(arg[2], HIGH);}
          result = RESULT_IS_OK;
       }
@@ -944,9 +939,20 @@ int16_t executeCommand()
       /*/
       /=/  sys.mcu.id
       /*/
-      getMCUID(cBuffer);
+      // Read 14..24 bytes from boot signature <= http://www.avrfreaks.net/forum/unique-id-atmega328pb
+      getBootSignatureBytes(cBuffer, 14, 10);
       result = RESULT_IN_BUFFER;
       break;
+
+    case CMD_SYS_MCU_SIGN:
+      /*/
+      /=/  sys.mcu.sign
+      /*/
+      // Read 0..3 bytes from boot signature <= http://www.avrfreaks.net/forum/device-signatures
+      getBootSignatureBytes(cBuffer, 0, 3);
+      result = RESULT_IN_BUFFER;
+      break;
+
 
     case CMD_SYS_NET_MODULE:
       /*/
@@ -968,7 +974,7 @@ int16_t executeCommand()
       /*/
       /=/  sys.cmd.timemax[resetCounter]
       /*/
-      if (cBuffer[argOffset[0]]) { sysMetrics[IDX_METRIC_SYS_CMD_TIMEMAX] = 0; sysMetrics[IDX_METRIC_SYS_CMD_TIMEMAX_N] = 0; } 
+      if (cBuffer[_argOffset[0]]) { sysMetrics[IDX_METRIC_SYS_CMD_TIMEMAX] = 0; sysMetrics[IDX_METRIC_SYS_CMD_TIMEMAX_N] = 0; } 
       result = sysMetrics[IDX_METRIC_SYS_CMD_TIMEMAX];
       break;
 
@@ -1191,7 +1197,7 @@ int16_t executeCommand()
            Serial.print("arg[4]: "); Serial.println(arg[4]);
          }
          
-         result = writeBytesToI2C(i2CAddress, (('\0' != cBuffer[argOffset[3]]) ? i2CRegister : I2C_NO_REG_SPECIFIED), i2CValue, arg[5]);
+         result = writeBytesToI2C(i2CAddress, (('\0' != cBuffer[_argOffset[3]]) ? i2CRegister : I2C_NO_REG_SPECIFIED), i2CValue, arg[5]);
          result = (0 == result) ? RESULT_IS_OK : RESULT_IS_FAIL;
       }
       break;
@@ -1204,10 +1210,10 @@ int16_t executeCommand()
       if (isSafePin(arg[0]) && isSafePin(arg[1])) {
          // i2COption used as 'length' - how much bytes must be read: 0..4 byte
          i2COption = constrain(i2COption, 1, 4);
-         result = readBytesFromi2C(i2CAddress, (('\0' != cBuffer[argOffset[3]]) ? i2CRegister : I2C_NO_REG_SPECIFIED), i2CValue, i2COption);
+         result = readBytesFromi2C(i2CAddress, (('\0' != cBuffer[_argOffset[3]]) ? i2CRegister : I2C_NO_REG_SPECIFIED), i2CValue, i2COption);
          // Do second reading if need ( arg#5 defined )
-         if (('\0' != cBuffer[argOffset[5]])) { 
-            result = readBytesFromi2C(i2CAddress, (('\0' != cBuffer[argOffset[3]]) ? i2CRegister : I2C_NO_REG_SPECIFIED), i2CValue, i2COption); 
+         if (('\0' != cBuffer[_argOffset[5]])) { 
+            result = readBytesFromi2C(i2CAddress, (('\0' != cBuffer[_argOffset[3]]) ? i2CRegister : I2C_NO_REG_SPECIFIED), i2CValue, i2COption); 
          }
          if (0 != result) { result = RESULT_IS_FAIL; break; }
          // make int32 from i2C's bytes
@@ -1229,11 +1235,11 @@ int16_t executeCommand()
             break;
          }
          // Use device's register if specified, read 1 byte
-         result = readBytesFromi2C(i2CAddress, (('\0' != cBuffer[argOffset[3]]) ? i2CRegister : I2C_NO_REG_SPECIFIED), i2CValue, 1);
+         result = readBytesFromi2C(i2CAddress, (('\0' != cBuffer[_argOffset[3]]) ? i2CRegister : I2C_NO_REG_SPECIFIED), i2CValue, 1);
          // "!!" convert value 0100 to 1.
          bitWrite (i2CValue[0], i2COption, (!!arg[5]));
          // Use device's register if specified, write 1 byte, returns Wire lib state
-         result = writeByteToI2C(i2CAddress, (('\0' != cBuffer[argOffset[3]]) ? i2CRegister : I2C_NO_REG_SPECIFIED), i2CValue[0]);
+         result = writeByteToI2C(i2CAddress, (('\0' != cBuffer[_argOffset[3]]) ? i2CRegister : I2C_NO_REG_SPECIFIED), i2CValue[0]);
          result = (0 == result) ? RESULT_IS_OK : RESULT_IS_FAIL;
       }
       break;
@@ -1249,7 +1255,7 @@ int16_t executeCommand()
             break;
          }
          // Use device's register if specified, read 1 byte
-         result = readBytesFromi2C(i2CAddress, (('\0' != cBuffer[argOffset[3]]) ? i2CRegister : I2C_NO_REG_SPECIFIED), i2CValue, 1);
+         result = readBytesFromi2C(i2CAddress, (('\0' != cBuffer[_argOffset[3]]) ? i2CRegister : I2C_NO_REG_SPECIFIED), i2CValue, 1);
          result = bitRead(i2CValue[0], i2COption);
       }
       break;
@@ -1263,7 +1269,7 @@ int16_t executeCommand()
       /=/  DS18x20.temperature[pin, resolution, id]
       /*/
       if (isSafePin(arg[0])) {
-         result = getDS18X20Metric(arg[0], arg[1], &cBuffer[argOffset[2]], cBuffer);
+         result = getDS18X20Metric(arg[0], arg[1], &cBuffer[_argOffset[2]], cBuffer);
       }
       break;
 #endif // FEATURE_DS18X20_ENABLE
@@ -1345,7 +1351,7 @@ int16_t executeCommand()
       /=/  MAX7219.write[dataPin, clockPin, loadPin, intensity, value]
       /*/
       if (isSafePin(arg[0]) && isSafePin(arg[1])  && isSafePin(arg[2])) {
-         drawOnMAX7219Matrix8x8(arg[0], arg[1], arg[2], arg[3], &cBuffer[argOffset[4]]);
+         drawOnMAX7219Matrix8x8(arg[0], arg[1], arg[2], arg[3], &cBuffer[_argOffset[4]]);
          result = RESULT_IS_OK;
       }
       break;
@@ -1357,7 +1363,7 @@ int16_t executeCommand()
       /=/  PCF8574.LCDPrint[sdaPin, sclPin, i2cAddress, lcdBacklight, lcdType, data]
       /*/
       if (isSafePin(arg[0]) && isSafePin(arg[1])) {
-         result = printToPCF8574LCD(arg[0], arg[1], i2CAddress, arg[3], arg[4], &cBuffer[argOffset[5]]);
+         result = printToPCF8574LCD(arg[0], arg[1], i2CAddress, arg[3], arg[4], &cBuffer[_argOffset[5]]);
       }
       break;
 
@@ -1405,7 +1411,7 @@ int16_t executeCommand()
                EXTERNAL 	0  - AREF << mV on AREF, more than '3'
 */
          // if refVoltage skipped - use DEFAULT source
-         if ('\0' != cBuffer[argOffset[1]]) {
+         if ('\0' != cBuffer[_argOffset[1]]) {
            arg[1] = DEFAULT;
          }
          result = getACS7XXMetric(arg[0], arg[1], SENS_READ_ZC, 0, 0, cBuffer);
@@ -1418,7 +1424,7 @@ int16_t executeCommand()
       /*/
       if (isSafePin(arg[0])) {
          // if refVoltage skipped - use DEFAULT source
-         if ('\0' != cBuffer[argOffset[1]]) {
+         if ('\0' != cBuffer[_argOffset[1]]) {
            arg[1] = DEFAULT;
          }
          result = getACS7XXMetric(arg[0], arg[1], SENS_READ_AC, arg[2], (int32_t) arg[3], cBuffer);
@@ -1431,7 +1437,7 @@ int16_t executeCommand()
       /*/
       if (isSafePin(arg[0])) {
          // if refVoltage skipped - use DEFAULT source
-         if ('\0' != cBuffer[argOffset[1]]) {
+         if ('\0' != cBuffer[_argOffset[1]]) {
            arg[1] = DEFAULT;
          }
          result = getACS7XXMetric(arg[0], arg[1], SENS_READ_DC, arg[2], (int32_t) arg[3], cBuffer);
@@ -1478,7 +1484,7 @@ int16_t executeCommand()
  //     if (isSafePin(arg[0]) && TIMER2B == digitalPinToTimer(arg[0])) {
          // irPWMPin - global wariable that replace IRremote's TIMER_PWM_PIN
 //         irPWMPin = arg[0];
-//         result = sendRawByIR(arg[1], arg[2], &cBuffer[argOffset[3]]);
+//         result = sendRawByIR(arg[1], arg[2], &cBuffer[_argOffset[3]]);
 //         result = (result) ? RESULT_IS_OK : RESULT_IS_FAIL;
  //     }
       break;
@@ -1496,7 +1502,7 @@ int16_t executeCommand()
       if (isSafePin(arg[0]) && isSafePin(arg[1])) {
          // cBuffer cast to (uint8_t*) to use with subroutine math and SoftwareSerial subs, because used instead sub's internal buffer and save a little RAM size.
          // Its will be casted to char* inside at moment when its need
-         result = getPZEM004Metric(arg[0], arg[1], SENS_READ_AC, &cBuffer[argOffset[2]], (uint8_t*) cBuffer);
+         result = getPZEM004Metric(arg[0], arg[1], SENS_READ_AC, &cBuffer[_argOffset[2]], (uint8_t*) cBuffer);
       }
       break;
     case CMD_PZEM004_VOLTAGE:
@@ -1504,7 +1510,7 @@ int16_t executeCommand()
       /=/  pzem004.voltage[rxPin, txPin, ip]
       /*/
       if (isSafePin(arg[0]) && isSafePin(arg[1])) {
-         result = getPZEM004Metric(arg[0], arg[1], SENS_READ_VOLTAGE, &cBuffer[argOffset[2]], (uint8_t*) cBuffer);
+         result = getPZEM004Metric(arg[0], arg[1], SENS_READ_VOLTAGE, &cBuffer[_argOffset[2]], (uint8_t*) cBuffer);
       }
       break;
     case CMD_PZEM004_POWER:
@@ -1512,7 +1518,7 @@ int16_t executeCommand()
       /=/  pzem004.power[rxPin, txPin, ip]
       /*/
       if (isSafePin(arg[0]) && isSafePin(arg[1])) {
-         result = getPZEM004Metric(arg[0], arg[1], SENS_READ_POWER, &cBuffer[argOffset[2]], (uint8_t*) cBuffer);
+         result = getPZEM004Metric(arg[0], arg[1], SENS_READ_POWER, &cBuffer[_argOffset[2]], (uint8_t*) cBuffer);
       }
       break;
     case CMD_PZEM004_ENERGY:
@@ -1520,7 +1526,7 @@ int16_t executeCommand()
       /=/  pzem004.energy[rxPin, txPin, ip]
       /*/
       if (isSafePin(arg[0]) && isSafePin(arg[1])) {
-         result = getPZEM004Metric(arg[0], arg[1], SENS_READ_ENERGY, &cBuffer[argOffset[2]], (uint8_t*) cBuffer);
+         result = getPZEM004Metric(arg[0], arg[1], SENS_READ_ENERGY, &cBuffer[_argOffset[2]], (uint8_t*) cBuffer);
       }
       break;
 #endif // FEATURE_PZEM004_ENABLE
@@ -1533,7 +1539,7 @@ int16_t executeCommand()
       /=/    command - HEX or ASCII
       /*/  
       if (isSafePin(arg[0]) && isSafePin(arg[1])) {
-         result = getAPCSmartUPSMetric(arg[0], arg[1], (uint8_t*) &cBuffer[argOffset[2]], (argOffset[3] - argOffset[2]) , (uint8_t*) cBuffer);
+         result = getAPCSmartUPSMetric(arg[0], arg[1], (uint8_t*) &cBuffer[_argOffset[2]], (_argOffset[3] - _argOffset[2]) , (uint8_t*) cBuffer);
       }
       break;
 
@@ -1546,8 +1552,8 @@ int16_t executeCommand()
       /=/    command - HEX or ASCII
       /*/  
       if (isSafePin(arg[0]) && isSafePin(arg[1])) {
-         //result = getAPCSmartUPSMetric(arg[0], arg[1], (uint8_t*) &cBuffer[argOffset[2]], (argOffset[3] - argOffset[2]) , (uint8_t*) cBuffer);
-         result = getMegatecUPSMetric(arg[0], arg[1], (uint8_t*) &cBuffer[argOffset[2]], arg[3], (uint8_t*) cBuffer);
+         //result = getAPCSmartUPSMetric(arg[0], arg[1], (uint8_t*) &cBuffer[_argOffset[2]], (_argOffset[3] - _argOffset[2]) , (uint8_t*) cBuffer);
+         result = getMegatecUPSMetric(arg[0], arg[1], (uint8_t*) &cBuffer[_argOffset[2]], arg[3], (uint8_t*) cBuffer);
 
       }
       break;

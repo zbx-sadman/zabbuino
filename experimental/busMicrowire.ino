@@ -41,7 +41,7 @@ void pushDataToMAX7219(const uint8_t _dataPin, const uint8_t _clockPin, const ui
   digitalWrite(_loadPin,HIGH);
 }
 
-void drawOnMAX7219Matrix8x8(const uint8_t _dataPin, const uint8_t _clockPin, const uint8_t _loadPin, const uint8_t _intensity, char* _data) {    
+void drawOnMAX7219Matrix8x8(const uint8_t _dataPin, const uint8_t _clockPin, const uint8_t _loadPin, const uint8_t _intensity, char* _src) {    
   uint8_t col, currByte,  isHexString = false;
   // Init the module 
   // Mark all columns as active
@@ -59,23 +59,23 @@ void drawOnMAX7219Matrix8x8(const uint8_t _dataPin, const uint8_t _clockPin, con
   col = 1;
   
   // HEX strings must be processeed specially
-  if (haveHexPrefix(_data)) {
+  if (haveHexPrefix(_src)) {
      // Skip "0x"
-     _data += 2;
+     _src += 2;
      isHexString = true;
   }
   
-  while (*_data) {
+  while (*_src) {
     // HEX processing
     if (isHexString) {
        // Make first four bits of byte to push from HEX.
-       currByte = htod(*_data); _data++;
+       currByte = htod(*_src); _src++;
        // Move first nibble to high
        currByte <<= 4;
        // Check for second nibble existience
-       if (*_data) {
+       if (*_src) {
           // Add its to byte if HEX not '\0'
-          currByte |= htod(*_data);
+          currByte |= htod(*_src);
        }
     } else {
       //
@@ -90,7 +90,7 @@ void drawOnMAX7219Matrix8x8(const uint8_t _dataPin, const uint8_t _clockPin, con
       //   E    C
       //    DDDD   DP
       //
-      switch ((char) *_data) {
+      switch ((char) *_src) {
          case '0':
             currByte = B1111110;
             break;
@@ -162,13 +162,13 @@ void drawOnMAX7219Matrix8x8(const uint8_t _dataPin, const uint8_t _clockPin, con
             break;
      }
       // 'dot' sign is next? 
-      if ('.' == ((char) *(_data+1))) {
+      if ('.' == ((char) *(_src+1))) {
          currByte |= 0x80;
-         _data++;
+         _src++;
       }
     }
 
-    _data++;
+    _src++;
     // Pushing byte to column
      pushDataToMAX7219(_dataPin, _clockPin, _loadPin, col, currByte);
     col++;

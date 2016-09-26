@@ -30,7 +30,7 @@ version 0.1.13 is used
 *   Read temperature or humidity from digital sensor DHT11/DHT21/DHT22/AM2301/AM2302
 *
 **************************************************************************************************************************** */
-int32_t getDHTMetric(const uint8_t _pin, const uint8_t _sensorModel, const uint8_t _metric, char* _outBuffer)
+int32_t getDHTMetric(const uint8_t _pin, const uint8_t _sensorModel, const uint8_t _metric, char* _dst)
 {
   // INIT BUFFERVAR TO RECEIVE DATA
   uint8_t mask = 128,
@@ -207,7 +207,7 @@ int32_t getDHTMetric(const uint8_t _pin, const uint8_t _sensorModel, const uint8
          }
   }
   result = (SENS_READ_HUMD == _metric) ? humidity : temperature;
-  ltoaf(result, _outBuffer, 1);
+  ltoaf(result, _dst, 1);
   return RESULT_IN_BUFFER;
 //    return waitTime;
 //  return DHTLIB_OK;

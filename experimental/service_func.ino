@@ -3,42 +3,42 @@
 *   Set default values of network configuration
 *
 **************************************************************************************************************************** */
-void setConfigDefaults(netconfig_t& _configStruct)
+void setConfigDefaults(netconfig_t* _configStruct)
 {
   // Set defaults
   uint8_t mac[] = NET_DEFAULT_MAC_ADDRESS;
-  memcpy(_configStruct.macAddress, mac, sizeof(netConfig.macAddress));
-  _configStruct.useDHCP = (NET_DEFAULT_USE_DHCP);
-  _configStruct.ipAddress = IPAddress(NET_DEFAULT_IP_ADDRESS);
-  _configStruct.ipNetmask = IPAddress(NET_DEFAULT_NETMASK);
-  _configStruct.ipGateway = IPAddress(NET_DEFAULT_GATEWAY);
-  _configStruct.password  = (SYS_DEFAULT_PASSWORD);
-  _configStruct.useProtection = (SYS_DEFAULT_PROTECTION);
-
+  memcpy(_configStruct->macAddress, mac, arraySize(netConfig->macAddress));
+  _configStruct->useDHCP = (NET_DEFAULT_USE_DHCP);
+  _configStruct->ipAddress = IPAddress(NET_DEFAULT_IP_ADDRESS);
+  _configStruct->ipNetmask = IPAddress(NET_DEFAULT_NETMASK);
+  _configStruct->ipGateway = IPAddress(NET_DEFAULT_GATEWAY);
+  _configStruct->password  = (SYS_DEFAULT_PASSWORD);
+  _configStruct->useProtection = (SYS_DEFAULT_PROTECTION);
+  
   // Make FDQN-hostname & modify MAC-address and IP-address if need
 #ifdef FEATURE_NET_USE_MCUID
   // Write ID into hostname variable
-  getMCUID(_configStruct.hostname);
+  getBootSignatureBytes(_configStruct->hostname, 14, 10);
   // Append domain name to ID 
-  memcpy(&_configStruct.hostname[SYS_MCU_ID_LEN], (ZBX_AGENT_DEFAULT_DOMAIN), sizeof(ZBX_AGENT_DEFAULT_DOMAIN));
+  memcpy(&_configStruct->hostname[SYS_MCU_ID_LEN], (ZBX_AGENT_DEFAULT_DOMAIN), arraySize(ZBX_AGENT_DEFAULT_DOMAIN));
   // Terminate string
-  _configStruct.hostname[SYS_MCU_ID_LEN+sizeof(ZBX_AGENT_DEFAULT_DOMAIN)+1]='\0';
+  _configStruct->hostname[SYS_MCU_ID_LEN+sizeof(ZBX_AGENT_DEFAULT_DOMAIN)+1]='\0';
   
   // Modify MAC & IP
   // Interrupts must be disabled before boot_signature_byte_get will be called to avoid code crush
   noInterrupts();
   // rewrite last MAC's two byte with MCU ID's bytes
-  _configStruct.macAddress[5] = boot_signature_byte_get(23);
+  _configStruct->macAddress[5] = boot_signature_byte_get(23);
   interrupts();
-  _configStruct.ipAddress[3] = _configStruct.macAddress[5];
+  _configStruct->ipAddress[3] = _configStruct->macAddress[5];
 
 #else
   // Write default hostname into hostname variable
-  memcpy(_configStruct.hostname, (ZBX_AGENT_DEFAULT_HOSTNAME), sizeof(ZBX_AGENT_DEFAULT_HOSTNAME));
+  memcpy(&_configStruct->hostname[0], (ZBX_AGENT_DEFAULT_HOSTNAME), arraySize(ZBX_AGENT_DEFAULT_HOSTNAME));
   // Append domain name to default hostname  
-  memcpy(&_configStruct.hostname[sizeof(ZBX_AGENT_DEFAULT_HOSTNAME)-1], (ZBX_AGENT_DEFAULT_DOMAIN), sizeof(ZBX_AGENT_DEFAULT_DOMAIN));
+  memcpy(&_configStruct->hostname[sizeof(ZBX_AGENT_DEFAULT_HOSTNAME)-1], (ZBX_AGENT_DEFAULT_DOMAIN), arraySize(ZBX_AGENT_DEFAULT_DOMAIN));
   // Terminate string
-  _configStruct.hostname[sizeof(ZBX_AGENT_DEFAULT_HOSTNAME)+sizeof(ZBX_AGENT_DEFAULT_DOMAIN)+1]='\0';
+  _configStruct->hostname[sizeof(ZBX_AGENT_DEFAULT_HOSTNAME)+sizeof(ZBX_AGENT_DEFAULT_DOMAIN)+1]='\0';
 #endif
 }
 
@@ -131,19 +131,19 @@ void ltoaf(const int32_t _number, char* _dst, const uint8_t _num_after_dot)
 *  Convert _len chars (exclude 0x prefix) of hex string to byte array
 *
 **************************************************************************************************************************** */
-uint8_t hstoba(uint8_t* _array, const char* _data, uint8_t _len)
+uint8_t hstoba(uint8_t* _dst, const char* _src, uint8_t _len)
 {
   // don't fill _array and return false if mailformed string detected
-  if (!haveHexPrefix(_data)) { return false; }
+  if (!haveHexPrefix(_src)) { return false; }
   
   // skip prefix
-  _data += 2;
+  _src += 2;
   // for all bytes do...
   while (_len--)  {
-     *_array = (htod(*_data) << 4);
-     _data++;
-     *_array += htod(*_data);
-      _data++; _array++;      
+     *_dst = (htod(*_src) << 4);
+     _src++;
+     *_dst += htod(*_src);
+      _src++; _dst++;
   };
   return true;
 }
@@ -155,12 +155,12 @@ uint8_t hstoba(uint8_t* _array, const char* _data, uint8_t _len)
 *   This function placed here to aviod compilation error when OneWire library is not #included
 *
 **************************************************************************************************************************** */
-uint8_t dallas_crc8(const uint8_t *addr, uint8_t len)
+uint8_t dallas_crc8(const uint8_t *_src, uint8_t _len)
 {
 	uint8_t crc = 0;
 	
-	while (len--) {
-		uint8_t inbyte = *addr++;
+	while (_len--) {
+		uint8_t inbyte = *_src++;
 		for (uint8_t i = 8; i; i--) {
 			uint8_t mix = (crc ^ inbyte) & 0x01;
 			crc >>= 1;

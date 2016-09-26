@@ -60,16 +60,16 @@ uint8_t writeByteToI2C(const uint8_t _i2cAddress, const int16_t _registerAddress
 *  Write N bytes to I2C device register or just to device
 *
 **************************************************************************************************************************** */
-uint8_t writeBytesToI2C(const uint8_t _i2cAddress, const int16_t _registerAddress, const uint8_t* _data, uint8_t _length) {
+uint8_t writeBytesToI2C(const uint8_t _i2cAddress, const int16_t _registerAddress, const uint8_t* _data, uint8_t _len) {
   Wire.beginTransmission(_i2cAddress); // start transmission to device 
   // registerAddress is 0x00 and above ?
   if (I2C_NO_REG_SPECIFIED < _registerAddress) {
      Wire.write(_registerAddress); // sends register address to be written
   }
-  while (_length) {
+  while (_len) {
     Wire.write(*_data);  // write data
     _data++;
-    _length--;
+    _len--;
   }
   return Wire.endTransmission(true); // end transmission
 }
@@ -79,9 +79,9 @@ uint8_t writeBytesToI2C(const uint8_t _i2cAddress, const int16_t _registerAddres
 *  Reads N bytes from device's register (or not) over I2C
 *
 **************************************************************************************************************************** */
-uint8_t readBytesFromi2C(const uint8_t _i2cAddress, const int16_t _registerAddress, uint8_t _buff[], const uint8_t _length)
+uint8_t readBytesFromi2C(const uint8_t _i2cAddress, const int16_t _registerAddress, uint8_t _buff[], const uint8_t _len)
 {
-    if (!_length) return false;
+    if (!_len) return false;
     Wire.beginTransmission(_i2cAddress); 	// Adress + WRITE (0)
     if (I2C_NO_REG_SPECIFIED < _registerAddress) {
        Wire.write(_registerAddress);
@@ -90,8 +90,8 @@ uint8_t readBytesFromi2C(const uint8_t _i2cAddress, const int16_t _registerAddre
 
     uint8_t i = 0;
     uint32_t lastTimeCheck = millis();         
-    Wire.requestFrom(_i2cAddress, _length); 	// Address + READ (1)
-    while((i < _length) && (Wire.available() > 0)) {
+    Wire.requestFrom(_i2cAddress, _len); 	// Address + READ (1)
+    while((i < _len) && (Wire.available() > 0)) {
       // 100 => 0.1 sec timeout
       if ((millis() - lastTimeCheck) > 100) {
          Wire.endTransmission(true);
@@ -149,7 +149,7 @@ uint16_t getRawDataFromSHT2X(const uint8_t _i2cAddress, const uint8_t _command)
     return result;
 }
 
-int32_t getSHT2XMetric(const uint8_t _sdaPin, const uint8_t _sclPin, uint8_t _i2cAddress, const uint8_t _metric, char* _outBuffer) 
+int32_t getSHT2XMetric(const uint8_t _sdaPin, const uint8_t _sclPin, uint8_t _i2cAddress, const uint8_t _metric, char* _dst) 
 {
   int32_t result = 0;
   uint16_t rawData; 
@@ -180,7 +180,7 @@ int32_t getSHT2XMetric(const uint8_t _sdaPin, const uint8_t _sclPin, uint8_t _i2
       if (0 < rawData) { result = (((uint32_t) rawData * 100 * 125) >> 16) - 600; }
   }
   // result /=100
-  ltoaf(result, _outBuffer, 2);
+  ltoaf(result, _dst, 2);
   return RESULT_IN_BUFFER;  
 
 }
@@ -339,7 +339,7 @@ uint8_t waitToBMPReady(const uint8_t _i2cAddress, const int16_t _registerAddress
   }
 }
 
-int32_t getBMPMetric(const uint8_t _sdaPin, const uint8_t _sclPin, uint8_t _i2cAddress, const uint8_t _overSampling, const uint8_t _filterCoef, const uint8_t _metric, char* _outBuffer)
+int32_t getBMPMetric(const uint8_t _sdaPin, const uint8_t _sclPin, uint8_t _i2cAddress, const uint8_t _overSampling, const uint8_t _filterCoef, const uint8_t _metric, char* _dst)
 {
   uint8_t chipID; 
 
@@ -369,20 +369,20 @@ int32_t getBMPMetric(const uint8_t _sdaPin, const uint8_t _sclPin, uint8_t _i2cA
     // BMP085 and BMP180 have the same ID  
 #ifdef SUPPORT_BMP180_INCLUDE
     case BMP180_CHIPID: 
-       getBMP180Metric(_sdaPin, _sclPin, _i2cAddress, _overSampling, _metric, _outBuffer);
+       getBMP180Metric(_sdaPin, _sclPin, _i2cAddress, _overSampling, _metric, _dst);
        break;
 #endif
 #ifdef SUPPORT_BMP280_INCLUDE
     case BMP280_CHIPID_1: 
     case BMP280_CHIPID_2: 
     case BMP280_CHIPID_3: 
-       getBMP280Metric(_sdaPin, _sclPin, _i2cAddress, _overSampling, _filterCoef, _metric, _outBuffer);
+       getBMP280Metric(_sdaPin, _sclPin, _i2cAddress, _overSampling, _filterCoef, _metric, _dst);
        break;
 #endif
 #ifdef SUPPORT_BME280_INCLUDE
     case BME280_CHIPID:
        // BME280 is BMP280 with additional humidity sensor
-       getBMP280Metric(_sdaPin, _sclPin, _i2cAddress, _overSampling, _filterCoef, _metric, _outBuffer);
+       getBMP280Metric(_sdaPin, _sclPin, _i2cAddress, _overSampling, _filterCoef, _metric, _dst);
        break;
 #endif
     default:  
@@ -397,7 +397,7 @@ int32_t getBMPMetric(const uint8_t _sdaPin, const uint8_t _sclPin, uint8_t _i2cA
 *  Read temperature or pressure from digital sensor BMP280
 *
 **************************************************************************************************************************** */
-int32_t getBMP280Metric(const uint8_t _sdaPin, const uint8_t _sclPin, uint8_t _i2cAddress, const uint8_t _overSampling, uint8_t _filterCoef, const uint8_t _metric, char* _outBuffer)
+int32_t getBMP280Metric(const uint8_t _sdaPin, const uint8_t _sclPin, uint8_t _i2cAddress, const uint8_t _overSampling, uint8_t _filterCoef, const uint8_t _metric, char* _dst)
 {
   uint16_t dig_T1;
   int16_t  dig_T2, dig_T3;
@@ -511,7 +511,7 @@ int32_t getBMP280Metric(const uint8_t _sdaPin, const uint8_t _sclPin, uint8_t _i
       // real temperature caculation
       result  = (t_fine * 5 + 128) >> 8;
       //  return T/100;    
-      ltoaf(result, _outBuffer, 2);
+      ltoaf(result, _dst, 2);
       break;
 
     case SENS_READ_PRSS:
@@ -581,7 +581,7 @@ int32_t getBMP280Metric(const uint8_t _sdaPin, const uint8_t _sclPin, uint8_t _i
      //
      // What way is right, BOSCH? 
      //
-     ltoa(result, _outBuffer, 10);
+     ltoa(result, _dst, 10);
      break;
      
 #ifdef SUPPORT_BME280_INCLUDE
@@ -625,7 +625,7 @@ int32_t getBMP280Metric(const uint8_t _sdaPin, const uint8_t _sclPin, uint8_t _i
       //	 Output value of “47445” represents 47445/1024 = 46.333 %RH
       //Serial.print("H: "); Serial.println(result);
 
-      qtoaf(result, _outBuffer, 10);
+      qtoaf(result, _dst, 10);
 #endif        
 }
   return RESULT_IN_BUFFER;
@@ -636,7 +636,7 @@ int32_t getBMP280Metric(const uint8_t _sdaPin, const uint8_t _sclPin, uint8_t _i
 *  Read temperature or pressure from digital sensor BMP180(BMP085)
 *
 **************************************************************************************************************************** */
-int32_t getBMP180Metric(const uint8_t _sdaPin, const uint8_t _sclPin, uint8_t _i2cAddress, uint8_t _overSampling, const uint8_t _metric, char* _outBuffer)
+int32_t getBMP180Metric(const uint8_t _sdaPin, const uint8_t _sclPin, uint8_t _i2cAddress, uint8_t _overSampling, const uint8_t _metric, char* _dst)
 {
   // Calibration values
   int16_t ac1, ac2, ac3;
@@ -769,10 +769,10 @@ int32_t getBMP180Metric(const uint8_t _sdaPin, const uint8_t _sclPin, uint8_t _i
     // pressure /=100 for hPa
     // ltoaf(cBuffer, result, 2);
     // or pressure /=1 for Pa
-    ltoa(result, _outBuffer, 10);
+    ltoa(result, _dst, 10);
   } else {
     // temperature /=10
-    ltoaf(result, _outBuffer, 1);
+    ltoaf(result, _dst, 1);
   }
 
   return RESULT_IN_BUFFER;
@@ -893,7 +893,7 @@ void pulseEnableOnLCD(const uint8_t _i2cAddress, const uint8_t _data)
   delayMicroseconds(50);	                        // commands need > 37us to settle
 } 
 
-int32_t printToPCF8574LCD(const uint8_t _sdaPin, const uint8_t _sclPin, uint8_t _i2cAddress, uint8_t _lcdBacklight, const uint16_t _lcdType, const char *_data)
+int32_t printToPCF8574LCD(const uint8_t _sdaPin, const uint8_t _sclPin, uint8_t _i2cAddress, uint8_t _lcdBacklight, const uint16_t _lcdType, const char *_src)
 {
   uint8_t displayFunction, lastLine, currLine, currChar, i, isHexString;
   uint8_t rowOffsets[] = { 0x00, 0x40, 0x14, 0x54 };
@@ -932,7 +932,7 @@ int32_t printToPCF8574LCD(const uint8_t _sdaPin, const uint8_t _sclPin, uint8_t 
 
   // just tooggle backlight and go back if no data given 
   writeByteToI2C(_i2cAddress, I2C_NO_REG_SPECIFIED, _lcdBacklight);
-  if (! *_data) {return RESULT_IS_OK; }
+  if (! *_src) {return RESULT_IS_OK; }
   
   // SEE PAGE 45/46 FOR INITIALIZATION SPECIFICATION!
   // according to datasheet, we need at least 40ms after power rises above 2.7V
@@ -968,59 +968,59 @@ int32_t printToPCF8574LCD(const uint8_t _sdaPin, const uint8_t _sclPin, uint8_t 
   isHexString = false;
 
   // TODO: use hstoba() to preconvert hex-string
-  if (haveHexPrefix(_data)) {
+  if (haveHexPrefix(_src)) {
      // Skip "0x"
-     _data += 2;
+     _src += 2;
      isHexString = true;
   }
   // Walk over all string
-  while(*_data) {
+  while(*_src) {
     //
     // HEX processing
     // 
     if (isHexString) {
        // restore full byte (ASCII char) from HEX nibbles
        // Make first four bits of byte to push from HEX.
-       currChar = htod(*_data); _data++;
+       currChar = htod(*_src); _src++;
        // Move first nibble to high
        currChar <<= 4;
        // Check for second nibble existience
-       if (*_data) {
+       if (*_src) {
           // Add its to byte if HEX not '\0'
-          currChar |= htod(*_data);
+          currChar |= htod(*_src);
        }
      } else {
        //
        //  ASCII processing
        //
-       currChar = *_data;
+       currChar = *_src;
        // Escape sign detected
        if ('\\' == currChar) {
          // See for next char
-         switch (*(_data+1)) {
+         switch (*(_src+1)) {
            // Self-escaping, just skip next char and make no transformation for current char
            case '\\':
-             _data++;
+             _src++;
              break;
            // \t - horizontal tabulation
            case 't':
              currChar = LCD_CMD_HT;
-             _data++;
+             _src++;
              break;
            // \n - new line
            case 'n':
              currChar = LCD_CMD_LF;
-             _data++;
+             _src++;
              break;
            // \xHH - HEX byte HH, for example \x0C => LCD_CMD_CURSOROFF
            case 'x':
              // take next two char (+2 & +3) and move pointer 
-             if (*(_data+2) && *(_data+3)) { 
-                currChar = (htod(tolower(*(_data+2))) << 4) + htod(tolower(*(_data+3))); 
-                _data += 3; 
+             if (*(_src+2) && *(_src+3)) { 
+                currChar = (htod(tolower(*(_src+2))) << 4) + htod(tolower(*(_src+3))); 
+                _src += 3; 
              }
              break;
-         } // switch (*(_data+1))
+         } // switch (*(_src+1))
       } // if ('\\' == currChar)
     } // if (isHexString) ... else 
 
@@ -1086,8 +1086,8 @@ int32_t printToPCF8574LCD(const uint8_t _sdaPin, const uint8_t _sclPin, uint8_t 
        } //switch (currChar) {
     } // if (currChar > 0x7F && currChar < 0x9F) .. else 
     // move pointer to next char
-    _data++;
-  } // while(*_data)
+    _src++;
+  } // while(*_src)
   return RESULT_IS_OK;
 }
 
@@ -1127,7 +1127,7 @@ int32_t printToPCF8574LCD(const uint8_t _sdaPin, const uint8_t _sclPin, uint8_t 
 #define BH1750_ONETIME_LOWRES                                   0x23
 
 
-int32_t getBH1750Metric(const uint8_t _sdaPin, const uint8_t _sclPin, uint8_t _i2cAddress, uint8_t _mode, const uint8_t _metric, char* _outBuffer)
+int32_t getBH1750Metric(const uint8_t _sdaPin, const uint8_t _sclPin, uint8_t _i2cAddress, uint8_t _mode, const uint8_t _metric, char* _dst)
 {
   int32_t result;
   uint8_t setModeTimeout = 24; // 24ms - max time to complete measurement in low-resolution
@@ -1192,7 +1192,7 @@ int32_t getBH1750Metric(const uint8_t _sdaPin, const uint8_t _sclPin, uint8_t _i
   Wire.endTransmission(true);
 
   if (SENS_READ_RAW == _metric) {
-    ltoa(result, _outBuffer, 10);
+    ltoa(result, _dst, 10);
   } else {
     // Prepare result's value to using in ltoaf() subroutine
     // level = level/1.2; // convert to lux
@@ -1200,7 +1200,7 @@ int32_t getBH1750Metric(const uint8_t _sdaPin, const uint8_t _sclPin, uint8_t _i
     // (5 * 1000) / 12 => 416 ==> ltoaf (..., ..., 2) ==> 4.16
     // max raw level = 65535 => 65535 * 1000 => long int
     result = (result * 1000) / 12;    
-    ltoaf(result, _outBuffer, 2);
+    ltoaf(result, _dst, 2);
   }
 
   return RESULT_IN_BUFFER;
