@@ -1,9 +1,4 @@
-# Zabbuino
-An Zabbix agent firmware for Arduino (**AVR only**)
-
-Actual release is v1.0.0. 
-
-**You can help to the project** by providing hardware to testing and integrating. Or yoÐ³ can just donate for it. Contact to me via email: [zbx.sadman@gmail.com](mailto://zbx.sadman@gmail.com)
+# Zabbuino 1.1.0
 
 Implemented:
 - A few Zabbix agent commands;
@@ -14,33 +9,493 @@ Implemented:
 - Storing system setting in EEPROM;
 - AVR WatchDog feature support;
 - MCU and runtime metrics (current/min/max VCC, current/min RAM, uptime, MCU name) obtaining;
-- Support WS5100 or ENC25J60 network modules;
-- Support one or more Dallas DS18X20 thermometer;
+- Support WS5100 and ENC25J60 network modules;
+- Support one or more DS18X20 thermometer;
 - Support DHT11/21/22/33/44 or AM2301/2302 humidity and temperature sensors;
-- Support Sensirion SHT2X humidity and temperature sensors serie;
-- Support BOSCH BMP180/BMP085/BMP280/BME280 pressure, temperature and humidity sensors;
-- Support ROHM BH1750 light sensor;
+- Support SHT2X humidity and temperature sensors serie;
+- Support BMP180/085, BMP280/BME280 pressure and temperature sensors;
+- Support BH1750 light sensor;
 - Support incremental encoder (on interrupt's pin);
-- Support devices that can be used with hardware interrupt - tilt switches, dry contacts, water flow sensor, and so;
-- Support Allegro ACS7xx sensor;
+- Support any devices that can be used with hardware interrupt - tilt switches, dry contacts, water flow sensor, and so;
+- Support ACS7xx sensors;
 - Support HC-SR04 ultrasonic ranging module;
 - Support any other analog or digital sensor via `analogread` /`digitalread` commands;
 - Support indicators, that connected to MAX7219, 8x8 Led matrix for example;
-- Support simple I2C devices (expanders, digital linear potentiometers, DAC's etc.);
-- Support One- or Two- and Four- lines LCD Character displays with PC8574 I2C expander;
+- Support simple I2C devices (expanders, digital linear potentiometers, etc.);
+- Support One- or Two- (and maybe Four-) lines LCD Character displays with PC8574 I2C expander;
 - Support any actuators or indicators via `digitalwrite` command;
 - Support WS2801 Led stripe and any indicators on shift registers via extended `shiftout` command;
-- Simulate various vendor's IR transmitters.
+- Support WS2812 Led stripe;
+- Support PZEM-004 energy meter;
+- Support APC Smart UPS (with RS232 interface);
+- Simulate varuious vendor's IR transmitters.
+
+####22 Sep 2016
+
+Changes:
+ - _ups.apcsmart[]_ can send to APC Smart UPS _^N_ & _Z_ (Turn on UPS, Shutdown UPS) commands now.
+
+New command:
+ - _system.run[newCommand]_ command say to Zabbuino to run _newCommand_. It's allow to use Zabbuino's functionality directly from Zabbix's _Actions_. Just fill form as follows:
+  * Operation type: Remote command;
+  * Target list, Target: Current host;
+  * Type: Custom script;
+  * Execute on: Zabbix agent;
+  * Commands: any simple Zabbuino command, _ups.apcsmart[2,3,0x5A]_ for example to turn off APC Smart UPS, which controlled to Zabbuino.
 
 
-Minimum requirements: 
-- Arduino board with ATMega328 & ENC28J60 / W5100 Ethernet Module.
+####21 Sep 2016
 
-Manuals:
-- In [Russian](https://github.com/zbx-sadman/zabbuino/wiki/Zabbuino-in-Russian);
-- Partially translated to [English](https://github.com/zbx-sadman/Zabbuino/wiki/Zabbuino-in-English).
+Changes:
+ - _ups.apc.smart[]_ command renamed to _ups.apcsmart[]_. Just for name ordering;
+ - New macro - _FEATURE\_SERIAL\_LISTEN\_TOO_ . Entering the commands in Serial Monitor as Zabbix's keys available now, and you can check your sensors output without network connection.
 
-User cases:
-- In [Russian](https://github.com/zbx-sadman/Zabbuino/wiki/Zabbuino-User-Cases-in-Russian)
+New commands:
+ - _ups.megatec[rxPin, txPin, command, fieldNumber]_ command return specified field data from Megatec-compatible UPS answer to _command_. 
+   - _rxPin_ SoftSerial's RX pin to which UPS's (over RS232 convertor) TX connected;
+   - _rxPin_ SoftSerial's TX pin to which UPS's (over RS232 convertor) RX connected;
+   - _command_ Megatec UPS command, that can be found on [Megatec Protocol information](http://networkupstools.org/protocols/megatec.html). _Command_ can be specified as ASCII string like "Q1", or HEX-string like 0x49 (I-command). 
+   - _fieldNumber_ the number of data field that must be found and returned. With _fieldNumber_ == 0 returns full answer string. If the field number is greater than the available, then use the data from the last field. Example: `zabbix_get -s 192.168.0.1 -k ups.megatec[2,3,"Q1", 6]` - get 6-th field from the UPS answer on "Status Inquiry" command.
 
-You can also download [templates](https://github.com/zbx-sadman/Zabbuino/tree/master/Zabbix_Templates) for Zabbix 2.4.x
+**Note #1** UPS must be connected to Arduino with RS232-TTL convertor (MAX232 IC). 
+**Note #2** _ups.megatec[]_ haven't tested on real hardware, user reports require.
+
+
+####19 Sep 2016
+
+Fixes:
+  - _PZEM004.*_ memory leak caused the system hang.
+
+New commands:
+ - _ups.apc.smart[rxPin, txPin, command]_ command return APC Smart UPS answer to _command_. 
+   - _rxPin_ SoftSerial's RX pin to which UPS's (over RS232 convertor) TX connected;
+   - _rxPin_ SoftSerial's TX pin to which UPS's (over RS232 convertor) RX connected;
+   - _command_ Smart UPS command, that can be found on [APC’s smart protocol page](http://networkupstools.org/protocols/apcsmart.html). _Command_ can be specified as ASCII string like "c", or HEX-string like 0x01 (^A - command). Example: `zabbix_get -s 192.168.0.1 -k ups.apcsmart[2,3,"n"]` - get UPS's serial number.
+
+**Note #1** UPS must be connected to Arduino with RS232-TTL convertor (MAX232 IC). 
+**Note #2** APC Smart UPS have non-standart pinout, use APC-branded cables.
+
+
+####14 Sep 2016
+
+Changes:
+  - _I2C.Read[]_ command have new optional parameter - _doDoubleReading_ . Some sensors/IC's (like PCF8591) returns the value of previous conversion and need to reply reading to get actual data. Now Zabbuino can ask for result twice if you specify _doDoubleReading_ parameter greater that 0. For example, to get _actual_ 1-byte data from ADC3 (AIN3 pin) of PCF8591: `I2C.Read[18,19,0x48,0x03,1,1]`.
+
+
+**Note** Zabbuino _I2C.Read[] /I2C.Write[]_ commands tested with PCF8591 module (YL-40). Reading & writing is sucessfull. For example, set voltage on PCF8591 AOUT pin to ~0.75\*VDD Volts ( 255\*0.75 => ~191 ): `zabbix_get -s 192.168.0.1 -k I2C.Write[18,19,0x48,0x40,191]`.
+
+####13 Sep 2016
+Changes:
+  - _I2C.Write[]_ command have new optional parameter. It's a _numBytes_ - how much bytes must be written to the register of I2C device. Example: _I2C.Write[18,19,0x62,0x40,2048,2]_ - send value 2048 in two byte to register 0x40 of MCP4725 DAC IC. If no _numBytes_ specified - _data_ cast to uint8_t and send in one byte;
+  - _PZEM004.*[]_ commands have new optional parameter: _ip_ . It's used only for authorization on energymeters with default ip other than 192.168.1.1 and not replaced PZEM's ip. Example: _PZEM004.voltage[5, 6, 0xC0A80001]_ - take voltage from PZEM004 that have 192.168.0.1 address;
+  - _PCF8574.LCDPrint[]_ allow to use ASCII-string as _data_ parameter. _data_ must be doublequoted, internal doublequote must be escaped with '\'. Supported control symbols '\t' - horizontal tabulation, '\n' - new line, and '\xHH' for using other symbols with HEX representation. 
+Example: `zabbix_get -s 192.168.0.1 -k 'PCF8574.LCDPrint[18,19,0x20,1,2002,"\x06\x01\x0FHello\n\tJust \"testing\""]'`
+    - _\x06_ - "Left to right" entry mode enable;
+    - _\x01_ - Clear display;
+    - _\x0F_ - Blinking block cursor on;
+    - _Hello_ - just the word;
+    - _\n\t_ - go to new line and make 'Tab';
+    - _Just \"testing\"_ - the phrase with doublequotes.
+  - _MAX7219.Write[]_ allow to use ASCII-string as _data_ parameter too. Its can be used on "MAX7219 8-Digit LED Display Module" from Aliexpress. Only next chars can be displayed: '0'..'9', '-', 'c', 'C', 'h', 'H', 'E', 'L', 'P', 'n', 'o', 'r', dot and space. Example: 
+`zabbix_get -s 192.168.0.1 -k MAX7219.write[4,5,6,5,"Co2 4851"]`
+
+**Note #1** Many LCD's have right codepage only for english chars. All national sythmbols images not mapped to the ASCII-table. You can use \xHH for its.
+**Note #2** MAX7219's ASCII-value feature haven't tested on real hardware.
+**Note #3** _I2C.Write[]_ have tested with PCF8574, and MCP4725 modules. All seems OK. Value of the "voltage" for MCP4725 (0...4095) must be multiplied by 16, because it's pushed in two bytes with left padding: D12.D11.D10.D09,D08,D07.D06.D05   D04.D03.D02.D01.X.X.X.X (X.X.X.X - unused bits).
+
+
+####08 Sep 2016
+Changes:
+  - New macro - _FEATURE\_NET\_USE\_MCUID_ . If its defined - ATMega's ID is used as Zabbuino's hostname, and the last byte of ATMega's ID is replace the last byte of default MAC/IP address.
+
+New commands:
+ - _pzem004.voltage[rxPin, txPin]_ command return voltage value that obtained from Peacefair PZEM-004 energy meter via TTL port;
+   - _rxPin_ SoftSerial's RX pin to which PZEM-004's TX connected;
+   - _rxPin_ SoftSerial's TX pin to which PZEM-004's RX connected;
+ - _pzem004.current[rxPin, txPin]_ command return PZEM-004's current value;
+ - _pzem004.power[rxPin, txPin]_ command return PZEM-004's power value;
+ - _pzem004.energy[rxPin, txPin]_ command return PZEM-004's energy value.
+
+**Note** For authorization on PZEM-004 hardcoded fixed default internal IP (192.168.1.1) is used at this time. It's haven't any relation to yours LAN IP.
+
+
+####05 Sep 2016
+Changes:
+ - New macro - _NETWORK\_MODULE_ . Now network interface's libs including depend of _NETWORK\_MODULE_ value. Its allow to recompile source code for various modules without headers #includes mass commenting/uncommenting.
+   Unfortunatly, oldest releases of Arduino IDE may throw error when that trik used and you must plug in headers by own hand. IDE v1.6.11 works correctly with NETWORK_MODULE macro;
+ - To _analogRead[]_ command added _mapToLow_ and _mapToHigh_ arguments to be called with _map(..., 0, 1023, mapToLow, mapToHigh)_ Arduino function. Example _analogRead[15,, 0, 8]_ equal to _map(analogRead(15), 0, 1023, 0, 8)_ ;
+
+Fixes:
+ - Zabbuino now tested on ATmega32u4-based boards (Arduino Micro, Leonardo). Small oddities in debugging with Serial exist at this moment, but basic functions performs well.
+
+
+New command:
+ - _sys.mcu.id_ command return ID of ATMega chip: http://www.avrfreaks.net/forum/unique-id-atmega328pb .
+
+
+####25 Aug 2016
+
+New commands:
+ - _WS2812.SendRaw[dataPin, data]_ - send data to WS2812 led stripe.
+   - _pwmPin_ - pin to which WS2812's DIN connected;
+   - _data_ - prefixed HEX-string that contain encoded color data. Every led color specify by group of six HEX-numbers - two number (one byte) for every color in GRB order. Number of HEX groups is equal to number of leds in stripe. [8 leds bar](https://ru.aliexpress.com/item/Free-Shipping-NeoPixel-Stick-8-channel-WS2812-5050-RGB-LED-lights-built-in-full-color-driven/32582877809.html) example: zabbix_get.exe -s 192.168.0.1 -k "ws2812.sendraw[5,0x00FF00 001100 0000FF 000011 FF0000 110000 003333 330033]" (max red, min red, max blue, min blue and etc.);
+
+**Note #1** Code was taken from [Adafruit's NeoPixel](https://github.com/adafruit/Adafruit_NeoPixel) library and handles 800 KHz bitstreams on 16 MHz ATmega MCUs only.
+
+**Note #2** The _shiftOut[]_ command can be temporary broken due bit-banging code refactored and not tested yet on real hardware. It's will be tested soon.
+**Note #2 update** The _shiftOut[]_ command has been tested and fixed.
+
+
+####15 Aug 2016
+
+**Zabbuino 1.0.0 released** 
+
+Work on Zabbuino 1.1.x is begin.
+
+####10 Aug 2016
+
+Fixes:
+- _BMP.*/BME.*_ commands sometime returns unexpectedly large value of BMP280/BME280 metrics.
+
+
+####29 Jul 2016
+
+New commands:
+- _IR.Send[pwmPin, irPacketType, nBits, data]_ - send command or data to IR-driven device (TV, Soundbar, etc);
+  - _pwmPin_ - pin to which IR-LED connected. It must be OC2B, due IRRemote code implemented;
+  - _irPacketType_ - transmitted data packet format, refer to _ir.ino_ ;
+  - _nBits_ - refer to IRRemote code comments;
+  - _data_ - command or other data, that must be transmitted to IR-driven device.
+
+- _IR.SendRaw[pwmPin, irFrequency, nBits, data]_ - send RAW bit stream to IR-driven device;
+  - _pwmPin_ - pin to which IR-LED connected. It must be OC2B, due IRRemote code implemented;
+  - _irFrequency_ - IR-LED's frequency;
+  - _nBits_ - refer to IRRemote code comments;
+  - _data_ - HEX-string (with _0x_ prefix) that represent IRRemote RAW-data array. Every IRRemote array item must be encode to four-HEX substring (for example: 509 => 01FD). Take in account, that you need to increase ARGS_PART_SIZE.
+
+**Note #1** _IR.*_ commands not tested at all, because i haven't TV's of all vendors ;)
+
+
+####27 Jul 2016
+
+Fixes:
+- _bme.*_/_bmp.*_ commands show previous measured metric values instead actual data (default behavior for _BMP280/BME280 forced mode_);
+
+
+####19 Jul 2016
+
+Changes:
+- _pc8574.write_ command code moved to  _i2c.write_ ;
+- _pc8574.LCDPrint_ command renamed to _pc**f**8574.LCDPrint_ (just my inattention caused error in chip name);
+- _pcf8574.LCDPrint_ have new function. When no data specified, the command toggle backlight in accordance with the value of _lcdBacklight_ option.
+
+New commands:
+- _I2C.Write[sdaPin, sclPin, i2cAddress, register, data]_ - write data (one byte) to the register of I2C device.
+  - _sdaPin, sclPin_ - I2C pins;
+  - _i2cAddress_ - address of I2C device. It can be found with _I2C.scan[]_ command;
+  - _register_ - register, which must be written (optional);
+  - _data_ - one byte data to expander write.
+- _I2C.Read[sdaPin, sclPin, i2cAddress, register, bytes]_ - read the value with _bytes_ lenght from the register of I2C device;
+  - _sdaPin, sclPin_ - I2C pins;
+  - _i2cAddress_ - address of I2C device. It can be found with _I2C.scan[]_ command;
+  - _register_ - register, which must be read (optional);
+  - _bytes_ - how many bytes need to read (1 .. 4, uint8_t .. uint32_t).
+- _I2C.BitWrite[sdaPin, sclPin, i2cAddress, register, bitNumber, value]_ - write _value_ to  _bitNumber_ of I2C device's register;
+  - _sdaPin, sclPin_ - I2C pins;
+  - _i2cAddress_ - address of I2C device. It can be found with _I2C.scan[]_ command;
+  - _register_ - register, which must be written (optional);
+  - _bitNumber_ - bit, which must be written (0 .. 7);
+  - _value_ - 1 or 0.
+- _I2C.BitRead[sdaPin, sclPin, i2cAddress, register, bitNumber]_ - read _value_ from  _bitNumber_ of I2C device's register;
+  - _sdaPin, sclPin_ - I2C pins;
+  - _i2cAddress_ - address of I2C device. It can be found with _I2C.scan[]_ command;
+  - _register_ - register, which must be read (optional);
+  - _bitNumber_ - bit, which must be read (0 .. 7).
+
+**Note #1** Set of I2C.* commands allow to handle most of simple I2C devices - PCF8574/PCF8574A expanders, MCP4018T digital linear potentiometer, and etc.
+
+**Note #2** Some I2C devices havent registers (PCF8574 expander for example). Just skip value of _register_ option when work with it.
+
+####15 Jul 2016
+New commands:
+- _ultrasonic.distance[triggerPin, echoPin]_ - returns from obtained HC-SR04 module distance (in **mm**) to the object.
+  - _triggerPin_ - pin to which HC-SR04 "Trig" connected;
+  - _echoPin_ - pin to which HC-SR04 "Echo" connected;
+
+- _pc8574.write[sdaPin, sclPin, i2cAddress, data]_ - write data (one byte) to PC8574/PC8574A I2C expander. 
+  - _sdaPin, sclPin_ - I2C pins;
+  - _i2cAddress_ - address of PC8574/PC8574A expander. It can be found with _I2C.scan[]_ command;
+  - _data_ - one byte data to expander write.
+
+**Note #1** - _ultrasonic.distance_ returns 6551 if the object out of distance range (too close or too far).
+ 
+
+####13 Jul 2016
+Changes:
+- Programm features section moved to zabbuino.h for code reorganization to reducing firmware size;
+- AnalogReference() related functions disabled until FEATURE_AREF_ENABLE defined. It must prevent MCU damage (see AREF pin connect recommendation).
+
+New commands:
+- _acs7xx.zc[sensorPin, refVoltage]_ - returns Arduino ADC's "zero point". ACS7xx sensor's load must be disconnected before command using.
+  - _sensorPin_ - pin (analog) to which ACS7xx sensor's output is connected;
+  - _refVoltage_ - reference voltage settings. Can be an number that defined as DEFAULT for Arduino's _analogReference()_ function on your platform, or voltage value (in mVolts) on AREF pin (please read all notes about AREF pin using).
+- _acs7xx.dc[sensorPin, refVoltage, sensitivity, zeroPoint]_ - returns current for DC. 
+  - _sensorPin_ - pin (analog) to which ACS7xx sensor's output is connected;
+  - _refVoltage_ - reference voltage settings. Refer to _acs7xx.zc[]_ command description;
+  - _sensitivity_ - sensitivity of used sensor in A/mV. For example - 185 for ACS712-05A or 66 for ACS712-30A. Refer to sensor datasheet;
+  - _zeroPoint_ - Arduino ADC's "zero point". For example - 511. It can be found with _acs7xx.zc[]_ command.
+
+**Note #1** - _acs7xx.ac_ presently not ready to use.
+ 
+**Note #2** - The value that measured by _acs7xx.*_  can have large error (may be 5% or more) due to Arduino's circuit design (unstable internal reference voltage, noisy ADC and so) and _acs7xx_ noise (21mv / 0.11A for ACS712-05) exists. To get better results you can try to use external reference voltage on [AREF pin](http://www.skillbank.co.uk/arduino/measure.htm).
+
+####12 Jul 2016
+
+Fixes:
+- DHT reading unstability (see note #1);
+- _BH1750.light_ command. It tested on real hardware and works now;
+
+Changes:
+- _BMP.*_ commands supports BMP280 sensor now;
+- New option for _BMP.Temperature_ command if BMP280/BME280 used: _overSampling_ => _BMP.Temperature[sdaPin, sclPin, i2cAddress, overSampling]_. For more details refer to BMP280 datasheet, section "3.4 Filter selection";
+- New option for _BMP.Pressure_ command if BMP280/BME280 used: _filterCoef_ => _BMP.Pressure[sdaPin, sclPin, i2cAddress, overSampling, filterCoef]_. For more details refer to BMP280 datasheet, section "3.3.3 IIR filter".
+
+New commands:
+- _BME.Humidity[sdaPin, sclPin, i2cAddress, overSampling, filterCoef]_ - returns humidity value, obtained from BME280 (equal BMP280 + Humidity) sensor.
+  - _sdaPin, sclPin_ - I2C pins;
+  - _i2cAddress_ - address of BME280 sensor. It can be found with _I2C.scan[]_ command;
+  - _overSampling_ - hardware sampling accuracy modes, refer to BMP280 datasheet, section "3.4 Filter selection";
+  - _filterCoef_ - IIR filter setting, refer to BMP280 datasheet, section "3.3.3 IIR filter".
+- _SHT2x.Humidity[sdaPin, sclPin, i2cAddress]_ - returns humidity value, obtained from SHT2x sensor;
+- _SHT2x.Temperature[sdaPin, sclPin, i2cAddress]_ - returns temperature value, obtained from SHT2x sensor;
+
+**Note #1** DHT sensor have limit to readings frequency. Its a 1kHz (1 reading / sec). Because of this a little delay implemented to function. It stops the process until the one second expitre since the last time reading. If Zabbix put so close into poller queue requests to DHT sensor, Zabbuino slowed the output of the results, because it will execute commands in sequence and every time will stops for a little time (~0.5 .. 0.7 sec). 	
+Therefore need to specify Data Item's update interval to distribute polls on timeline with more that 1 sec gaps. For example: _DHT.Humidity_ - 60 sec, _DHT.Temperature_ - 57 sec. **Warning!** All connected to Zabbuino DHT's have the same delay counter and polls must be distributed on timeline together.
+
+
+**Note #2** _SHT2x.*_ commands tested on SHT21 module (SI7021 chip).
+
+
+####09 Jul 2016
+
+Unfortunately, i've found that DHT-functions of Zabbuino works unstable on long time testing and can hang up the system. I keep on to seek a solution.
+
+####08 Jul 2016
+
+Fixes:
+- Reboot on incoming data buffer overflow;
+
+Changes:
+- DHT functions was reworked, part of DHTlib source code is used. Now DHT33 & DHT44 is supported.
+
+New commands:
+- _pc8574.LCDPrint[sdaPin, sclPin, i2cAddress, lcdBacklight, lcdType, data]_ - this command print text that extracted from _data_ to character HD44780-based LCD, connected to I2C via PC8574 expander.
+  - _sdaPin, sclPin_ - I2C pins;
+  - _i2cAddress_ - address of PC8574 expander. It can be found with _I2C.scan[]_ command;
+  - _lcdBacklight_ - LCD backlight mode. 0 - off, other - on;
+  - _lcdType_ - type of LCD: 801, 1601, 802, 1202, 1602, 2002, 2402, 4002, 1604, 2004, 4004;
+  - _data_ - HEX-coded string that contain text and display commands. It must begin with _0x_ prefix. Use [http://www.asciitohex.com](http://www.asciitohex.com/) to recode yours text or write small perl script.
+- _pc8574.LCDBLight[sdaPin, sclPin, i2cAddress, lcdBacklight]_ - set LCD backlight mode. _lcdBacklight_ => 0 - off, other - on. Command can be abolished in future;
+
+**Note** You must increase _ARGS_PART_SIZE_ in _zabbuino.h_  if full text want to see on display ;)
+
+Supported display HD44780-compatible commands:
+
+- _0x00_ - turn display off. Need to send any other command to turn display on;
+- _0x01_ - clear screen;
+- _0x02_ - go to home (move cursor to top/left character position);
+- _0x04_ - print from right to left (look to animated gifs on [http://www.dinceraydin.com/lcd/commands.htm)](http://www.dinceraydin.com/lcd/commands.htm);
+- _0x05_ - print from right to left with screen shifting;
+- _0x06_ - print from left to right;
+- _0x07_ - print from left to right with screen shifting;
+- _0x08_ - blank the screen (without clearing);
+- _0x0C_ - turn cursor off;
+- _0x0E_ - turn on "underline" cursor;
+- _0x0F_ - turn on "blinking block" cursor;
+- _0x10_ - move cursor one char left;
+- _0x14_ - move cursor one char right;
+- _0x18_ - shift screen to left;
+- _0x1E_ - shift screen to right.
+
+Additional display commands:
+- _0x03_ - blink by backlight twice;
+- _0x09_ - print four spaces (simply "tab");
+- _0x0A_ - line feed, go to newline, position 0;
+- _0x80..0x9F_ - set cursor to _(N - 0x80)_ position. I.e. _0x80_ - position 0 (first char), _0x81_ - position 1 (second char), and so;
+
+
+Example:
+
+
+Print on LCD of 2002 type with turned backlight, that connected via expander with I2C address 0x27:
+
+    zabbix_get.exe -s 192.168.0.1 -k "pc8574.lcdprint[18,19,0x27,1,2002,0x01 93 04 48 65 6c 6c 6f]"
+
+    0x 01             93                    04                            48 65 6c 6c 6f
+       clear screen   from 20-th position   from the right to the left    H  e  l  l  o
+
+    zabbix_get.exe -s 192.168.0.1 -k "pc8574.lcdprint[18,19,0x27,1,2002,0x01 0F 48 65 0A 6c 09 6c 6f]"
+
+    0x 01              0F                    48 65 0A          6c   09           6c 6f
+       clear screen    turn "block" cursor   H  e  line feed   l    four space   l  o
+
+**Note #1** I'm not sure about correct work of _XX04_ displays. It should be tested, but i haven't hardware.
+
+**Note #2** BMP280 sensor support is added, but not tested yet. I just wait for sensors pack;
+
+####01 Jul 2016
+
+New command:
+- _incEnc.count[terminalAPin, terminalBPin, intNumber, initialValue]_ - this command allow to get signed long counter, that was increased and decreased by incremental encoder (tested on mechanical EC12E24204A9) that connected to pin which mapped to interrupt.
+  - _terminalAPin_ - which pin used to connect first encoder terminal and catching interrupt (refer to https://www.arduino.cc/en/Reference/AttachInterrupt);
+  - _terminalBPin_ - which pin used to connect second encoder terminal;
+  - _intNumber_ - not used at this time, reserved for future;
+  - _initialValue_ - defines initial counter value. 
+
+**Note #1** You can reverse encoder's "incrementing" direction - just connect wire on _terminalAPin_ to encoder's terminal B and wire on _terminalBPin_ to encoder's terminal A.
+
+**Note #2** Code of interrupt's handling not yet optimized and can be buggy.
+
+Testings:
+ - _extInt.count_ command tested on tilt switch SW-520D (CHANGE mode) and PIR-sensor HC-SR501 (RISING mode). All events registred well by counter.
+
+
+
+####30 Jun 2016
+
+Fixes:
+- _extInt.count_ always attached with LOW mode. Silly typo;
+- float numbers in return values had unnecessary zeros after the decimal point.
+
+Changes:
+- _analogReferenceSource_ optional parameter added to _analogRead_ command. Now, if _analogReferenceSource_ specified, Zabbuino set source of the reference voltage before read from analog pin;
+- _duration_ parameter in _tone_ command now optional. If its not specified - tone generation can be stopped only with _noTone_ command. May be its evil, don't know;
+- _value_ parameter in _randomSeed_ command now optional. If its not specified - the pseudo-random number generator is initializes by _millis()_;
+- _min_ parameter in _random_ command now optional. If only one parameter in command _random_ is specified - called Arduino's _random(max)_ to get next number;
+
+[Russian manual](https://github.com/zbx-sadman/Zabbuino/wiki/Zabbuino-in-Russian) is almost finished, [English manual](https://github.com/zbx-sadman/Zabbuino/wiki/Zabbuino-in-English) partially translated using Google translator.
+
+
+####27 Jun 2016
+
+New command:
+- _MAX7219.write[dataPin, clockPin, loadPin, intensity, value]_ - draw on 8x8 led matrix which connected to MAX7219. You can change _intensity_ (0..15) and send _value_ as HEX string to switch on leds in line. Every two HEX char specify one line leds state. For example - _0x6666001818817E00_ will draw smile.
+
+For example - you can use _MAX7219.write[]_ to indicate via Zabbix Action (Operation type: Remote command && Execute on: Zabbix Server && a little shell script) your's Zabbix server mood - a smiling or sad. Also, with using Zabbix API yo can get number of triggers with various severety and draw a hystogram. Or send mystic sign to display in the remote VPN'ed office. Or do something more fun.
+
+Example scripts: 
+- [send smiled robot's face if no active triggers exist and sad robot's face if any trigger active](https://github.com/zbx-sadman/Zabbuino/tree/master/v1.0.0_pre-release/examples/smileWithZabbuino.sh)
+- [draw hystogram that represent on led matrix the number of active triggers](https://github.com/zbx-sadman/Zabbuino/tree/master/v1.0.0_pre-release/examples/sendHystogrammToZabbuino.pl)
+
+
+####26 Jun 2016
+
+At first words: command names is not case sensitive, you can write them in your own style (_SyS.CmDCouNT_, for example).
+
+Fixes:
+- _BMP.Pressure[]_ command can be hang up system. 
+- "millis() overflow after 50 days runtime" case now is handled well. 
+
+Changes:
+- Some commands is reorganized to achieve a more structured: 
+  - _sys.CmdCount_ -> _sys.cmd.count_;
+  - _sys.CPUname_  -> _sys.MCU.name_;
+  - _sys.NetModule_ -> _sys.net.module_;
+  - _sys.FreeRAM_ -> _sys.RAM.free_;
+  - _interrupt.count_ -> _extInt.count_;
+  - _DS18x20.Search_ -> _OW.scan_;
+  - _sethostname_ -> _set.hostname_; 
+  - _setnetwork_ -> _set.network_; 
+  - _setpassword_ -> _set.password_; 
+  - _setprotection_ -> _set.sysprotect_
+- _OW.scan_ (was _DS18x20.Search_) now return list of Devices ID's (first found ID was returned early), which have been found on specified by _pin_ OneWire bus;
+- _sys.RAM.free_ now gather periodically (~ every 2 sec) like _sys.VCC[]_ metrics;
+
+New commands:
+- _sys.RAM.freeMin_ - minimal size of "RAM" (free space between the data area and stack: .DATA => | free RAM | <= .STACK ), registred since device is powered on. Gather at the same time with _sys.RAM.free_ metric;
+- _sys.cmd.timeMax_ - maximal time of command execution in _ms_. Exclude network library and Zabbix key parsing overheads.
+
+Improvements:
+- Now you can use more blinks to runtime stage (refer to source code, please) indication. Just uncomment _#define ADVANCED_BLINKING_ in _zabbuino.h_
+
+*Note* To avoid gaps on Zabbix graphs try to increase _Timeout_ directive in _zabbix_server.conf_. Try 10 sec for example. Or you can decrease number of Data Items. Choose one or both.
+
+So, you can import [zabbuino.xml](https://github.com/zbx-sadman/Zabbuino/tree/master/v1.0.0_pre-release/zabbuino.xml) to your Zabbix Server (v2.4 min) to see Data Items examples.
+
+####17 Jun 2016
+
+Changes:
+- System (internal) metrics (like _sys.vccmin_ / _sys.vccmax_ ) gathering process can be use timer interrupt instead calling sub on every loop. I think this will help to get more reliable results of VCC rising/falling (for example) with sensors that have long-time conversion (like DS18x20). So, that feature may be do system unstable when PWM is used (with _analogWrite[]_ command);
+- Code reorganized;
+
+New command:
+- _interrupt.count[intPin, intNumber, mode]_. This command allow to get unsigned long counter, that was incremented by external interrupt. It's can be used in DYI anemometer projects, for example. On first (after power on) call of _interrupt.count_ command _intPin_ will be switched to INPUT_PULLUP mode and attached to interrupt. On next call number of rising/failing/changing will be returned. If _mode_ is changed for _intPin_, that already used by interrupt - counter will be reset and interrupt will be reattached on new _mode_;
+  - _intPin_ - which pin used to interrupt catching. For ATMega328p this can be 2 or 3 (refer to https://www.arduino.cc/en/Reference/AttachInterrupt );
+  - _intNumber_ - not used at this time, reserved for future;
+  - _mode_ - defines when the interrupt should be triggered. Four constants are predefined as valid values: 0 - LOW, 1 - CHANGE, 2 - FALLING, 3 - RISING
+
+I'm not sure that _interrupt.count_ will be run stable and properly, due not test it in production, but i hope for it.
+
+**Note #1** You can get unexpected growing of _interrupt.count_ value. It's can be 'button bounce' or 'bad electrical contact' problem.
+
+
+####15 Jun 2016
+
+Changes:
+- _agent.cmdcount_ renamed to _sys.cmdcount_, because original Zabbix agent haven't _agent.cmdcount_ command;
+- numeric arguments can be digital, hexadecimal (C++ _strtoul()_ function was used now for converting); 
+- To I2C-sensor-related commands added _I2CAddress_ argument. That need for 2-addresses devices like BH1750. Now _BMP's_ commands is: 
+  - _BMP.Temperature[sdaPin, sclPin, i2cAddress]_; 
+  - _BMP.Pressure[sdaPin, sclPin, i2cAddress, overSampling]_,
+
+New commands:
+- _bh1750.light[sdaPin, sclPin, i2cAddress, mode]_ - return light intensity in _lux_. 
+  - i2cAddress: 0x23 or 0x5C; 
+  - mode: 0x20 - ONE_TIME_HIGH_RES_MODE, 0x21 - ONE_TIME_HIGH_RES_MODE_2, 0x23 - ONE_TIME_LOW_RES_MODE (refer to datasheet for more details);  
+- _i2c.scan[sdaPin, sclPin]_ - return addresses of devices that will be found on I2C bus; 
+- _sys.netmodule_ - return netmodule name, that depends on #included library: _W5xxx_ or _ENC28J60_. 
+
+**Note #1** _bh1750.light_  do not tested with real hardware.
+
+####13 Jun 2016
+
+Seems that no dirty hacks with ENC28J60 need. UIPEthernet library have https://github.com/ntruchsess/arduino_uip/tree/fix_errata12 brahch. Its newer that _master_-branch and fix some freezes (may be all?).
+
+Fixes:
+- _analogRead[]_ command work was blocked by measureVoltage procedure.
+
+New commands:
+- _sys.uptime_ - system working time since power on.
+
+####10 Jun 2016
+
+I this time i make test with only W5100 Ethernet Shield only. ENC28J60 testing coming soon. Detailing source code commenting coming soon too.
+
+*UPD:* So, i was upload sketch to second Arduino: Mini Pro + ENC28J60 and make stress test with  _hping3 --flood <ipaddr>_. ENC stops responding to _zabbix\_get_ and another _ping_ session (non-flood). Soon the ENC was re-inited by Zabbuino, non-flood _ping_ and and _zabbix\_get_ works was restored. 
+
+Improvements:
+- Network concurrent connections problem fixed. 4 Zabbix item's with 10 sec polling period works good;
+- More RAM is free. More Flash is used.
+
+New features:
+- Loading and saving network settings (and several other) to EEPROM for remote configuring and changing settings without re-flashing sketch;
+- Factory reset button can be connected directly to pins (internal pull-up resistor is used);
+- AVR Watchdog support;
+- DHCP support;
+- Do periodical ENC28J60 init() if no network activity for some time. This action may helps to kick ENC28J60 if that no answer. May be. I hope for it.
+
+New commands:
+- _sys.cpuname_ - controller name if known;
+- _sys.vcc_ - current VCC (mV);
+- _sys.vccmin_ - minimal VCC (mV) for power on time. Gather periodically (~ every  2 sec);
+- _sys.vccmax_ - maximal VCC (mV) for power on time. -"-"- ;
+- _sethostname[password, hostname]_ - Set and store to EEPROM set new hostname;
+- _setpassword[oldPassword, newPassword]_ - Set and store to EEPROM new password;
+- _setprotection[password, protection]_ - Store to EEPROM enable / disable password protection flag for _set\*_ and _reboot_ commands;
+- _setnetwork[password, useDHCP, macAddress, ipAddress, ipNetmask, ipGateway]_ - Store to EEPROM new network settings. macAddress, ipAddress, ipNetmask, ipGateway is hex-strings. Use http://www.miniwebtool.com/ip-address-to-hex-converter/ to converting from decimal format. Changing useDHCP on fly may be buggy at this time. Need _reboot_ to apply;
+- _reboot[password]_ - soft-reboot (_asm: jmp 0_);
+- _delay[value]_ - Arduino _delay()_ wrapper;
+- _DS18x20.Search[pin]_ - Call OneWire search for Dallas devices, connected to _pin_;
+
+
+May be something else...

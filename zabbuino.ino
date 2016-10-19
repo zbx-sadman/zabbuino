@@ -1,90 +1,56 @@
+  
 // My Freeduino is not listed in platforms.h, but is analogue to ARDUINO_AVR_DUEMILANOVE
-//#define ARDUINO_AVR_DUEMILANOVE
+#define ARDUINO_AVR_DUEMILANOVE
 
-// Just for compilation with various default network configs
+// Just for compilation with various default network configs, real address/gw/et switching is making in "zabbuino.h" file
 //#define USE_NETWORK_192_168_0_0
 
 /* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
-                                                             !!! WizNet W5xxx users !!!
-
-    1. Comment #include <UIPEthernet.h>
-    2. Uncomment #include <Ethernet.h> and <SPI.h> headers
+                                                                 HEADERS SECTION
 */
-#include <Ethernet.h>
-#include <SPI.h>
+#include "zabbuino.h"
+#include "src/defaults.h"
 
-/* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
-                                                                !!! ENC28J60 users !!!
-
-    0. Please try to use https://github.com/ntruchsess/arduino_uip/tree/fix_errata12 brahch of UIPEthernet if your ENC28J60 freeze or loose connection.
-    
-    1. Comment #include <Ethernet.h> and <SPI.h> headers
-    2. Uncomment #include <UIPEthernet.h> 
-    
-    Tested on UIPEthernet v1.09
-    
-    When UIPEthernet's fix_errata12 brahch did not help to add stability, you can buy W5100 shield.
-    Also u can try uncomment USE_DIRTY_HACK_AND_REBOOT_ENC28J60_IF_ITS_SEEMS_FREEZE declaration (then ENC will be periodically re-intit if EIR.TXERIF and EIR.RXERIF is 1), 
-    but you eed to do one change in UIPEthernet\utility\Enc28J60Network.h :
-         private:
-            ...    
-            static uint8_t readReg(uint8_t address);  // << move its to __public__ section
-            ...
-             
-         public: 
-             ...
-
-*/
-//#include <UIPEthernet.h>
-//#define USE_DIRTY_HACK_AND_REBOOT_ENC28J60_IF_ITS_SEEMS_FREEZE
-
+#include "src/adc.h"
+#include "src/dht.h"
+#include "src/eeprom.h"
+#include "src/ir.h"
+#include "src/service.h"
+#include "src/system.h"
+#include "src/ultrasonic.h"
+#include "src/shiftout.h"
+#include "src/io_regs.h"
+#include "src/interrupts.h"
+#include "src/busI2C.h"
+#include "src/busMicrowire.h"
+#include "src/busOneWire.h"
+#include "src/busUART.h"
 
 /* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
                                                                  PROGRAMM FEATURES SECTION
-                                                                        MOVED  TO
-                                                                        zabuino.h
                    
-                Please refer to the zabbuino.h file for enabling or disabling Zabbuino's features  and tuning (like set State LED pin, network addresses, agent hostname and so)
-
-        if connected sensors seems not work - first check setting in port_protect[], port_mode[], port_pullup[] arrays in I/O PORTS SETTING SECTION
-
+   Please refer to the "zabbuino.h" file for enabling or disabling Zabbuino's features and "src/defaults.h" to deep tuning.
+   if connected sensors seems not work - first check setting in port_protect[], port_mode[], port_pullup[] arrays in I/O PORTS SETTING SECTION of "src/defaults.h" file
 */
-
-
-#include "zabbuino.h"
-
-// Wire lib for I2C sensors
-#include <Wire.h>
-// OneWire lib for Dallas sensors
-#include <OneWire.h>
-#include <EEPROM.h>
-#include <avr/pgmspace.h>
-#include <avr/wdt.h>
-// used by interrupts-related macroses
-#include <wiring_private.h>
 
 /* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
                                                                  GLOBAL VARIABLES SECTION
 */
 
-netconfig_t netConfig;
+netconfig_t* netConfig;
+
 #if defined(FEATURE_EXTERNAL_INTERRUPT_ENABLE) || defined(FEATURE_INCREMENTAL_ENCODER_ENABLE)
-// need to #include <wiring_private.h> for compilation
-volatile extInterrupt_t extInterrupt[EXTERNAL_NUM_INTERRUPTS];
+// EXTERNAL_NUM_INTERRUPTS its a macro from <wiring_private.h>
+volatile extInterrupt_t* extInterrupt;
 #endif
 
-#ifdef FEATURE_IR_ENABLE
-uint8_t irPWMPin;
-#endif
 
 EthernetServer ethServer(10050);
 EthernetClient ethClient;
 
 char cBuffer[BUFFER_SIZE+1]; // +1 for trailing \0
-int16_t argOffset[ARGS_MAX];
-int32_t sysMetrics[IDX_METRICS_MAX];
-// skipMetricGathering used in interrupt's subroutine - must be `volatile` 
-volatile uint8_t skipMetricGathering = false;
+int32_t *sysMetrics;
+
 
 /* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
                                                                       STARTUP SECTION
@@ -92,6 +58,10 @@ volatile uint8_t skipMetricGathering = false;
 
 void setup() {
   uint8_t i;
+  netConfig = new netconfig_t;
+
+  pinMode(PIN_FACTORY_RESET, INPUT_PULLUP);
+  pinMode(PIN_STATE_LED, OUTPUT);
 
 #ifdef ADVANCED_BLINKING
   // blink on start
@@ -99,13 +69,40 @@ void setup() {
 #endif
 
   // Init metrics
+  sysMetrics = new int32_t[IDX_METRICS_MAX];
   sysMetrics[IDX_METRIC_SYS_VCCMIN] = sysMetrics[IDX_METRIC_SYS_VCCMAX] = getADCVoltage(ANALOG_CHAN_VBG);
   sysMetrics[IDX_METRIC_SYS_RAM_FREE] = sysMetrics[IDX_METRIC_SYS_RAM_FREEMIN] = (int32_t) getRamFree();
   sysMetrics[IDX_METRIC_SYS_CMD_COUNT] = sysMetrics[IDX_METRIC_SYS_CMD_TIMEMAX] = 0;
   
-#ifdef FEATURE_DEBUG_TO_SERIAL
+#if defined (FEATURE_DEBUG_TO_SERIAL) || defined (FEATURE_SERIAL_LISTEN_TOO)
   Serial.begin(9600);
-  while (!Serial);             // Leonardo: wait for serial monitor
+#ifdef FEATURE_DEBUG_TO_SERIAL
+     SerialPrintln_P(PSTR("Zabbuino waked up"));
+#endif
+//  uint32_t startSerial = millis();
+
+/*
+On ATMega32u4 (may be breadboard and dupont wires is bad)
+
+wait for serial with timeout: 
+64 bytes from 172.16.100.226: icmp_req=382 ttl=64 time=755 ms
+64 bytes from 172.16.100.226: icmp_req=383 ttl=64 time=1076 ms
+...
+64 bytes from 172.16.100.226: icmp_req=389 ttl=64 time=1270 ms
+64 bytes from 172.16.100.226: icmp_req=390 ttl=64 time=1104 ms
+
+no wait for serial: 
+64 bytes from 172.16.100.226: icmp_req=400 ttl=64 time=1.29 ms
+64 bytes from 172.16.100.226: icmp_req=401 ttl=64 time=1.25 ms
+...
+64 bytes from 172.16.100.226: icmp_req=407 ttl=64 time=1.25 ms
+64 bytes from 172.16.100.226: icmp_req=408 ttl=64 time=1.27 ms
+
+So... no debug with Serial Monitor at this time
+*/
+//  while (!Serial && (SERIAL_WAIT_TIMEOUT < (millis() - startSerial) )) {;}   // Leonardo: wait for serial monitor a little bit
+//  while (!Serial);   // Leonardo: wait for serial monitor a little bit
+
 #endif
 
 #ifdef FEATURE_EEPROM_ENABLE
@@ -115,21 +112,28 @@ void setup() {
    -=-=-=-=-=-=-=-=-=-=-=- */
 
   // Set mode of PIN_FACTORY_RESET and turn on internal pull resistor
-  pinMode(PIN_STATE_LED, OUTPUT);
   digitalWrite(PIN_STATE_LED, LOW);
-  pinMode(PIN_FACTORY_RESET, INPUT_PULLUP);
   // Check for PIN_FACTORY_RESET shorting to ground?
   // (when pulled INPUT pin shorted to GND - digitalRead() return LOW)
   if (LOW == digitalRead(PIN_FACTORY_RESET)){
+#ifdef FEATURE_DEBUG_TO_SERIAL
+     SerialPrintln_P(PSTR("The factory reset button is pressed"));
+#endif
     // Fire up state LED
     digitalWrite(PIN_STATE_LED, HIGH);
     // Wait some msecs
     delay(HOLD_TIME_TO_FACTORY_RESET);
     // PIN_FACTORY_RESET still shorted?
     if (LOW == digitalRead(PIN_FACTORY_RESET)){
+#ifdef FEATURE_DEBUG_TO_SERIAL
+     SerialPrintln_P(PSTR("Rewrite EEPROM with defaults..."));
+#endif
        setConfigDefaults(netConfig);
-       saveConfigToEEPROM(&netConfig);
+       saveConfigToEEPROM(netConfig);
        // Blink fast while PIN_FACTORY_RESET shorted to GND
+#ifdef FEATURE_DEBUG_TO_SERIAL
+     SerialPrintln_P(PSTR("Done. Release the factory reset button"));
+#endif
        while (LOW == digitalRead(PIN_FACTORY_RESET)) {
           digitalWrite(PIN_STATE_LED, millis() % 100 < 50);
       }
@@ -144,10 +148,10 @@ void setup() {
   SerialPrintln_P(PSTR("Load configuration from EEPROM"));
 #endif
   // Try to load configuration from EEPROM
-  if (false == loadConfigFromEEPROM(&netConfig)) {
+  if (false == loadConfigFromEEPROM(netConfig)) {
      // bad CRC detected, use default values for this run
      setConfigDefaults(netConfig);
-     saveConfigToEEPROM(&netConfig);
+     saveConfigToEEPROM(netConfig);
   }
 #else // FEATURE_EEPROM_ENABLE
 #ifdef FEATURE_DEBUG_TO_SERIAL
@@ -158,55 +162,55 @@ void setup() {
 #endif // FEATURE_EEPROM_ENABLE
 
 #ifdef FEATURE_NET_DHCP_FORCE
-     netConfig.useDHCP = true;
+     netConfig->useDHCP = true;
 #endif
-
 
 /* -=-=-=-=-=-=-=-=-=-=-=-
     NETWORK START BLOCK
    -=-=-=-=-=-=-=-=-=-=-=- */
 #ifdef FEATURE_NET_DHCP_ENABLE
   // User want to use DHCP with Zabbuino?
-  if (true == netConfig.useDHCP) {
+  if (true == netConfig->useDHCP) {
 #ifdef FEATURE_DEBUG_TO_SERIAL
      SerialPrintln_P(PSTR("Obtaining address from DHCP..."));
 #endif
        // Try to ask DHCP server
-      if (0 == Ethernet.begin(netConfig.macAddress)) {
+      if (0 == Ethernet.begin(netConfig->macAddress)) {
 #ifdef FEATURE_DEBUG_TO_SERIAL
          SerialPrintln_P(PSTR("No successfully"));
 #endif
          // No offer recieved - switch off DHCP feature for that session
-         netConfig.useDHCP = false;
+         netConfig->useDHCP = false;
       }
   }
 #else // FEATURE_NET_DHCP_ENABLE
-  netConfig.useDHCP=false;
+  netConfig->useDHCP=false;
 #endif // FEATURE_NET_DHCP_ENABLE
 
   // No DHCP offer recieved or no DHCP need - start with stored/default IP config
-  if (false == netConfig.useDHCP) {
+  if (false == netConfig->useDHCP) {
 #ifdef FEATURE_DEBUG_TO_SERIAL
      SerialPrintln_P(PSTR("Use static IP"));
 #endif
      // That overloaded .begin() function return nothing
-     Ethernet.begin(netConfig.macAddress, netConfig.ipAddress, netConfig.ipNetmask, netConfig.ipGateway);
+     // Second netConfig->ipAddress used as dns-address
+     Ethernet.begin(netConfig->macAddress, netConfig->ipAddress, netConfig->ipAddress, netConfig->ipGateway, netConfig->ipNetmask);
   }
   
 #ifdef FEATURE_DEBUG_TO_SERIAL
   SerialPrintln_P(PSTR("Begin internetworking"));
-  SerialPrint_P(PSTR("MAC     : ")); printArray(netConfig.macAddress, sizeof(netConfig.macAddress), DBG_PRINT_AS_MAC);
-  SerialPrint_P(PSTR("Hostname: ")); Serial.println(netConfig.hostname);
+  SerialPrint_P(PSTR("MAC     : ")); printArray(netConfig->macAddress, sizeof(netConfig->macAddress), DBG_PRINT_AS_MAC);
+  SerialPrint_P(PSTR("Hostname: ")); Serial.println(netConfig->hostname);
   SerialPrint_P(PSTR("IP      : ")); Serial.println(Ethernet.localIP());
   SerialPrint_P(PSTR("Subnet  : ")); Serial.println(Ethernet.subnetMask());
   SerialPrint_P(PSTR("Gateway : ")); Serial.println(Ethernet.gatewayIP());
-  SerialPrint_P(PSTR("Password: ")); Serial.println(netConfig.password, DEC);
+  SerialPrint_P(PSTR("Password: ")); Serial.println(netConfig->password, DEC);
   // This codeblock is compiled if UIPethernet.h is included
 #ifdef UIPETHERNET_H
   SerialPrint_P(PSTR("ENC28J60: rev ")); Serial.println(Enc28J60.getrev());
 #endif
 
-  //netConfig.ipGateway.printTo(Serial);
+  //netConfig->ipGateway.printTo(Serial);
 #endif
 
   // Start listen sockets
@@ -222,17 +226,19 @@ void setup() {
   }
 
 #if defined(FEATURE_EXTERNAL_INTERRUPT_ENABLE) || defined(FEATURE_INCREMENTAL_ENCODER_ENABLE)
+  extInterrupt = new extInterrupt_t[EXTERNAL_NUM_INTERRUPTS];
   // Init external interrupts info structure
   for (i = 0; i < EXTERNAL_NUM_INTERRUPTS; i++) { 
     // -1 - interrupt is detached
     // just use NOT_AN_INTERRUPT = -1 macro from Arduino.h
     extInterrupt[i].mode = NOT_AN_INTERRUPT;
+    extInterrupt[i].count = 0;
   }
 #endif
 
   // Uncomment to force protect (enable even useProtection is false) your system from illegal access for change runtime settings and reboots 
 #ifdef FEATURE_PASSWORD_PROTECTION_FORCE
-  netConfig.useProtection = true;
+  netConfig->useProtection = true;
 #endif
 
 #ifdef FEATURE_WATCHDOG_ENABLE
@@ -261,9 +267,11 @@ Wire.begin();
                                                                       RUN SECTION
 */
 void loop() {
-  uint32_t nowTime, processStartTime, processEndTime;
-  uint32_t prevDHCPRenewTime, prevENCReInitTime, prevNetProblemTime, prevSysMetricGatherTime;
-  uint8_t errorCode, blinkType = (uint8_t) BLINK_NOPE;
+  uint8_t result, blinkType = (uint8_t) BLINK_NOPE;
+  int16_t *_argOffset;
+  uint32_t nowTime, processStartTime, processEndTime, prevDHCPRenewTime, prevENCReInitTime, prevNetProblemTime, prevSysMetricGatherTime,clentConnectTime;
+
+  _argOffset = new int16_t[ARGS_MAX];
     
   // Correcting timestamps
 
@@ -274,19 +282,26 @@ void loop() {
   while (true) { 
     nowTime = millis();
 
-#ifndef GATHER_METRIC_USING_TIMER_INTERRUPT
+      // correctVCCMetrics() must be always inline compiled
+    
     // Gather internal metrics periodically
-    if (SYS_METRIC_RENEW_PERIOD <= (uint32_t) (nowTime - prevSysMetricGatherTime)) { gatherMetrics(); prevSysMetricGatherTime = nowTime; }
+    if (SYS_METRIC_RENEW_PERIOD <= (uint32_t) (nowTime - prevSysMetricGatherTime)) { 
+#ifndef GATHER_METRIC_USING_TIMER_INTERRUPT
+       gatherSystemMetrics();
 #endif 
+       sysMetrics[IDX_METRIC_SYS_VCC] = getADCVoltage(ANALOG_CHAN_VBG);
+       correctVCCMetrics(sysMetrics[IDX_METRIC_SYS_VCC]);
+       prevSysMetricGatherTime = millis();
+    }
 
 #ifdef FEATURE_NET_DHCP_ENABLE
     // DHCP used in this session and time to renew lease?
       // how many overhead give Ethernet.maintain() ?
-//    if (true == netConfig.useDHCP && (NET_DHCP_RENEW_PERIOD <= (uint32_t) (nowTime - prevDHCPRenewTime))) {
+//    if (true == netConfig->useDHCP && (NET_DHCP_RENEW_PERIOD <= (uint32_t) (nowTime - prevDHCPRenewTime))) {
        // Ethernet library's manual say that Ethernet.maintain() can be called every loop for DHCP renew, but i won't do this so often
-       errorCode = Ethernet.maintain();
+       result = Ethernet.maintain();
        // Renew procedure finished with success
-       if (DHCP_CHECK_RENEW_OK == errorCode || DHCP_CHECK_REBIND_OK  == errorCode) { 
+       if (DHCP_CHECK_RENEW_OK == result || DHCP_CHECK_REBIND_OK  == result) { 
           // No alarm blink  need, network activity registred, renewal period restarted
           blinkType = (uint8_t) BLINK_NOPE;
 //          prevDHCPRenewTime = prevNetProblemTime = nowTime;
@@ -316,7 +331,7 @@ void loop() {
 #ifdef FEATURE_DEBUG_TO_SERIAL
           SerialPrintln_P(PSTR("ENC28J60 reinit"));
 #endif
-          Enc28J60.init(netConfig.macAddress); 
+          Enc28J60.init(netConfig->macAddress); 
           delay(NET_STABILIZATION_DELAY);
        } 
          prevENCReInitTime = nowTime;
@@ -339,40 +354,75 @@ void loop() {
 #endif
     }
 
+#ifdef FEATURE_SERIAL_LISTEN_TOO
+    // Test state of active session: client still connected or unread data is exist in buffer?
+    if (ethClient.connected() || Serial.available()) {
+       if ((NET_ACTIVE_CLIENT_CONNECTION_TIMEOUT <= (uint32_t) (nowTime - clentConnectTime)) && !Serial.available())  {
+           ethClient.stop(); 
+       } else {
+           // A lot of chars wait for reading
+           if (ethClient.available() || Serial.available()) {
+              // Do not need next char to analyze - EOL detected or there no room in buffer or max number or args parsed...   
+              result = Serial.read();
+              if (ethClient.available()) { result = ethClient.read(); }
+#else
     // Test state of active session: client still connected or unread data is exist in buffer?
     if (ethClient.connected()) {
-       // A lot of chars wait for reading
-       if (ethClient.available()) {
-          // Do not need next char to analyze - EOL detected or there no room in buffer or max number or args parsed...   
-          if (false == analyzeStream(ethClient.read())) {
-             /*****  processing command *****/
-             // Destroy unused client's data 
-             ethClient.flush(); 
-             // Fire up State led, than will be turned off on next loop
-             digitalWrite(PIN_STATE_LED, HIGH);
-             //
-             // may be need test for client.connected()? 
-             processStartTime = millis();
-             uint8_t cmdIdx = executeCommand();
-             processEndTime = millis();
-             // use processEndTime as processDurationTime
-             processEndTime = processStartTime;
-             if (sysMetrics[IDX_METRIC_SYS_CMD_TIMEMAX] < processEndTime){
-                sysMetrics[IDX_METRIC_SYS_CMD_TIMEMAX] = processEndTime;
-                sysMetrics[IDX_METRIC_SYS_CMD_TIMEMAX_N] = cmdIdx;
-             }
-             // Wait some time to finishing answer send
-             delay(NET_STABILIZATION_DELAY);
-             // close connection           
-             ethClient.stop(); 
-          }
-          // Restart network activity control cycle
-          prevENCReInitTime = prevNetProblemTime = millis();
-          blinkType = (uint8_t) BLINK_NOPE;
-       }
+       if (NET_ACTIVE_CLIENT_CONNECTION_TIMEOUT <= (uint32_t) (nowTime - clentConnectTime)) {
+           ethClient.stop(); 
+       } else {
+           // A lot of chars wait for reading
+           if (ethClient.available()) {
+              // Do not need next char to analyze - EOL detected or there no room in buffer or max number or args parsed...   
+              result = ethClient.read();
+#endif              
+
+//              Serial.print("incoming: "); Serial.print((char) result); Serial.print(" => "); Serial.println(result, HEX); 
+              result = analyzeStream((char) result, _argOffset);
+              if (false == result) {
+                 /*****  processing command *****/
+                 // Destroy unused client's data 
+                 ethClient.flush(); 
+#ifdef FEATURE_SERIAL_LISTEN_TOO
+                 Serial.flush(); 
+#endif              
+                 // Fire up State led, than will be turned off on next loop
+                 digitalWrite(PIN_STATE_LED, HIGH);
+                 //
+                 // may be need test for client.connected()? 
+                 processStartTime = millis();
+                 int16_t cmdIdx = executeCommand(_argOffset);
+                 // system.run[] recieved, need to run another command, which taken from option #0 by cmdIdx() sub
+                 if (RUN_NEW_COMMAND == cmdIdx) {
+                     int16_t i = 0;
+                     // simulate command recievig to properly string parsing
+                     while( analyzeStream(cBuffer[i], _argOffset) ) { i++; }
+                     cmdIdx = executeCommand(_argOffset);
+                 }
+                 processEndTime = millis();
+                 // use processEndTime as processDurationTime
+                 processEndTime = processEndTime - processStartTime ;
+                 if (sysMetrics[IDX_METRIC_SYS_CMD_TIMEMAX] < processEndTime) {
+                    sysMetrics[IDX_METRIC_SYS_CMD_TIMEMAX] = processEndTime;
+                    sysMetrics[IDX_METRIC_SYS_CMD_TIMEMAX_N] = cmdIdx;
+                 }
+  //             ethClient.println("1");
+                 // Wait some time to finishing answer send
+                 delay(NET_STABILIZATION_DELAY);
+                // close connection           
+                ethClient.stop(); 
+              }
+              // Restart network activity control cycle
+              prevENCReInitTime = prevNetProblemTime = millis();
+              blinkType = (uint8_t) BLINK_NOPE;
+           }
+        }
     } else {
        // Active session is not exist. Try to take new for processing.
        ethClient = ethServer.available();
+       if (ethClient) {
+         clentConnectTime = millis();
+       }
     }
 #ifdef FEATURE_WATCHDOG_ENABLE
     // reset watchdog every loop
@@ -388,20 +438,23 @@ void loop() {
 *  Detect Zabbix packets, on-fly spit incoming stream to command & arguments
 *
 **************************************************************************************************************************** */
-uint8_t analyzeStream(char charFromClient) {
-  uint8_t static needSkipZabbix2Header, argIndex;
+uint8_t analyzeStream(char _charFromClient, int16_t* _argOffset) {
+  uint8_t static needSkipZabbix2Header = 0, 
+                 cmdSliceNumber        = 0,
+                 isEscapedChar         = 0,
+                 doubleQuotedString    = false;
   uint16_t static bufferWritePosition;
 
   // If there is not room in buffer - simulate EOL recieving
-  if (BUFFER_SIZE <= bufferWritePosition ) { charFromClient = '\n'; 
-  }
+  if (BUFFER_SIZE <= bufferWritePosition ) { _charFromClient = '\n'; }
   
   // Put next char to buffer
-  cBuffer[bufferWritePosition] = tolower(charFromClient); 
-  
+  cBuffer[bufferWritePosition] = (doubleQuotedString) ? _charFromClient : tolower(_charFromClient); 
+  //Serial.print("Char: "); Serial.println(cBuffer[bufferWritePosition]);
+    
   // When ZBX_HEADER_PREFIX_LENGTH chars is saved to buffer - test its for Zabbix2 protocol header prefix ("ZBXD\01") presence
   if (ZBX_HEADER_PREFIX_LENGTH == bufferWritePosition) {
-     if (0 == memcmp(&cBuffer, ZBX_HEADER_PREFIX, ZBX_HEADER_PREFIX_LENGTH)) {
+     if (0 == memcmp(&cBuffer, (ZBX_HEADER_PREFIX), ZBX_HEADER_PREFIX_LENGTH)) {
         // If packet have prefix - set 'skip whole header' flag
         needSkipZabbix2Header = true;
      }
@@ -418,35 +471,81 @@ uint8_t analyzeStream(char charFromClient) {
 
   // Process all chars if its not from header data
   if (!needSkipZabbix2Header) {
-     switch (charFromClient) {
-        case ']':
+     // char is not escaped
+     switch (_charFromClient) {
+        // Doublequote sign is arrived
+        case '"':
+          if (!isEscapedChar) {
+             // Doublequote is not escaped. 
+             // Just drop it and toggle doublequoted mode
+             // Doublequoted mode: do not convert char case, skip action on space, ']', '[', ','
+             doubleQuotedString = !doubleQuotedString;
+             //Serial.print("doublequote: "); Serial.println(doubleQuotedString );
+             // Jump out from subroutine to get next char from client
+             return true;
+          }
+          // Doublequote is escaped. Move write position backward to one step and write doublequote sign to '\' position
+          // Serial.println("escaped doublequote");
+          bufferWritePosition--;
+          cBuffer[bufferWritePosition] = '"';
+          isEscapedChar = false;
+          break;
+        // Backslash sign is arrived. If next char will be doublequote - its consider as escaped. But backslash is still in buffer as non-escape char
+        case '\\':
+          if (!isEscapedChar) {
+ //           Serial.println("next char is escaped ");            
+             isEscapedChar = true;
+          }            
+          break;
+        // Space found. Do nothing if its reached not in doublequoted string, and next char will be written to same position. 
         case 0x20:
-          // Space or final square bracket found. Do nothing and next char will be written to same position. 
           // Return 'Need next char'
-          return true;
+          if (!doubleQuotedString) { return true; }
+          // Serial.println("[*1]");
+          break;
+
+        // Delimiter or separator found.
         case '[':
         case ',':
-          // Delimiter or separator found. Push begin of next argument (bufferWritePosition+1) on buffer to arguments offset array. 
-          argOffset[argIndex] = bufferWritePosition+1; argIndex++; 
-          // Make current buffer segment like C-string
-          cBuffer[bufferWritePosition] = '\0'; 
+        //  Serial.println("[*2.1]");
+          // If its reached not in doublequoted string - process it as control char.
+          if (!doubleQuotedString) { 
+             //Serial.println("[*2.2]");
+             //  If '_argOffset' array is not exhausted - push begin of next argument (bufferWritePosition+1) on buffer to arguments offset array. 
+            if (ARGS_MAX > cmdSliceNumber) { _argOffset[cmdSliceNumber] = bufferWritePosition + 1; }
+               cmdSliceNumber++; 
+               // Make current buffer segment like C-string
+               cBuffer[bufferWritePosition] = '\0'; 
+            }
+          //Serial.println("[*2.3]");
           break;
+        // Final square bracket found. Do nothing and next char will be written to same position. 
+        case ']':
+          // If its reached in doublequoted string - just leave its as regular character
+          if (doubleQuotedString) { break; }
+          //   ...otherwise - process as 'EOL sign'
         case '\n':
           // EOL detected
-          // Save last argIndex that pointed to <null> item. All unused argOffset[] items must be pointed to this <null> item too.
+          // Save last argIndex that pointed to <null> item. All unused _argOffset[] items must be pointed to this <null> item too.
+          // Serial.println("[*3]");
           cBuffer[bufferWritePosition] = '\0'; 
-          while (ARGS_MAX > argIndex) { argOffset[argIndex++] = bufferWritePosition;}
-          // increase argIndex++ to pass (ARGS_MAX < argIndex) condition 
-          argIndex++; break;
-      }
-      // EOL reached or there is not room to store args. Stop stream analyzing and do command executing
-      if (ARGS_MAX < argIndex) {
-         // clear vars for next round
-         bufferWritePosition = argIndex = 0;
-         needSkipZabbix2Header = false;
-         // Return 'Do not need next char'
-         return false;
-       }             
+          while (ARGS_MAX > cmdSliceNumber) { _argOffset[cmdSliceNumber++] = bufferWritePosition;}
+          // Change argIndex value to pass (ARGS_MAX < argIndex) condition 
+          cmdSliceNumber = ARGS_MAX+1; break;
+          break;
+        // All next chars is non-escaped
+        default: 
+            isEscapedChar = false; 
+     }
+
+     // EOL reached or there is not room to store args. Stop stream analyzing and do command executing
+     if (ARGS_MAX < cmdSliceNumber) {
+        // clear vars for next round
+        bufferWritePosition = cmdSliceNumber = isEscapedChar = doubleQuotedString = 0;
+        needSkipZabbix2Header = false;
+        // Return 'Do not need next char'
+        return false;
+     }             
   }
   // 
   bufferWritePosition++;
@@ -456,57 +555,55 @@ uint8_t analyzeStream(char charFromClient) {
 
 /* ****************************************************************************************************************************
 *
-*  Command execution subroutine
 *  
 **************************************************************************************************************************** */
-uint8_t executeCommand()
+int16_t executeCommand(int16_t* _argOffset)
 {
-  uint8_t AccessGranted, i;
-  int32_t result = RESULT_IS_FAIL;
+  int8_t result = RESULT_IS_FAIL;
+  uint8_t accessGranted, i, i2CAddress, i2COption, i2CValue[4];
+  int16_t i2CRegister, cmdIdx = -1;
   // duration  in tone[] - ulong
   uint32_t arg[ARGS_MAX];
-  int16_t cmdIdx = -1;
-  
+  int64_t value = 0;  // Zabbix use 64-bit numbers, but we can use only -uint32_t...+uint32_t range
+ 
   sysMetrics[IDX_METRIC_SYS_CMD_COUNT]++;
 
-  for (i = 0; i < CMD_MAX; i++)
-  {
+  i = sizeof(commands);
+  while (i) {
 //    Serial.print(i, HEX); Serial.print(": ");
 //    SerialPrintln_P((char*)pgm_read_word(&(commands[i])));
     if (0 == strcmp_P(cBuffer, (char*)pgm_read_word(&(commands[i])))) {cmdIdx = i; break;}
+    i--;
   }
-
 #ifdef FEATURE_DEBUG_TO_SERIAL
-  SerialPrint_P(PSTR("Execute command #")); Serial.print(cmdIdx, HEX); SerialPrint_P(PSTR(" =>")); Serial.println(cBuffer);
+  SerialPrint_P(PSTR("Execute command #")); Serial.print(cmdIdx, HEX); SerialPrint_P(PSTR(" => `")); Serial.print(cBuffer); Serial.println("`");
 #endif 
-  
+
+  // first _argOffset item have index 0
+  i = ARGS_MAX;
   // batch convert args to number values
-  for (i = 0; i < ARGS_MAX; i++)
-  {
-     arg[i] = ('\0' == cBuffer[argOffset[i]]) ? 0 : strtoul(&cBuffer[argOffset[i]], NULL,0);
+  while (i) {
+     i--;
+     arg[i] = ('\0' == cBuffer[_argOffset[i]]) ? 0 : strtoul(&cBuffer[_argOffset[i]], NULL,0);
 
 #ifdef FEATURE_DEBUG_TO_SERIAL
      SerialPrint_P(PSTR("arg[")); Serial.print(i); SerialPrint_P(PSTR("] => \"")); 
-     if ('\0' == cBuffer[argOffset[i]]) {
+     if ('\0' == cBuffer[_argOffset[i]]) {
         SerialPrint_P(PSTR("<null>")); 
      } else {
-        Serial.print(&cBuffer[argOffset[i]]); 
+        Serial.print(&cBuffer[_argOffset[i]]); 
      }
      SerialPrint_P(PSTR("\" => ")); Serial.print(arg[i]);
-     SerialPrint_P(PSTR(", offset =")); Serial.println(argOffset[i]);
+     SerialPrint_P(PSTR(", offset =")); Serial.println(_argOffset[i]);
 #endif 
   }
-
-  
+   
   // Check rights for password protected commands
-  AccessGranted = (!netConfig.useProtection || arg[0] == netConfig.password); 
+  accessGranted = (!netConfig->useProtection || arg[0] == netConfig->password); 
 
-  uint8_t i2CAddress, i2COption;
-  uint8_t i2CValue[4];
-  int16_t i2CRegister;
 
   i2CAddress = (uint8_t) arg[2];
-  i2CRegister = (int16_t) arg[3];
+  i2CRegister = (('\0' != cBuffer[_argOffset[3]]) ? (int16_t) arg[3] : I2C_NO_REG_SPECIFIED);
   // i2COption can be length, bitNumber or data
   i2COption = (uint8_t) arg[4];
 
@@ -525,7 +622,7 @@ uint8_t executeCommand()
       /*/
       /=/   agent.hostname
       /*/
-      strcpy(cBuffer, netConfig.hostname);
+      strcpy(cBuffer, netConfig->hostname);
       result = RESULT_IN_BUFFER;
       break;
          
@@ -537,14 +634,28 @@ uint8_t executeCommand()
       result = RESULT_IN_BUFFER;
       break;
 
+    case CMD_SYSTEM_RUN:
+      if ('\0' != cBuffer[_argOffset[0]]) {
+         // take length of 0-th arg + 1 byte for '\0'
+         i = (_argOffset[1] - _argOffset[0]) + 1;
+         // move it to begin of buffer to using as new incoming command
+         // Note: ~8bytes can be saved with copying bytes in while() cycle. But source code will not beauty
+         memmove(cBuffer, &cBuffer[_argOffset[0]], i);
+#ifdef FEATURE_DEBUG_TO_SERIAL
+         SerialPrint_P(PSTR("Run new command: ")); Serial.println(cBuffer);
+#endif
+         cBuffer[i] = '\n';
+         return RUN_NEW_COMMAND;
+      }
+      break;
+
     case CMD_SYS_UPTIME:
       /*/
       /=/  sys.uptime
       /*/
-      result = millis() / 1000;
+      value = (int64_t) millis() / 1000;
+      result = RESULT_IN_VARIABLE;
       break;
-   
-
 
     case CMD_ARDUINO_ANALOGWRITE:
       /*/
@@ -558,19 +669,28 @@ uint8_t executeCommand()
       
     case CMD_ARDUINO_ANALOGREAD:
       /*/
-      /=/  analogRead[pin, analogReferenceSource]
+      /=/  analogRead[pin, analogReferenceSource, mapToLow, mapToHigh]
       /*/
 #ifdef FEATURE_AREF_ENABLE
       // change source of the reference voltage if its given
-      if ('\0' != cBuffer[argOffset[1]]) {
+      if ('\0' != cBuffer[_argOffset[1]]) {
          analogReference(arg[1]);
          delayMicroseconds(2000);
       }
 #endif
-      // Do not disturb processes by internal routines 
-      skipMetricGathering = true;
-      result = (int32_t) analogRead(arg[0]);
-      skipMetricGathering = false;
+#ifdef GATHER_METRIC_USING_TIMER_INTERRUPT
+      // Stop the Timer1 to prevent calling gatherMetrics and ADC disturb by getVoltage() and so
+      stopTimerOne(); 
+#endif
+      value = (int64_t) analogRead(arg[0]);
+#ifdef GATHER_METRIC_USING_TIMER_INTERRUPT
+      startTimerOne(); 
+#endif
+      if ('\0' != cBuffer[_argOffset[2]] && '\0' != cBuffer[_argOffset[3]]) {
+         value = (int64_t) map(result, 0, 1023, arg[2], arg[3]);
+      }
+      result = RESULT_IN_VARIABLE;
+
       break;      
   
 #ifdef FEATURE_AREF_ENABLE
@@ -591,22 +711,34 @@ uint8_t executeCommand()
       delay(arg[0]);
       result = RESULT_IS_OK;
       break;
+      
 
     case CMD_ARDUINO_DIGITALWRITE:
       /*/
-      /=/  digitalWrite[pin, value]
+      /=/  digitalWrite[pin, value, testPin, testValue]
       /*/
-      if (isSafePin(arg[0])) {
+      // if testPin defined - check both pin to safety
+      result = ('\0' == cBuffer[_argOffset[2]]) ? isSafePin(arg[0]) : (isSafePin(arg[0]) && isSafePin(arg[2]));
+      if (result) {
+         // turn on or turn off logic on pin
          digitalWrite(arg[0], arg[1]);
-         result = RESULT_IS_OK;
+         result = RESULT_IS_OK; 
+         // when testPin defined - switch testPin mode to input, wait a lot, and check testPin state.
+         // if readed value not equal testValue - return FAIL
+         if  ('\0' == cBuffer[_argOffset[2]]) {
+            pinMode(arg[2], INPUT_PULLUP);
+            delay(10);
+            if (digitalRead(arg[2]) != arg[3]){ result = RESULT_IS_FAIL; }
+         }
       }
       break;
-      
+
     case CMD_ARDUINO_DIGITALREAD:
       /*/
       /=/  digitalRead[pin]
       /*/
-      result = (int32_t) digitalRead(arg[0]);
+      value = (int64_t) digitalRead(arg[0]);
+      result = RESULT_IN_VARIABLE;
       break;
 
 
@@ -616,7 +748,7 @@ uint8_t executeCommand()
       /=/  tone[pin, frequency, duration]
       /*/
       if (isSafePin(arg[0])) {
-        if ('\0' != cBuffer[argOffset[2]]) {
+        if ('\0' != cBuffer[_argOffset[2]]) {
            tone(arg[0], arg[1], arg[2]);
          } else {
            tone(arg[0], arg[1]);
@@ -650,7 +782,9 @@ uint8_t executeCommand()
       /=/  random[min, max]
       /*/
       //  !! random return long
-      result = ('\0' == cBuffer[argOffset[1]]) ? (int32_t) random(arg[0]) : (int32_t) random(arg[0], arg[1]);
+      value = (int64_t) ('\0' == cBuffer[_argOffset[1]]) ? (int32_t) random(arg[0]) : (int32_t) random(arg[0], arg[1]);
+      result = RESULT_IN_VARIABLE;
+
       break;
 #endif // FEATURE_RANDOM_ENABLE
 
@@ -660,15 +794,17 @@ uint8_t executeCommand()
       /*/
       /=/  set.hostname[password, hostname]
       /*/
-      if (AccessGranted) {
+      if (accessGranted) {
          // need check for arg existsience?
-         // cBuffer[argOffset[1]] != \0 if argument #2 given
-         if (cBuffer[argOffset[1]]) {
-            setHostname(netConfig.hostname, &cBuffer[argOffset[1]]);
-            // strncpy(netConfig.hostname, &cBuffer[argOffset[1]], ZBX_AGENT_HOSTNAME_MAXLEN-1);
-            // netConfig.hostname[ZBX_AGENT_HOSTNAME_MAXLEN]='\0';
-            //        Serial.println(netConfig.hostname);
-            saveConfigToEEPROM(&netConfig);
+         // cBuffer[_argOffset[1]] != \0 if argument #2 given
+         if ('0' != cBuffer[_argOffset[1]]) {
+            // copy <1-th arg length> bytes from 1-th arg of buffer (0-th arg contain password) to hostname 
+            uint8_t hostnameLen=_argOffset[2]-_argOffset[1];
+            memcpy(netConfig->hostname, &cBuffer[_argOffset[1]], hostnameLen);
+            // Terminate string
+            netConfig->hostname[hostnameLen]='\0';
+            // Serial.println(netConfig->hostname);
+            saveConfigToEEPROM(netConfig);
             result = RESULT_IS_OK;
          }
       }
@@ -678,11 +814,11 @@ uint8_t executeCommand()
       /*/
       /=/  set.password[oldPassword, newPassword]
       /*/
-      if (AccessGranted) {
-         if (cBuffer[argOffset[1]]) {
+      if (accessGranted) {
+         if (cBuffer[_argOffset[1]]) {
             // take new password from argument #2
-            netConfig.password = arg[1];
-            saveConfigToEEPROM(&netConfig);
+            netConfig->password = arg[1];
+            saveConfigToEEPROM(netConfig);
             result = RESULT_IS_OK;
          }
       }
@@ -692,11 +828,11 @@ uint8_t executeCommand()
       /*/
       /=/  set.sysprotect[password, protection]
       /*/
-      if (AccessGranted) {
-         if (cBuffer[argOffset[1]]) {
+      if (accessGranted) {
+         if (cBuffer[_argOffset[1]]) {
             // take new password from argument #2
-            netConfig.useProtection = (1 == arg[1]) ? true : false;
-            saveConfigToEEPROM(&netConfig);
+            netConfig->useProtection = (1 == arg[1]) ? true : false;
+            saveConfigToEEPROM(netConfig);
             result = RESULT_IS_OK;
          }
       }
@@ -706,33 +842,33 @@ uint8_t executeCommand()
       /*/
       /=/  set.network[password, useDHCP, macAddress, ipAddress, ipNetmask, ipGateway]
       /*/
-      if (AccessGranted) {
-         uint8_t ip[4], mac[6], success = 1;
+      if (accessGranted) {
+         uint8_t ip[4], mac[6], success = true;
          // useDHCP flag coming from first argument and must be numeric (boolean) - 1 or 0, 
-         // arg[0] data contain in cBuffer[argOffset[1]] placed from argOffset[0]
-         netConfig.useDHCP = (uint8_t) arg[1];
+         // arg[0] data contain in cBuffer[_argOffset[1]] placed from _argOffset[0]
+         netConfig->useDHCP = (uint8_t) arg[1];
          // ip, netmask and gateway have one structure - 4 byte
          // take 6 bytes from second argument of command and use as new MAC-address
          // if convertation is failed (return false) succes variable must be falsed too via logic & operator
-         success &= hstoba((uint8_t*) mac, &cBuffer[argOffset[2]], sizeof(netConfig.macAddress));
-         memcpy(&netConfig.macAddress, &mac, sizeof(netConfig.macAddress));
+         success &= hstoba((uint8_t*) mac, &cBuffer[_argOffset[2]], arraySize(netConfig->macAddress));
+         memcpy(netConfig->macAddress, &mac, arraySize(netConfig->macAddress));
       
          // use 4 bytes from third argument of command as new IP-address. sizeof(IPAddress) returns 6 instead 4
-         success &= hstoba((uint8_t*) &ip, &cBuffer[argOffset[3]], 4);
-         netConfig.ipAddress = IPAddress(ip);
+         success &= hstoba((uint8_t*) &ip, &cBuffer[_argOffset[3]], 4);
+         netConfig->ipAddress = IPAddress(ip);
   
          // take 4 bytes from third argument of command an use as new IP Netmask
-         success &= hstoba((uint8_t*) &ip, &cBuffer[argOffset[4]], 4);
-         netConfig.ipNetmask = IPAddress(ip);
+         success &= hstoba((uint8_t*) &ip, &cBuffer[_argOffset[4]], 4);
+         netConfig->ipNetmask = IPAddress(ip);
   
          // convert 4 bytes from fourth argument to default gateway
-         success &= hstoba((uint8_t*) &ip, &cBuffer[argOffset[5]], 4);
-         netConfig.ipGateway = IPAddress(ip);
+         success &= hstoba((uint8_t*) &ip, &cBuffer[_argOffset[5]], 4);
+         netConfig->ipGateway = IPAddress(ip);
   
-         // netConfig.ipGateway.printTo(Serial);
+         // netConfig->ipGateway.printTo(Serial);
          // Save config to EEProm if success
          if (success) {
-            saveConfigToEEPROM(&netConfig);
+            saveConfigToEEPROM(netConfig);
             result = RESULT_IS_OK;
          }
        }
@@ -758,7 +894,7 @@ uint8_t executeCommand()
       i = ('\0' != arg[2]) && isSafePin(arg[2]);   // << корректный способ проверки или нет?  
       if (isSafePin(arg[0]) &&  isSafePin(arg[1])) {
          if (i) { digitalWrite(arg[2], LOW); }
-         shiftOutAdvanced(arg[0], arg[1], arg[3], &cBuffer[argOffset[4]]);
+         shiftOutAdvanced(arg[0], arg[1], arg[3], &cBuffer[_argOffset[4]]);
          if (i) { digitalWrite(arg[2], HIGH);}
          result = RESULT_IS_OK;
       }
@@ -769,7 +905,7 @@ uint8_t executeCommand()
       /*/
       /=/  reboot[password]
       /*/
-      if (AccessGranted) {
+      if (accessGranted) {
          ethClient.println("1");
          // hang-up if no delay
          delay(NET_STABILIZATION_DELAY);
@@ -793,6 +929,24 @@ uint8_t executeCommand()
       result = RESULT_IN_BUFFER;
       break;
    
+    case CMD_SYS_MCU_ID:
+      /*/
+      /=/  sys.mcu.id
+      /*/
+      // Read 14..24 bytes from boot signature <= http://www.avrfreaks.net/forum/unique-id-atmega328pb
+      getBootSignatureBytes(cBuffer, 14, 10);
+      result = RESULT_IN_BUFFER;
+      break;
+
+    case CMD_SYS_MCU_SIGN:
+      /*/
+      /=/  sys.mcu.sign
+      /*/
+      // Read 0..3 bytes from boot signature <= http://www.avrfreaks.net/forum/device-signatures
+      getBootSignatureBytes(cBuffer, 0, 3);
+      result = RESULT_IN_BUFFER;
+      break;
+
     case CMD_SYS_NET_MODULE:
       /*/
       /=/  sys.net.module
@@ -806,15 +960,17 @@ uint8_t executeCommand()
       /=/  sys.cmd.count
       /*/
       if (arg[0]) { sysMetrics[IDX_METRIC_SYS_CMD_COUNT] = 0; } 
-      result = sysMetrics[IDX_METRIC_SYS_CMD_COUNT];
+      value = (int64_t) sysMetrics[IDX_METRIC_SYS_CMD_COUNT];
+      result = RESULT_IN_VARIABLE;
       break;
 
     case CMD_SYS_CMD_TIMEMAX:
       /*/
       /=/  sys.cmd.timemax[resetCounter]
       /*/
-      if (cBuffer[argOffset[0]]) { sysMetrics[IDX_METRIC_SYS_CMD_TIMEMAX] = 0; sysMetrics[IDX_METRIC_SYS_CMD_TIMEMAX_N] = 0; } 
-      result = sysMetrics[IDX_METRIC_SYS_CMD_TIMEMAX];
+      if (cBuffer[_argOffset[0]]) { sysMetrics[IDX_METRIC_SYS_CMD_TIMEMAX] = 0; sysMetrics[IDX_METRIC_SYS_CMD_TIMEMAX_N] = 0; } 
+      value = (int64_t) sysMetrics[IDX_METRIC_SYS_CMD_TIMEMAX];
+      result = RESULT_IN_VARIABLE;
       break;
 
     case CMD_SYS_CMD_TIMEMAX_N:
@@ -829,14 +985,16 @@ uint8_t executeCommand()
       /*/
       /=/  sys.ram.free
       /*/
-      result = sysMetrics[IDX_METRIC_SYS_RAM_FREE];
+      value = (int64_t) sysMetrics[IDX_METRIC_SYS_RAM_FREE];
+      result = RESULT_IN_VARIABLE;
       break;
 
     case CMD_SYS_RAM_FREEMIN:
       /*/
       /=/  sys.ram.freemin
       /*/
-      result = sysMetrics[IDX_METRIC_SYS_RAM_FREEMIN];
+      value = (int64_t) sysMetrics[IDX_METRIC_SYS_RAM_FREEMIN];
+      result = RESULT_IN_VARIABLE;
       break;
 
 #endif
@@ -847,24 +1005,27 @@ uint8_t executeCommand()
       /=/ sys.vcc
       /*/
       // Take VCC
-      result = getADCVoltage(ANALOG_CHAN_VBG);
+      value = (int64_t) getADCVoltage(ANALOG_CHAN_VBG);
       // VCC may be bigger than max or smaller than min. 
       // To avoid wrong results and graphs in monitoring system - correct min/max metrics
-      correctVCCMetrics(result);
+      correctVCCMetrics(value);
+      result = RESULT_IN_VARIABLE;
       break;
   
     case CMD_SYS_VCCMIN:
       /*/
       /=/ sys.vccMin
       /*/
-      result = sysMetrics[IDX_METRIC_SYS_VCCMIN];
+      value = (int64_t) sysMetrics[IDX_METRIC_SYS_VCCMIN];
+      result = RESULT_IN_VARIABLE;
       break;
   
     case CMD_SYS_VCCMAX:
       /*/
       /=/ sys.vccMax
       /*/
-      result = sysMetrics[IDX_METRIC_SYS_VCCMAX];
+      value = (int64_t) sysMetrics[IDX_METRIC_SYS_VCCMAX];
+      result = RESULT_IN_VARIABLE;
       break;
   
 
@@ -873,76 +1034,9 @@ uint8_t executeCommand()
       /*/
       /=/  extInt.count[intPin, intNumber, mode]
       /*/
-      // TODO: maybe need to rework code block
       if (isSafePin(arg[0])) {
-         int8_t interruptNumber=digitalPinToInterrupt(arg[0]);
-         voidFuncPtr interruptHandler;
-         // Interrupt number and mode is correct?
-         if ((EXTERNAL_NUM_INTERRUPTS > interruptNumber) && (RISING >= arg[2])) {
-            // Interrupt mode is changed
-            //Serial.println("[1] Interrupt number and mode is correct"); 
-            //Serial.print("[1*] Old interrupt mode is: ");  Serial.println(extInterrupt[interruptNumber].mode); 
-            // just use NOT_AN_INTERRUPT = -1 macro from Arduino.h
-            if (extInterrupt[interruptNumber].mode != arg[2] && NOT_AN_INTERRUPT != extInterrupt[interruptNumber].mode) {
-               //Serial.println("[2] Interrupt mode is changed, detach"); 
-               detachInterrupt(arg[1]);
-               extInterrupt[interruptNumber].mode = -1;
-            } 
-
-           // Interrupt not attached?
-           if (NOT_AN_INTERRUPT == extInterrupt[interruptNumber].mode) {
-              extInterrupt[interruptNumber].mode = arg[2];
-              switch (interruptNumber) {
-// Basic configuration => EXTERNAL_NUM_INTERRUPTS == 3
-                case INT0:
-                  interruptHandler = handleINT0;
-                  break;
-                case INT1:
-                  interruptHandler = handleINT1;
-                  break;
-// AVR_ATmega1284, AVR_ATmega1284P, AVR_ATmega644, AVR_ATmega644A, AVR_ATmega644P, AVR_ATmega644PA => EXTERNAL_NUM_INTERRUPTS == 3
-#if (EXTERNAL_NUM_INTERRUPTS > 2)
-                case INT2:
-                  interruptHandler = handleINT2;
-                  break;
-#endif // EXTERNAL_NUM_INTERRUPTS > 2
-// AVR_ATmega32U4 => EXTERNAL_NUM_INTERRUPTS == 5
-#if (EXTERNAL_NUM_INTERRUPTS > 3)
-                case INT3:
-                  interruptHandler = handleINT3;
-                  break;
-                case INT4:
-                  interruptHandler = handleINT4;
-                  break;
-#endif // EXTERNAL_NUM_INTERRUPTS > 3
-// AVR_ATmega1280, AVR_ATmega2560, AVR_ATmega128RFA1, AVR_ATmega256RFR2 => EXTERNAL_NUM_INTERRUPTS == 8
-#if (EXTERNAL_NUM_INTERRUPTS > 5)
-                case INT5:
-                  interruptHandler = handleINT5;
-                  break;
-                case INT6:
-                  interruptHandler = handleINT6;
-                  break;
-                case INT7:
-                  interruptHandler = handleINT7;
-                  break;
-#endif // EXTERNAL_NUM_INTERRUPTS > 5
-                default:
-                // still not attached
-                extInterrupt[interruptNumber].mode = NOT_AN_INTERRUPT;
-              }  // switch (interruptNumber)
-              // check again to take in account 'No interrupt choosed' case
-              if (NOT_AN_INTERRUPT != extInterrupt[interruptNumber].mode) {
-                 // if pin still not INPUT_PULLUP - system will hang up
-                 pinMode(arg[0], INPUT_PULLUP);
-                 attachInterrupt(interruptNumber, interruptHandler, arg[2]);
-                 // reinit counter
-                 extInterrupt[interruptNumber].count = 0;
-              }
-            
-           } // if (NOT_AN_INTERRUPT == extInterrupt[interruptNumber].mode)
-           result = extInterrupt[interruptNumber].count;
-         } // if ((EXTERNAL_NUM_INTERRUPTS > interruptNumber) && (RISING >= arg[2])) 
+         value = (int64_t) manageExtInt(arg[0], arg[2]);
+         result = RESULT_IN_VARIABLE;
        } // if (isSafePin(arg[0]))
        break;
 #endif // FEATURE_EXTERNAL_INTERRUPT_ENABLE
@@ -952,44 +1046,10 @@ uint8_t executeCommand()
       /*/
       /=/  incEnc.count[terminalAPin, terminalBPin, intNumber, initialValue]
       /*/
-      // TODO: maybe need to rework code block
-      // 
       if (isSafePin(arg[0]) && isSafePin(arg[1])) {
-         int8_t interruptNumber=digitalPinToInterrupt(arg[0]);
-         voidFuncPtr interruptHandler;
-         // Interrupt number is correct?
-         if (EXTERNAL_NUM_INTERRUPTS > interruptNumber) {
-            // Interrupt mode is changed
-            // just use NOT_AN_INTERRUPT = -1 macro from Arduino.h
-           // Interrupt not attached?
-           if (NOT_AN_INTERRUPT == extInterrupt[interruptNumber].mode) {
-              extInterrupt[interruptNumber].mode = CHANGE;
-              switch (interruptNumber) {
-// Basic configuration => EXTERNAL_NUM_INTERRUPTS == 3
-                case INT0:
-                  interruptHandler = handleINT0ForEncoder;
-                  break;
-                case INT1:
-                  interruptHandler = handleINT1ForEncoder;
-                  break;
-                default:
-                // still not attached
-                extInterrupt[interruptNumber].mode = NOT_AN_INTERRUPT;
-              }  // switch (interruptNumber)
-              // check again to take in account 'No interrupt choosed' case
-              if (NOT_AN_INTERRUPT != extInterrupt[interruptNumber].mode) {
-                 // if pin still not INPUT_PULLUP - system will hang up
-                 pinMode(arg[0], INPUT_PULLUP);
-                 pinMode(arg[1], INPUT_PULLUP);
-                 attachInterrupt(interruptNumber, interruptHandler, CHANGE);
-                 // reinit counter
-                 extInterrupt[interruptNumber].encTerminalAPin = arg[0];
-                 extInterrupt[interruptNumber].encTerminalBPin = arg[1];
-                 extInterrupt[interruptNumber].count = arg[3];
-              }
-           } // if (NOT_AN_INTERRUPT == extInterrupt[interruptNumber].mode)
-           result = extInterrupt[interruptNumber].count;
-         } // if (EXTERNAL_NUM_INTERRUPTS > interruptNumber)
+         // arg[3] (intNumber) currently not used
+         value = (int64_t) manageIncEnc(arg[0], arg[1], arg[3]);
+         result = RESULT_IN_VARIABLE;
        } // ((isSafePin(arg[0]) && isSafePin(arg[1]))
        break;
 #endif // FEATURE_INCREMENTAL_ENCODER_ENABLE
@@ -1002,7 +1062,7 @@ uint8_t executeCommand()
       /=/  OW.scan[pin]
       /*/
       if (isSafePin(arg[0])) {
-         result = scanOneWire(arg[0]);
+         result = scanOneWire(arg[0], &ethClient);
       }
       break;
 #endif // FEATURE_ONEWIRE_ENABLE
@@ -1014,35 +1074,69 @@ uint8_t executeCommand()
       /=/  I2C.scan[sdaPin, sclPin]
       /*/
       if (isSafePin(arg[0]) && isSafePin(arg[1])) {
-         result = scanI2C();
+         result = scanI2C(&ethClient);
       }
       break;
 
     case CMD_I2C_WRITE:
       /*/
-      /=/ i2c.write(sdaPin, sclPin, i2cAddress, register, data)
+      /=/ i2c.write(sdaPin, sclPin, i2cAddress, register, data, numBytes)
       /*/
       if (isSafePin(arg[0]) && isSafePin(arg[1])) {
          // i2COption used as 'data'
-         result = writeByteToI2C(i2CAddress, (('\0' != cBuffer[argOffset[3]]) ? i2CRegister : I2C_NO_REG_SPECIFIED), i2COption);
+         arg[5] = constrain(arg[5], 1, 4);
+         i = arg[5];
+         while(i){
+           i--;
+           i2CValue[i] = arg[4] & 0xFF;
+           arg[4] = arg[4] >> 8;
+         }
+         
+         result = writeBytesToI2C(i2CAddress, i2CRegister, i2CValue, arg[5]);
          result = (0 == result) ? RESULT_IS_OK : RESULT_IS_FAIL;
       }
       break;
 
     case CMD_I2C_READ:
       /*/
-      /=/ i2c.read(sdaPin, sclPin, i2cAddress, register, length)
+      /=/ i2c.read(sdaPin, sclPin, i2cAddress, register, length, doDoubleReading)
       /*/
       if (isSafePin(arg[0]) && isSafePin(arg[1])) {
          // i2COption used as 'length' - how much bytes must be read: 0..4 byte
          i2COption = constrain(i2COption, 1, 4);
-         result = readBytesFromi2C(i2CAddress, (('\0' != cBuffer[argOffset[3]]) ? i2CRegister : I2C_NO_REG_SPECIFIED), i2CValue, i2COption);
-         // make int32 from i2C's bytes
-         if (0 != result) {result = RESULT_IS_FAIL; break; }
-         for (i=0; i < i2COption; i++) {
-             result <<= 8;
-             result |= i2CValue[i];
-          }
+         // numberOfReadings parameter is not specified. Do once reading only
+         // Otherwise make ahead reading for re-run sensor conversion to flush old data
+         if ('\0' == cBuffer[_argOffset[5]]) { 
+            arg[5] = 1; 
+         } else {
+           // Just discard result
+           readBytesFromi2C(i2CAddress, i2CRegister, i2CValue, i2COption);
+         }
+         // One reading at least must be done
+         if (1 > arg[5]){ arg[5] = 1; }
+         
+         int32_t accResult = 0, tmpResult;
+         uint8_t readNumber = arg[5];
+         // Will be RESULT_IS_FAIL if readBytesFromi2C() not returns 0
+         result = RESULT_IS_OK;
+         while (readNumber) {
+           readNumber--;
+           // ADC stabilization delay
+           delayMicroseconds(ADC_STABILIZATION_DELAY);
+           if (0 != readBytesFromi2C(i2CAddress, i2CRegister, i2CValue, i2COption)) { result = RESULT_IS_FAIL; break; }
+           // make int32 from i2C's bytes
+           tmpResult = 0;
+           for (i=0; i < i2COption; i++) {
+             tmpResult <<= 8;
+             tmpResult |= i2CValue[i];
+           }
+           accResult += tmpResult;
+         }
+
+         if (RESULT_IS_FAIL != result) {
+            value = (int64_t) (accResult / arg[5]);
+            result = RESULT_IN_VARIABLE;
+         }
       }
       break;
 
@@ -1057,11 +1151,11 @@ uint8_t executeCommand()
             break;
          }
          // Use device's register if specified, read 1 byte
-         result = readBytesFromi2C(i2CAddress, (('\0' != cBuffer[argOffset[3]]) ? i2CRegister : I2C_NO_REG_SPECIFIED), i2CValue, 1);
+         result = readBytesFromi2C(i2CAddress, i2CRegister, i2CValue, 1);
          // "!!" convert value 0100 to 1.
          bitWrite (i2CValue[0], i2COption, (!!arg[5]));
          // Use device's register if specified, write 1 byte, returns Wire lib state
-         result = writeByteToI2C(i2CAddress, (('\0' != cBuffer[argOffset[3]]) ? i2CRegister : I2C_NO_REG_SPECIFIED), i2CValue[0]);
+         result = writeByteToI2C(i2CAddress, i2CRegister, i2CValue[0]);
          result = (0 == result) ? RESULT_IS_OK : RESULT_IS_FAIL;
       }
       break;
@@ -1077,8 +1171,13 @@ uint8_t executeCommand()
             break;
          }
          // Use device's register if specified, read 1 byte
-         result = readBytesFromi2C(i2CAddress, (('\0' != cBuffer[argOffset[3]]) ? i2CRegister : I2C_NO_REG_SPECIFIED), i2CValue, 1);
-         result = bitRead(i2CValue[0], i2COption);
+         result = readBytesFromi2C(i2CAddress, i2CRegister, i2CValue, 1);
+         if (0 == result) {
+            value = (int64_t) bitRead(i2CValue[0], i2COption);
+            result = RESULT_IN_VARIABLE;
+         } else  {
+            result = RESULT_IS_FAIL;
+         }
       }
       break;
 
@@ -1091,7 +1190,7 @@ uint8_t executeCommand()
       /=/  DS18x20.temperature[pin, resolution, id]
       /*/
       if (isSafePin(arg[0])) {
-         result = getDS18X20Metric(arg[0], arg[1], &cBuffer[argOffset[2]], cBuffer);
+         result = getDS18X20Metric(arg[0], arg[1], &cBuffer[_argOffset[2]], cBuffer);
       }
       break;
 #endif // FEATURE_DS18X20_ENABLE
@@ -1173,7 +1272,7 @@ uint8_t executeCommand()
       /=/  MAX7219.write[dataPin, clockPin, loadPin, intensity, value]
       /*/
       if (isSafePin(arg[0]) && isSafePin(arg[1])  && isSafePin(arg[2])) {
-         drawOnMAX7219Matrix8x8(arg[0], arg[1], arg[2], arg[3], &cBuffer[argOffset[4]]);
+         drawOnMAX7219Matrix8x8(arg[0], arg[1], arg[2], arg[3], &cBuffer[_argOffset[4]]);
          result = RESULT_IS_OK;
       }
       break;
@@ -1185,7 +1284,7 @@ uint8_t executeCommand()
       /=/  PCF8574.LCDPrint[sdaPin, sclPin, i2cAddress, lcdBacklight, lcdType, data]
       /*/
       if (isSafePin(arg[0]) && isSafePin(arg[1])) {
-         result = printToPCF8574LCD(arg[0], arg[1], i2CAddress, arg[3], arg[4], &cBuffer[argOffset[5]]);
+         result = printToPCF8574LCD(arg[0], arg[1], i2CAddress, arg[3], arg[4], &cBuffer[_argOffset[5]]);
       }
       break;
 
@@ -1214,8 +1313,6 @@ uint8_t executeCommand()
       break;
 #endif // FEATURE_SHT2X_ENABLE  
 
-
-
 #ifdef FEATURE_ACS7XX_ENABLE
     case CMD_ACS7XX_ZC:
       /*/
@@ -1233,7 +1330,7 @@ uint8_t executeCommand()
                EXTERNAL 	0  - AREF << mV on AREF, more than '3'
 */
          // if refVoltage skipped - use DEFAULT source
-         if ('\0' != cBuffer[argOffset[1]]) {
+         if ('\0' != cBuffer[_argOffset[1]]) {
            arg[1] = DEFAULT;
          }
          result = getACS7XXMetric(arg[0], arg[1], SENS_READ_ZC, 0, 0, cBuffer);
@@ -1246,7 +1343,7 @@ uint8_t executeCommand()
       /*/
       if (isSafePin(arg[0])) {
          // if refVoltage skipped - use DEFAULT source
-         if ('\0' != cBuffer[argOffset[1]]) {
+         if ('\0' != cBuffer[_argOffset[1]]) {
            arg[1] = DEFAULT;
          }
          result = getACS7XXMetric(arg[0], arg[1], SENS_READ_AC, arg[2], (int32_t) arg[3], cBuffer);
@@ -1259,7 +1356,7 @@ uint8_t executeCommand()
       /*/
       if (isSafePin(arg[0])) {
          // if refVoltage skipped - use DEFAULT source
-         if ('\0' != cBuffer[argOffset[1]]) {
+         if ('\0' != cBuffer[_argOffset[1]]) {
            arg[1] = DEFAULT;
          }
          result = getACS7XXMetric(arg[0], arg[1], SENS_READ_DC, arg[2], (int32_t) arg[3], cBuffer);
@@ -1275,7 +1372,8 @@ uint8_t executeCommand()
       /=/  ultrasonic.distance[triggerPin, echoPin]
       /*/
       if (isSafePin(arg[0]) & isSafePin(arg[1])) {
-         result = getUltrasonicMetric(arg[0], arg[1]);
+         value = (int64_t) getUltrasonicMetric(arg[0], arg[1]);
+         result = RESULT_IN_VARIABLE;
       }
       break;
 #endif // FEATURE_ULTRASONIC_ENABLE
@@ -1288,12 +1386,11 @@ uint8_t executeCommand()
       /*/
       // ATmega328: Use D3 only at this time
       // Refer to other Arduino's pinouts to find OC2B pin
-      if (isSafePin(arg[0]) && TIMER2B == digitalPinToTimer(arg[0])) {
+//      if (isSafePin(arg[0]) && TIMER2B == digitalPinToTimer(arg[0])) {
          // irPWMPin - global wariable that replace IRremote's TIMER_PWM_PIN
-         irPWMPin = arg[0];
+//         irPWMPin = arg[0];
          result = sendCommandByIR(arg[1], arg[2], arg[3], arg[4], arg[5]);
-         result = (result) ? RESULT_IS_OK : RESULT_IS_FAIL;
-      }
+//      }
       break;
 
     case CMD_IR_SENDRAW:
@@ -1303,47 +1400,139 @@ uint8_t executeCommand()
       /*/
       // ATmega328: Use D3 only at this time
       // Refer to other Arduino's pinouts to find OC2B pin
-      if (isSafePin(arg[0]) && TIMER2B == digitalPinToTimer(arg[0])) {
+ //     if (isSafePin(arg[0]) && TIMER2B == digitalPinToTimer(arg[0])) {
          // irPWMPin - global wariable that replace IRremote's TIMER_PWM_PIN
-         irPWMPin = arg[0];
-         result = sendRawByIR(arg[1], arg[2], &cBuffer[argOffset[3]]);
-         result = (result) ? RESULT_IS_OK : RESULT_IS_FAIL;
-      }
+//         irPWMPin = arg[0];
+         result = sendRawByIR(arg[1], arg[2], &cBuffer[_argOffset[3]]);
+ //     }
       break;
 #endif // FEATURE_IR_ENABLE
 
 
+#ifdef FEATURE_PZEM004_ENABLE
+    //
+    //  0x0101A8C0 - an IP address for PZEM (192.168.1.1)
+    //
+    case CMD_PZEM004_CURRENT:
+      /*/
+      /=/  pzem004.current[rxPin, txPin, ip]
+      /*/
+      if (isSafePin(arg[0]) && isSafePin(arg[1])) {
+         // cBuffer cast to (uint8_t*) to use with subroutine math and SoftwareSerial subs, because used instead sub's internal buffer and save a little RAM size.
+         // Its will be casted to char* inside at moment when its need
+         result = getPZEM004Metric(arg[0], arg[1], SENS_READ_AC, &cBuffer[_argOffset[2]], (uint8_t*) cBuffer);
+      }
+      break;
+    case CMD_PZEM004_VOLTAGE:
+      /*/
+      /=/  pzem004.voltage[rxPin, txPin, ip]
+      /*/
+      if (isSafePin(arg[0]) && isSafePin(arg[1])) {
+         result = getPZEM004Metric(arg[0], arg[1], SENS_READ_VOLTAGE, &cBuffer[_argOffset[2]], (uint8_t*) cBuffer);
+      }
+      break;
+    case CMD_PZEM004_POWER:
+      /*/
+      /=/  pzem004.power[rxPin, txPin, ip]
+      /*/
+      if (isSafePin(arg[0]) && isSafePin(arg[1])) {
+         result = getPZEM004Metric(arg[0], arg[1], SENS_READ_POWER, &cBuffer[_argOffset[2]], (uint8_t*) cBuffer);
+      }
+      break;
+    case CMD_PZEM004_ENERGY:
+      /*/
+      /=/  pzem004.energy[rxPin, txPin, ip]
+      /*/
+      if (isSafePin(arg[0]) && isSafePin(arg[1])) {
+         result = getPZEM004Metric(arg[0], arg[1], SENS_READ_ENERGY, &cBuffer[_argOffset[2]], (uint8_t*) cBuffer);
+      }
+      break;
+#endif // FEATURE_PZEM004_ENABLE
+
+#ifdef FEATURE_UPS_APCSMART_ENABLE
+
+    case CMD_UPS_APCSMART:
+      /*/
+      /=/  ups.apcsmart[rxPin, txPin, command]
+      /=/    command - HEX or ASCII
+      /*/  
+      if (isSafePin(arg[0]) && isSafePin(arg[1])) {
+         result = getAPCSmartUPSMetric(arg[0], arg[1], (uint8_t*) &cBuffer[_argOffset[2]], (_argOffset[3] - _argOffset[2]) , (uint8_t*) cBuffer);
+      }
+      break;
+
+#endif // FEATURE_UPS_APCSMART_ENABLE
+
+#ifdef FEATURE_UPS_MEGATEC_ENABLE
+    case CMD_UPS_MEGATEC:
+      /*/
+      /=/  ups.megatec[rxPin, txPin, command, fieldNumber]
+      /=/    command - HEX or ASCII
+      /*/  
+      if (isSafePin(arg[0]) && isSafePin(arg[1])) {
+         //result = getAPCSmartUPSMetric(arg[0], arg[1], (uint8_t*) &cBuffer[_argOffset[2]], (_argOffset[3] - _argOffset[2]) , (uint8_t*) cBuffer);
+         result = getMegatecUPSMetric(arg[0], arg[1], (uint8_t*) &cBuffer[_argOffset[2]], arg[3], (uint8_t*) cBuffer);
+
+      }
+      break;
+
+#endif // FEATURE_UPS_APCSMART_ENABLE
+
+
     default:
-      // In default case command  is considered unknown.
-      strcpy(cBuffer, ZBX_NOTSUPPORTED_MSG);
       // Early increased command counter is decremented
       sysMetrics[IDX_METRIC_SYS_CMD_COUNT]--;
+      // In default case command  is considered unknown.
+      strcpy_P(cBuffer, PSTR((MSG_ZBX_NOTSUPPORTED)));
       result = RESULT_IN_BUFFER;
+      break;
    }
 
-
-   // The result is already printed?
+   // Result output routine
+   // The result is already printed or placed in buffer
    if (RESULT_IS_PRINTED != result) {
-      // The result is placed to buffer?
-      if (RESULT_IN_BUFFER != result) {
-         //  '1' must be returned
-         if (RESULT_IS_OK == result) {
-            result = 1L;
-         // or '0'
-         } else if (RESULT_IS_FAIL == result) {
-            result = 0L;
-         }
-         //  If result is number - convert its to C-string.
-         ltoa (result, cBuffer, 10);
+      switch (result) {
+         case RESULT_IN_BUFFER:
+            break;
+         case RESULT_IS_OK:
+            //  '1' must be returned
+            cBuffer[0] = '1';
+            cBuffer[1] = '\0';
+            break;
+         case RESULT_IS_FAIL:
+            // or '0'
+            cBuffer[0] = '0';
+            cBuffer[1] = '\0';
+            break;
+         case RESULT_IN_VARIABLE:
+            //  or result value placed in 'value' variable and must be converted to C-string.
+            ltoa (value, cBuffer, 10);
+            break;
+         case DEVICE_ERROR_CONNECT:
+            strcpy_P(cBuffer, PSTR((MSG_DEVICE_ERROR_CONNECT)));
+            break;
+         case DEVICE_ERROR_ACK_L:
+            strcpy_P(cBuffer, PSTR((MSG_DEVICE_ERROR_ACK_L)));
+            break;
+         case DEVICE_ERROR_ACK_H:
+            strcpy_P(cBuffer, PSTR((MSG_DEVICE_ERROR_ACK_H)));
+            break;
+         case DEVICE_ERROR_CHECKSUM:
+            strcpy_P(cBuffer, PSTR((MSG_DEVICE_ERROR_CHECKSUM)));
+            break;
+         case DEVICE_ERROR_TIMEOUT:
+            strcpy_P(cBuffer, PSTR((MSG_DEVICE_ERROR_TIMEOUT)));
+            break;
+         case DEVICE_ERROR_WRONG_ANSWER:
+            strcpy_P(cBuffer, PSTR((MSG_DEVICE_ERROR_WRONG_ANSWER)));
+            break;
       }
       //  Push the buffer
       ethClient.println(cBuffer);
+   }
 #ifdef FEATURE_DEBUG_TO_SERIAL
      SerialPrint_P(PSTR("Result: ")); Serial.println(cBuffer); Serial.println(); 
 #endif
-   }
    return cmdIdx;
 }
-
-
 
