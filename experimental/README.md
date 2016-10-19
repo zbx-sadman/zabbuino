@@ -25,7 +25,7 @@ Implemented:
 - Support One- or Two- (and maybe Four-) lines LCD Character displays with PC8574 I2C expander;
 - Support any actuators or indicators via `digitalwrite` command;
 - Support WS2801 Led stripe and any indicators on shift registers via extended `shiftout` command;
-- Support WS2812 Led stripe;                                                                                                                                     
+- Support WS2812 Led stripe;
 - Support PZEM-004 energy meter;
 - Support APC Smart UPS (with RS232 interface);
 - Simulate varuious vendor's IR transmitters.
