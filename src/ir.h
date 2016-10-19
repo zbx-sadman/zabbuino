@@ -13,8 +13,8 @@ version 2.2.1 is used
 #define ZabbuinoIR_h
 
 #include <Arduino.h>
-#include "../zabbuino.h"
 #include "defaults.h"
+#include "../zabbuino.h"
 
 
 #define IR_UNKNOWN      -0x01

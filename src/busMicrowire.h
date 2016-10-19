@@ -2,8 +2,8 @@
 #define ZabbuinoBUSMICROWIRE_h
 
 #include <Arduino.h>
-#include "../zabbuino.h"
 #include "defaults.h"
+#include "../zabbuino.h"
 
 /* 
 The original code was written for the Wiring board by:

@@ -4,9 +4,9 @@
 #include <Arduino.h>
 #include <util/atomic.h>
 #include <avr/interrupt.h>
+#include "defaults.h"
 #include "../zabbuino.h"
 #include "system.h"
-#include "defaults.h"
 
 ISR(TIMER1_COMPA_vect);
 

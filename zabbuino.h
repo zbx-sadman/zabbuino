@@ -1,25 +1,5 @@
 #ifndef Zabbuino_h
 #define Zabbuino_h
-
-/* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
-                                                                 HEADERS SECTION
-*/
-
-#include <Arduino.h>
-#include <IPAddress.h>
-#include "src/platforms.h"
-// Wire lib for I2C sensors
-#include <Wire.h>
-// OneWire lib for Dallas sensors
-#include <OneWire.h>
-#include <EEPROM.h>
-#include <avr/pgmspace.h>
-#include <avr/wdt.h>
-#include <avr/boot.h>
-// used by interrupts-related macroses
-#include <wiring_private.h>
-#include <SoftwareSerial.h>
-
 /* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
    
                                                              NETWORK MODULE SECTION
@@ -66,8 +46,8 @@
 //#define FEATURE_PZEM004_ENABLE
 
 // 
-//#define FEATURE_UPS_APCSMART_ENABLE
-//#define FEATURE_UPS_MEGATEC_ENABLE
+#define FEATURE_UPS_APCSMART_ENABLE
+#define FEATURE_UPS_MEGATEC_ENABLE
 
 
 /****       Network              ****/
@@ -224,7 +204,7 @@
 /=/       - DHT.Humidity[];
 /=/       - DHT.Temperature[]
 /*/
-//#define FEATURE_DHT_ENABLE
+#define FEATURE_DHT_ENABLE
 
 /****       Ultrasonic    ****/
 
@@ -287,7 +267,7 @@
 /*/
 /=/     Store runtime settings in EEPROM and use its on start
 /*/
-//#define FEATURE_EEPROM_ENABLE
+#define FEATURE_EEPROM_ENABLE
 
 /*/
 /=/     Force protect (enable even netConfig.useProtection is false) your system from illegal access for change runtime settings and reboots 
@@ -332,15 +312,6 @@
 // Use more blinks to runtime stage indication
 //#define ADVANCED_BLINKING
 
-// Turn off state LED blink (no errors found)
-// State LED no blink type
-#define BLINK_NOPE                 	                        0x00
-// State LED blink type with DHCP problem reached (no renew lease or more)
-#define BLINK_DHCP_PROBLEM         	                        150 // ~150ms on, ~850ms off
-// State LED blink type with Network activity problem (no packets processed for NET_IDLE_TIMEOUT)
-#define BLINK_NET_PROBLEM          	                        500 // ~500ms on, ~500ms off
-
-
 /* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
                                                             NETWORK MODULE SECTION 
 
@@ -362,30 +333,10 @@
 #define NET_DEFAULT_NETMASK                                   {255,255,255,0}
 
 
-// How often do ENC28J60 module reinit for more stable network
-#define NET_ENC28J60_REINIT_PERIOD  	                        10000UL  // 10 sec
-// Network activity timeout (for which no packets processed or no DHCP lease renews finished with success)
-#define NET_IDLE_TIMEOUT            	                        60000UL  // 60 sec
-
-// How long active client can transmit packets
-#ifdef FEATURE_DEBUG_TO_SERIAL
-  // on debug serial's output can make network processing slow
-  #define NET_ACTIVE_CLIENT_CONNECTION_TIMEOUT                    5000UL  // 5 sec
-#else
-  #define NET_ACTIVE_CLIENT_CONNECTION_TIMEOUT                    1000UL  // 1 sec
-#endif
-
-// How often do renew DHCP lease
-#define NET_DHCP_RENEW_PERIOD       	                        30000UL  // 30 sec
-// How often do renew DHCP lease
-#define NET_STABILIZATION_DELAY     	                        100L     // 0.1 sec
-
 // Include headers for an network module
 #if defined (W5100_ETHERNET_SHIELD)
    #define NET_MODULE_NAME                                   "W5100"
-//   extern "C" { 
-    #include <Ethernet.h> 
-//   }
+   #include <Ethernet.h> 
    #include <SPI.h>
 #elif defined(W5200_ETHERNET_SHIELD)
    #define NET_MODULE_NAME                                   "W5200"
@@ -430,7 +381,36 @@
 #define ZBX_AGENT_DEFAULT_DOMAIN                              ".local.net"
 
 
-#define ZBX_AGENT_VERISON             	                      "Zabbuino 1.1.0"
+#define ZBX_AGENT_VERISON             	                      "Zabbuino 1.2.0"
+
+
+/* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
+                                                                 HEADERS SECTION
+*/
+
+#include <Arduino.h>
+#include "src/platforms.h"
+#include <avr/pgmspace.h>
+#include <avr/wdt.h>
+#include <avr/boot.h>
+// used by interrupts-related macroses
+#include <wiring_private.h>
+
+#include "src/defaults.h"
+
+#include "src/busI2C.h"
+#include "src/eeprom.h"
+#include "src/adc.h"
+#include "src/dht.h"
+#include "src/ir.h"
+#include "src/system.h"
+#include "src/ultrasonic.h"
+#include "src/shiftout.h"
+#include "src/io_regs.h"
+#include "src/interrupts.h"
+#include "src/busMicrowire.h"
+#include "src/busOneWire.h"
+#include "src/busUART.h"
 
 #endif
 

@@ -2,9 +2,9 @@
 #define ZabbuinoSERVICE_h
 
 #include <Arduino.h>
-#include "../zabbuino.h"
 #include "defaults.h"
-
+#include "../zabbuino.h"
+	
 void setConfigDefaults(netconfig_t* _configStruct);
 
 /* ****************************************************************************************************************************

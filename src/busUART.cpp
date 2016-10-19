@@ -77,9 +77,6 @@ int8_t getMegatecUPSMetric(const uint8_t _rxPin, const uint8_t _txPin, uint8_t* 
 //       return RESULT_IS_FAIL;
        return 0;
   }
-  
-  Serial.println("Command allowed");
-
 
 /*
      case 0x01:  // ^A,  Model string
@@ -117,45 +114,25 @@ int8_t getMegatecUPSMetric(const uint8_t _rxPin, const uint8_t _txPin, uint8_t* 
 */
 
   swSerial.begin(MEGATEC_UPS_UART_SPEED);
-#ifdef GATHER_METRIC_USING_TIMER_INTERRUPT
-  // Stop the Timer1 to prevent UART errors
-  stopTimerOne(); 
-#endif
-
   //  Step #1. Send user's command & recieve answer
   //
   // Flush all device's transmitted data to avoid get excess data in recieve buffer
   serialRXFlush(&swSerial, false);
 
   if (! serialSend(&swSerial, _command, len , false)) {
-#ifdef GATHER_METRIC_USING_TIMER_INTERRUPT
-     startTimerOne();
-#endif
      return DEVICE_ERROR_TIMEOUT; 
   };
-  //Serial.println("recieve");
   // Recieve answer from UPS. Answer placed to buffer directly for additional processing 
   len = serialRecive(&swSerial, _dst, MEGATEC_MAX_ANSWER_LENGTH, MEGATEC_DEFAULT_READ_TIMEOUT, '\r');
-  //Serial.print("len: "); Serial.println(len);
-  //Serial.print("_dst: "); Serial.println((char) _dst);
   // return timeout sign if packet not finished by <CR>
   if ('\r' != _dst[len-1]) { 
-#ifdef GATHER_METRIC_USING_TIMER_INTERRUPT
-     startTimerOne();
-#endif
      return DEVICE_ERROR_TIMEOUT; 
   };
   if ('(' != _dst[0]) { 
-#ifdef GATHER_METRIC_USING_TIMER_INTERRUPT
-     startTimerOne();
-#endif
      return DEVICE_ERROR_WRONG_ANSWER; 
   };
   _dst[len-1] = '\0';
   if (0 == fileldNumber) { 
-#ifdef GATHER_METRIC_USING_TIMER_INTERRUPT
-     startTimerOne();
-#endif
      return RESULT_IN_BUFFER; 
   }
   
@@ -186,11 +163,6 @@ int8_t getMegatecUPSMetric(const uint8_t _rxPin, const uint8_t _txPin, uint8_t* 
   };
   // make C-string
   _dst[dstPos] = '\0';
-#ifdef GATHER_METRIC_USING_TIMER_INTERRUPT
-  // Start the Timer1
-  startTimerOne();
-#endif
-  //Serial.println("Destroy current SoftwareSerial instance");
   swSerial.~SoftwareSerial();
 
   return RESULT_IN_BUFFER;
@@ -273,10 +245,6 @@ int8_t getAPCSmartUPSMetric(const uint8_t _rxPin, const uint8_t _txPin, uint8_t*
   }
   
   swSerial.begin(APC_UPS_UART_SPEED);
-#ifdef GATHER_METRIC_USING_TIMER_INTERRUPT
-  // Stop the Timer1 to prevent UART errors
-  stopTimerOne(); 
-#endif
   //  Step #1. Send Y-command. Its must return 'SM<0x0D>' (3 byte) and switch UPS to Smart mode
   //
   // Flush all device's transmitted data to avoid get excess data in recieve buffer
@@ -284,24 +252,15 @@ int8_t getAPCSmartUPSMetric(const uint8_t _rxPin, const uint8_t _txPin, uint8_t*
   serialRXFlush(&swSerial, true);
   command = 'Y';
   if (! serialSend(&swSerial, &command, 1, true)) { 
-#ifdef GATHER_METRIC_USING_TIMER_INTERRUPT
-     startTimerOne();
-#endif
      return DEVICE_ERROR_TIMEOUT;      
   };
   len = serialRecive(&swSerial, _dst, 0x03, APC_DEFAULT_READ_TIMEOUT, '\0');
   // Connection timeout occurs (recieved less than 3 byte)
   if (len < 0x03) { 
-#ifdef GATHER_METRIC_USING_TIMER_INTERRUPT
-     startTimerOne();
-#endif
      return DEVICE_ERROR_TIMEOUT; 
   }
   // Check for "SM\r"
   if ( 'S' != _dst[0] || 'M' != _dst[1] || '\r' != _dst[2]) { 
-#ifdef GATHER_METRIC_USING_TIMER_INTERRUPT
-     startTimerOne();
-#endif
      return DEVICE_ERROR_WRONG_ANSWER; 
   };    
   
@@ -316,9 +275,6 @@ int8_t getAPCSmartUPSMetric(const uint8_t _rxPin, const uint8_t _txPin, uint8_t*
      // All commands fits to 1 byte
      //Serial.println("send");
      if (! serialSend(&swSerial, _command, 1, true)) { 
-#ifdef GATHER_METRIC_USING_TIMER_INTERRUPT
-        startTimerOne();
-#endif
         return DEVICE_ERROR_TIMEOUT; 
      };
      //Serial.println("recieve");
@@ -326,9 +282,6 @@ int8_t getAPCSmartUPSMetric(const uint8_t _rxPin, const uint8_t _txPin, uint8_t*
      len = serialRecive(&swSerial, _dst, APC_MAX_ANSWER_LENGTH, APC_DEFAULT_READ_TIMEOUT, '\r');
      //Serial.print("len: "); Serial.println(len);
      if (!sendCommandTwice && '\r' != _dst[len-1]) { 
-#ifdef GATHER_METRIC_USING_TIMER_INTERRUPT
-        startTimerOne();
-#endif
         return DEVICE_ERROR_TIMEOUT; 
      };
      //Serial.print("reply: "); Serial.println((char*) _dst);
@@ -352,16 +305,9 @@ int8_t getAPCSmartUPSMetric(const uint8_t _rxPin, const uint8_t _txPin, uint8_t*
   // 
   command = 'R';
   if (! serialSend(&swSerial, &command, 1, true)) { 
-#ifdef GATHER_METRIC_USING_TIMER_INTERRUPT
-     startTimerOne();
-#endif
      return DEVICE_ERROR_TIMEOUT; 
   };
   serialRXFlush(&swSerial, true);
-#ifdef GATHER_METRIC_USING_TIMER_INTERRUPT
-  // Start the Timer1
-  startTimerOne();
-#endif
   //Serial.println("Destroy current SoftwareSerial instance");
   swSerial.~SoftwareSerial();
  
@@ -431,22 +377,12 @@ int8_t getPZEM004Metric(const uint8_t _rxPin, const uint8_t _txPin, uint8_t _met
     _dst[5] = 0x00; 
     // 7-th byte - CRC
     _dst[6] = crcPZEM004(_dst, PZEM_PACKET_SIZE - 1); 
-
-#ifdef GATHER_METRIC_USING_TIMER_INTERRUPT
-    // Stop the Timer1 to prevent UART errors
-    stopTimerOne(); 
-#endif
     //for(int i=0; i < sizeof(buffer); i++) { Serial.print("Byte# "); Serial.print(i); Serial.print(" => "); Serial.println(buffer[i], HEX);  }
     if (! serialSend(&swSerial, _dst, PZEM_PACKET_SIZE, false)) { return DEVICE_ERROR_TIMEOUT; };
 
     /*  Recieve from PZEM004 */
     //Serial.println("Recieve answer...");
     len = serialRecive(&swSerial, _dst, PZEM_PACKET_SIZE, PZEM_DEFAULT_READ_TIMEOUT, '\0');
-#ifdef GATHER_METRIC_USING_TIMER_INTERRUPT
-    // Start the Timer1
-    startTimerOne();
-#endif    
-    // Serial.println("Destroy current SoftwareSerial instance");
     swSerial.~SoftwareSerial();// 
 
     // Connection timeout occurs
@@ -454,33 +390,30 @@ int8_t getPZEM004Metric(const uint8_t _rxPin, const uint8_t _txPin, uint8_t _met
     if (len < PZEM_PACKET_SIZE) { return DEVICE_ERROR_TIMEOUT; }
     // Wrong answer. buffer[0] must contain command - 0x10 (command B1 -> reply A1)
     // command = command - 0x10;
-    //Serial.print("Header expected: "); Serial.println(command, HEX);
-    //Serial.print("Header real: "); Serial.println(_dst[0], HEX);
     if (_dst[0] != (command - 0x10)) { return DEVICE_ERROR_WRONG_ANSWER; }
     // Bad CRC
     if (_dst[6] != crcPZEM004( _dst, len - 1)) { return DEVICE_ERROR_CHECKSUM; }
     
-//    Serial.println("Calculating...");
    // data is placed in buffer from 2-th byte, because 1-th byte is Header
-   switch (_metric) {
-     case SENS_READ_AC:
-       result = ((_dst[1] << 8) + _dst[2]) * 100 + _dst[3];
-       // _dst (cBuffer at real) cast to char due numeric-to-ascii subs require char array
-       ltoaf(result, (char*) _dst, 2);
-       break;
-     case SENS_READ_VOLTAGE:
-       result = ((_dst[1] << 8) + _dst[2]) * 10 + _dst[3]; 
-       ltoaf(result, (char*) _dst, 1);
-       break;
-     case SENS_READ_POWER:
-       result = (_dst[1] << 8) + _dst[2];
-       ltoa(result, (char*) _dst, 10);
-       break;
-     case SENS_READ_ENERGY:
-       result = ((uint32_t) _dst[1] << 16) + ((uint16_t) _dst[2] << 8) + _dst[3];
-       ltoa(result, (char*) _dst, 10);
-       break;
-   }
+    switch (_metric) {
+      case SENS_READ_AC:
+        result = ((_dst[1] << 8) + _dst[2]) * 100 + _dst[3];
+        // _dst (cBuffer at real) cast to char due numeric-to-ascii subs require char array
+        ltoaf(result, (char*) _dst, 2);
+        break;
+      case SENS_READ_VOLTAGE:
+        result = ((_dst[1] << 8) + _dst[2]) * 10 + _dst[3]; 
+        ltoaf(result, (char*) _dst, 1);
+        break;
+      case SENS_READ_POWER:
+        result = (_dst[1] << 8) + _dst[2];
+        ltoa(result, (char*) _dst, 10);
+        break;
+      case SENS_READ_ENERGY:
+        result = ((uint32_t) _dst[1] << 16) + ((uint16_t) _dst[2] << 8) + _dst[3];
+        ltoa(result, (char*) _dst, 10);
+        break;
+    }
 
   return RESULT_IN_BUFFER;
 }

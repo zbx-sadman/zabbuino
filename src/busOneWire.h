@@ -4,9 +4,9 @@
 #include <Arduino.h>
 // OneWire lib for Dallas sensors
 #include <OneWire.h>
+#include "defaults.h"
 #include "../zabbuino.h"
 #include "service.h"
-#include "defaults.h"
 
 
 /* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
@@ -14,10 +14,10 @@
 */
 
 // Model IDs
-#define DS18S20_ID                                            0x10  // also DS1820
-#define DS18B20_ID                                            0x28
-#define DS1822_ID                                             0x22
-#define DS1825_ID                                             0x3B
+#define DS18S20_ID                                              0x10  // also DS1820
+#define DS18B20_ID                                              0x28
+#define DS1822_ID                                               0x22
+#define DS1825_ID                                               0x3B
 
 // Device resolution
 #define DS18X20_MODE_9_BIT                                      0x1F //  9 bit
@@ -37,15 +37,15 @@
 
 
 // Scratchpad locations
-#define DS18X20_BYTE_TEMP_LSB                                   0
-#define DS18X20_BYTE_TEMP_MSB                                   1
-#define DS18X20_BYTE_HIGH_ALARM_TEMP                            2
-#define DS18X20_BYTE_LOW_ALARM_TEMP                             3
-#define DS18X20_BYTE_CONFIGURATION                              4
-#define DS18X20_BYTE_INTERNAL_BYTE                              5
-#define DS18X20_BYTE_COUNT_REMAIN                               6
-#define DS18X20_BYTE_COUNT_PER_C                                7
-#define DS18X20_BYTE_SCRATCHPAD_CRC                             8
+#define DS18X20_BYTE_TEMP_LSB                                   0x00
+#define DS18X20_BYTE_TEMP_MSB                                   0x01
+#define DS18X20_BYTE_HIGH_ALARM_TEMP                            0x02
+#define DS18X20_BYTE_LOW_ALARM_TEMP                             0x03
+#define DS18X20_BYTE_CONFIGURATION                              0x04
+#define DS18X20_BYTE_INTERNAL_BYTE                              0x05
+#define DS18X20_BYTE_COUNT_REMAIN                               0x06
+#define DS18X20_BYTE_COUNT_PER_C                                0x07
+#define DS18X20_BYTE_SCRATCHPAD_CRC                             0x08
 
 /* ****************************************************************************************************************************
 *

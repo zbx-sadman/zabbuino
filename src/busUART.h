@@ -3,10 +3,10 @@
 
 #include <Arduino.h>
 #include <SoftwareSerial.h>
+#include "defaults.h"
 #include "../zabbuino.h"
 #include "service.h"
 #include "system.h"
-#include "defaults.h"
 
 /* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
                                                       COMMON UART SECTION

@@ -129,6 +129,9 @@ int8_t manageExtInt(uint8_t _pin, uint8_t _mode) {
 
 /* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
                                                                  ENCODER INTERRUPTS HANDLING SECTION
+
+   Q: Encoder counter is the same that inerrupt counter: uint32_t  variable. What to do with countdown?
+
 */
 
 #ifdef FEATURE_INCREMENTAL_ENCODER_ENABLE

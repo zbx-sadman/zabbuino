@@ -5,10 +5,10 @@
 *   Measure the voltage on given analogChannel.
 *
 **************************************************************************************************************************** */
-int32_t getADCVoltage(const uint8_t _analogChannel) {  
+uint16_t getADCVoltage(const uint8_t _analogChannel) {  
   uint8_t oldADCSRA, oldADMUX;
   uint16_t i;
-  uint32_t avgADC=0;
+  uint32_t avgADC = 0;
   oldADMUX = ADMUX;
   ADMUX = (0 << REFS1) | (1 << REFS0) | _analogChannel;
 
@@ -40,7 +40,7 @@ int32_t getADCVoltage(const uint8_t _analogChannel) {
   // No delay() used because sub can be called from interrupt
   // i = 1500; while (i--){ delayMicroseconds(1);}
   //  delayMicroseconds(2000);
-  return avgADC;
+  return ((uint16_t) avgADC);
 }
 
 /* ****************************************************************************************************************************

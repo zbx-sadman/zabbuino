@@ -2,9 +2,11 @@
 #define ZabbuinoBUSI2C_h
 
 #include <Arduino.h>
+// Wire lib for I2C sensors
+#include <Wire.h>
+#include "defaults.h"
 #include "../zabbuino.h"
 #include "service.h"
-#include "defaults.h"
 
 /* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
                                                       COMMON I2C SECTION
@@ -191,15 +193,15 @@ int8_t getBMP180Metric(const uint8_t _sdaPin, const uint8_t _sclPin, uint8_t _i2
 // Some pin mappings not used at presently
 /* LCD functional pin             ===>                   PCF8574 port (bit # in byte which send to I2C expander) */
 
-#define LCD_RS                                                  0      // P0 (pin 4) on PCF8574 - expander pin #4  (used)
-#define LCD_RW                                                  1      // P1 (pin 5) on PCF8574 - expander pin #5
-#define LCD_E                                                   2      // P2 (pin 6) on PCF8574 - expander pin #6  (used)
-#define LCD_BL                                                  3      // P3 (pin 7) on PCF8574 - expander pin #7  (used)
+#define LCD_RS                                                  0x00      // P0 (pin 4) on PCF8574 - expander pin #4  (used)
+#define LCD_RW                                                  0x01      // P1 (pin 5) on PCF8574 - expander pin #5
+#define LCD_E                                                   0x02      // P2 (pin 6) on PCF8574 - expander pin #6  (used)
+#define LCD_BL                                                  0x03      // P3 (pin 7) on PCF8574 - expander pin #7  (used)
 
-#define LCD_D4                                                  4      // P4 (pin 9) on PCF8574  - expander pin #11
-#define LCD_D5                                                  5      // P5 (pin 10) on PCF8574 - expander pin #12
-#define LCD_D6                                                  6      // P6 (pin 11) on PCF8574 - expander pin #13
-#define LCD_D7                                                  7      // P7 (pin 12) on PCF8574 - expander pin #14
+#define LCD_D4                                                  0x04      // P4 (pin 9) on PCF8574  - expander pin #11
+#define LCD_D5                                                  0x05      // P5 (pin 10) on PCF8574 - expander pin #12
+#define LCD_D6                                                  0x06      // P6 (pin 11) on PCF8574 - expander pin #13
+#define LCD_D7                                                  0x07      // P7 (pin 12) on PCF8574 - expander pin #14
 
 // LCD types.  1602 => 16 chars * 2 rows
 #define LCD_TYPE_801                                            801

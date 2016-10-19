@@ -2,9 +2,9 @@
 #define ZabbuinoSYS_h
 
 #include <Arduino.h>
+#include "defaults.h"
 #include "../zabbuino.h"
 #include "adc.h"
-#include "defaults.h"
 
 
 /* ****************************************************************************************************************************

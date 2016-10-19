@@ -6,32 +6,12 @@
 //#define USE_NETWORK_192_168_0_0
 
 /* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
-                                                                 HEADERS SECTION
-*/
-#include "zabbuino.h"
-#include "src/defaults.h"
-
-#include "src/adc.h"
-#include "src/dht.h"
-#include "src/eeprom.h"
-#include "src/ir.h"
-#include "src/service.h"
-#include "src/system.h"
-#include "src/ultrasonic.h"
-#include "src/shiftout.h"
-#include "src/io_regs.h"
-#include "src/interrupts.h"
-#include "src/busI2C.h"
-#include "src/busMicrowire.h"
-#include "src/busOneWire.h"
-#include "src/busUART.h"
-
-/* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
                                                                  PROGRAMM FEATURES SECTION
                    
    Please refer to the "zabbuino.h" file for enabling or disabling Zabbuino's features and "src/defaults.h" to deep tuning.
    if connected sensors seems not work - first check setting in port_protect[], port_mode[], port_pullup[] arrays in I/O PORTS SETTING SECTION of "src/defaults.h" file
 */
+#include "zabbuino.h"
 
 /* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
                                                                  GLOBAL VARIABLES SECTION
@@ -132,7 +112,7 @@ So... no debug with Serial Monitor at this time
        saveConfigToEEPROM(netConfig);
        // Blink fast while PIN_FACTORY_RESET shorted to GND
 #ifdef FEATURE_DEBUG_TO_SERIAL
-     SerialPrintln_P(PSTR("Done. Release the factory reset button"));
+     SerialPrintln_P(PSTR("Done. Release the factory reset button now"));
 #endif
        while (LOW == digitalRead(PIN_FACTORY_RESET)) {
           digitalWrite(PIN_STATE_LED, millis() % 100 < 50);
@@ -177,7 +157,7 @@ So... no debug with Serial Monitor at this time
        // Try to ask DHCP server
       if (0 == Ethernet.begin(netConfig->macAddress)) {
 #ifdef FEATURE_DEBUG_TO_SERIAL
-         SerialPrintln_P(PSTR("No successfully"));
+         SerialPrintln_P(PSTR("No success"));
 #endif
          // No offer recieved - switch off DHCP feature for that session
          netConfig->useDHCP = false;
@@ -198,7 +178,7 @@ So... no debug with Serial Monitor at this time
   }
   
 #ifdef FEATURE_DEBUG_TO_SERIAL
-  SerialPrintln_P(PSTR("Begin internetworking"));
+  SerialPrintln_P(PSTR("Serving on:"));
   SerialPrint_P(PSTR("MAC     : ")); printArray(netConfig->macAddress, sizeof(netConfig->macAddress), DBG_PRINT_AS_MAC);
   SerialPrint_P(PSTR("Hostname: ")); Serial.println(netConfig->hostname);
   SerialPrint_P(PSTR("IP      : ")); Serial.println(Ethernet.localIP());
@@ -252,7 +232,7 @@ So... no debug with Serial Monitor at this time
 #endif
 
 #if defined(FEATURE_I2C_ENABLE) || defined(FEATURE_BMP_ENABLE) || defined(FEATURE_BH1750_ENABLE) || defined (FEATURE_PCF8574_LCD_ENABLE) || defined (FEATURE_SHT2X_ENABLE)
-Wire.begin();
+   Wire.begin();
 #endif
 
 #ifdef ADVANCED_BLINKING
@@ -267,14 +247,13 @@ Wire.begin();
                                                                       RUN SECTION
 */
 void loop() {
-  uint8_t result, blinkType = (uint8_t) BLINK_NOPE;
+  uint8_t result, blinkType = BLINK_NOPE;
   int16_t *_argOffset;
   uint32_t nowTime, processStartTime, processEndTime, prevDHCPRenewTime, prevENCReInitTime, prevNetProblemTime, prevSysMetricGatherTime,clentConnectTime;
 
   _argOffset = new int16_t[ARGS_MAX];
     
   // Correcting timestamps
-
   prevDHCPRenewTime = prevENCReInitTime = prevNetProblemTime = prevSysMetricGatherTime = millis();
 
   // if no exist while() here - netProblemTime must be global or static - its will be 0 every loop() and time-related cases will be processeed abnormally
@@ -297,17 +276,17 @@ void loop() {
 #ifdef FEATURE_NET_DHCP_ENABLE
     // DHCP used in this session and time to renew lease?
       // how many overhead give Ethernet.maintain() ?
-//    if (true == netConfig->useDHCP && (NET_DHCP_RENEW_PERIOD <= (uint32_t) (nowTime - prevDHCPRenewTime))) {
+    if (true == netConfig->useDHCP && (NET_DHCP_RENEW_PERIOD <= (uint32_t) (nowTime - prevDHCPRenewTime))) {
        // Ethernet library's manual say that Ethernet.maintain() can be called every loop for DHCP renew, but i won't do this so often
        result = Ethernet.maintain();
        // Renew procedure finished with success
        if (DHCP_CHECK_RENEW_OK == result || DHCP_CHECK_REBIND_OK  == result) { 
           // No alarm blink  need, network activity registred, renewal period restarted
-          blinkType = (uint8_t) BLINK_NOPE;
+          blinkType = BLINK_NOPE;
 //          prevDHCPRenewTime = prevNetProblemTime = nowTime;
        } else {
           // Got some errors - blink with "DHCP problem message"
-          blinkType = (uint8_t) BLINK_DHCP_PROBLEM;
+          blinkType = BLINK_DHCP_PROBLEM;
 #ifdef FEATURE_DEBUG_TO_SERIAL
 //            SerialPrintln_P(PSTR("DHCP renew problem occured"));
 #endif 
@@ -320,7 +299,7 @@ void loop() {
 #ifdef FEATURE_DEBUG_TO_SERIAL
 //            SerialPrintln_P(PSTR("No data recieved for a long time"));
 #endif 
-       blinkType =(uint8_t) BLINK_NET_PROBLEM; 
+       blinkType = BLINK_NET_PROBLEM; 
     }
 
 #ifdef USE_DIRTY_HACK_AND_REBOOT_ENC28J60_IF_ITS_SEEMS_FREEZE
@@ -414,7 +393,7 @@ void loop() {
               }
               // Restart network activity control cycle
               prevENCReInitTime = prevNetProblemTime = millis();
-              blinkType = (uint8_t) BLINK_NOPE;
+              blinkType = BLINK_NOPE;
            }
         }
     } else {
@@ -430,7 +409,6 @@ void loop() {
 #endif
   }
 }
-
 
 /* ****************************************************************************************************************************
 *
@@ -480,12 +458,10 @@ uint8_t analyzeStream(char _charFromClient, int16_t* _argOffset) {
              // Just drop it and toggle doublequoted mode
              // Doublequoted mode: do not convert char case, skip action on space, ']', '[', ','
              doubleQuotedString = !doubleQuotedString;
-             //Serial.print("doublequote: "); Serial.println(doubleQuotedString );
              // Jump out from subroutine to get next char from client
              return true;
           }
           // Doublequote is escaped. Move write position backward to one step and write doublequote sign to '\' position
-          // Serial.println("escaped doublequote");
           bufferWritePosition--;
           cBuffer[bufferWritePosition] = '"';
           isEscapedChar = false;
@@ -493,7 +469,6 @@ uint8_t analyzeStream(char _charFromClient, int16_t* _argOffset) {
         // Backslash sign is arrived. If next char will be doublequote - its consider as escaped. But backslash is still in buffer as non-escape char
         case '\\':
           if (!isEscapedChar) {
- //           Serial.println("next char is escaped ");            
              isEscapedChar = true;
           }            
           break;
@@ -501,23 +476,19 @@ uint8_t analyzeStream(char _charFromClient, int16_t* _argOffset) {
         case 0x20:
           // Return 'Need next char'
           if (!doubleQuotedString) { return true; }
-          // Serial.println("[*1]");
           break;
 
         // Delimiter or separator found.
         case '[':
         case ',':
-        //  Serial.println("[*2.1]");
           // If its reached not in doublequoted string - process it as control char.
           if (!doubleQuotedString) { 
-             //Serial.println("[*2.2]");
              //  If '_argOffset' array is not exhausted - push begin of next argument (bufferWritePosition+1) on buffer to arguments offset array. 
             if (ARGS_MAX > cmdSliceNumber) { _argOffset[cmdSliceNumber] = bufferWritePosition + 1; }
                cmdSliceNumber++; 
                // Make current buffer segment like C-string
                cBuffer[bufferWritePosition] = '\0'; 
             }
-          //Serial.println("[*2.3]");
           break;
         // Final square bracket found. Do nothing and next char will be written to same position. 
         case ']':
@@ -562,9 +533,9 @@ int16_t executeCommand(int16_t* _argOffset)
   int8_t result = RESULT_IS_FAIL;
   uint8_t accessGranted, i, i2CAddress, i2COption, i2CValue[4];
   int16_t i2CRegister, cmdIdx = -1;
-  // duration  in tone[] - ulong
+  // duration option in the tone[] command is ulong
   uint32_t arg[ARGS_MAX];
-  int64_t value = 0;  // Zabbix use 64-bit numbers, but we can use only -uint32_t...+uint32_t range
+  int64_t value = 0;  // Zabbix use 64-bit numbers, but we can use only -uint32_t...+uint32_t range. Error can be occurs on ltoa() call with value > long_int_max 
  
   sysMetrics[IDX_METRIC_SYS_CMD_COUNT]++;
 
@@ -678,14 +649,7 @@ int16_t executeCommand(int16_t* _argOffset)
          delayMicroseconds(2000);
       }
 #endif
-#ifdef GATHER_METRIC_USING_TIMER_INTERRUPT
-      // Stop the Timer1 to prevent calling gatherMetrics and ADC disturb by getVoltage() and so
-      stopTimerOne(); 
-#endif
       value = (int64_t) analogRead(arg[0]);
-#ifdef GATHER_METRIC_USING_TIMER_INTERRUPT
-      startTimerOne(); 
-#endif
       if ('\0' != cBuffer[_argOffset[2]] && '\0' != cBuffer[_argOffset[3]]) {
          value = (int64_t) map(result, 0, 1023, arg[2], arg[3]);
       }
@@ -918,8 +882,6 @@ int16_t executeCommand(int16_t* _argOffset)
       }
       break;
 
-
-
 #ifdef FEATURE_DEBUG_COMMANDS_ENABLE
     case CMD_SYS_MCU_NAME:
       /*/
@@ -933,8 +895,8 @@ int16_t executeCommand(int16_t* _argOffset)
       /*/
       /=/  sys.mcu.id
       /*/
-      // Read 14..24 bytes from boot signature <= http://www.avrfreaks.net/forum/unique-id-atmega328pb
-      getBootSignatureBytes(cBuffer, 14, 10);
+      // Read bytes 0x0E..0x17 from boot signature <= http://www.avrfreaks.net/forum/unique-id-atmega328pb
+      getBootSignatureBytes(cBuffer, 0x0E, 10);
       result = RESULT_IN_BUFFER;
       break;
 
@@ -942,8 +904,8 @@ int16_t executeCommand(int16_t* _argOffset)
       /*/
       /=/  sys.mcu.sign
       /*/
-      // Read 0..3 bytes from boot signature <= http://www.avrfreaks.net/forum/device-signatures
-      getBootSignatureBytes(cBuffer, 0, 3);
+      // Read bytes 0x00..0x03 from boot signature <= http://www.avrfreaks.net/forum/device-signatures
+      getBootSignatureBytes(cBuffer, 0x00, 3);
       result = RESULT_IN_BUFFER;
       break;
 
@@ -969,7 +931,9 @@ int16_t executeCommand(int16_t* _argOffset)
       /=/  sys.cmd.timemax[resetCounter]
       /*/
       if (cBuffer[_argOffset[0]]) { sysMetrics[IDX_METRIC_SYS_CMD_TIMEMAX] = 0; sysMetrics[IDX_METRIC_SYS_CMD_TIMEMAX_N] = 0; } 
-      value = (int64_t) sysMetrics[IDX_METRIC_SYS_CMD_TIMEMAX];
+      ATOMIC_BLOCK(ATOMIC_RESTORESTATE) {
+        value = (int64_t) sysMetrics[IDX_METRIC_SYS_CMD_TIMEMAX];
+      }
       result = RESULT_IN_VARIABLE;
       break;
 
@@ -977,7 +941,10 @@ int16_t executeCommand(int16_t* _argOffset)
       /*/
       /=/  sys.cmd.timemax.n
       /*/
-      ethClient.println(sysMetrics[IDX_METRIC_SYS_CMD_TIMEMAX_N], HEX);
+      ATOMIC_BLOCK(ATOMIC_RESTORESTATE) {
+        value = (int64_t) sysMetrics[IDX_METRIC_SYS_CMD_TIMEMAX_N];
+      }
+      ethClient.println((uint32_t) value, HEX);
       result = RESULT_IS_PRINTED;
       break;
    
@@ -993,8 +960,10 @@ int16_t executeCommand(int16_t* _argOffset)
       /*/
       /=/  sys.ram.freemin
       /*/
-      value = (int64_t) sysMetrics[IDX_METRIC_SYS_RAM_FREEMIN];
-      result = RESULT_IN_VARIABLE;
+      ATOMIC_BLOCK(ATOMIC_RESTORESTATE) {
+         value = (int64_t) sysMetrics[IDX_METRIC_SYS_RAM_FREEMIN];
+      }
+         result = RESULT_IN_VARIABLE;
       break;
 
 #endif
@@ -1506,7 +1475,7 @@ int16_t executeCommand(int16_t* _argOffset)
             break;
          case RESULT_IN_VARIABLE:
             //  or result value placed in 'value' variable and must be converted to C-string.
-            ltoa (value, cBuffer, 10);
+            ltoa(value, cBuffer, 10);
             break;
          case DEVICE_ERROR_CONNECT:
             strcpy_P(cBuffer, PSTR((MSG_DEVICE_ERROR_CONNECT)));

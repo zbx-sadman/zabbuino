@@ -737,8 +737,8 @@ command_CMD_SYSTEM_RUN,
 
 #define SENS_READ_RAW                                           0xFF
 
-#define RESULT_IS_FAIL                                          FALSE
-#define RESULT_IS_OK                                            TRUE
+#define RESULT_IS_FAIL                                          false
+#define RESULT_IS_OK                                            true
 #define RESULT_IN_BUFFER                                        0x02
 #define RESULT_IS_PRINTED                                       0x04
 #define RESULT_IN_VARIABLE                                      0x08

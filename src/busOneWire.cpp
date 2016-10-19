@@ -71,6 +71,8 @@ int8_t getDS18X20Metric(const uint8_t _pin, uint8_t _resolution, char* _id, char
   uint8_t i, signBit, dsAddr[8], scratchPad[9], parasitePowerUsed;
   int16_t conversionTimeout;
   uint32_t tRaw;
+  // Start mass conversion or read data if prev conversion has been finished no more that N sec is good idea, but need to store link busPin<->prevConversionTime
+  // static uint32_t prevConversionTime = 0;
 
   // Resolution must be: 9 <= _resolution <= 12 
   _resolution = constrain(_resolution, 9, 12);

@@ -8,9 +8,9 @@ version 0.1.13 is used
 */
 
 #include <Arduino.h>
-#include "../zabbuino.h"
-#include "service.h"
 #include "defaults.h"
+#include "service.h"
+#include "../zabbuino.h"
 
 
 #define DHT11_ID                                                11
