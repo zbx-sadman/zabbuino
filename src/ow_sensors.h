@@ -1,13 +1,7 @@
-#ifndef ZabbuinoBUSONEWIRE_h
-#define ZabbuinoBUSONEWIRE_h
+#ifndef ZabbuinoOW_SENSORS_h
+#define ZabbuinoOW_SENSORS_h
 
-#include <Arduino.h>
-// OneWire lib for Dallas sensors
-#include <OneWire.h>
-#include "defaults.h"
-#include "../zabbuino.h"
-#include "service.h"
-
+#include "ow_bus.h"
 
 /* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
                                                                      DS18x20 SECTION
@@ -46,14 +40,6 @@
 #define DS18X20_BYTE_COUNT_REMAIN                               0x06
 #define DS18X20_BYTE_COUNT_PER_C                                0x07
 #define DS18X20_BYTE_SCRATCHPAD_CRC                             0x08
-
-/* ****************************************************************************************************************************
-*
-*   Scan 1-Wire bus and print to ethernet client all detected ID's (Addresses)
-*
-**************************************************************************************************************************** */
-int8_t scanOneWire(const uint8_t _pin, EthernetClient *_ethClient);
-//int32_t scanOneWire(const uint8_t _pin);
 
 
 /* ****************************************************************************************************************************

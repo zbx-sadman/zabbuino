@@ -46,8 +46,8 @@
 //#define FEATURE_PZEM004_ENABLE
 
 // 
-#define FEATURE_UPS_APCSMART_ENABLE
-#define FEATURE_UPS_MEGATEC_ENABLE
+//#define FEATURE_UPS_APCSMART_ENABLE
+//#define FEATURE_UPS_MEGATEC_ENABLE
 
 
 /****       Network              ****/
@@ -116,14 +116,14 @@
 /=/     Enable 1-Wire processing and command:
 /=/       - OW.Scan[]
 /*/
-#define FEATURE_OW_ENABLE
+//#define FEATURE_OW_ENABLE
 
 /*/ 
 /=/     Enable Dallas DS18x20 sensors handling and command:
 /=/       - DS18x20.Temperature[]
 /*/
 
-#define FEATURE_DS18X20_ENABLE
+//#define FEATURE_DS18X20_ENABLE
 
 /****       I2C bus        ****/
 
@@ -204,7 +204,7 @@
 /=/       - DHT.Humidity[];
 /=/       - DHT.Temperature[]
 /*/
-#define FEATURE_DHT_ENABLE
+//#define FEATURE_DHT_ENABLE
 
 /****       Ultrasonic    ****/
 
@@ -381,7 +381,7 @@
 #define ZBX_AGENT_DEFAULT_DOMAIN                              ".local.net"
 
 
-#define ZBX_AGENT_VERISON             	                      "Zabbuino 1.2.0"
+#define ZBX_AGENT_VERISON             	                      "Zabbuino 1.1.0"
 
 
 /* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
@@ -389,28 +389,45 @@
 */
 
 #include <Arduino.h>
-#include "src/platforms.h"
 #include <avr/pgmspace.h>
 #include <avr/wdt.h>
 #include <avr/boot.h>
 // used by interrupts-related macroses
 #include <wiring_private.h>
 
+#include "src/platforms.h"
 #include "src/defaults.h"
 
-#include "src/busI2C.h"
-#include "src/eeprom.h"
+/* runtime libs */
 #include "src/adc.h"
+#include "src/eeprom.h"
+#include "src/io_regs.h"
+#include "src/system.h"
+
+/* I2C devices */
+#include "src/i2c_bus.h"
+#include "src/i2c_bmp.h"
+#include "src/i2c_lcd.h"
+#include "src/i2c_sht.h"
+
+/* 1-Wire devices */
+#include "src/ow_bus.h"
+#include "src/ow_sensors.h"
+
+/* UART connected devices */
+#include "src/uart_bus.h"
+#include "src/uart_apcsmart.h"
+#include "src/uart_megatec.h"
+#include "src/uart_pzem.h"
+
+
+/* Other devices */
 #include "src/dht.h"
 #include "src/ir.h"
-#include "src/system.h"
+#include "src/interrupts.h"
 #include "src/ultrasonic.h"
 #include "src/shiftout.h"
-#include "src/io_regs.h"
-#include "src/interrupts.h"
 #include "src/busMicrowire.h"
-#include "src/busOneWire.h"
-#include "src/busUART.h"
 
 #endif
 
