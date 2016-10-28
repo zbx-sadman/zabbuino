@@ -1,7 +1,7 @@
 # Zabbuino
 An Zabbix agent firmware for Arduino (**AVR only**)
 
-Actual release is v1.0.0. 
+Actual release is v1.0.0. All new features can be found on [experimental](https://github.com/zbx-sadman/Zabbuino/tree/experimental) branch.
 
 **You can help to the project** by providing hardware to testing and integrating. Or yoг can just donate for it. Contact to me via email: [zbx.sadman@gmail.com](mailto://zbx.sadman@gmail.com)
 
