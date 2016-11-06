@@ -14,7 +14,7 @@ Implemented:
 - Storing system setting in EEPROM;
 - AVR WatchDog feature support;
 - MCU and runtime metrics (current/min/max VCC, current/min RAM, uptime, MCU name) obtaining;
-- Support WS5100 or ENC25J60 network modules;
+- Support W5100 or ENC28J60 network modules;
 - Support one or more Dallas DS18X20 thermometer;
 - Support DHT11/21/22/33/44 or AM2301/2302 humidity and temperature sensors;
 - Support Sensirion SHT2X humidity and temperature sensors serie;
