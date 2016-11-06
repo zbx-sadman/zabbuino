@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <zabbix_export>
     <version>2.0</version>
-    <date>2016-09-26T08:23:41Z</date>
+    <date>2016-11-06T17:50:29Z</date>
     <groups>
         <group>
             <name>Templates</name>
@@ -32,7 +32,7 @@
                     <snmp_community/>
                     <multiplier>0</multiplier>
                     <snmp_oid/>
-                    <key>ups.apcsmart[{$UPS_ZRX_PIN},{$UPS_ZTX_PIN},0x68]</key>
+                    <key>ups.apcsmart[{$ZABBUINO_RX_PIN},{$ZABBUINO_TX_PIN},&quot;h&quot;]</key>
                     <delay>60</delay>
                     <history>30</history>
                     <trends>365</trends>
@@ -75,7 +75,7 @@
                     <snmp_community/>
                     <multiplier>0</multiplier>
                     <snmp_oid/>
-                    <key>ups.apcsmart[{$UPS_ZRX_PIN},{$UPS_ZTX_PIN},0x74]</key>
+                    <key>ups.apcsmart[{$ZABBUINO_RX_PIN},{$ZABBUINO_TX_PIN},&quot;t&quot;]</key>
                     <delay>60</delay>
                     <history>30</history>
                     <trends>365</trends>
@@ -118,10 +118,10 @@
                     <snmp_community/>
                     <multiplier>0</multiplier>
                     <snmp_oid/>
-                    <key>ups.apcsmart[{$UPS_ZRX_PIN},{$UPS_ZTX_PIN},0x76]</key>
+                    <key>ups.apcsmart[{$ZABBUINO_RX_PIN},{$ZABBUINO_TX_PIN},&quot;v&quot;]</key>
                     <delay>10800</delay>
                     <history>7</history>
-                    <trends>365</trends>
+                    <trends>7</trends>
                     <status>0</status>
                     <value_type>1</value_type>
                     <allowed_hosts/>
@@ -161,7 +161,7 @@
                     <snmp_community/>
                     <multiplier>0</multiplier>
                     <snmp_oid/>
-                    <key>ups.apcsmart[{$UPS_ZRX_PIN},{$UPS_ZTX_PIN},0x66]</key>
+                    <key>ups.apcsmart[{$ZABBUINO_RX_PIN},{$ZABBUINO_TX_PIN},&quot;f&quot;]</key>
                     <delay>60</delay>
                     <history>30</history>
                     <trends>365</trends>
@@ -204,7 +204,7 @@
                     <snmp_community/>
                     <multiplier>0</multiplier>
                     <snmp_oid/>
-                    <key>ups.apcsmart[{$UPS_ZRX_PIN},{$UPS_ZTX_PIN},0x42]</key>
+                    <key>ups.apcsmart[{$ZABBUINO_RX_PIN},{$ZABBUINO_TX_PIN},&quot;B&quot;]</key>
                     <delay>60</delay>
                     <history>30</history>
                     <trends>365</trends>
@@ -247,7 +247,7 @@
                     <snmp_community/>
                     <multiplier>0</multiplier>
                     <snmp_oid/>
-                    <key>ups.apcsmart[{$UPS_ZRX_PIN},{$UPS_ZTX_PIN},0x47]</key>
+                    <key>ups.apcsmart[{$ZABBUINO_RX_PIN},{$ZABBUINO_TX_PIN},&quot;G&quot;]</key>
                     <delay>60</delay>
                     <history>7</history>
                     <trends>365</trends>
@@ -290,10 +290,10 @@
                     <snmp_community/>
                     <multiplier>0</multiplier>
                     <snmp_oid/>
-                    <key>ups.apcsmart[{$UPS_ZRX_PIN},{$UPS_ZTX_PIN},0x79]</key>
+                    <key>ups.apcsmart[{$ZABBUINO_RX_PIN},{$ZABBUINO_TX_PIN},&quot;y&quot;]</key>
                     <delay>10800</delay>
                     <history>7</history>
-                    <trends>365</trends>
+                    <trends>7</trends>
                     <status>0</status>
                     <value_type>1</value_type>
                     <allowed_hosts/>
@@ -333,7 +333,7 @@
                     <snmp_community/>
                     <multiplier>0</multiplier>
                     <snmp_oid/>
-                    <key>ups.apcsmart[{$UPS_ZRX_PIN},{$UPS_ZTX_PIN},0x6A]</key>
+                    <key>ups.apcsmart[{$ZABBUINO_RX_PIN},{$ZABBUINO_TX_PIN},&quot;j&quot;]</key>
                     <delay>30</delay>
                     <history>30</history>
                     <trends>365</trends>
@@ -376,10 +376,10 @@
                     <snmp_community/>
                     <multiplier>0</multiplier>
                     <snmp_oid/>
-                    <key>ups.apcsmart[{$UPS_ZRX_PIN},{$UPS_ZTX_PIN},0x62]</key>
+                    <key>ups.apcsmart[{$ZABBUINO_RX_PIN},{$ZABBUINO_TX_PIN},&quot;b&quot;]</key>
                     <delay>10800</delay>
                     <history>7</history>
-                    <trends>365</trends>
+                    <trends>7</trends>
                     <status>0</status>
                     <value_type>1</value_type>
                     <allowed_hosts/>
@@ -422,10 +422,10 @@ D      country code (used in capability decoding)</description>
                     <snmp_community/>
                     <multiplier>0</multiplier>
                     <snmp_oid/>
-                    <key>ups.apcsmart[{$UPS_ZRX_PIN},{$UPS_ZTX_PIN},0x56]</key>
+                    <key>ups.apcsmart[{$ZABBUINO_RX_PIN},{$ZABBUINO_TX_PIN},&quot;V&quot;]</key>
                     <delay>10800</delay>
                     <history>7</history>
-                    <trends>365</trends>
+                    <trends>7</trends>
                     <status>0</status>
                     <value_type>1</value_type>
                     <allowed_hosts/>
@@ -465,7 +465,7 @@ D      country code (used in capability decoding)</description>
                     <snmp_community/>
                     <multiplier>0</multiplier>
                     <snmp_oid/>
-                    <key>ups.apcsmart[{$UPS_ZRX_PIN},{$UPS_ZTX_PIN},0x4C]</key>
+                    <key>ups.apcsmart[{$ZABBUINO_RX_PIN},{$ZABBUINO_TX_PIN},&quot;L&quot;]</key>
                     <delay>30</delay>
                     <history>30</history>
                     <trends>365</trends>
@@ -508,7 +508,7 @@ D      country code (used in capability decoding)</description>
                     <snmp_community/>
                     <multiplier>0</multiplier>
                     <snmp_oid/>
-                    <key>ups.apcsmart[{$UPS_ZRX_PIN},{$UPS_ZTX_PIN},0x43]</key>
+                    <key>ups.apcsmart[{$ZABBUINO_RX_PIN},{$ZABBUINO_TX_PIN},&quot;C&quot;]</key>
                     <delay>30</delay>
                     <history>30</history>
                     <trends>365</trends>
@@ -551,10 +551,10 @@ D      country code (used in capability decoding)</description>
                     <snmp_community/>
                     <multiplier>0</multiplier>
                     <snmp_oid/>
-                    <key>ups.apcsmart[{$UPS_ZRX_PIN},{$UPS_ZTX_PIN},0x78]</key>
+                    <key>ups.apcsmart[{$ZABBUINO_RX_PIN},{$ZABBUINO_TX_PIN},&quot;x&quot;]</key>
                     <delay>10800</delay>
                     <history>7</history>
-                    <trends>365</trends>
+                    <trends>7</trends>
                     <status>0</status>
                     <value_type>1</value_type>
                     <allowed_hosts/>
@@ -594,7 +594,7 @@ D      country code (used in capability decoding)</description>
                     <snmp_community/>
                     <multiplier>0</multiplier>
                     <snmp_oid/>
-                    <key>ups.apcsmart[{$UPS_ZRX_PIN},{$UPS_ZTX_PIN},0x46]</key>
+                    <key>ups.apcsmart[{$ZABBUINO_RX_PIN},{$ZABBUINO_TX_PIN},&quot;F&quot;]</key>
                     <delay>60</delay>
                     <history>30</history>
                     <trends>365</trends>
@@ -637,7 +637,7 @@ D      country code (used in capability decoding)</description>
                     <snmp_community/>
                     <multiplier>0</multiplier>
                     <snmp_oid/>
-                    <key>ups.apcsmart[{$UPS_ZRX_PIN},{$UPS_ZTX_PIN},0x39]</key>
+                    <key>ups.apcsmart[{$ZABBUINO_RX_PIN},{$ZABBUINO_TX_PIN},&quot;9&quot;]</key>
                     <delay>60</delay>
                     <history>30</history>
                     <trends>365</trends>
@@ -680,10 +680,10 @@ D      country code (used in capability decoding)</description>
                     <snmp_community/>
                     <multiplier>0</multiplier>
                     <snmp_oid/>
-                    <key>ups.apcsmart[{$UPS_ZRX_PIN},{$UPS_ZTX_PIN},0x63]</key>
+                    <key>ups.apcsmart[{$ZABBUINO_RX_PIN},{$ZABBUINO_TX_PIN},&quot;c&quot;]</key>
                     <delay>10800</delay>
                     <history>7</history>
-                    <trends>365</trends>
+                    <trends>7</trends>
                     <status>0</status>
                     <value_type>1</value_type>
                     <allowed_hosts/>
@@ -723,7 +723,7 @@ D      country code (used in capability decoding)</description>
                     <snmp_community/>
                     <multiplier>0</multiplier>
                     <snmp_oid/>
-                    <key>ups.apcsmart[{$UPS_ZRX_PIN},{$UPS_ZTX_PIN},0x6C]</key>
+                    <key>ups.apcsmart[{$ZABBUINO_RX_PIN},{$ZABBUINO_TX_PIN},&quot;l&quot;]</key>
                     <delay>30</delay>
                     <history>30</history>
                     <trends>365</trends>
@@ -766,10 +766,10 @@ D      country code (used in capability decoding)</description>
                     <snmp_community/>
                     <multiplier>0</multiplier>
                     <snmp_oid/>
-                    <key>ups.apcsmart[{$UPS_ZRX_PIN},{$UPS_ZTX_PIN},0x6D]</key>
+                    <key>ups.apcsmart[{$ZABBUINO_RX_PIN},{$ZABBUINO_TX_PIN},&quot;m&quot;]</key>
                     <delay>10800</delay>
                     <history>7</history>
-                    <trends>365</trends>
+                    <trends>7</trends>
                     <status>0</status>
                     <value_type>1</value_type>
                     <allowed_hosts/>
@@ -809,7 +809,7 @@ D      country code (used in capability decoding)</description>
                     <snmp_community/>
                     <multiplier>0</multiplier>
                     <snmp_oid/>
-                    <key>ups.apcsmart[{$UPS_ZRX_PIN},{$UPS_ZTX_PIN},0x4D]</key>
+                    <key>ups.apcsmart[{$ZABBUINO_RX_PIN},{$ZABBUINO_TX_PIN},&quot;M&quot;]</key>
                     <delay>30</delay>
                     <history>30</history>
                     <trends>365</trends>
@@ -852,7 +852,7 @@ D      country code (used in capability decoding)</description>
                     <snmp_community/>
                     <multiplier>0</multiplier>
                     <snmp_oid/>
-                    <key>ups.apcsmart[{$UPS_ZRX_PIN},{$UPS_ZTX_PIN},0x4E]</key>
+                    <key>ups.apcsmart[{$ZABBUINO_RX_PIN},{$ZABBUINO_TX_PIN},&quot;N&quot;]</key>
                     <delay>30</delay>
                     <history>30</history>
                     <trends>365</trends>
@@ -895,7 +895,7 @@ D      country code (used in capability decoding)</description>
                     <snmp_community/>
                     <multiplier>0</multiplier>
                     <snmp_oid/>
-                    <key>ups.apcsmart[{$UPS_ZRX_PIN},{$UPS_ZTX_PIN},0x01]</key>
+                    <key>ups.apcsmart[{$ZABBUINO_RX_PIN},{$ZABBUINO_TX_PIN},0x01]</key>
                     <delay>10800</delay>
                     <history>7</history>
                     <trends>7</trends>
@@ -938,7 +938,7 @@ D      country code (used in capability decoding)</description>
                     <snmp_community/>
                     <multiplier>0</multiplier>
                     <snmp_oid/>
-                    <key>ups.apcsmart[{$UPS_ZRX_PIN},{$UPS_ZTX_PIN},0x67]</key>
+                    <key>ups.apcsmart[{$ZABBUINO_RX_PIN},{$ZABBUINO_TX_PIN},&quot;g&quot;]</key>
                     <delay>60</delay>
                     <history>7</history>
                     <trends>14</trends>
@@ -976,55 +976,12 @@ D      country code (used in capability decoding)</description>
                     <logtimefmt/>
                 </item>
                 <item>
-                    <name>UPS output load</name>
-                    <type>0</type>
-                    <snmp_community/>
-                    <multiplier>0</multiplier>
-                    <snmp_oid/>
-                    <key>ups.apcsmart[{$UPS_ZRX_PIN},{$UPS_ZTX_PIN},0x50]</key>
-                    <delay>30</delay>
-                    <history>30</history>
-                    <trends>365</trends>
-                    <status>0</status>
-                    <value_type>0</value_type>
-                    <allowed_hosts/>
-                    <units>%</units>
-                    <delta>0</delta>
-                    <snmpv3_contextname/>
-                    <snmpv3_securityname/>
-                    <snmpv3_securitylevel>0</snmpv3_securitylevel>
-                    <snmpv3_authprotocol>0</snmpv3_authprotocol>
-                    <snmpv3_authpassphrase/>
-                    <snmpv3_privprotocol>0</snmpv3_privprotocol>
-                    <snmpv3_privpassphrase/>
-                    <formula>1</formula>
-                    <delay_flex/>
-                    <params/>
-                    <ipmi_sensor/>
-                    <data_type>0</data_type>
-                    <authtype>0</authtype>
-                    <username/>
-                    <password/>
-                    <publickey/>
-                    <privatekey/>
-                    <port/>
-                    <description/>
-                    <inventory_link>0</inventory_link>
-                    <applications>
-                        <application>
-                            <name>APC UPS</name>
-                        </application>
-                    </applications>
-                    <valuemap/>
-                    <logtimefmt/>
-                </item>
-                <item>
                     <name>UPS output voltage</name>
                     <type>0</type>
                     <snmp_community/>
                     <multiplier>0</multiplier>
                     <snmp_oid/>
-                    <key>ups.apcsmart[{$UPS_ZRX_PIN},{$UPS_ZTX_PIN},0x4F]</key>
+                    <key>ups.apcsmart[{$ZABBUINO_RX_PIN},{$ZABBUINO_TX_PIN},&quot;O&quot;]</key>
                     <delay>30</delay>
                     <history>30</history>
                     <trends>365</trends>
@@ -1062,12 +1019,55 @@ D      country code (used in capability decoding)</description>
                     <logtimefmt/>
                 </item>
                 <item>
+                    <name>UPS power load</name>
+                    <type>0</type>
+                    <snmp_community/>
+                    <multiplier>0</multiplier>
+                    <snmp_oid/>
+                    <key>ups.apcsmart[{$ZABBUINO_RX_PIN},{$ZABBUINO_TX_PIN},&quot;P&quot;]</key>
+                    <delay>30</delay>
+                    <history>30</history>
+                    <trends>365</trends>
+                    <status>0</status>
+                    <value_type>0</value_type>
+                    <allowed_hosts/>
+                    <units>%</units>
+                    <delta>0</delta>
+                    <snmpv3_contextname/>
+                    <snmpv3_securityname/>
+                    <snmpv3_securitylevel>0</snmpv3_securitylevel>
+                    <snmpv3_authprotocol>0</snmpv3_authprotocol>
+                    <snmpv3_authpassphrase/>
+                    <snmpv3_privprotocol>0</snmpv3_privprotocol>
+                    <snmpv3_privpassphrase/>
+                    <formula>1</formula>
+                    <delay_flex/>
+                    <params/>
+                    <ipmi_sensor/>
+                    <data_type>0</data_type>
+                    <authtype>0</authtype>
+                    <username/>
+                    <password/>
+                    <publickey/>
+                    <privatekey/>
+                    <port/>
+                    <description/>
+                    <inventory_link>0</inventory_link>
+                    <applications>
+                        <application>
+                            <name>APC UPS</name>
+                        </application>
+                    </applications>
+                    <valuemap/>
+                    <logtimefmt/>
+                </item>
+                <item>
                     <name>UPS return threshold</name>
                     <type>0</type>
                     <snmp_community/>
                     <multiplier>0</multiplier>
                     <snmp_oid/>
-                    <key>ups.apcsmart[{$UPS_ZRX_PIN},{$UPS_ZTX_PIN},0x65]</key>
+                    <key>ups.apcsmart[{$ZABBUINO_RX_PIN},{$ZABBUINO_TX_PIN},&quot;e&quot;]</key>
                     <delay>60</delay>
                     <history>7</history>
                     <trends>14</trends>
@@ -1116,7 +1116,7 @@ This prevents excessive cycling during multiple power failures</description>
                     <snmp_community/>
                     <multiplier>0</multiplier>
                     <snmp_oid/>
-                    <key>ups.apcsmart[{$UPS_ZRX_PIN},{$UPS_ZTX_PIN},0x58]</key>
+                    <key>ups.apcsmart[{$ZABBUINO_RX_PIN},{$ZABBUINO_TX_PIN},&quot;X&quot;]</key>
                     <delay>60</delay>
                     <history>7</history>
                     <trends>365</trends>
@@ -1163,10 +1163,10 @@ NO → no results available (no test performed in last 5 minutes)</description>
                     <snmp_community/>
                     <multiplier>0</multiplier>
                     <snmp_oid/>
-                    <key>ups.apcsmart[{$UPS_ZRX_PIN},{$UPS_ZTX_PIN},0x6E]</key>
+                    <key>ups.apcsmart[{$ZABBUINO_RX_PIN},{$ZABBUINO_TX_PIN},&quot;n&quot;]</key>
                     <delay>10800</delay>
                     <history>7</history>
-                    <trends>365</trends>
+                    <trends>7</trends>
                     <status>0</status>
                     <value_type>1</value_type>
                     <allowed_hosts/>
@@ -1206,7 +1206,7 @@ NO → no results available (no test performed in last 5 minutes)</description>
                     <snmp_community/>
                     <multiplier>0</multiplier>
                     <snmp_oid/>
-                    <key>ups.apcsmart[{$UPS_ZRX_PIN},{$UPS_ZTX_PIN},0x51]</key>
+                    <key>ups.apcsmart[{$ZABBUINO_RX_PIN},{$ZABBUINO_TX_PIN},&quot;Q&quot;]</key>
                     <delay>60</delay>
                     <history>30</history>
                     <trends>365</trends>
@@ -1264,7 +1264,7 @@ Some common things you’ll see:&#13;
                     <snmp_community/>
                     <multiplier>0</multiplier>
                     <snmp_oid/>
-                    <key>ups.apcsmart[{$UPS_ZRX_PIN},{$UPS_ZTX_PIN},0x75]</key>
+                    <key>ups.apcsmart[{$ZABBUINO_RX_PIN},{$ZABBUINO_TX_PIN},&quot;u&quot;]</key>
                     <delay>60</delay>
                     <history>30</history>
                     <trends>365</trends>
@@ -1305,11 +1305,11 @@ Some common things you’ll see:&#13;
             <discovery_rules/>
             <macros>
                 <macro>
-                    <macro>{$UPS_ZRX_PIN}</macro>
+                    <macro>{$ZABBUINO_RX_PIN}</macro>
                     <value>2</value>
                 </macro>
                 <macro>
-                    <macro>{$UPS_ZTX_PIN}</macro>
+                    <macro>{$ZABBUINO_TX_PIN}</macro>
                     <value>3</value>
                 </macro>
             </macros>
@@ -1317,137 +1317,9 @@ Some common things you’ll see:&#13;
             <screens/>
         </template>
     </templates>
-    <triggers>
-        <trigger>
-            <expression>{Template Zabbuino - APC UPS:ups.apcsmart[{$UPS_ZRX_PIN},{$UPS_ZTX_PIN},0x43].min(30)}&gt;40</expression>
-            <name>APC UPS: High internal temperature - {HOSTNAME}</name>
-            <url/>
-            <status>0</status>
-            <priority>5</priority>
-            <description/>
-            <type>0</type>
-            <dependencies/>
-        </trigger>
-        <trigger>
-            <expression>{Template Zabbuino - APC UPS:ups.apcsmart[{$UPS_ZRX_PIN},{$UPS_ZTX_PIN},0x39].min(30)}&lt;255</expression>
-            <name>APC UPS: line quality is unacceptable - {HOSTNAME}</name>
-            <url/>
-            <status>0</status>
-            <priority>4</priority>
-            <description/>
-            <type>0</type>
-            <dependencies/>
-        </trigger>
-        <trigger>
-            <expression>{Template Zabbuino - APC UPS:ups.apcsmart[{$UPS_ZRX_PIN},{$UPS_ZTX_PIN},0x4C].max(60)}=0</expression>
-            <name>APC UPS: Loss of input power - {HOSTNAME}</name>
-            <url/>
-            <status>0</status>
-            <priority>4</priority>
-            <description/>
-            <type>0</type>
-            <dependencies/>
-        </trigger>
-        <trigger>
-            <expression>{Template Zabbuino - APC UPS:ups.apcsmart[{$UPS_ZRX_PIN},{$UPS_ZTX_PIN},0x50].min(60)}&gt;90</expression>
-            <name>APC UPS: Output load over 90% - {HOSTNAME}</name>
-            <url/>
-            <status>0</status>
-            <priority>2</priority>
-            <description/>
-            <type>0</type>
-            <dependencies/>
-        </trigger>
-        <trigger>
-            <expression>{Template Zabbuino - APC UPS:ups.apcsmart[{$UPS_ZRX_PIN},{$UPS_ZTX_PIN},0x50].min(30)}&gt;95</expression>
-            <name>APC UPS: Output load over 95% - {HOSTNAME}</name>
-            <url/>
-            <status>0</status>
-            <priority>4</priority>
-            <description/>
-            <type>0</type>
-            <dependencies/>
-        </trigger>
-        <trigger>
-            <expression>{Template Zabbuino - APC UPS:ups.apcsmart[{$UPS_ZRX_PIN},{$UPS_ZTX_PIN},0x6A].last()}&lt;5</expression>
-            <name>APC UPS: run time remaining CRITICAL - {HOSTNAME}</name>
-            <url/>
-            <status>0</status>
-            <priority>5</priority>
-            <description/>
-            <type>0</type>
-            <dependencies/>
-        </trigger>
-        <trigger>
-            <expression>{Template Zabbuino - APC UPS:ups.apcsmart[{$UPS_ZRX_PIN},{$UPS_ZTX_PIN},0x6A].last()}&lt;10</expression>
-            <name>APC UPS: run time remaining LOW - {HOSTNAME}</name>
-            <url/>
-            <status>0</status>
-            <priority>4</priority>
-            <description/>
-            <type>0</type>
-            <dependencies/>
-        </trigger>
-    </triggers>
     <graphs>
         <graph>
-            <name>APC UPS battary metrics</name>
-            <width>900</width>
-            <height>200</height>
-            <yaxismin>0.0000</yaxismin>
-            <yaxismax>100.0000</yaxismax>
-            <show_work_period>1</show_work_period>
-            <show_triggers>1</show_triggers>
-            <type>0</type>
-            <show_legend>1</show_legend>
-            <show_3d>0</show_3d>
-            <percent_left>0.0000</percent_left>
-            <percent_right>0.0000</percent_right>
-            <ymin_type_1>0</ymin_type_1>
-            <ymax_type_1>0</ymax_type_1>
-            <ymin_item_1>0</ymin_item_1>
-            <ymax_item_1>0</ymax_item_1>
-            <graph_items>
-                <graph_item>
-                    <sortorder>2</sortorder>
-                    <drawtype>0</drawtype>
-                    <color>0000BB</color>
-                    <yaxisside>1</yaxisside>
-                    <calc_fnc>4</calc_fnc>
-                    <type>0</type>
-                    <item>
-                        <host>Template Zabbuino - APC UPS</host>
-                        <key>ups.apcsmart[{$UPS_ZRX_PIN},{$UPS_ZTX_PIN},0x42]</key>
-                    </item>
-                </graph_item>
-                <graph_item>
-                    <sortorder>1</sortorder>
-                    <drawtype>0</drawtype>
-                    <color>00BB00</color>
-                    <yaxisside>0</yaxisside>
-                    <calc_fnc>4</calc_fnc>
-                    <type>0</type>
-                    <item>
-                        <host>Template Zabbuino - APC UPS</host>
-                        <key>ups.apcsmart[{$UPS_ZRX_PIN},{$UPS_ZTX_PIN},0x66]</key>
-                    </item>
-                </graph_item>
-                <graph_item>
-                    <sortorder>0</sortorder>
-                    <drawtype>0</drawtype>
-                    <color>BB0000</color>
-                    <yaxisside>0</yaxisside>
-                    <calc_fnc>4</calc_fnc>
-                    <type>0</type>
-                    <item>
-                        <host>Template Zabbuino - APC UPS</host>
-                        <key>ups.apcsmart[{$UPS_ZRX_PIN},{$UPS_ZTX_PIN},0x6A]</key>
-                    </item>
-                </graph_item>
-            </graph_items>
-        </graph>
-        <graph>
-            <name>APC UPS line metrics</name>
+            <name>APC UPS metrics</name>
             <width>900</width>
             <height>200</height>
             <yaxismin>0.0000</yaxismin>
@@ -1473,7 +1345,7 @@ Some common things you’ll see:&#13;
                     <type>0</type>
                     <item>
                         <host>Template Zabbuino - APC UPS</host>
-                        <key>ups.apcsmart[{$UPS_ZRX_PIN},{$UPS_ZTX_PIN},0x4F]</key>
+                        <key>ups.apcsmart[{$ZABBUINO_RX_PIN},{$ZABBUINO_TX_PIN},&quot;O&quot;]</key>
                     </item>
                 </graph_item>
                 <graph_item>
@@ -1485,7 +1357,7 @@ Some common things you’ll see:&#13;
                     <type>0</type>
                     <item>
                         <host>Template Zabbuino - APC UPS</host>
-                        <key>ups.apcsmart[{$UPS_ZRX_PIN},{$UPS_ZTX_PIN},0x4C]</key>
+                        <key>ups.apcsmart[{$ZABBUINO_RX_PIN},{$ZABBUINO_TX_PIN},&quot;L&quot;]</key>
                     </item>
                 </graph_item>
                 <graph_item>
@@ -1497,31 +1369,43 @@ Some common things you’ll see:&#13;
                     <type>0</type>
                     <item>
                         <host>Template Zabbuino - APC UPS</host>
-                        <key>ups.apcsmart[{$UPS_ZRX_PIN},{$UPS_ZTX_PIN},0x4D]</key>
+                        <key>ups.apcsmart[{$ZABBUINO_RX_PIN},{$ZABBUINO_TX_PIN},&quot;M&quot;]</key>
                     </item>
                 </graph_item>
                 <graph_item>
                     <sortorder>3</sortorder>
                     <drawtype>0</drawtype>
-                    <color>00BBBB</color>
+                    <color>BB00BB</color>
                     <yaxisside>0</yaxisside>
                     <calc_fnc>4</calc_fnc>
                     <type>0</type>
                     <item>
                         <host>Template Zabbuino - APC UPS</host>
-                        <key>ups.apcsmart[{$UPS_ZRX_PIN},{$UPS_ZTX_PIN},0x4E]</key>
+                        <key>ups.apcsmart[{$ZABBUINO_RX_PIN},{$ZABBUINO_TX_PIN},&quot;N&quot;]</key>
                     </item>
                 </graph_item>
                 <graph_item>
                     <sortorder>4</sortorder>
                     <drawtype>0</drawtype>
-                    <color>999900</color>
+                    <color>00BBBB</color>
                     <yaxisside>1</yaxisside>
                     <calc_fnc>4</calc_fnc>
                     <type>0</type>
                     <item>
                         <host>Template Zabbuino - APC UPS</host>
-                        <key>ups.apcsmart[{$UPS_ZRX_PIN},{$UPS_ZTX_PIN},0x39]</key>
+                        <key>ups.apcsmart[{$ZABBUINO_RX_PIN},{$ZABBUINO_TX_PIN},&quot;B&quot;]</key>
+                    </item>
+                </graph_item>
+                <graph_item>
+                    <sortorder>5</sortorder>
+                    <drawtype>0</drawtype>
+                    <color>999900</color>
+                    <yaxisside>0</yaxisside>
+                    <calc_fnc>2</calc_fnc>
+                    <type>0</type>
+                    <item>
+                        <host>Template Zabbuino - APC UPS</host>
+                        <key>ups.apcsmart[{$ZABBUINO_RX_PIN},{$ZABBUINO_TX_PIN},&quot;F&quot;]</key>
                     </item>
                 </graph_item>
             </graph_items>
