@@ -37,6 +37,11 @@ Refactoring is processed...
 Changes: 
  - _encInc.count[]_ renamed to _encInc.value[]_ due its decremented and incremented, not only count.
  - _encInc.value[]_ and _extInt.count[]_ was shrinked a lot - _intNumber_ arg is removed because interrupt number changing have no sense at this time. 
+ - Internal voltage metrics now gather outside timer's interrupt. It's so slow to using in interrupt subroutine and, probaly, give no profit for measuring.
+ 
+New feature:
+ - _FEATURE_NET_DEBUG_TO_SERIAL_ allow to see the additional debug messages on the Serial Monitor when network errors probaly occurs. May be it help to resolve some cases of the ENC28J60 module freezing.
+
 
 ####22 Sep 2016
 
