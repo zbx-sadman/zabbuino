@@ -3,6 +3,7 @@
 uint16_t getRawDataFromSHT2X(const uint8_t _i2cAddress, const uint8_t _command)
 {
     uint16_t result;
+
     Wire.beginTransmission(_i2cAddress);
     Wire.write(_command);
     delay(100);
@@ -15,9 +16,11 @@ uint16_t getRawDataFromSHT2X(const uint8_t _i2cAddress, const uint8_t _command)
             return 0;
         }
     }
+    
     //Store the result
     result = Wire.read() << 8;
     result += Wire.read();
+
     result &= ~0x0003;   // clear two low bits (status bits)
     //Clear the final byte from the buffer
     Wire.read();
@@ -36,7 +39,7 @@ int8_t getSHT2XMetric(const uint8_t _sdaPin, const uint8_t _sclPin, uint8_t _i2c
        _i2cAddress = SHT2X_I2C_ADDRESS;
   }
 
-  if (!isI2CDeviceReady(_i2cAddress)) {return DEVICE_ERROR_CONNECT; }
+  if (!isI2CDeviceReady(_i2cAddress)) { return DEVICE_ERROR_CONNECT; }
   
   switch (_metric) {
     case SENS_READ_TEMP:

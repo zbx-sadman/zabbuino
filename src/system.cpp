@@ -1,6 +1,21 @@
 #include "system.h"
 #include <avr/boot.h>
 #include <util/atomic.h>
+
+/* ****************************************************************************************************************************
+*
+*  Handle Timer1 interrupt 
+*
+**************************************************************************************************************************** */
+ISR(TIMER1_COMPA_vect)
+{
+  //Serial.print("Timer on: "); Serial.print(millis()); Serial.println();
+  // Gather internal metric
+  gatherSystemMetrics();
+  // Let's count from the begin
+  TCNT1 = 0;
+}
+
 /* ****************************************************************************************************************************
 *
 *  Read bytes from the MCU signature area to buffer 
@@ -51,40 +66,16 @@ void startTimerOne() { TCCR1B = _BV(CS12) | _BV(CS10); }
 *   Gathering internal metrics and save its to global array
 *
 **************************************************************************************************************************** */
-void gatherSystemMetrics(){
+void inline gatherSystemMetrics(){
   // Global variable from outside
   extern int32_t *sysMetrics;
-  // repeat measuring on next round
-  //if (skipMetricGathering) { return; }
-  // = IDX_METRICS_FIRST_CRONNED to skip "gathering" uncronned metric (IDX_METRIC_SYS_CMD_COUNT and so) 
-//  static uint8_t metricIdx = IDX_METRICS_FIRST_CRONNED;
-  // Gather only one metric at once to leave CPU time to other important procedures
-
 #ifdef FEATURE_DEBUG_COMMANDS_ENABLE
-//  switch (metricIdx) {
-//    case IDX_METRIC_SYS_VCC:
-    //case IDX_METRIC_SYS_VCCMIN:
-    //case IDX_METRIC_SYS_VCCMAX:
-//      sysMetrics[IDX_METRIC_SYS_VCC] = getADCVoltage(ANALOG_CHAN_VBG);
-      // correctVCCMetrics() must be always inline compiled
-//      correctVCCMetrics(sysMetrics[IDX_METRIC_SYS_VCC]);
-//      metricIdx += 2; // Three metrics taken at once  
-//      break;
-//    case IDX_METRIC_SYS_RAM_FREE:
-    //case IDX_METRIC_SYS_RAM_FREEMIN:
       sysMetrics[IDX_METRIC_SYS_RAM_FREE] = (int32_t) getRamFree(); 
       // Correct sys.ram.freemin metric when FreeMem just taken
       if (sysMetrics[IDX_METRIC_SYS_RAM_FREEMIN] > sysMetrics[IDX_METRIC_SYS_RAM_FREE]) {
           sysMetrics[IDX_METRIC_SYS_RAM_FREEMIN] = sysMetrics[IDX_METRIC_SYS_RAM_FREE]; 
+
       }
-//      metricIdx += 1; // Two metrics taken at once  
-//      break;
-//    default:
-//      ;
-//  }
-//  metricIdx++;
-  // = 1 to skip "gathering" IDX_METRIC_SYS_CMD_COUNT 
-//  if (IDX_METRICS_MAX <= metricIdx) { metricIdx = IDX_METRICS_FIRST_CRONNED; }
 #endif
 }
      

@@ -23,6 +23,7 @@ uint8_t initTimerOne(const uint16_t _milliseconds);
 
 void stopTimerOne();
 void startTimerOne();
+ISR(TIMER1_COMPA_vect);
 
 /* ****************************************************************************************************************************
 *

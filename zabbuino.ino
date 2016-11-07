@@ -1,16 +1,10 @@
-  
-// My Freeduino is not listed in platforms.h, but is analogue to ARDUINO_AVR_DUEMILANOVE
-#define ARDUINO_AVR_DUEMILANOVE
-
-// Just for compilation with various default network configs, real address/gw/et switching is making in "zabbuino.h" file
-//#define USE_NETWORK_192_168_0_0
-
 /* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
                                                                  PROGRAMM FEATURES SECTION
                    
    Please refer to the "zabbuino.h" file for enabling or disabling Zabbuino's features and "src/defaults.h" to deep tuning.
    if connected sensors seems not work - first check setting in port_protect[], port_mode[], port_pullup[] arrays in I/O PORTS SETTING SECTION of "src/defaults.h" file
 */
+
 #include "zabbuino.h"
 
 /* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
@@ -21,15 +15,17 @@ netconfig_t* netConfig;
 
 #if defined(FEATURE_EXTERNAL_INTERRUPT_ENABLE) || defined(FEATURE_INCREMENTAL_ENCODER_ENABLE)
 // EXTERNAL_NUM_INTERRUPTS its a macro from <wiring_private.h>
-volatile extInterrupt_t* extInterrupt;
+volatile extInterrupt_t *extInterrupt;
 #endif
 
 
 EthernetServer ethServer(10050);
+
 EthernetClient ethClient;
 
 char cBuffer[BUFFER_SIZE+1]; // +1 for trailing \0
-int32_t *sysMetrics;
+// some array items used into timer's interrupt
+volatile int32_t *sysMetrics;
 
 
 /* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
@@ -39,7 +35,9 @@ int32_t *sysMetrics;
 void setup() {
   uint8_t i;
   netConfig = new netconfig_t;
-
+  // Last idx is not array size
+  sysMetrics = new int32_t[IDX_METRICS_LAST+1];
+  //delay(3000);
   pinMode(PIN_FACTORY_RESET, INPUT_PULLUP);
   pinMode(PIN_STATE_LED, OUTPUT);
 
@@ -49,18 +47,19 @@ void setup() {
 #endif
 
   // Init metrics
-  sysMetrics = new int32_t[IDX_METRICS_MAX];
-  sysMetrics[IDX_METRIC_SYS_VCCMIN] = sysMetrics[IDX_METRIC_SYS_VCCMAX] = getADCVoltage(ANALOG_CHAN_VBG);
-  sysMetrics[IDX_METRIC_SYS_RAM_FREE] = sysMetrics[IDX_METRIC_SYS_RAM_FREEMIN] = (int32_t) getRamFree();
-  sysMetrics[IDX_METRIC_SYS_CMD_COUNT] = sysMetrics[IDX_METRIC_SYS_CMD_TIMEMAX] = 0;
+
   
 #if defined (FEATURE_DEBUG_TO_SERIAL) || defined (FEATURE_SERIAL_LISTEN_TOO)
   Serial.begin(9600);
 #ifdef FEATURE_DEBUG_TO_SERIAL
-     SerialPrintln_P(PSTR("Zabbuino waked up"));
+     SerialPrint_P(PSTR(ZBX_AGENT_VERISON));
+     SerialPrintln_P(PSTR(" waked up"));
 #endif
-//  uint32_t startSerial = millis();
+  sysMetrics[IDX_METRIC_SYS_VCCMIN] = sysMetrics[IDX_METRIC_SYS_VCCMAX] = getADCVoltage(ANALOG_CHAN_VBG);
+  sysMetrics[IDX_METRIC_SYS_RAM_FREE] = sysMetrics[IDX_METRIC_SYS_RAM_FREEMIN] = (int32_t) getRamFree();
+  sysMetrics[IDX_METRIC_SYS_CMD_LAST] = sysMetrics[IDX_METRIC_SYS_CMD_COUNT] = sysMetrics[IDX_METRIC_SYS_CMD_TIMEMAX] = sysMetrics[IDX_METRIC_SYS_CMD_TIMEMAX_N] = 0;
 
+//  uint32_t startSerial = millis();
 /*
 On ATMega32u4 (may be breadboard and dupont wires is bad)
 
@@ -221,6 +220,10 @@ So... no debug with Serial Monitor at this time
   netConfig->useProtection = true;
 #endif
 
+#ifdef LIBWIRE_USE
+   Wire.begin();
+#endif
+
 #ifdef FEATURE_WATCHDOG_ENABLE
   // Watchdog activation
   wdt_enable(WTD_TIMEOUT);
@@ -231,15 +234,10 @@ So... no debug with Serial Monitor at this time
    initTimerOne(SYS_METRIC_RENEW_PERIOD);
 #endif
 
-#if defined(FEATURE_I2C_ENABLE) || defined(FEATURE_BMP_ENABLE) || defined(FEATURE_BH1750_ENABLE) || defined (FEATURE_PCF8574_LCD_ENABLE) || defined (FEATURE_SHT2X_ENABLE)
-   Wire.begin();
-#endif
-
 #ifdef ADVANCED_BLINKING
   // blink on init end
   blinkMore(2, 1000, 1000);
 #endif
-
 }
 
 
@@ -247,19 +245,25 @@ So... no debug with Serial Monitor at this time
                                                                       RUN SECTION
 */
 void loop() {
-  uint8_t result;
+  uint8_t result,
+          errorCode = ERROR_NONE;
   uint16_t blinkType = BLINK_NOPE;
   int16_t *_argOffset;
-  uint32_t nowTime, processStartTime, processEndTime, prevDHCPRenewTime, prevENCReInitTime, prevNetProblemTime, prevSysMetricGatherTime,clentConnectTime;
+  uint32_t nowTime, processStartTime, processEndTime, prevDHCPRenewTime, prevENCReInitTime, prevNetProblemTime, prevSysMetricGatherTime, clentConnectTime, netDebugPrintTime;
+  uint32_t ramBefore;
 
   _argOffset = new int16_t[ARGS_MAX];
     
   // Correcting timestamps
-  prevDHCPRenewTime = prevENCReInitTime = prevNetProblemTime = prevSysMetricGatherTime = millis();
+  prevDHCPRenewTime = prevENCReInitTime = prevNetProblemTime = prevSysMetricGatherTime = netDebugPrintTime = millis();
 
   // if no exist while() here - netProblemTime must be global or static - its will be 0 every loop() and time-related cases will be processeed abnormally
   // ...and while save some cpu ticks because do not call everytime from "hidden main()" subroutine, and do not init var, and so.
   while (true) { 
+#ifdef FEATURE_WATCHDOG_ENABLE
+    // reset watchdog every loop
+    wdt_reset();
+#endif
     nowTime = millis();
 
       // correctVCCMetrics() must be always inline compiled
@@ -276,38 +280,45 @@ void loop() {
 
 #ifdef FEATURE_NET_DHCP_ENABLE
     // DHCP used in this session and time to renew lease?
-      // how many overhead give Ethernet.maintain() ?
     if (true == netConfig->useDHCP && (NET_DHCP_RENEW_PERIOD <= (uint32_t) (nowTime - prevDHCPRenewTime))) {
        // Ethernet library's manual say that Ethernet.maintain() can be called every loop for DHCP renew, but i won't do this so often
+       // ...and how many overhead give Ethernet.maintain() ?
        result = Ethernet.maintain();
        // Renew procedure finished with success
-       if (DHCP_CHECK_RENEW_OK == result || DHCP_CHECK_REBIND_OK  == result) { 
-          // No alarm blink  need, network activity registred, renewal period restarted
-          blinkType = BLINK_NOPE;
-//          prevDHCPRenewTime = prevNetProblemTime = nowTime;
-       } else {
-          // Got some errors - blink with "DHCP problem message"
-          blinkType = BLINK_DHCP_PROBLEM;
+       switch (result) {
+          case DHCP_CHECK_NONE:
+          case DHCP_CHECK_RENEW_OK:
+          case DHCP_CHECK_REBIND_OK:
+            blinkType = BLINK_NOPE;
+            errorCode = ERROR_NONE;
+           // No alarm blink  need, network activity registred, renewal period restarted
+            prevDHCPRenewTime = prevNetProblemTime = nowTime;
+            break;
+          default: 
+            // Got some errors - blink with "DHCP problem message"
+            blinkType = BLINK_DHCP_PROBLEM;    
+            errorCode = ERROR_DHCP;
 #ifdef FEATURE_DEBUG_TO_SERIAL
 //            SerialPrintln_P(PSTR("DHCP renew problem occured"));
 #endif 
        }
-//    }
+    }
 #endif // FEATURE_NET_DHCP_ENABLE
 
     // No DHCP problem found but no data recieved or network activity for a long time
-    if (BLINK_NOPE == blinkType && (NET_IDLE_TIMEOUT <= (uint32_t) (nowTime - prevNetProblemTime))) { 
+    if (ERROR_NONE == errorCode && (NET_IDLE_TIMEOUT <= (uint32_t) (nowTime - prevNetProblemTime))) { 
 #ifdef FEATURE_DEBUG_TO_SERIAL
 //            SerialPrintln_P(PSTR("No data recieved for a long time"));
 #endif 
        blinkType = BLINK_NET_PROBLEM; 
+       errorCode = ERROR_NET;
     }
 
 #ifdef USE_DIRTY_HACK_AND_REBOOT_ENC28J60_IF_ITS_SEEMS_FREEZE
     // Time to reinit ENC28J60?
     if (NET_ENC28J60_REINIT_PERIOD <= (uint32_t) (nowTime - prevENCReInitTime)) {
        // if EIR.TXERIF or EIR.RXERIF is set - ENC28J60 detect error, re-init module 
-       if (Enc28J60.readReg(EIR) & (EIR_TXERIF | EIR_RXERIF)) {
+       if (Enc28J60.readReg(NET_ENC28J60_EIR) & (NET_ENC28J60_EIR_TXERIF | NET_ENC28J60_EIR_RXERIF)) {
 #ifdef FEATURE_DEBUG_TO_SERIAL
           SerialPrintln_P(PSTR("ENC28J60 reinit"));
 #endif
@@ -319,12 +330,40 @@ void loop() {
     }
 #endif // USE_DIRTY_HACK_AND_REBOOT_ENC28J60_IF_ITS_SEEMS_FREEZE
 
-    // No errors in the loop?
-    if (BLINK_NOPE == blinkType) {
+    // No need indication in the current loop?
+    if (ERROR_NONE == errorCode) {
        // Switch off state led
        digitalWrite(PIN_STATE_LED, LOW);
     } else {
-      // Error caused
+      // An error is occurs  
+ #ifdef FEATURE_NET_DEBUG_TO_SERIAL
+       // Print debug data every... 5 seconds
+        if ((5000L <= (uint32_t) (nowTime - netDebugPrintTime))) {
+           SerialPrint_P(PSTR("Error code: "));
+           Serial.println(errorCode);
+           SerialPrint_P(PSTR("Last executed command: "));
+           Serial.println(sysMetrics[IDX_METRIC_SYS_CMD_LAST], HEX);
+           SerialPrint_P(PSTR("Memory free: "));
+           Serial.println(sysMetrics[IDX_METRIC_SYS_RAM_FREE]);
+           SerialPrint_P(PSTR("Memory free (min): "));
+           ATOMIC_BLOCK(ATOMIC_RESTORESTATE) {
+              Serial.println(sysMetrics[IDX_METRIC_SYS_RAM_FREEMIN]);
+           }
+           SerialPrint_P(PSTR("Client: "));
+           Serial.println(ethClient, HEX);
+           SerialPrint_P(PSTR("MAC     : ")); printArray(netConfig->macAddress, sizeof(netConfig->macAddress), DBG_PRINT_AS_MAC);
+           SerialPrint_P(PSTR("IP      : ")); Serial.println(Ethernet.localIP());
+           SerialPrint_P(PSTR("Subnet  : ")); Serial.println(Ethernet.subnetMask());
+           SerialPrint_P(PSTR("Gateway : ")); Serial.println(Ethernet.gatewayIP());
+#ifdef ENC28J60_ETHERNET_SHIELD
+           SerialPrint_P(PSTR("ENC28J60 EIR: "));
+           Serial.println(Enc28J60.readReg(NET_ENC28J60_EIR));
+#endif // #ifdef ENC28J60_ETHERNET_SHIELD
+           netDebugPrintTime = millis();
+           Serial.println();
+        }
+#endif
+     
 #ifdef ON_ALARM_STATE_BLINK
       // Do LED blink...
       digitalWrite(PIN_STATE_LED, nowTime % 1000 < blinkType);
@@ -332,83 +371,77 @@ void loop() {
       // ...or just fired up
       digitalWrite(PIN_STATE_LED, HIGH);
 #endif
+    } // if (ERROR_NONE == errorCode) ... else 
+
+    // Active session is not exist. Try to take new for processing.
+    if (!ethClient.connected()) {
+       ethClient = ethServer.available();
+       if (ethClient) { clentConnectTime = millis(); }
     }
+    // Event may never occurs. Need to emulate slow connection to test.
+    // if (NET_ACTIVE_CLIENT_CONNECTION_TIMEOUT <= (uint32_t) (nowTime - clentConnectTime)) { ethClient.stop(); continue; } 
 
 #ifdef FEATURE_SERIAL_LISTEN_TOO
-    // Test state of active session: client still connected or unread data is exist in buffer?
-    if (ethClient.connected() || Serial.available()) {
-       if ((NET_ACTIVE_CLIENT_CONNECTION_TIMEOUT <= (uint32_t) (nowTime - clentConnectTime)) && !Serial.available())  {
-           ethClient.stop(); 
-       } else {
-           // A lot of chars wait for reading
-           if (ethClient.available() || Serial.available()) {
-              // Do not need next char to analyze - EOL detected or there no room in buffer or max number or args parsed...   
-              result = Serial.read();
-              if (ethClient.available()) { result = ethClient.read(); }
+    // A lot of chars wait for reading
+    if (!ethClient.available() && !Serial.available()) { continue; }
+    // Do not need next char to analyze - EOL detected or there no room in buffer or max number or args parsed...   
+    // ethClient have more priority
+    result = (ethClient.available()) ? ethClient.read() : Serial.read();
 #else
     // Test state of active session: client still connected or unread data is exist in buffer?
-    if (ethClient.connected()) {
-       if (NET_ACTIVE_CLIENT_CONNECTION_TIMEOUT <= (uint32_t) (nowTime - clentConnectTime)) {
-           ethClient.stop(); 
-       } else {
-           // A lot of chars wait for reading
-           if (ethClient.available()) {
-              // Do not need next char to analyze - EOL detected or there no room in buffer or max number or args parsed...   
-              result = ethClient.read();
+    // ethClient.available() eq ethClient.connected() here?
+    // if (!ethClient.connected()) { continue; }
+    // A lot of chars wait for reading
+    if (!ethClient.available()) { continue; }
+    // Do not need next char to analyze - EOL detected or there no room in buffer or max number or args parsed...   
+    result = ethClient.read();
 #endif              
 
 //              Serial.print("incoming: "); Serial.print((char) result); Serial.print(" => "); Serial.println(result, HEX); 
-              result = analyzeStream((char) result, _argOffset);
-              if (false == result) {
-                 /*****  processing command *****/
-                 // Destroy unused client's data 
-                 ethClient.flush(); 
+    result = analyzeStream((char) result, _argOffset);
+    if (true == result) { continue; }
+    /*****  processing command *****/
+    // Destroy unused client's data 
+    ethClient.flush(); 
 #ifdef FEATURE_SERIAL_LISTEN_TOO
-                 Serial.flush(); 
+    // Just flush buffer without current stream detection (serial or ethernet) because serial input used for debug purposes (when no ethernet avaiable) only. 
+    Serial.flush(); 
 #endif              
-                 // Fire up State led, than will be turned off on next loop
-                 digitalWrite(PIN_STATE_LED, HIGH);
-                 //
-                 // may be need test for client.connected()? 
-                 processStartTime = millis();
-                 int16_t cmdIdx = executeCommand(_argOffset);
-                 // system.run[] recieved, need to run another command, which taken from option #0 by cmdIdx() sub
-                 if (RUN_NEW_COMMAND == cmdIdx) {
-                     int16_t i = 0;
-                     // simulate command recievig to properly string parsing
-                     while( analyzeStream(cBuffer[i], _argOffset) ) { i++; }
-                     cmdIdx = executeCommand(_argOffset);
-                 }
-                 processEndTime = millis();
-                 // use processEndTime as processDurationTime
-                 processEndTime = processEndTime - processStartTime ;
-                 if (sysMetrics[IDX_METRIC_SYS_CMD_TIMEMAX] < processEndTime) {
-                    sysMetrics[IDX_METRIC_SYS_CMD_TIMEMAX] = processEndTime;
-                    sysMetrics[IDX_METRIC_SYS_CMD_TIMEMAX_N] = cmdIdx;
-                 }
-  //             ethClient.println("1");
-                 // Wait some time to finishing answer send
-                 delay(NET_STABILIZATION_DELAY);
-                // close connection           
-                ethClient.stop(); 
-              }
-              // Restart network activity control cycle
-              prevENCReInitTime = prevNetProblemTime = millis();
-              blinkType = BLINK_NOPE;
-           }
-        }
-    } else {
-       // Active session is not exist. Try to take new for processing.
-       ethClient = ethServer.available();
-       if (ethClient) {
-         clentConnectTime = millis();
-       }
-    }
-#ifdef FEATURE_WATCHDOG_ENABLE
-    // reset watchdog every loop
-    wdt_reset();
+    // Fire up State led, than will be turned off on next loop
+    digitalWrite(PIN_STATE_LED, HIGH);
+    // may be need test for client.connected()? 
+    processStartTime = millis();
+#ifdef FEATURE_DEBUG_TO_SERIAL
+    ramBefore = getRamFree();
 #endif
-  }
+    sysMetrics[IDX_METRIC_SYS_CMD_LAST] = executeCommand(_argOffset);
+#ifdef FEATURE_DEBUG_TO_SERIAL
+    SerialPrint_P(PSTR("Memory bytes leak: ")); Serial.println((ramBefore - getRamFree())); Serial.println();
+#endif
+    // system.run[] recieved, need to run another command, which taken from option #0 by cmdIdx() sub
+    if (RUN_NEW_COMMAND == sysMetrics[IDX_METRIC_SYS_CMD_LAST]) {
+       int16_t i = 0;
+       // simulate command recieving to properly string parsing
+       while (analyzeStream(cBuffer[i], _argOffset)) { i++; }
+       sysMetrics[IDX_METRIC_SYS_CMD_LAST] = executeCommand(_argOffset);
+    }
+    processEndTime = millis();
+    // use processEndTime as processDurationTime
+    processEndTime = processEndTime - processStartTime ;
+    if (sysMetrics[IDX_METRIC_SYS_CMD_TIMEMAX] < processEndTime) {
+       sysMetrics[IDX_METRIC_SYS_CMD_TIMEMAX] = processEndTime;
+       sysMetrics[IDX_METRIC_SYS_CMD_TIMEMAX_N] = sysMetrics[IDX_METRIC_SYS_CMD_LAST];
+    }
+  //             ethClient.println("1");
+    // Wait some time to finishing answer send
+    delay(NET_STABILIZATION_DELAY);
+    // close connection           
+    ethClient.stop(); 
+    // Restart network activity control cycle
+    prevENCReInitTime = prevNetProblemTime = millis();
+    blinkType = BLINK_NOPE;
+    errorCode = ERROR_NONE;
+ } // while...
 }
 
 /* ****************************************************************************************************************************
@@ -536,17 +569,21 @@ int16_t executeCommand(int16_t* _argOffset)
   int16_t i2CRegister, cmdIdx = -1;
   // duration option in the tone[] command is ulong
   uint32_t arg[ARGS_MAX];
-  int64_t value = 0;  // Zabbix use 64-bit numbers, but we can use only -uint32_t...+uint32_t range. Error can be occurs on ltoa() call with value > long_int_max 
- 
+  //int64_t value = 0;  // Zabbix use 64-bit numbers, but we can use only -uint32_t...+uint32_t range. Error can be occurs on ltoa() call with value > long_int_max 
+  long_ulong_t value;
+
+  value.longvar = 0;
+  
   sysMetrics[IDX_METRIC_SYS_CMD_COUNT]++;
 
-  i = sizeof(commands);
+  i = arraySize(commands);
   while (i) {
+    i--;
 //    Serial.print(i, HEX); Serial.print(": ");
 //    SerialPrintln_P((char*)pgm_read_word(&(commands[i])));
     if (0 == strcmp_P(cBuffer, (char*)pgm_read_word(&(commands[i])))) {cmdIdx = i; break;}
-    i--;
   }
+  
 #ifdef FEATURE_DEBUG_TO_SERIAL
   SerialPrint_P(PSTR("Execute command #")); Serial.print(cmdIdx, HEX); SerialPrint_P(PSTR(" => `")); Serial.print(cBuffer); Serial.println("`");
 #endif 
@@ -625,8 +662,8 @@ int16_t executeCommand(int16_t* _argOffset)
       /*/
       /=/  sys.uptime
       /*/
-      value = (int64_t) millis() / 1000;
-      result = RESULT_IN_VARIABLE;
+      value.ulongvar  = (uint32_t) millis() / 1000;
+      result = RESULT_IN_ULONGVAR;
       break;
 
     case CMD_ARDUINO_ANALOGWRITE:
@@ -653,11 +690,11 @@ int16_t executeCommand(int16_t* _argOffset)
  
       if (! isSafePin(arg[0])) { break; }
       
-      value = (int64_t) analogRead(arg[0]);
+      value.longvar = (int64_t) analogRead(arg[0]);
       if ('\0' != cBuffer[_argOffset[2]] && '\0' != cBuffer[_argOffset[3]]) {
-         value = (int64_t) map(result, 0, 1023, arg[2], arg[3]);
+         value.ulongvar = (uint32_t) map(result, 0, 1023, arg[2], arg[3]);
       }
-      result = RESULT_IN_VARIABLE;
+      result = RESULT_IN_ULONGVAR;
 
       break;      
   
@@ -706,8 +743,8 @@ int16_t executeCommand(int16_t* _argOffset)
       /*/
       /=/  digitalRead[pin]
       /*/
-      value = (int64_t) digitalRead(arg[0]);
-      result = RESULT_IN_VARIABLE;
+      value.ulongvar = (int64_t) digitalRead(arg[0]);
+      result = RESULT_IN_ULONGVAR;
       break;
 
 
@@ -748,8 +785,8 @@ int16_t executeCommand(int16_t* _argOffset)
       /=/  random[min, max]
       /*/
       //  !! random return long
-      value = (int64_t) ('\0' == cBuffer[_argOffset[1]]) ? (int32_t) random(arg[0]) : (int32_t) random(arg[0], arg[1]);
-      result = RESULT_IN_VARIABLE;
+      value.ulongvar = (int64_t) ('\0' == cBuffer[_argOffset[1]]) ? (int32_t) random(arg[0]) : (int32_t) random(arg[0], arg[1]);
+      result = RESULT_IN_ULONGVAR;
 
       break;
 #endif // FEATURE_RANDOM_ENABLE
@@ -768,9 +805,10 @@ int16_t executeCommand(int16_t* _argOffset)
       // copy <1-th arg length> bytes from 1-th arg of buffer (0-th arg contain password) to hostname 
       i = (uint8_t) _argOffset[2]-_argOffset[1];
       if (i > ZBX_AGENT_HOSTNAME_MAXLEN) { i = ZBX_AGENT_HOSTNAME_MAXLEN; }
+      //copy 0 .. (ZBX_AGENT_HOSTNAME_MAXLEN-1) chars from buffer to hostname
       memcpy(netConfig->hostname, &cBuffer[_argOffset[1]], i);
       // Terminate string
-      netConfig->hostname[i]='\0';
+      netConfig->hostname[ZBX_AGENT_HOSTNAME_MAXLEN]='\0';
       saveConfigToEEPROM(netConfig);
       result = RESULT_IS_OK;
       break;
@@ -919,8 +957,8 @@ int16_t executeCommand(int16_t* _argOffset)
       /=/  sys.cmd.count
       /*/
       if (arg[0]) { sysMetrics[IDX_METRIC_SYS_CMD_COUNT] = 0; } 
-      value = (int64_t) sysMetrics[IDX_METRIC_SYS_CMD_COUNT];
-      result = RESULT_IN_VARIABLE;
+      value.ulongvar = (uint32_t) sysMetrics[IDX_METRIC_SYS_CMD_COUNT];
+      result = RESULT_IN_ULONGVAR;
       break;
 
     case CMD_SYS_CMD_TIMEMAX:
@@ -928,20 +966,22 @@ int16_t executeCommand(int16_t* _argOffset)
       /=/  sys.cmd.timemax[resetCounter]
       /*/
       if (cBuffer[_argOffset[0]]) { sysMetrics[IDX_METRIC_SYS_CMD_TIMEMAX] = 0; sysMetrics[IDX_METRIC_SYS_CMD_TIMEMAX_N] = 0; } 
-      ATOMIC_BLOCK(ATOMIC_RESTORESTATE) {
-        value = (int64_t) sysMetrics[IDX_METRIC_SYS_CMD_TIMEMAX];
-      }
-      result = RESULT_IN_VARIABLE;
+      // sysMetrics[IDX_METRIC_SYS_CMD_TIMEMAX] variable do not used or changed in interrupts
+      //ATOMIC_BLOCK(ATOMIC_RESTORESTATE) {
+      value.ulongvar = (uint32_t) sysMetrics[IDX_METRIC_SYS_CMD_TIMEMAX];
+      //}
+      result = RESULT_IN_ULONGVAR;
       break;
 
     case CMD_SYS_CMD_TIMEMAX_N:
       /*/
       /=/  sys.cmd.timemax.n
       /*/
-      ATOMIC_BLOCK(ATOMIC_RESTORESTATE) {
-        value = (int64_t) sysMetrics[IDX_METRIC_SYS_CMD_TIMEMAX_N];
-      }
-      ethClient.println((uint32_t) value, HEX);
+//      ATOMIC_BLOCK(ATOMIC_RESTORESTATE) {
+      // sysMetrics[IDX_METRIC_SYS_CMD_TIMEMAX_N] variable do not used or changed in interrupts
+      value.ulongvar = (uint32_t) sysMetrics[IDX_METRIC_SYS_CMD_TIMEMAX_N];
+//      }
+      ethClient.println(value.ulongvar, HEX);
       result = RESULT_IS_PRINTED;
       break;
    
@@ -949,8 +989,8 @@ int16_t executeCommand(int16_t* _argOffset)
       /*/
       /=/  sys.ram.free
       /*/
-      value = (int64_t) sysMetrics[IDX_METRIC_SYS_RAM_FREE];
-      result = RESULT_IN_VARIABLE;
+      value.ulongvar = (uint32_t) sysMetrics[IDX_METRIC_SYS_RAM_FREE];
+      result = RESULT_IN_ULONGVAR;
       break;
 
     case CMD_SYS_RAM_FREEMIN:
@@ -958,9 +998,9 @@ int16_t executeCommand(int16_t* _argOffset)
       /=/  sys.ram.freemin
       /*/
       ATOMIC_BLOCK(ATOMIC_RESTORESTATE) {
-         value = (int64_t) sysMetrics[IDX_METRIC_SYS_RAM_FREEMIN];
+         value.ulongvar = (uint32_t) sysMetrics[IDX_METRIC_SYS_RAM_FREEMIN];
       }
-         result = RESULT_IN_VARIABLE;
+         result = RESULT_IN_ULONGVAR;
       break;
 
 #endif
@@ -971,50 +1011,49 @@ int16_t executeCommand(int16_t* _argOffset)
       /=/ sys.vcc
       /*/
       // Take VCC
-      value = (int64_t) getADCVoltage(ANALOG_CHAN_VBG);
+      value.ulongvar = (uint32_t) getADCVoltage(ANALOG_CHAN_VBG);
       // VCC may be bigger than max or smaller than min. 
       // To avoid wrong results and graphs in monitoring system - correct min/max metrics
-      correctVCCMetrics(value);
-      result = RESULT_IN_VARIABLE;
+      correctVCCMetrics(value.ulongvar);
+      result = RESULT_IN_ULONGVAR;
       break;
   
     case CMD_SYS_VCCMIN:
       /*/
       /=/ sys.vccMin
       /*/
-      value = (int64_t) sysMetrics[IDX_METRIC_SYS_VCCMIN];
-      result = RESULT_IN_VARIABLE;
+      value.ulongvar = (uint32_t) sysMetrics[IDX_METRIC_SYS_VCCMIN];
+      result = RESULT_IN_ULONGVAR;
       break;
   
     case CMD_SYS_VCCMAX:
       /*/
       /=/ sys.vccMax
       /*/
-      value = (int64_t) sysMetrics[IDX_METRIC_SYS_VCCMAX];
-      result = RESULT_IN_VARIABLE;
+      value.ulongvar = (uint32_t) sysMetrics[IDX_METRIC_SYS_VCCMAX];
+      result = RESULT_IN_ULONGVAR;
       break;
   
 
 #ifdef FEATURE_EXTERNAL_INTERRUPT_ENABLE
     case CMD_EXTINT_COUNT:
       /*/
-      /=/  extInt.count[intPin, intNumber, mode]
+      /=/  extInt.count[intPin, mode]
       /*/
       if (! isSafePin(arg[0])) { break; }
-      value = (int64_t) manageExtInt(arg[0], arg[2]);
-      result = RESULT_IN_VARIABLE;
+      result = manageExtInt(&value.ulongvar, arg[0], arg[1]);
       break;
+      
 #endif // FEATURE_EXTERNAL_INTERRUPT_ENABLE
 
 #ifdef FEATURE_INCREMENTAL_ENCODER_ENABLE
-    case CMD_ENCODER_COUNT:
+    case CMD_INCENC_VALUE:
       /*/
-      /=/  incEnc.count[terminalAPin, terminalBPin, intNumber, initialValue]
+      /=/  incEnc.count[terminalAPin, terminalBPin, initialValue]
       /*/
-      if (! isSafePin(arg[0]) || ! isSafePin(arg[1]) { break; }
+      if (! isSafePin(arg[0]) || ! isSafePin(arg[1])) { break; }
       // arg[3] (intNumber) currently not used
-      value = (int64_t) manageIncEnc(arg[0], arg[1], arg[3]);
-      result = RESULT_IN_VARIABLE;
+      result = manageIncEnc(&value.longvar, arg[0], arg[1], arg[2]);
       break;
 #endif // FEATURE_INCREMENTAL_ENCODER_ENABLE
      
@@ -1071,7 +1110,7 @@ int16_t executeCommand(int16_t* _argOffset)
           arg[5] = 1; 
       } else {
           // Just discard result
-          readBytesFromi2C(i2CAddress, i2CRegister, i2CValue, i2COption);
+            readBytesFromi2C(i2CAddress, i2CRegister, i2CValue, i2COption);
       }
       // One reading at least must be done
       if (1 > arg[5]){ arg[5] = 1; }
@@ -1085,7 +1124,6 @@ int16_t executeCommand(int16_t* _argOffset)
       result = RESULT_IS_OK;
       while (readNumber) {
         readNumber--;
-        // ADC stabilization delay
         delayMicroseconds(ADC_STABILIZATION_DELAY);
         if (0 != readBytesFromi2C(i2CAddress, i2CRegister, i2CValue, i2COption)) { result = RESULT_IS_FAIL; break; }
            // make int32 from i2C's bytes
@@ -1098,8 +1136,8 @@ int16_t executeCommand(int16_t* _argOffset)
       }
  
       if (RESULT_IS_FAIL != result) {
-         value = (int64_t) (accResult / arg[5]);
-         result = RESULT_IN_VARIABLE;
+         value.longvar = (int32_t) (accResult / arg[5]);
+         result = RESULT_IN_LONGVAR;
       }
       break;
 
@@ -1133,8 +1171,8 @@ int16_t executeCommand(int16_t* _argOffset)
       // Use device's register if specified, read 1 byte
       result = readBytesFromi2C(i2CAddress, i2CRegister, i2CValue, 1);
       if (0 == result) { break ;}
-      value = (int64_t) bitRead(i2CValue[0], i2COption);
-      result = RESULT_IN_VARIABLE;
+      value.ulongvar = (uint32_t) bitRead(i2CValue[0], i2COption);
+      result = RESULT_IN_ULONGVAR;
       break;
 
 
@@ -1314,8 +1352,8 @@ int16_t executeCommand(int16_t* _argOffset)
       /=/  ultrasonic.distance[triggerPin, echoPin]
       /*/
       if (!isSafePin(arg[0]) || !isSafePin(arg[1])) { break; }
-      value = (int64_t) getUltrasonicMetric(arg[0], arg[1]);
-      result = RESULT_IN_VARIABLE;
+      value.ulongvar = (uint32_t) getUltrasonicMetric(arg[0], arg[1]);
+      result = RESULT_IN_ULONGVAR;
       break;
 #endif // FEATURE_ULTRASONIC_ENABLE
 
@@ -1437,9 +1475,13 @@ int16_t executeCommand(int16_t* _argOffset)
             cBuffer[0] = '0';
             cBuffer[1] = '\0';
             break;
-         case RESULT_IN_VARIABLE:
+         case RESULT_IN_LONGVAR:
             //  or result value placed in 'value' variable and must be converted to C-string.
-            ltoa(value, cBuffer, 10);
+            ltoa(value.longvar, cBuffer, 10);
+            break;
+         case RESULT_IN_ULONGVAR:
+            //  or result value placed in 'value' variable and must be converted to C-string.
+            ultoa(value.ulongvar, cBuffer, 10);
             break;
          case DEVICE_ERROR_CONNECT:
             strcpy_P(cBuffer, PSTR((MSG_DEVICE_ERROR_CONNECT)));
@@ -1464,7 +1506,7 @@ int16_t executeCommand(int16_t* _argOffset)
       ethClient.println(cBuffer);
    }
 #ifdef FEATURE_DEBUG_TO_SERIAL
-     SerialPrint_P(PSTR("Result: ")); Serial.println(cBuffer); Serial.println(); 
+     SerialPrint_P(PSTR("Result: ")); Serial.println(cBuffer); 
 #endif
    return cmdIdx;
 }

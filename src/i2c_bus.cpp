@@ -67,7 +67,7 @@ uint8_t writeBytesToI2C(const uint8_t _i2cAddress, const int16_t _registerAddres
   Wire.beginTransmission(_i2cAddress); // start transmission to device 
   // registerAddress is 0x00 and above ?
   if (I2C_NO_REG_SPECIFIED < _registerAddress) {
-     Wire.write(_registerAddress); // sends register address to be written
+     Wire.write((uint8_t) _registerAddress); // sends register address to be written
   }
   while (_len) {
     Wire.write(*_data);  // write data
@@ -82,26 +82,26 @@ uint8_t writeBytesToI2C(const uint8_t _i2cAddress, const int16_t _registerAddres
 *  Reads N bytes from device's register (or not) over I2C
 *
 **************************************************************************************************************************** */
-uint8_t readBytesFromi2C(const uint8_t _i2cAddress, const int16_t _registerAddress, uint8_t _buff[], const uint8_t _len)
+uint8_t readBytesFromi2C(const uint8_t _i2cAddress, const int16_t _registerAddress, uint8_t* _dst, uint8_t _len)
 {
     if (!_len) return false;
     Wire.beginTransmission(_i2cAddress); 	// Adress + WRITE (0)
     if (I2C_NO_REG_SPECIFIED < _registerAddress) {
-       Wire.write(_registerAddress);
+       Wire.write((uint8_t) _registerAddress);
        Wire.endTransmission(false); 		// No Stop Condition, for repeated Talk
     }
 
-    uint8_t i = 0;
     uint32_t lastTimeCheck = millis();         
     Wire.requestFrom(_i2cAddress, _len); 	// Address + READ (1)
-    while((i < _len) && (Wire.available() > 0)) {
+    while(_len && (Wire.available() > 0)) {
       // 100 => 0.1 sec timeout
-      if ((millis() - lastTimeCheck) > 100) {
+      if ((millis() - lastTimeCheck) > 300) {
          Wire.endTransmission(true);
          return false;
       }
-      _buff[i] = Wire.read();
-      i++;
+      *_dst = Wire.read();
+      _dst++;
+      _len--;
     }
 
     return Wire.endTransmission(true); 		// Stop Condition

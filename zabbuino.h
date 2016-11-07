@@ -18,13 +18,12 @@
     Also u can try uncomment USE_DIRTY_HACK_AND_REBOOT_ENC28J60_IF_ITS_SEEMS_FREEZE declaration below to periodically ENC28J60 re-intit if EIR.TXERIF and EIR.RXERIF == 1
 */
 
-
 #define W5100_ETHERNET_SHIELD             // Arduino Ethernet Shield and Compatibles ...
 //#define ENC28J60_ETHERNET_SHIELD          // Microchip __ENC28J60__ network modules
 
 // not tested yet, but set up to use WizNet official library: https://github.com/Wiznet/WIZ_Ethernet_Library/tree/master/Arduino%20IDE%201.5.x/Ethernet
 // Unfortunatly network chip selection can't be carried from outside of Wiznet library :(
-// You must to edit "%Program Files%\Arduino\libraries\Ethernet\src\utility\w5100.h" directly to comment 
+// You must edit "%Program Files%\Arduino\libraries\Ethernet\src\utility\w5100.h" directly to comment 
 //     and uncomment the same #defines - W5100_ETHERNET_SHIELD or W5500_ETHERNET_SHIELD or another else
 //#define W5200_ETHERNET_SHIELD             // WIZ820io, W5200 Ethernet Shield 
 //#define W5500_ETHERNET_SHIELD             // WIZ550io, ioShield series of WIZnet
@@ -106,7 +105,7 @@
 
 /* 
 /=/     Handle incremental encoder that connected to interrupt-pin and enable command:
-/=/     - IncEnc.Count[]
+/=/     - IncEnc.Value[]
 /*/
 //#define FEATURE_INCREMENTAL_ENCODER_ENABLE
 
@@ -289,7 +288,13 @@
 /*/
 /=/     View the debug messages on the Serial Monitor
 /*/
-#define FEATURE_DEBUG_TO_SERIAL
+//#define FEATURE_DEBUG_TO_SERIAL
+
+/*/
+/=/     View the additional debug messages on the Serial Monitor when network errors probaly occurs
+/*/
+//#define FEATURE_NET_DEBUG_TO_SERIAL
+
 /*/
 /=/     Recieve command from Serial Monitor too
 /*/
@@ -347,7 +352,7 @@
    #include <Ethernet.h>
    #include <SPI.h>
 #elif defined(ENC28J60_ETHERNET_SHIELD)
-  #define NET_MODULE_NAME                                   "ENC28J60"
+   #define NET_MODULE_NAME                                   "ENC28J60"
    #include <UIPEthernet.h>
 /* You need to do one change in UIPEthernet\utility\Enc28J60Network.h before uncomment USE_DIRTY_HACK_AND_REBOOT_ENC28J60_IF_ITS_SEEMS_FREEZE:         
     *  private:
@@ -378,6 +383,7 @@
 */
 
 #define ZBX_AGENT_DEFAULT_HOSTNAME                            "zabbuino"
+// Domain name used only to make FDQN if FEATURE_NET_USE_MCUID is allowed, and FEATURE_EEPROM_ENABLE is disabled
 #define ZBX_AGENT_DEFAULT_DOMAIN                              ".local.net"
 
 

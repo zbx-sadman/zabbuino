@@ -8,7 +8,6 @@
 #include "../zabbuino.h"
 #include "system.h"
 
-ISR(TIMER1_COMPA_vect);
 
 /*
  macro CASE_INT_N(INT0) transformed to code:
@@ -31,26 +30,26 @@ ISR(TIMER1_COMPA_vect);
 
     void handleExtINT0() { extern extInterrupt_t* extInterrupt;
                         extInterrupt[INT0].count++; 
-                        if (INT32_POSITIVE_MAX < extInterrupt[INT0].count) { extInterrupt[INT0].count = 0; } }
 }
 */
 
 #define HANDLE_INT_N_FOR_EXTINT(_interrupt) \
-   void handleExt##_interrupt() { extern extInterrupt_t* extInterrupt; extInterrupt[_interrupt].count++; \
-        if (INT32_POSITIVE_MAX < extInterrupt[_interrupt].count) { extInterrupt[_interrupt].count = 0; } }  // Need to count again to avoid going count to negative value and taking RESULT_IS_FAIL value
+   void handleExt##_interrupt() { extern extInterrupt_t *extInterrupt; extInterrupt[_interrupt].count++; }
 
 
 #define HANDLE_INT_N_FOR_INCENC(_interrupt) \
-   void handleIncEnc##_interrupt() { extern extInterrupt_t* extInterrupt; volatile static uint8_t stateTerminalA = 0, statePrevTerminalA = 0, stateTerminalB = 0; \
-         delayMicroseconds(ENCODER_STABILIZATION_DELAY); stateTerminalA = digitalRead(extInterrupt[_interrupt].encTerminalAPin); stateTerminalB = digitalRead(extInterrupt[_interrupt].encTerminalBPin); \
+   void handleIncEnc##_interrupt() { extern extInterrupt_t *extInterrupt; volatile static uint8_t stateTerminalA = 0, statePrevTerminalA = 0;\
+         delayMicroseconds(ENCODER_STABILIZATION_DELAY);\
+         stateTerminalA = *extInterrupt[_interrupt].encTerminalAPIR & extInterrupt[_interrupt].encTerminalAPinBit;\
          if ((!stateTerminalA) && (statePrevTerminalA)) { \
-           if(stateTerminalB) { extInterrupt[_interrupt].count++; } else { extInterrupt[_interrupt].count--; } \
+           if (*extInterrupt[_interrupt].encTerminalBPIR & extInterrupt[_interrupt].encTerminalBPinBit) \
+              { extInterrupt[_interrupt].value++; } else { extInterrupt[_interrupt].value--; } \
          } statePrevTerminalA = stateTerminalA; }
 
 
 #ifdef FEATURE_EXTERNAL_INTERRUPT_ENABLE
 
-  int8_t manageExtInt(uint8_t _pin, uint8_t _mode);
+  int8_t manageExtInt(uint32_t* _dst, uint8_t _pin, uint8_t _mode);
 
 
  
@@ -85,7 +84,7 @@ ISR(TIMER1_COMPA_vect);
 */
 
 #ifdef FEATURE_INCREMENTAL_ENCODER_ENABLE
-  int8_t manageIncEnc(uint8_t _terminalAPin, uint8_t _terminalBPin, int32_t _initialValue);
+  int8_t manageIncEnc(int32_t* _dst, uint8_t const _terminalAPin, uint8_t const _terminalBPin, int32_t const _initialValue);
 
   void handleIncEncINT0();
   void handleIncEncINT1();

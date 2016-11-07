@@ -1,6 +1,10 @@
 #ifndef ZabbuinoDEFAULTS_h
 #define ZabbuinoDEFAULTS_h
 
+#if defined(FEATURE_I2C_ENABLE) || defined(FEATURE_BMP_ENABLE) || defined(FEATURE_BH1750_ENABLE) || defined (FEATURE_PCF8574_LCD_ENABLE) || defined (FEATURE_SHT2X_ENABLE)
+   #define LIBWIRE_USE
+#endif
+
 /* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
                                                                  HEADERS SECTION
 */
@@ -18,6 +22,10 @@
                                                                ALARM SECTION 
 */
 
+
+#define ERROR_NONE                 	                        0x00
+#define ERROR_NET                 	                        0x01
+#define ERROR_DHCP                 	                        0x02
 // Turn off state LED blink (no errors found)
 // State LED no blink type
 #define BLINK_NOPE                 	                        0x00
@@ -37,6 +45,36 @@
 
 // How often do ENC28J60 module reinit for more stable network
 #define NET_ENC28J60_REINIT_PERIOD  	                        10000UL  // 10 sec
+
+// These macros used only to debug process on ENC28J60-powered systems 
+// ENC28J60 bank registers
+#define NET_ENC28J60_EIR                                        0x1C
+#define NET_ENC28J60_ESTAT                                      0x1D
+// ENC28J60 EIE Register Bit Definitions
+#define NET_ENC28J60_EIE_INTIE                                  0x80
+#define NET_ENC28J60_EIE_PKTIE                                  0x40
+#define NET_ENC28J60_EIE_DMAIE                                  0x20
+#define NET_ENC28J60_EIE_LINKIE                                 0x10
+#define NET_ENC28J60_EIE_TXIE                                   0x08
+#define NET_ENC28J60_EIE_WOLIE                                  0x04
+#define NET_ENC28J60_EIE_TXERIE                                 0x02
+#define NET_ENC28J60_EIE_RXERIE                                 0x01
+// ENC28J60 EIR Register Bit Definitions
+#define NET_ENC28J60_EIR_PKTIF                                  0x40
+#define NET_ENC28J60_EIR_DMAIF                                  0x20
+#define NET_ENC28J60_EIR_LINKIF                                 0x10
+#define NET_ENC28J60_EIR_TXIF                                   0x08
+#define NET_ENC28J60_EIR_WOLIF                                  0x04
+#define NET_ENC28J60_EIR_TXERIF                                 0x02
+#define NET_ENC28J60_EIR_RXERIF                                 0x01
+// ENC28J60 ESTAT Register Bit Definitions
+#define NET_ENC28J60_ESTAT_INT                                  0x80
+#define NET_ENC28J60_ESTAT_LATECOL                              0x10
+#define NET_ENC28J60_ESTAT_RXBUSY                               0x04
+#define NET_ENC28J60_ESTAT_TXABRT                               0x02
+#define NET_ENC28J60_ESTAT_CLKRDY                               0x01
+
+
 // Network activity timeout (for which no packets processed or no DHCP lease renews finished with success)
 #define NET_IDLE_TIMEOUT            	                        60000UL  // 60 sec
 
@@ -300,7 +338,7 @@ D13 -^    ^- D8    <- pins   */
 #define CMD_SYS_VCCMAX                                          0x1F
 
 #define CMD_EXTINT_COUNT                                        0x20
-#define CMD_ENCODER_COUNT                                       0x21
+#define CMD_INCENC_VALUE                                        0x21
 
 #define CMD_OW_SCAN                                             0x22
 
@@ -401,7 +439,7 @@ const char command_CMD_SYS_VCCMIN[]                             PROGMEM = "sys.v
 const char command_CMD_SYS_VCCMAX[]                             PROGMEM = "sys.vccmax";
 
 const char command_CMD_EXTINT_COUNT[]                           PROGMEM = "extint.count";
-const char command_CMD_ENCODER_COUNT[]                          PROGMEM = "incenc.count";
+const char command_CMD_INCENC_VALUE[]                           PROGMEM = "incenc.value";
 
 const char command_CMD_OW_SCAN[]                                PROGMEM = "ow.scan";
 
@@ -540,7 +578,7 @@ const char* const commands[] PROGMEM = {
 #endif
 
 #ifdef FEATURE_INCREMENTAL_ENCODER_ENABLE
-  command_CMD_ENCODER_COUNT,
+  command_CMD_INCENC_VALUE,
 #else
   command_CMD_ZBX_NOPE,
 #endif
@@ -691,29 +729,41 @@ command_CMD_SYSTEM_RUN,
 
 #define MSG_ZBX_NOTSUPPORTED          	                      "ZBX_NOTSUPPORTED"
 
-#define MSG_DEVICE_ERROR_CONNECT                              "Device not conected"
-#define MSG_DEVICE_ERROR_ACK_L                                "ACK (L) error"
-#define MSG_DEVICE_ERROR_ACK_H                                "ACK (H) error"
-#define MSG_DEVICE_ERROR_CHECKSUM                             "Wrong checksum"
-#define MSG_DEVICE_ERROR_TIMEOUT                              "Timeout error"
-#define MSG_DEVICE_ERROR_WRONG_ANSWER                         "Wrong answer recieved"
+#define USE_TEXT_ERROR_MESSAGES
+
+#ifdef USE_TEXT_ERROR_MESSAGES
+  #define MSG_DEVICE_ERROR_CONNECT                              "Device not conected"
+  #define MSG_DEVICE_ERROR_ACK_L                                "ACK (L) error"
+  #define MSG_DEVICE_ERROR_ACK_H                                "ACK (H) error"
+  #define MSG_DEVICE_ERROR_CHECKSUM                             "Wrong checksum"
+  #define MSG_DEVICE_ERROR_TIMEOUT                              "Timeout error"
+  #define MSG_DEVICE_ERROR_WRONG_ANSWER                         "Wrong answer recieved"
+#else
+  #define MSG_DEVICE_ERROR_CONNECT                              "-131"
+  #define MSG_DEVICE_ERROR_ACK_L                                "-132"
+  #define MSG_DEVICE_ERROR_ACK_H                                "-133"
+  #define MSG_DEVICE_ERROR_CHECKSUM                             "-134"
+  #define MSG_DEVICE_ERROR_TIMEOUT                              "-135"
+  #define MSG_DEVICE_ERROR_WRONG_ANSWER                         "-136"
+#endif
 
 /* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
                                                            VARIOUS DEFINES SECTION 
 */
 
-#define IDX_METRICS_MAX                                         8
+#define IDX_METRICS_LAST                                        8
 #define IDX_METRICS_FIRST_CRONNED                               3
 
 #define IDX_METRIC_SYS_CMD_COUNT                                0
-#define IDX_METRIC_SYS_CMD_TIMEMAX                              1
-#define IDX_METRIC_SYS_CMD_TIMEMAX_N                            2
+#define IDX_METRIC_SYS_CMD_LAST                                 1
+#define IDX_METRIC_SYS_CMD_TIMEMAX                              2
+#define IDX_METRIC_SYS_CMD_TIMEMAX_N                            3
 
-#define IDX_METRIC_SYS_VCC                                      3
-#define IDX_METRIC_SYS_VCCMIN                                   4
-#define IDX_METRIC_SYS_VCCMAX                                   5
-#define IDX_METRIC_SYS_RAM_FREE                                 6
-#define IDX_METRIC_SYS_RAM_FREEMIN                              7
+#define IDX_METRIC_SYS_VCC                                      4
+#define IDX_METRIC_SYS_VCCMIN                                   5
+#define IDX_METRIC_SYS_VCCMAX                                   6
+#define IDX_METRIC_SYS_RAM_FREE                                 7
+#define IDX_METRIC_SYS_RAM_FREEMIN                              8
 
 // Zabbix v2.x header prefix ('ZBXD\x01')
 #define ZBX_HEADER_PREFIX                                       "zbxd\1"
@@ -741,7 +791,8 @@ command_CMD_SYSTEM_RUN,
 #define RESULT_IS_OK                                            true
 #define RESULT_IN_BUFFER                                        0x02
 #define RESULT_IS_PRINTED                                       0x04
-#define RESULT_IN_VARIABLE                                      0x08
+#define RESULT_IN_LONGVAR                                       0x08
+#define RESULT_IN_ULONGVAR                                      0x10
 #define RUN_NEW_COMMAND                                         -0x2
 
 // Error Codes
@@ -780,7 +831,7 @@ ADC channels
 // On Leonardo, Micro and other ATmega32u4 boards wait to Serial Monitor ready for 5sec 
 #define SERIAL_WAIT_TIMEOUT            	                        5000UL  // 5 sec
 
-#define INT32_POSITIVE_MAX                                      2147483647
+//#define INT32_POSITIVE_MAX                                      2147483647
 
 /* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
                                                          PROGRAMM STRUCTURES SECTION 
@@ -793,20 +844,31 @@ typedef struct {
   IPAddress ipAddress;     			  // 6 byte (uint8_t[])
   IPAddress ipNetmask;     			  // 6 byte (uint8_t[])
   IPAddress ipGateway;     			  // 6 byte (uint8_t[])
-  char hostname[ZBX_AGENT_HOSTNAME_MAXLEN];       // 255 - (1 + 6*4 + 4 + 1) = 225 bytes max
+  char hostname[ZBX_AGENT_HOSTNAME_MAXLEN+1];     // +1 for '\0', 255 - (1 + 6*4 + 4 + 1) = 225 bytes max
   // #ifdef ... #elif ... #endif does not work with struct operator
   uint32_t password;                              // 4 byte
   uint8_t useProtection;                          // 1 byte
 } netconfig_t ;
 
 
-typedef struct {
-  uint32_t count;        			  // 4 byte
+typedef struct {                                  // 9 bytes: 
+  union {                                         // 4 byte
+    uint32_t count;        			  
+    int32_t value;        			  
+  };
   // mode == -1 => Interrupt is not attached
   int8_t mode;                                    // 1 byte 
-  int8_t encTerminalAPin;                         // 1 byte 
-  int8_t encTerminalBPin;                         // 1 byte 
+  volatile uint8_t *encTerminalAPIR;              // 1 byte
+  volatile uint8_t *encTerminalBPIR;              // 1 byte
+  uint8_t encTerminalAPinBit;                     // 1 byte
+  uint8_t encTerminalBPinBit;                     // 1 byte
 } extInterrupt_t ;
+
+typedef union {                                   // 4 byte
+  uint32_t ulongvar;
+  int32_t  longvar;
+} long_ulong_t;
+
 
 /* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
                                                          INLINE AND "DEFINE" FUNCTIONS SECTION 
@@ -839,7 +901,8 @@ inline __attribute__((always_inline)) uint32_t getRamFree(void) {
 *   Correct sys.vccmin/sys.vccmax metrics when VCC just taken
 *
 **************************************************************************************************************************** */
-inline __attribute__((always_inline)) void correctVCCMetrics(uint32_t _currVCC) {
+// __attribute__((always_inline)) 
+inline void correctVCCMetrics(uint32_t _currVCC) {
   // Global variable from outside
   extern int32_t *sysMetrics;
   if (sysMetrics[IDX_METRIC_SYS_VCCMIN] > _currVCC) { sysMetrics[IDX_METRIC_SYS_VCCMIN] = _currVCC; }

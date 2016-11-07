@@ -3,23 +3,23 @@
 
 uint8_t waitToBMPReady(const uint8_t _i2cAddress, const int16_t _registerAddress, const int16_t _mask, const uint16_t _timeout)
 {
-  uint8_t value[1], i;
+  uint8_t value;
   uint32_t nowTime;
 
   nowTime = millis();
   
   while((millis() - nowTime) < _timeout){
-     readBytesFromi2C(_i2cAddress, _registerAddress, value, 1);
-     if (0 == (value[0] & _mask)) return true;
+     readBytesFromi2C(_i2cAddress, _registerAddress, &value, 1);
+     if (0 == (value & _mask)) return true;
      delay(10);  
   }
+  return false;
 }
+
 
 int8_t getBMPMetric(const uint8_t _sdaPin, const uint8_t _sclPin, uint8_t _i2cAddress, const uint8_t _overSampling, const uint8_t _filterCoef, const uint8_t _metric, char* _dst)
 {
   uint8_t chipID; 
-  uint8_t result = RESULT_IS_FAIL; 
-
   switch (_i2cAddress) {
     case BMP180_I2C_ADDRESS:
     //  BMP280_I2C_ADDRESS_2 == BMP180_I2C_ADDRESS
@@ -29,43 +29,35 @@ int8_t getBMPMetric(const uint8_t _sdaPin, const uint8_t _sclPin, uint8_t _i2cAd
        _i2cAddress = BMP180_I2C_ADDRESS;
   }
 
-
-  if (!isI2CDeviceReady(_i2cAddress)) {return DEVICE_ERROR_CONNECT; }
+  if (false == isI2CDeviceReady(_i2cAddress)) { return DEVICE_ERROR_CONNECT; }
 
   // Taking Chip ID
-  Wire.beginTransmission(_i2cAddress);
-  Wire.write(BMP_REGISTER_CHIPID);
-  Wire.endTransmission();
-
-  Wire.beginTransmission(_i2cAddress);
-  Wire.requestFrom((uint8_t) _i2cAddress, (uint8_t) 1);
-  chipID = Wire.read();
-  Wire.endTransmission();
-  
+  // false == 0 == succes transmission
+  if (false != readBytesFromi2C(_i2cAddress, BMP_REGISTER_CHIPID, &chipID, 1)) { return RESULT_IS_FAIL; }
   switch (chipID) {
     // BMP085 and BMP180 have the same ID  
 #ifdef SUPPORT_BMP180_INCLUDE
     case BMP180_CHIPID: 
-       result = getBMP180Metric(_sdaPin, _sclPin, _i2cAddress, _overSampling, _metric, _dst);
+       return getBMP180Metric(_sdaPin, _sclPin, _i2cAddress, _overSampling, _metric, _dst);
        break;
 #endif
 #ifdef SUPPORT_BMP280_INCLUDE
     case BMP280_CHIPID_1: 
     case BMP280_CHIPID_2: 
     case BMP280_CHIPID_3: 
-       result = getBMP280Metric(_sdaPin, _sclPin, _i2cAddress, _overSampling, _filterCoef, _metric, _dst);
+       return getBMP280Metric(_sdaPin, _sclPin, _i2cAddress, _overSampling, _filterCoef, _metric, _dst);
        break;
 #endif
 #ifdef SUPPORT_BME280_INCLUDE
     case BME280_CHIPID:
        // BME280 is BMP280 with additional humidity sensor
-       result = getBMP280Metric(_sdaPin, _sclPin, _i2cAddress, _overSampling, _filterCoef, _metric, _dst);
+       return getBMP280Metric(_sdaPin, _sclPin, _i2cAddress, _overSampling, _filterCoef, _metric, _dst);
        break;
 #endif
     default:  
        break;
   }
-  return result;  
+  return RESULT_IS_FAIL; 
 }
 
 
@@ -123,22 +115,9 @@ int8_t getBMP280Metric(const uint8_t _sdaPin, const uint8_t _sclPin, uint8_t _i2
       var1 = BMP280_ULTRALOWPOWER_OVERSAMP_TEMPERATURE;
       var2 = BMP280_ULTRALOWPOWER_OVERSAMP_PRESSURE;
   }
-
-  // var1 is oversamp_temperature
-  // var2 is oversamp_pressure
-  // Use var1 as temp variable for store conversion delay time
-  // BME280 calculation, BMP280 don't take humidity conversion time into account 
-  //   var1 = (T_INIT_MAX + 
-  //           T_MEASURE_PER_OSRS_MAX * (((1 << var1) >> 1)
-  //           + ((1 << var2) >> 1) 
-  //           + ((1 << BME280_STANDARD_OVERSAMP_HUMIDITY) >> 1))
-  //           + ((var2 > 0) ? T_SETUP_PRESSURE_MAX : 0) 
-  //           + ((BME280_STANDARD_OVERSAMP_HUMIDITY > 0) ? T_SETUP_HUMIDITY_MAX : 0) + 15) / 16;
   
   // We must wait to Bxxxx0xx0 value in "Status" register
-  if (false == waitToBMPReady(_i2cAddress, BMP280_REGISTER_STATUS, BMP280_READY_MASK, 50)) {
-       return DEVICE_ERROR_TIMEOUT;
-  }
+  if (false == waitToBMPReady(_i2cAddress, BMP280_REGISTER_STATUS, BMP280_READY_MASK, 50)) { return DEVICE_ERROR_TIMEOUT;}
 
   // The “ctrl_hum” register sets the humidity data acquisition options of the device. Changes to this register only become effective after a write operation to “ctrl_meas”.
   writeByteToI2C(_i2cAddress, BME280_REGISTER_CONTROLHUMID, BME280_STANDARD_OVERSAMP_HUMIDITY);
@@ -163,9 +142,6 @@ int8_t getBMP280Metric(const uint8_t _sdaPin, const uint8_t _sclPin, uint8_t _i2
   readBytesFromi2C(_i2cAddress, BMP280_REGISTER_TEMPDATA, value, 3);
   
   adc = ((int32_t) (((uint16_t) value[0] << 8) | (uint16_t) value[1]) << 4) | ((uint16_t) value[2] >> 4);
-  //adc = WireToS24(value);
-  //adc >>= 4;
-
   
   // read calibration data 
   readBytesFromi2C(_i2cAddress, BMP280_REGISTER_DIG_T1, value, 2);
@@ -173,7 +149,7 @@ int8_t getBMP280Metric(const uint8_t _sdaPin, const uint8_t _sclPin, uint8_t _i2
 
   readBytesFromi2C(_i2cAddress, BMP280_REGISTER_DIG_T2, value, 2);
   dig_T2 = WireToS16LE(value);
-  
+                                                                  
   readBytesFromi2C(_i2cAddress, BMP280_REGISTER_DIG_T3, value, 2);
   dig_T3 = WireToS16LE(value);;
 
@@ -221,12 +197,10 @@ int8_t getBMP280Metric(const uint8_t _sdaPin, const uint8_t _sclPin, uint8_t _i2
       dig_P9 = WireToS16LE(value);
  
       // Test value
-      // adc = 415148 ( from BOSH datasheet)
+      // adc = 415148 ( from BOSCH datasheet)
       // Read raw value  
       readBytesFromi2C(_i2cAddress, BMP280_REGISTER_PRESSUREDATA, value, 3);
       adc = ((int32_t) (((uint16_t) value[0] << 8) | (uint16_t) value[1]) << 4) | ((uint16_t) value[2] >> 4);
-//      adc = WireToS24(value);
-//      adc >>= 4;
    
       // Compensate pressure caculation
       var1 = (((int32_t)t_fine) >> 1) - (int32_t) 64000;
@@ -252,7 +226,7 @@ int8_t getBMP280Metric(const uint8_t _sdaPin, const uint8_t _sclPin, uint8_t _i2
       var2 = (((int32_t)(result >> 2)) * ((int32_t) dig_P8)) >> 13;
       result = (uint32_t)((int32_t) result + ((var1 + var2 + dig_P7) >> 4));
 
-     // BOSH on page 22 of datasheet say: "Returns pressure in Pa as unsigned 32 bit integer in Q24.8 format (24 integer bits and 8 fractional bits)." 
+     // BOSCH on page 22 of datasheet say: "Returns pressure in Pa as unsigned 32 bit integer in Q24.8 format (24 integer bits and 8 fractional bits)." 
      // 24674867 in Q24.8 is 96386 in whole part (24674867 >> 8) , and 51 in frac part (24674867 & B11111111) => 96386.51
      // But in code example use calculation: 24674867/256 = 96386.19 => 96386.2
      //
@@ -315,6 +289,8 @@ int8_t getBMP280Metric(const uint8_t _sdaPin, const uint8_t _sclPin, uint8_t _i2
 **************************************************************************************************************************** */
 int8_t getBMP180Metric(const uint8_t _sdaPin, const uint8_t _sclPin, uint8_t _i2cAddress, uint8_t _overSampling, const uint8_t _metric, char* _dst)
 {
+  uint8_t msb, lsb, xlsb;
+  uint8_t value[3];
   // Calibration values
   int16_t ac1, ac2, ac3;
   uint16_t ac4, ac5, ac6;
@@ -323,8 +299,6 @@ int8_t getBMP180Metric(const uint8_t _sdaPin, const uint8_t _sclPin, uint8_t _i2
   uint32_t up;
   int32_t x1, x2, x3, b3, b5, b6, result;
   uint32_t b4, b7;
-  uint8_t msb, lsb, xlsb;
-  uint8_t value[3];
 
 
   /* read calibration data */
@@ -372,9 +346,7 @@ int8_t getBMP180Metric(const uint8_t _sdaPin, const uint8_t _sclPin, uint8_t _i2
   }
 
   // We must wait to Bxx0xxxxx value in "Control" register to know that device is not busy
-  if (false == waitToBMPReady(_i2cAddress, BMP_REGISTER_CONTROL, BMP180_READY_MASK, 50)) {
-       return DEVICE_ERROR_TIMEOUT;
-  }
+  if (false == waitToBMPReady(_i2cAddress, BMP_REGISTER_CONTROL, BMP180_READY_MASK, 50)) { return DEVICE_ERROR_TIMEOUT; }
   // ******** Get Temperature ********
   // Write 0x2E into Register 0xF4
   // This requests a temperature reading
@@ -384,9 +356,7 @@ int8_t getBMP180Metric(const uint8_t _sdaPin, const uint8_t _sclPin, uint8_t _i2
   //delay(5);
 
   // We must wait to Bxx0xxxxx value in "Control" register to know about end of conversion
-  if (false == waitToBMPReady(_i2cAddress, BMP_REGISTER_CONTROL, BMP180_READY_MASK, 50)) {
-       return DEVICE_ERROR_TIMEOUT;
-  }
+  if (false == waitToBMPReady(_i2cAddress, BMP_REGISTER_CONTROL, BMP180_READY_MASK, 50)) { return DEVICE_ERROR_TIMEOUT; }
   // Read two bytes from registers 0xF6 and 0xF7
   readBytesFromi2C(_i2cAddress, BMP180_REGISTER_TEMPDATA, value, 2);
   ut = WireToU16(value);
@@ -396,8 +366,7 @@ int8_t getBMP180Metric(const uint8_t _sdaPin, const uint8_t _sclPin, uint8_t _i2
   b5 = x1 + x2;
   result = ((b5 + 8) >> 4);
 
-  if ( SENS_READ_PRSS == _metric)
-  {
+  if (SENS_READ_PRSS == _metric) {
     // ******** Get Pressure ********
 
     // Calculate pressure given up
