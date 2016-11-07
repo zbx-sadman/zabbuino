@@ -9,7 +9,7 @@ Implemented:
 - Storing system setting in EEPROM;
 - AVR WatchDog feature support;
 - MCU and runtime metrics (current/min/max VCC, current/min RAM, uptime, MCU name) obtaining;
-- Support WS5100 and ENC25J60 network modules;
+- Support W5100 and ENC28J60 network modules;
 - Support one or more DS18X20 thermometer;
 - Support DHT11/21/22/33/44 or AM2301/2302 humidity and temperature sensors;
 - Support SHT2X humidity and temperature sensors serie;
@@ -29,6 +29,14 @@ Implemented:
 - Support PZEM-004 energy meter;
 - Support APC Smart UPS (with RS232 interface);
 - Simulate varuious vendor's IR transmitters.
+
+####22 Sep 2016
+
+Refactoring is processed...
+
+Changes: 
+ - _encInc.count[]_ renamed to _encInc.value[]_ due its decremented and incremented, not only count.
+ - _encInc.value[]_ and _extInt.count[]_ was shrinked a lot - _intNumber_ arg is removed because interrupt number changing have no sense at this time. 
 
 ####22 Sep 2016
 
@@ -70,7 +78,7 @@ New commands:
  - _ups.apc.smart[rxPin, txPin, command]_ command return APC Smart UPS answer to _command_. 
    - _rxPin_ SoftSerial's RX pin to which UPS's (over RS232 convertor) TX connected;
    - _rxPin_ SoftSerial's TX pin to which UPS's (over RS232 convertor) RX connected;
-   - _command_ Smart UPS command, that can be found on [APC’s smart protocol page](http://networkupstools.org/protocols/apcsmart.html). _Command_ can be specified as ASCII string like "c", or HEX-string like 0x01 (^A - command). Example: `zabbix_get -s 192.168.0.1 -k ups.apcsmart[2,3,"n"]` - get UPS's serial number.
+   - _command_ Smart UPS command, that can be found on [APCâ€™s smart protocol page](http://networkupstools.org/protocols/apcsmart.html). _Command_ can be specified as ASCII string like "c", or HEX-string like 0x01 (^A - command). Example: `zabbix_get -s 192.168.0.1 -k ups.apcsmart[2,3,"n"]` - get UPS's serial number.
 
 **Note #1** UPS must be connected to Arduino with RS232-TTL convertor (MAX232 IC). 
 **Note #2** APC Smart UPS have non-standart pinout, use APC-branded cables.
