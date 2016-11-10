@@ -139,10 +139,51 @@
 #define T_SETUP_HUMIDITY_MAX					10   // 10/16 = 0.625 ms
 
 
-uint8_t waitToBMPReady(const uint8_t _i2cAddress, const int16_t _registerAddress, const int16_t _mask, const uint16_t _timeout);
+
+/*****************************************************************************************************************************
+*
+*   Call the subroutine (based on sensor ID) for obtaining a metric of sensor 
+*
+*   Returns: 
+*     - result code of the called subroutine 
+*     - DEVICE_ERROR_CONNECT on connection error
+*     - RESULT_IS_FAIL if unknown chip ID found
+*
+*****************************************************************************************************************************/
 int8_t getBMPMetric(const uint8_t _sdaPin, const uint8_t _sclPin, uint8_t _i2cAddress, const uint8_t _overSampling, const uint8_t _filterCoef, const uint8_t _metric, char* _dst);
-int8_t getBMP280Metric(const uint8_t _sdaPin, const uint8_t _sclPin, uint8_t _i2cAddress, const uint8_t _overSampling, uint8_t _filterCoef, const uint8_t _metric, char* _dst);
-int8_t getBMP180Metric(const uint8_t _sdaPin, const uint8_t _sclPin, uint8_t _i2cAddress, uint8_t _overSampling, const uint8_t _metric, char* _dst);
+
+/*****************************************************************************************************************************
+*
+*   Waiting for a timeout to detect the BMP sensor ready state
+*
+*   Returns: 
+*     - true on sensor ready
+*     - false on timeout
+*
+**************************************************************************************************************************** */
+static uint8_t waitToBMPReady(const uint8_t _i2cAddress, const int16_t _registerAddress, const int16_t _mask, const uint16_t _timeout);
+
+/*****************************************************************************************************************************
+*
+*  Read specified metric's value of the BMP280/BME280 sensor, put it to output buffer on success. 
+*
+*   Returns: 
+*     - RESULT_IN_BUFFER on success
+*     - DEVICE_ERROR_TIMEOUT if sensor do not ready to work
+*
+*****************************************************************************************************************************/
+static int8_t getBMP280Metric(const uint8_t _sdaPin, const uint8_t _sclPin, uint8_t _i2cAddress, const uint8_t _overSampling, uint8_t _filterCoef, const uint8_t _metric, char* _dst);
+
+/*****************************************************************************************************************************
+*
+*   Read specified metric's value of the BMP180/BMP085 sensor, put it to output buffer on success. 
+*
+*   Returns: 
+*     - RESULT_IN_BUFFER on success
+*     - DEVICE_ERROR_TIMEOUT if sensor do not ready to work
+*
+*****************************************************************************************************************************/
+static int8_t getBMP180Metric(const uint8_t _sdaPin, const uint8_t _sclPin, uint8_t _i2cAddress, uint8_t _overSampling, const uint8_t _metric, char* _dst);
 
 
 #endif

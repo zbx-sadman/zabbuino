@@ -6,11 +6,18 @@ version 0.1.13 is used
 
 #include "dht.h"
 
-/* ****************************************************************************************************************************
+/*****************************************************************************************************************************
 *
-*   Read temperature or humidity from digital sensor DHT11/DHT21/DHT22/AM2301/AM2302
+*  Read specified metric's value of the AM/DHT sensor, put it to output buffer on success. 
 *
-**************************************************************************************************************************** */
+*   Returns: 
+*     - RESULT_IN_BUFFER on success
+*     - DEVICE_ERROR_CONNECT on connection error
+*     - DEVICE_ERROR_ACK_L
+*     - DEVICE_ERROR_ACK_H
+*     - DEVICE_ERROR_TIMEOUT if sensor stops answer to the request
+*
+*****************************************************************************************************************************/
 int8_t getDHTMetric(const uint8_t _pin, const uint8_t _sensorModel, const uint8_t _metric, char* _dst)
 {
   // INIT BUFFERVAR TO RECEIVE DATA
@@ -190,8 +197,6 @@ int8_t getDHTMetric(const uint8_t _pin, const uint8_t _sensorModel, const uint8_
   result = (SENS_READ_HUMD == _metric) ? humidity : temperature;
   ltoaf(result, _dst, 1);
   return RESULT_IN_BUFFER;
-//    return waitTime;
-//  return DHTLIB_OK;
 }
 
 

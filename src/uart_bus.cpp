@@ -1,9 +1,19 @@
 #include "uart_bus.h"
 
 /* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
-                                                      COMMON UART SECTION
-*/
 
+                                                      COMMON UART SECTION
+
+-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-*/
+
+/*****************************************************************************************************************************
+*
+*   Flush the SoftSerial's buffer
+*
+*   Returns: 
+*     - always true
+*
+*****************************************************************************************************************************/
 uint8_t serialRXFlush(SoftwareSerial* _swSerial, const uint8_t _slowMode)
 {
   while (true) {
@@ -16,6 +26,14 @@ uint8_t serialRXFlush(SoftwareSerial* _swSerial, const uint8_t _slowMode)
   return true;
 }
 
+/*****************************************************************************************************************************
+*
+*   Read data from the SoftSerial's buffer
+*
+*   Returns: 
+*     - The number of the readed bytes
+*
+*****************************************************************************************************************************/
 uint8_t serialRecive(SoftwareSerial* _swSerial, uint8_t* _src, const uint8_t _size, const uint32_t _readTimeout, const uint8_t _stopOn, const uint8_t _slowMode)
 {
   unsigned long startTime = millis();
@@ -39,6 +57,14 @@ uint8_t serialRecive(SoftwareSerial* _swSerial, uint8_t* _src, const uint8_t _si
   return len;
 }
 
+/*****************************************************************************************************************************
+*
+*   Write data to the SoftSerial's buffer
+*
+*   Returns: 
+*     - always true
+*
+*****************************************************************************************************************************/
 uint8_t serialSend(SoftwareSerial* _swSerial, const uint8_t* _src, const uint8_t _size, const uint8_t _slowMode)
 {
   uint8_t i; 

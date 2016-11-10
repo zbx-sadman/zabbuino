@@ -26,9 +26,35 @@ Second modification is by:
 #define MAX7219_REGISTER_SHUTDOWN                                        0x0C
 #define MAX7219_REGISTER_DISPLAYTEST                                     0x0F
 
-void writeByteTOMAX7219(const uint8_t _dataPin, const uint8_t _clockPin, const uint8_t _data);
+/*****************************************************************************************************************************
+*
+*  Send one byte to MAX7219 controller
+*
+*  Returns: 
+*    - none
+*
+*****************************************************************************************************************************/
+void writeByteToMAX7219(const uint8_t _dataPin, const uint8_t _clockPin, const uint8_t _data);
+
+/*****************************************************************************************************************************
+*
+*  Push one byte of data to MAX7219 controller
+*
+*  Returns: 
+*    - none
+*
+*****************************************************************************************************************************/
 void pushDataToMAX7219(const uint8_t _dataPin, const uint8_t _clockPin, const uint8_t _loadPin, const uint8_t _register, const uint8_t _data);
-void drawOnMAX7219Matrix8x8(const uint8_t _dataPin, const uint8_t _clockPin, const uint8_t _loadPin, const uint8_t _intensity, char* _data);
+
+/*****************************************************************************************************************************
+*
+*  Print incoming data on MAX7219 based digital led indicator or draw on led matrix.
+*
+*  Returns: 
+*    - none
+*
+*****************************************************************************************************************************/
+void printToMAX7219(const uint8_t _dataPin, const uint8_t _clockPin, const uint8_t _loadPin, const uint8_t _intensity, char* _data);
 
 
 #endif

@@ -1,8 +1,11 @@
 #include "io_regs.h"
 
-/* ****************************************************************************************************************************
+/*****************************************************************************************************************************
 *
 *   Set I/O port mode
+*
+*   Returns:
+*     - none
 *
 **************************************************************************************************************************** */
 void setPortMode(const uint8_t _port, const uint8_t _mode, const uint8_t _pullup)
@@ -23,9 +26,12 @@ void setPortMode(const uint8_t _port, const uint8_t _mode, const uint8_t _pullup
   interrupts();
 }
 
-/* ****************************************************************************************************************************
+/*****************************************************************************************************************************
 *
-*   Write to I/O port
+*   Write one byte to I/O port
+*
+*   Returns:
+*     - none
 *
 **************************************************************************************************************************** */
 void writeToPort(const uint8_t _port, const uint8_t _value)
@@ -42,9 +48,13 @@ void writeToPort(const uint8_t _port, const uint8_t _value)
 }
 
 
-/* ****************************************************************************************************************************
+/*****************************************************************************************************************************
 *
-*   Pin protection testing. Refer to zabbuino.h -> port_protect[] array
+*   Pin protection testing. Refer to defaults.h -> port_protect[] array
+*
+*   Returns:
+*     - true on succes (pin is safe)
+*     - false on fail (pin is unsafe)
 *
 **************************************************************************************************************************** */
 uint8_t isSafePin(const uint8_t _pin)
@@ -56,7 +66,8 @@ uint8_t isSafePin(const uint8_t _pin)
   result &= ~port_protect[digitalPinToPort(_pin)];
   // pinmask=B00100000, safemask=B11011100. result = B00100000 & ~B11011100 = B00100000 & B00100011 = B00100000. B00100000 > 0, pin is safe (not protected)
   // pinmask=B00100000, safemask=B11111100. result = B00100000 & ~B11111100 = B00100000 & B00000011 = B00000000. B00000000 == 0, pin is unsafe (protected)
-  if (0 == result) return false; else return true;
+  if (0 == result) { return false; }
+  return true;
 }
 
 

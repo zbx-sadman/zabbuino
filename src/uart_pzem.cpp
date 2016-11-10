@@ -15,6 +15,15 @@ uint8_t crcPZEM004(uint8_t* _data, uint8_t _size) {
     return (uint8_t)(crc & 0xFF);
 }
 
+/*****************************************************************************************************************************
+*
+*   Read values of the specified metric from the Peacefair PZEM-004 Energy Meter, put it to output buffer on success. 
+*
+*   Returns: 
+*     - RESULT_IN_BUFFER on success
+*     - DEVICE_ERROR_TIMEOUT if device stop talking
+*
+*****************************************************************************************************************************/
 int8_t getPZEM004Metric(const uint8_t _rxPin, const uint8_t _txPin, uint8_t _metric, const char* _ip, uint8_t* _dst) {
   uint8_t command, len;
   int32_t result;
@@ -42,8 +51,7 @@ int8_t getPZEM004Metric(const uint8_t _rxPin, const uint8_t _txPin, uint8_t _met
    }
 
    /*  Send to PZEM004 */
-//    Serial.println("Send commmand...");
-    
+   
     // Make packet for PZEM
     // 1-th byte in the packet - metric (command)
     _dst[0] = command; 
@@ -64,7 +72,6 @@ int8_t getPZEM004Metric(const uint8_t _rxPin, const uint8_t _txPin, uint8_t _met
     if (! serialSend(&swSerial, _dst, PZEM_PACKET_SIZE, false)) { return DEVICE_ERROR_TIMEOUT; };
 
     /*  Recieve from PZEM004 */
-    //Serial.println("Recieve answer...");
     len = serialRecive(&swSerial, _dst, PZEM_PACKET_SIZE, PZEM_DEFAULT_READ_TIMEOUT, '\0', false);
     swSerial.~SoftwareSerial();// 
 

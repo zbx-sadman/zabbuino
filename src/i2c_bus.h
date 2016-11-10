@@ -8,9 +8,11 @@
 #include "defaults.h"
 #include "service.h"
 
-/* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
+/*-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
+
                                                       COMMON I2C SECTION
-*/
+
+ -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-*/
 
 #define WireToU8(_source)  ((uint8_t) _source[0])
 #define WireToS8(_source)  ((int8_t) _source[0])
@@ -24,17 +26,72 @@
 #define WireToU24(_source)  ((uint32_t) ( ((uint32_t) _source[0] << 16) | (_source[1] << 8) | _source[2]))
 #define WireToS24(_source)  ((int32_t) ( ((uint32_t) _source[0] << 16) | (_source[1] << 8) | _source[2]))
 
+/*****************************************************************************************************************************
+*
+*   Scan I2C bus and print to ethernet client addresses of all detected devices 
+*
+*   Returns: 
+*     - RESULT_IS_PRINTED on success
+*     - RESULT_IS_FAIL of no devices found 
+*
+*****************************************************************************************************************************/
 int8_t scanI2C(EthernetClient *_ethClient);
 
+/*****************************************************************************************************************************
+*
+*   Send one byte to writeBytesToI2C() subroutine
+*
+*   Returns: 
+*     - writeBytesToI2C()'s result code
+*
+*****************************************************************************************************************************/
 uint8_t writeByteToI2C(const uint8_t _i2cAddress, const int16_t _registerAddress, const uint8_t _data);
+
+/*****************************************************************************************************************************
+*
+*   Write incoming bytes to I2C device register (if specified) or just to device
+*
+*   Returns: 
+*     - Wire.endTransmission result code
+*       0 - success
+*       1 - data too long to fit in transmit buffer
+*       2 - received NACK on transmit of address
+*       3 - received NACK on transmit of data
+*       4 - other error
+*
+*****************************************************************************************************************************/
 uint8_t writeBytesToI2C(const uint8_t _i2cAddress, const int16_t _registerAddress, const uint8_t* _data, uint8_t _len);
+
+/*****************************************************************************************************************************
+*
+*   Reads bytes from device's register (or not) over I2C.
+*
+*   Returns: 
+*     - Wire.endTransmission result code
+*       0 - success
+*       1 - data too long to fit in transmit buffer
+*       2 - received NACK on transmit of address
+*       3 - received NACK on transmit of data
+*       4 - other error
+*
+*
+*****************************************************************************************************************************/
 uint8_t readBytesFromi2C(const uint8_t _i2cAddress, const int16_t _registerAddress, uint8_t* _dst, const uint8_t _len);
 
-/* ****************************************************************************************************************************
+/*****************************************************************************************************************************
 *
-*  Ping I2C slave
+*   Ping I2C slave device
 *
-**************************************************************************************************************************** */
+*   Returns: 
+*     - Wire.endTransmission result code
+*       0 - success
+*       1 - data too long to fit in transmit buffer
+*       2 - received NACK on transmit of address
+*       3 - received NACK on transmit of data
+*       4 - other error
+*
+*
+*****************************************************************************************************************************/
 uint8_t inline isI2CDeviceReady(uint8_t _i2cAddress)
 {
   //
@@ -42,9 +99,12 @@ uint8_t inline isI2CDeviceReady(uint8_t _i2cAddress)
   return (0 == Wire.endTransmission(true));
 }
 
-/* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
-                                                                     BH1750 SECTION
-*/
+/*-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
+
+                                                                     BH1750 SECTION 
+                                                                    (Can be removed)
+
+-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-*/
 
 
 #define BH1750_I2C_FIRST_ADDRESS                                0x23
@@ -78,6 +138,15 @@ uint8_t inline isI2CDeviceReady(uint8_t _i2cAddress)
 #define BH1750_ONETIME_LOWRES                                   0x23
 
 
+/*****************************************************************************************************************************
+*
+*   Read specified metric's value of the BH1750 sensor, put it to output buffer on success. 
+*
+*   Returns: 
+*     - RESULT_IN_BUFFER on success
+*     - DEVICE_ERROR_CONNECT on connection error
+*
+*****************************************************************************************************************************/
 int8_t getBH1750Metric(const uint8_t _sdaPin, const uint8_t _sclPin, uint8_t _i2cAddress, uint8_t _mode, const uint8_t _metric, char* _dst);
 
 #endif

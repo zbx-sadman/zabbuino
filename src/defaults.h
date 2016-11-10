@@ -831,7 +831,13 @@ ADC channels
 // On Leonardo, Micro and other ATmega32u4 boards wait to Serial Monitor ready for 5sec 
 #define SERIAL_WAIT_TIMEOUT            	                        5000UL  // 5 sec
 
-//#define INT32_POSITIVE_MAX                                      2147483647
+// Length of netconfig_t's CRC field
+#define CONFIG_CRC_LEN                                          0x01
+// PoConfig will be stored or loaded on ...
+#define CONFIG_STORE_PTR_ADDRESS                                0x01
+#define CONFIG_STORE_DEFAULT_START_ADDRESS                      0x02
+// one byte used to pointer to EEPROM's start address from which config will saved, max stored pointer value is 255
+#define LAST_EEPROM_CELL_ADDRESS                                0xFF 
 
 /* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
                                                          PROGRAMM STRUCTURES SECTION 
@@ -839,6 +845,8 @@ ADC channels
 // Note: netconfig_t size must be no more ___uint8_t___ bytes, because readConfig()'s read cycle use uint8_t counter. 
 // Change the index's variable type if bigger size need
 typedef struct {
+  uint8_t CRC;                                    // 1 byte, CRC stores first, due it's EEPROM cell rewrites everytime on config saving if it changed. 
+                                                  //         When the cell was broken, we just shift start config store address to next cell.
   uint8_t useDHCP;         	 		  // 1 byte
   uint8_t macAddress[6];                          // 6 byte 
   IPAddress ipAddress;     			  // 6 byte (uint8_t[])
@@ -874,14 +882,20 @@ typedef union {                                   // 4 byte
                                                          INLINE AND "DEFINE" FUNCTIONS SECTION 
 */
 
+// Use #define instead inline directive may be wrong, but save progspace
+
+
 // HEX char to number
 #define htod(_hex) ( (_hex >= 'a' && _hex <= 'f') ? (10 + _hex - 'a') : ( (_hex >= '0' && _hex <= '9') ? (_hex - '0') : 0)) 
+//inline uint8_t htod(char _hex) { return (_hex >= 'a' && _hex <= 'f') ? (10 + _hex - 'a') : ( (_hex >= '0' && _hex <= '9') ? (_hex - '0') : 0); } 
 
 // Convert dec number to hex char
 #define dtoh(_dec) ( (_dec > 9) ? ('A' - 10 + _dec) : ('0' + _dec) )
+//inline char dtoh(uint8_t _dec) { return (_dec > 9) ? ('A' - 10 + _dec) : ('0' + _dec); } 
 
 // if _source have hex prefix - return true
-#define haveHexPrefix(_source) ( (_source[0] == '0' && _source[1] == 'x') )
+#define haveHexPrefix(_src) ( (_src[0] == '0' && _src[1] == 'x') )
+//inline uint8_t haveHexPrefix(char *_src) { return (_src[0] == '0' && _src[1] == 'x')); } 
 
 #define arraySize(_array) sizeof(_array) / sizeof(*(_array))
 

@@ -3,9 +3,11 @@
 
 #include "ow_bus.h"
 
-/* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
-                                                                     DS18x20 SECTION
-*/
+/*-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
+
+                                                                   DS18x20 SECTION
+
+ -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-*/
 
 // Model IDs
 #define DS18S20_ID                                              0x10  // also DS1820
@@ -42,16 +44,30 @@
 #define DS18X20_BYTE_SCRATCHPAD_CRC                             0x08
 
 
-/* ****************************************************************************************************************************
+/*****************************************************************************************************************************
 *
-*   Read temperature from digital sensor Dallas DS18x20 family
+*  Read specified metric's value of the digital sensor of Dallas DS18x20 family, put it to output buffer on success. 
 *
-*   Subroutine is tested with DS18B20 only. 
-*   Probably you can meet problems with the correct calculation of temperature due to incorrect 'tRaw' adjustment 
+*  Note: subroutine is tested with DS18B20 only. 
+*        probably you can meet problems with the correct calculation of temperature due to incorrect 'tRaw' adjustment 
 *
-**************************************************************************************************************************** */
+*   Returns: 
+*     - RESULT_IN_BUFFER on success
+*     - DEVICE_ERROR_CONNECT on connection error
+*     - DEVICE_ERROR_CHECKSUM on detect data corruption
+*
+*****************************************************************************************************************************/
 int8_t getDS18X20Metric(const uint8_t _pin, uint8_t _resolution, char* _id, char* _outBuffer);
 
-uint8_t getScratchPadFromDS18X20(OneWire* _owDevice, const uint8_t* _addr, uint8_t* _scratchPad);
+/*****************************************************************************************************************************
+*
+*  Read DS18x20's scratchpad
+*
+*   Returns: 
+*     - true on success
+*     - false on fail
+*
+*****************************************************************************************************************************/
+static uint8_t getScratchPadFromDS18X20(OneWire* _owDevice, const uint8_t* _addr, uint8_t* _scratchPad);
 
 #endif

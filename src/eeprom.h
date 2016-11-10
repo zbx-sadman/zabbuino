@@ -8,7 +8,27 @@
 #include "../zabbuino.h"
 #include "service.h"
 
-uint8_t saveConfigToEEPROM(const netconfig_t* _configStruct);
+/*****************************************************************************************************************************
+*
+*   Save/Update config to EEPROM
+*   On detect EEPROM cell corruption truing to find a new storage area 
+*
+*   Returns: 
+*     - true on success
+*     - false on fail
+*
+*****************************************************************************************************************************/
+uint8_t saveConfigToEEPROM(netconfig_t* _configStruct);
+
+/*****************************************************************************************************************************
+*
+*   Read config from EEPROM
+*
+*   Returns: 
+*     - true on success
+*     - false on fail
+*
+*****************************************************************************************************************************/
 uint8_t loadConfigFromEEPROM(netconfig_t* _configStruct);
 
 #endif

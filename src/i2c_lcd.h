@@ -85,9 +85,46 @@
 #define LCD_1LINE                                               0x00
 
 
+/*****************************************************************************************************************************
+*
+*  Send data to I2C extender
+*
+*   Returns: 
+*     - none
+*
+*****************************************************************************************************************************/
 void sendToLCD(const uint8_t _i2cAddress, const uint8_t _data, const uint8_t _mode);
+
+
+/*****************************************************************************************************************************
+*
+*  Write four bits to I2C extender (if HD44780 controller is used in 4-bit mode)
+*
+*   Returns: 
+*     - none
+*
+*****************************************************************************************************************************/
 void write4bitsToLCD(const uint8_t _i2cAddress, uint8_t _data);
+
+/*****************************************************************************************************************************
+*
+*  Make pulse action for HD44780
+*
+*   Returns: 
+*     - none
+*
+*****************************************************************************************************************************/
 void pulseEnableOnLCD(const uint8_t _i2cAddress, const uint8_t _data);
+
+/*****************************************************************************************************************************
+*
+*  Interprets and print incoming data to LCD which used HD44780 controller
+*
+*   Returns: 
+*     - RESULT_IS_OK on success
+*     - DEVICE_ERROR_CONNECT on connection error
+*
+*****************************************************************************************************************************/
 int8_t printToPCF8574LCD(const uint8_t _sdaPin, const uint8_t _sclPin, uint8_t _i2cAddress, uint8_t _lcdBacklight, const uint16_t _lcdType, const char *_src);
 
 #endif

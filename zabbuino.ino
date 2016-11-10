@@ -11,6 +11,11 @@
                                                                  GLOBAL VARIABLES SECTION
 */
 
+/*
+ketch uses 22,866 bytes (70%) of program storage space. Maximum is 32,256 bytes.
+Global variables use 999 bytes (48%) of dynamic memory, leaving 1,049 bytes for local variables. Maximum is 2,048 bytes.
+
+*/
 netconfig_t* netConfig;
 
 #if defined(FEATURE_EXTERNAL_INTERRUPT_ENABLE) || defined(FEATURE_INCREMENTAL_ENCODER_ENABLE)
@@ -123,14 +128,16 @@ So... no debug with Serial Monitor at this time
 /* -=-=-=-=-=-=-=-=-=-=-=-
     CONFIGURATION LOAD BLOCK
    -=-=-=-=-=-=-=-=-=-=-=- */
-#ifdef FEATURE_DEBUG_TO_SERIAL
-  SerialPrintln_P(PSTR("Load configuration from EEPROM"));
-#endif
   // Try to load configuration from EEPROM
   if (false == loadConfigFromEEPROM(netConfig)) {
+#ifdef FEATURE_DEBUG_TO_SERIAL
+     SerialPrintln_P(PSTR("Load error"));
+#endif
      // bad CRC detected, use default values for this run
      setConfigDefaults(netConfig);
-     saveConfigToEEPROM(netConfig);
+     if (!saveConfigToEEPROM(netConfig)) {
+      // what to do with saving error?     
+     }
   }
 #else // FEATURE_EEPROM_ENABLE
 #ifdef FEATURE_DEBUG_TO_SERIAL
@@ -175,6 +182,11 @@ So... no debug with Serial Monitor at this time
      // Second netConfig->ipAddress used as dns-address
      Ethernet.begin(netConfig->macAddress, netConfig->ipAddress, netConfig->ipAddress, netConfig->ipGateway, netConfig->ipNetmask);
   }
+  /*
+  
+Sketch uses 20,398 bytes (63%) of program storage space. Maximum is 32,256 bytes.
+Global variables use 953 bytes (46%) of dynamic memory, leaving 1,095 bytes for local variables. Maximum is 2,048 bytes.
+  */
   
 #ifdef FEATURE_DEBUG_TO_SERIAL
   SerialPrintln_P(PSTR("Serving on:"));
@@ -568,7 +580,7 @@ int16_t executeCommand(int16_t* _argOffset)
   uint8_t accessGranted, i, i2CAddress, i2COption, i2CValue[4];
   int16_t i2CRegister, cmdIdx = -1;
   // duration option in the tone[] command is ulong
-  uint32_t arg[ARGS_MAX];
+  uint32_t argv[ARGS_MAX];
   //int64_t value = 0;  // Zabbix use 64-bit numbers, but we can use only -uint32_t...+uint32_t range. Error can be occurs on ltoa() call with value > long_int_max 
   long_ulong_t value;
 
@@ -593,28 +605,28 @@ int16_t executeCommand(int16_t* _argOffset)
   // batch convert args to number values
   while (i) {
      i--;
-     arg[i] = ('\0' == cBuffer[_argOffset[i]]) ? 0 : strtoul(&cBuffer[_argOffset[i]], NULL,0);
+     argv[i] = ('\0' == cBuffer[_argOffset[i]]) ? 0 : strtoul(&cBuffer[_argOffset[i]], NULL,0);
 
 #ifdef FEATURE_DEBUG_TO_SERIAL
-     SerialPrint_P(PSTR("arg[")); Serial.print(i); SerialPrint_P(PSTR("] => \"")); 
+     SerialPrint_P(PSTR("argv[")); Serial.print(i); SerialPrint_P(PSTR("] => \"")); 
      if ('\0' == cBuffer[_argOffset[i]]) {
         SerialPrint_P(PSTR("<null>")); 
      } else {
         Serial.print(&cBuffer[_argOffset[i]]); 
      }
-     SerialPrint_P(PSTR("\" => ")); Serial.print(arg[i]);
+     SerialPrint_P(PSTR("\" => ")); Serial.print(argv[i]);
      SerialPrint_P(PSTR(", offset =")); Serial.println(_argOffset[i]);
 #endif 
   }
    
   // Check rights for password protected commands
-  accessGranted = (!netConfig->useProtection || arg[0] == netConfig->password); 
+  accessGranted = (!netConfig->useProtection || argv[0] == netConfig->password); 
 
 
-  i2CAddress = (uint8_t) arg[2];
-  i2CRegister = (('\0' != cBuffer[_argOffset[3]]) ? (int16_t) arg[3] : I2C_NO_REG_SPECIFIED);
+  i2CAddress = (uint8_t) argv[2];
+  i2CRegister = (('\0' != cBuffer[_argOffset[3]]) ? (int16_t) argv[3] : I2C_NO_REG_SPECIFIED);
   // i2COption can be length, bitNumber or data
-  i2COption = (uint8_t) arg[4];
+  i2COption = (uint8_t) argv[4];
 
  
    switch (cmdIdx) {
@@ -670,9 +682,9 @@ int16_t executeCommand(int16_t* _argOffset)
       /*/
       /=/  analogWrite[pin, value]
       /*/
-      if (! isSafePin(arg[0])) { break; }
+      if (! isSafePin(argv[0])) { break; }
 
-      analogWrite(arg[0], arg[1]);
+      analogWrite(argv[0], argv[1]);
       result = RESULT_IS_OK;
       break;
       
@@ -683,16 +695,16 @@ int16_t executeCommand(int16_t* _argOffset)
 #ifdef FEATURE_AREF_ENABLE
       // change source of the reference voltage if its given
       if ('\0' != cBuffer[_argOffset[1]]) {
-         analogReference(arg[1]);
+         analogReference(argv[1]);
          delayMicroseconds(2000);
       }
 #endif
  
-      if (! isSafePin(arg[0])) { break; }
+      if (! isSafePin(argv[0])) { break; }
       
-      value.longvar = (int64_t) analogRead(arg[0]);
+      value.longvar = (int64_t) analogRead(argv[0]);
       if ('\0' != cBuffer[_argOffset[2]] && '\0' != cBuffer[_argOffset[3]]) {
-         value.ulongvar = (uint32_t) map(result, 0, 1023, arg[2], arg[3]);
+         value.ulongvar = (uint32_t) map(result, 0, 1023, argv[2], argv[3]);
       }
       result = RESULT_IN_ULONGVAR;
 
@@ -703,7 +715,7 @@ int16_t executeCommand(int16_t* _argOffset)
       /*/
       /=/  analogReference[source]
       /*/
-      analogReference(arg[0]);
+      analogReference(argv[0]);
       result = RESULT_IS_OK;
       break;
 #endif
@@ -713,7 +725,7 @@ int16_t executeCommand(int16_t* _argOffset)
       /*/
       /=/  delay[time]
       /*/
-      delay(arg[0]);
+      delay(argv[0]);
       result = RESULT_IS_OK;
       break;
       
@@ -723,19 +735,19 @@ int16_t executeCommand(int16_t* _argOffset)
       /=/  digitalWrite[pin, value, testPin, testValue]
       /*/
       // if testPin defined - check both pin to safety
-      result = ('\0' == cBuffer[_argOffset[2]]) ? isSafePin(arg[0]) : (isSafePin(arg[0]) && isSafePin(arg[2]));
+      result = ('\0' == cBuffer[_argOffset[2]]) ? isSafePin(argv[0]) : (isSafePin(argv[0]) && isSafePin(argv[2]));
       if (!result) { break; }
 
       // turn on or turn off logic on pin
-      digitalWrite(arg[0], arg[1]);
+      digitalWrite(argv[0], argv[1]);
       result = RESULT_IS_OK; 
 
       if ('\0' == cBuffer[_argOffset[2]]) { break; }
       // when testPin defined - switch testPin mode to input, wait a lot, and check testPin state.
       // if readed value not equal testValue - return FAIL
-      pinMode(arg[2], INPUT_PULLUP);
+      pinMode(argv[2], INPUT_PULLUP);
       delay(10);
-      if (digitalRead(arg[2]) != arg[3]){ result = RESULT_IS_FAIL; }
+      if (digitalRead(argv[2]) != argv[3]){ result = RESULT_IS_FAIL; }
 
       break;
 
@@ -743,7 +755,7 @@ int16_t executeCommand(int16_t* _argOffset)
       /*/
       /=/  digitalRead[pin]
       /*/
-      value.ulongvar = (int64_t) digitalRead(arg[0]);
+      value.ulongvar = (int64_t) digitalRead(argv[0]);
       result = RESULT_IN_ULONGVAR;
       break;
 
@@ -753,20 +765,20 @@ int16_t executeCommand(int16_t* _argOffset)
       /*/
       /=/  tone[pin, frequency, duration]
       /*/
-      if (! isSafePin(arg[0])) { break; }
+      if (! isSafePin(argv[0])) { break; }
 
       result = RESULT_IS_OK;
-      if ('\0' != cBuffer[_argOffset[2]]) { tone(arg[0], arg[1], arg[2]); break;} 
-      tone(arg[0], arg[1]);
+      if ('\0' != cBuffer[_argOffset[2]]) { tone(argv[0], argv[1], argv[2]); break;} 
+      tone(argv[0], argv[1]);
       break;
   
     case CMD_ARDUINO_NOTONE:
       /*/
       /*/
-      if (! isSafePin(arg[0])) { break; }
+      if (! isSafePin(argv[0])) { break; }
 
       result = RESULT_IS_OK;
-      noTone(arg[0]);
+      noTone(argv[0]);
       break;
   
 #endif
@@ -776,7 +788,7 @@ int16_t executeCommand(int16_t* _argOffset)
       /*/
       /=/  randomSeed[value]
       /*/
-      randomSeed((0 == arg[0]) ? (int32_t) millis() : arg[0]);
+      randomSeed((0 == argv[0]) ? (int32_t) millis() : argv[0]);
       result = RESULT_IS_OK;
       break;
    
@@ -785,7 +797,7 @@ int16_t executeCommand(int16_t* _argOffset)
       /=/  random[min, max]
       /*/
       //  !! random return long
-      value.ulongvar = (int64_t) ('\0' == cBuffer[_argOffset[1]]) ? (int32_t) random(arg[0]) : (int32_t) random(arg[0], arg[1]);
+      value.ulongvar = (int64_t) ('\0' == cBuffer[_argOffset[1]]) ? (int32_t) random(argv[0]) : (int32_t) random(argv[0], argv[1]);
       result = RESULT_IN_ULONGVAR;
 
       break;
@@ -821,7 +833,7 @@ int16_t executeCommand(int16_t* _argOffset)
       if ('\0' == cBuffer[_argOffset[1]]) { break; }
 
       // take new password from argument #2
-      netConfig->password = arg[1];
+      netConfig->password = argv[1];
       saveConfigToEEPROM(netConfig);
       result = RESULT_IS_OK;
       break;
@@ -833,7 +845,7 @@ int16_t executeCommand(int16_t* _argOffset)
       if (!accessGranted) { break; }
       if ('\0' == cBuffer[_argOffset[1]]) { break; }
 
-      netConfig->useProtection = (1 == arg[1]) ? true : false;
+      netConfig->useProtection = (1 == argv[1]) ? true : false;
       saveConfigToEEPROM(netConfig);
       result = RESULT_IS_OK;
       break;
@@ -846,8 +858,8 @@ int16_t executeCommand(int16_t* _argOffset)
       uint8_t ip[4], mac[6], success;
       success = true;
       // useDHCP flag coming from first argument and must be numeric (boolean) - 1 or 0, 
-      // arg[0] data contain in cBuffer[_argOffset[1]] placed from _argOffset[0]
-      netConfig->useDHCP = (uint8_t) arg[1];
+      // argv[0] data contain in cBuffer[_argOffset[1]] placed from _argOffset[0]
+      netConfig->useDHCP = (uint8_t) argv[1];
       // ip, netmask and gateway have one structure - 4 byte
       // take 6 bytes from second argument of command and use as new MAC-address
       // if convertation is failed (return false) succes variable must be falsed too via logic & operator
@@ -868,8 +880,9 @@ int16_t executeCommand(int16_t* _argOffset)
  
       if (!success) { break; }
       // Save config to EEProm if success
-      saveConfigToEEPROM(netConfig);
-      result = RESULT_IS_OK;
+      if (saveConfigToEEPROM(netConfig)) {
+         result = RESULT_IS_OK;           
+      }
       break;
 #endif // FEATURE_EEPROM_ENABLE
 
@@ -877,9 +890,9 @@ int16_t executeCommand(int16_t* _argOffset)
       /*/
       /=/  portWrite[port, value]
       /*/
-      if (PORTS_NUM >= (arg[0] - 96)) { break; }
+      if (PORTS_NUM >= (argv[0] - 96)) { break; }
 
-      writeToPort((byte) arg[0] - 96, arg[1]);
+      writeToPort((byte) argv[0] - 96, argv[1]);
       result = RESULT_IS_OK;
 
       break;
@@ -890,11 +903,11 @@ int16_t executeCommand(int16_t* _argOffset)
       /=/  shiftOut[dataPin, clockPin, latchPin, bitOrder, value]
       /*/
       // i used as latchPinDefined
-      i = ('\0' != arg[2]) && isSafePin(arg[2]);   // << корректный способ проверки или нет?  
-      if (isSafePin(arg[0]) &&  isSafePin(arg[1])) {
-         if (i) { digitalWrite(arg[2], LOW); }
-         shiftOutAdvanced(arg[0], arg[1], arg[3], &cBuffer[_argOffset[4]]);
-         if (i) { digitalWrite(arg[2], HIGH);}
+      i = ('\0' != argv[2]) && isSafePin(argv[2]);   // << корректный способ проверки или нет?  
+      if (isSafePin(argv[0]) &&  isSafePin(argv[1])) {
+         if (i) { digitalWrite(argv[2], LOW); }
+         shiftOutAdvanced(argv[0], argv[1], argv[3], &cBuffer[_argOffset[4]]);
+         if (i) { digitalWrite(argv[2], HIGH);}
          result = RESULT_IS_OK;
       }
       break;
@@ -931,7 +944,7 @@ int16_t executeCommand(int16_t* _argOffset)
       /=/  sys.mcu.id
       /*/
       // Read bytes 0x0E..0x17 from boot signature <= http://www.avrfreaks.net/forum/unique-id-atmega328pb
-      getBootSignatureBytes(cBuffer, 0x0E, 10);
+      getBootSignatureBytes(cBuffer, 0x0E, 10, 1);
       result = RESULT_IN_BUFFER;
       break;
 
@@ -939,8 +952,8 @@ int16_t executeCommand(int16_t* _argOffset)
       /*/
       /=/  sys.mcu.sign
       /*/
-      // Read bytes 0x00..0x03 from boot signature <= http://www.avrfreaks.net/forum/device-signatures
-      getBootSignatureBytes(cBuffer, 0x00, 3);
+      // Read bytes 0x00, 0x02, 0x04 from boot signature <= http://www.avrfreaks.net/forum/device-signatures
+      getBootSignatureBytes(cBuffer, 0x00, 3, 2);
       result = RESULT_IN_BUFFER;
       break;
 
@@ -956,7 +969,7 @@ int16_t executeCommand(int16_t* _argOffset)
       /*/
       /=/  sys.cmd.count
       /*/
-      if (arg[0]) { sysMetrics[IDX_METRIC_SYS_CMD_COUNT] = 0; } 
+      if (argv[0]) { sysMetrics[IDX_METRIC_SYS_CMD_COUNT] = 0; } 
       value.ulongvar = (uint32_t) sysMetrics[IDX_METRIC_SYS_CMD_COUNT];
       result = RESULT_IN_ULONGVAR;
       break;
@@ -1040,8 +1053,8 @@ int16_t executeCommand(int16_t* _argOffset)
       /*/
       /=/  extInt.count[intPin, mode]
       /*/
-      if (! isSafePin(arg[0])) { break; }
-      result = manageExtInt(&value.ulongvar, arg[0], arg[1]);
+      if (! isSafePin(argv[0])) { break; }
+      result = manageExtInt(&value.ulongvar, argv[0], argv[1]);
       break;
       
 #endif // FEATURE_EXTERNAL_INTERRUPT_ENABLE
@@ -1051,9 +1064,9 @@ int16_t executeCommand(int16_t* _argOffset)
       /*/
       /=/  incEnc.count[terminalAPin, terminalBPin, initialValue]
       /*/
-      if (! isSafePin(arg[0]) || ! isSafePin(arg[1])) { break; }
-      // arg[3] (intNumber) currently not used
-      result = manageIncEnc(&value.longvar, arg[0], arg[1], arg[2]);
+      if (! isSafePin(argv[0]) || ! isSafePin(argv[1])) { break; }
+      // argv[3] (intNumber) currently not used
+      result = manageIncEnc(&value.longvar, argv[0], argv[1], argv[2]);
       break;
 #endif // FEATURE_INCREMENTAL_ENCODER_ENABLE
      
@@ -1064,8 +1077,8 @@ int16_t executeCommand(int16_t* _argOffset)
       /*/
       /=/  OW.scan[pin]
       /*/
-      if (! isSafePin(arg[0])) { break; }
-      result = scanOneWire(arg[0], &ethClient);
+      if (! isSafePin(argv[0])) { break; }
+      result = scanOneWire(argv[0], &ethClient);
       break;
 #endif // FEATURE_ONEWIRE_ENABLE
 
@@ -1075,7 +1088,7 @@ int16_t executeCommand(int16_t* _argOffset)
       /*/
       /=/  I2C.scan[sdaPin, sclPin]
       /*/
-      if (! isSafePin(arg[0]) || ! isSafePin(arg[1])) { break;}
+      if (! isSafePin(argv[0]) || ! isSafePin(argv[1])) { break;}
       result = scanI2C(&ethClient);
       break;
 
@@ -1083,16 +1096,16 @@ int16_t executeCommand(int16_t* _argOffset)
       /*/
       /=/ i2c.write(sdaPin, sclPin, i2cAddress, register, data, numBytes)
       /*/
-      if (!isSafePin(arg[0]) || !isSafePin(arg[1])) { break; }
+      if (!isSafePin(argv[0]) || !isSafePin(argv[1])) { break; }
       // i2COption used as 'data'
-      arg[5] = constrain(arg[5], 1, 4);
-      i = arg[5];
+      argv[5] = constrain(argv[5], 1, 4);
+      i = argv[5];
       while(i){
          i--;
-         i2CValue[i] = arg[4] & 0xFF;
-         arg[4] = arg[4] >> 8;
+         i2CValue[i] = argv[4] & 0xFF;
+         argv[4] = argv[4] >> 8;
       }
-      result = writeBytesToI2C(i2CAddress, i2CRegister, i2CValue, arg[5]);
+      result = writeBytesToI2C(i2CAddress, i2CRegister, i2CValue, argv[5]);
       result = (0 == result) ? RESULT_IS_OK : RESULT_IS_FAIL;
       break;
 
@@ -1100,25 +1113,25 @@ int16_t executeCommand(int16_t* _argOffset)
       /*/
       /=/ i2c.read(sdaPin, sclPin, i2cAddress, register, length, doDoubleReading)
       /*/
-      if (!isSafePin(arg[0]) || !isSafePin(arg[1])) { break; }
+      if (!isSafePin(argv[0]) || !isSafePin(argv[1])) { break; }
 
       // i2COption used as 'length' - how much bytes must be read: 0..4 byte
       i2COption = constrain(i2COption, 1, 4);
       // numberOfReadings parameter is not specified. Do once reading only
       // Otherwise make ahead reading for re-run sensor conversion to flush old data
       if ('\0' == cBuffer[_argOffset[5]]) { 
-          arg[5] = 1; 
+          argv[5] = 1; 
       } else {
           // Just discard result
             readBytesFromi2C(i2CAddress, i2CRegister, i2CValue, i2COption);
       }
       // One reading at least must be done
-      if (1 > arg[5]){ arg[5] = 1; }
+      if (1 > argv[5]){ argv[5] = 1; }
          
       uint8_t readNumber;
       int32_t accResult, tmpResult;
       
-      readNumber = arg[5]; accResult = 0;
+      readNumber = argv[5]; accResult = 0;
 
       // Will be RESULT_IS_FAIL if readBytesFromi2C() not returns 0
       result = RESULT_IS_OK;
@@ -1136,7 +1149,7 @@ int16_t executeCommand(int16_t* _argOffset)
       }
  
       if (RESULT_IS_FAIL != result) {
-         value.longvar = (int32_t) (accResult / arg[5]);
+         value.longvar = (int32_t) (accResult / argv[5]);
          result = RESULT_IN_LONGVAR;
       }
       break;
@@ -1145,7 +1158,7 @@ int16_t executeCommand(int16_t* _argOffset)
       /*/
       /=/  i2c.bitWrite(sdaPin, sclPin, i2cAddress, register, bitNumber, value)
       /*/
-      if (!isSafePin(arg[0]) || !isSafePin(arg[1])) { break; }
+      if (!isSafePin(argv[0]) || !isSafePin(argv[1])) { break; }
 
       // i2COption used as 'bit number'
       if (0 > i2COption || 7 < i2COption){
@@ -1155,7 +1168,7 @@ int16_t executeCommand(int16_t* _argOffset)
       // Use device's register if specified, read 1 byte
       result = readBytesFromi2C(i2CAddress, i2CRegister, i2CValue, 1);
       // "!!" convert value 0100 to 1.
-      bitWrite (i2CValue[0], i2COption, (!!arg[5]));
+      bitWrite (i2CValue[0], i2COption, (!!argv[5]));
       // Use device's register if specified, write 1 byte, returns Wire lib state
       result = writeByteToI2C(i2CAddress, i2CRegister, i2CValue[0]);
       result = (0 == result) ? RESULT_IS_OK : RESULT_IS_FAIL;
@@ -1165,7 +1178,7 @@ int16_t executeCommand(int16_t* _argOffset)
       /*/
       /=/  i2c.bitRead(sdaPin, sclPin, i2cAddress, register, bit)
       /*/
-      if (!isSafePin(arg[0]) || !isSafePin(arg[1])) { break; }
+      if (!isSafePin(argv[0]) || !isSafePin(argv[1])) { break; }
       // i2COption used as 'bit number'
       if (0 > i2COption || 7 < i2COption) { break; }
       // Use device's register if specified, read 1 byte
@@ -1183,8 +1196,8 @@ int16_t executeCommand(int16_t* _argOffset)
       /*/
       /=/  DS18x20.temperature[pin, resolution, id]
       /*/
-      if (! isSafePin(arg[0])) { break; }
-      result = getDS18X20Metric(arg[0], arg[1], &cBuffer[_argOffset[2]], cBuffer);
+      if (! isSafePin(argv[0])) { break; }
+      result = getDS18X20Metric(argv[0], argv[1], &cBuffer[_argOffset[2]], cBuffer);
       break;
 #endif // FEATURE_DS18X20_ENABLE
 
@@ -1193,16 +1206,16 @@ int16_t executeCommand(int16_t* _argOffset)
       /*/
       /=/  DHT.humidity[pin, model]
       /*/
-      if (! isSafePin(arg[0])) { break; }
-      result = getDHTMetric(arg[0], arg[1], SENS_READ_HUMD, cBuffer);
+      if (! isSafePin(argv[0])) { break; }
+      result = getDHTMetric(argv[0], argv[1], SENS_READ_HUMD, cBuffer);
       break;
 
     case CMD_DHT_TEMPERATURE:
       /*/
       /=/  DHT.temperature[pin, model]
       /*/
-      if (! isSafePin(arg[0])) { break; }
-      result = getDHTMetric(arg[0], arg[1], SENS_READ_TEMP, cBuffer);
+      if (! isSafePin(argv[0])) { break; }
+      result = getDHTMetric(argv[0], argv[1], SENS_READ_TEMP, cBuffer);
       break;
    
 #endif // FEATURE_DHT_ENABLE
@@ -1213,18 +1226,18 @@ int16_t executeCommand(int16_t* _argOffset)
       /*/
       /=/  BMP.Pressure[sdaPin, sclPin, i2cAddress, overSampling, filterCoef]
       /*/
-      if (!isSafePin(arg[0]) || !isSafePin(arg[1])) { break; }
-      // (uint8_t) arg[2] is i2c address, 7 bytes size
-      result = getBMPMetric(arg[0], arg[1], i2CAddress, arg[3], arg[4], SENS_READ_PRSS, cBuffer);
+      if (!isSafePin(argv[0]) || !isSafePin(argv[1])) { break; }
+      // (uint8_t) argv[2] is i2c address, 7 bytes size
+      result = getBMPMetric(argv[0], argv[1], i2CAddress, argv[3], argv[4], SENS_READ_PRSS, cBuffer);
       break;
 
     case CMD_BMP_TEMPERATURE:
       /*/
       /=/ BMP.Temperature[sdaPin, sclPin, i2cAddress, overSampling]
       /*/
-      if (!isSafePin(arg[0]) || !isSafePin(arg[1])) { break; }
-      // (uint8_t) arg[2] is i2c address, 7 bytes size
-      result = getBMPMetric(arg[0], arg[1], i2CAddress, arg[3], arg[4], SENS_READ_TEMP, cBuffer);
+      if (!isSafePin(argv[0]) || !isSafePin(argv[1])) { break; }
+      // (uint8_t) argv[2] is i2c address, 7 bytes size
+      result = getBMPMetric(argv[0], argv[1], i2CAddress, argv[3], argv[4], SENS_READ_TEMP, cBuffer);
       break;
 
       
@@ -1233,9 +1246,9 @@ int16_t executeCommand(int16_t* _argOffset)
       /*/
       /=/  BME.Humidity[sdaPin, sclPin, i2cAddress, overSampling, filterCoef]
       /*/
-      if (!isSafePin(arg[0]) || !isSafePin(arg[1])) { break; }
-      // (uint8_t) arg[2] is i2c address, 7 bytes size
-      result = getBMPMetric(arg[0], arg[1], i2CAddress, arg[3], arg[4], SENS_READ_HUMD, cBuffer);
+      if (!isSafePin(argv[0]) || !isSafePin(argv[1])) { break; }
+      // (uint8_t) argv[2] is i2c address, 7 bytes size
+      result = getBMPMetric(argv[0], argv[1], i2CAddress, argv[3], argv[4], SENS_READ_HUMD, cBuffer);
       break;      
 #endif // SUPPORT_BME280_INCLUDE 
 
@@ -1247,9 +1260,9 @@ int16_t executeCommand(int16_t* _argOffset)
       /*/
       /=/  BH1750.light[sdaPin, sclPin, i2cAddress, mode]
       /*/
-      if (!isSafePin(arg[0]) || !isSafePin(arg[1])) { break; }
-      // (uint8_t) arg[2] is i2c address, 7 bytes size
-      result = getBH1750Metric(arg[0], arg[1], i2CAddress, arg[3], SENS_READ_LUX, cBuffer);
+      if (!isSafePin(argv[0]) || !isSafePin(argv[1])) { break; }
+      // (uint8_t) argv[2] is i2c address, 7 bytes size
+      result = getBH1750Metric(argv[0], argv[1], i2CAddress, argv[3], SENS_READ_LUX, cBuffer);
       break;
 #endif // FEATURE_BH1750_ENABLE
 
@@ -1258,8 +1271,8 @@ int16_t executeCommand(int16_t* _argOffset)
       /*/
       /=/  MAX7219.write[dataPin, clockPin, loadPin, intensity, value]
       /*/
-      if (!isSafePin(arg[0]) || !isSafePin(arg[1]) || !isSafePin(arg[2])) { break; }
-      drawOnMAX7219Matrix8x8(arg[0], arg[1], arg[2], arg[3], &cBuffer[_argOffset[4]]);
+      if (!isSafePin(argv[0]) || !isSafePin(argv[1]) || !isSafePin(argv[2])) { break; }
+      drawOnMAX7219Matrix8x8(argv[0], argv[1], argv[2], argv[3], &cBuffer[_argOffset[4]]);
       result = RESULT_IS_OK;
       break;
 #endif // FEATURE_MAX7219_ENABLE
@@ -1269,8 +1282,8 @@ int16_t executeCommand(int16_t* _argOffset)
       /*/
       /=/  PCF8574.LCDPrint[sdaPin, sclPin, i2cAddress, lcdBacklight, lcdType, data]
       /*/
-      if (!isSafePin(arg[0]) || !isSafePin(arg[1])) { break; }
-      result = printToPCF8574LCD(arg[0], arg[1], i2CAddress, arg[3], arg[4], &cBuffer[_argOffset[5]]);
+      if (!isSafePin(argv[0]) || !isSafePin(argv[1])) { break; }
+      result = printToPCF8574LCD(argv[0], argv[1], i2CAddress, argv[3], argv[4], &cBuffer[_argOffset[5]]);
       break;
 
 #endif // FEATURE_PCF8574_LCD_ENABLE
@@ -1281,18 +1294,18 @@ int16_t executeCommand(int16_t* _argOffset)
       /*/
       /=/  SHT2X.Humidity[sdaPin, sclPin, i2cAddress]
       /*/
-      if (!isSafePin(arg[0]) || !isSafePin(arg[1])) { break; }
-      // (uint8_t) arg[2] is i2c address, 7 bytes size
-      result = getSHT2XMetric(arg[0], arg[1], i2CAddress, SENS_READ_HUMD, cBuffer);
+      if (!isSafePin(argv[0]) || !isSafePin(argv[1])) { break; }
+      // (uint8_t) argv[2] is i2c address, 7 bytes size
+      result = getSHT2XMetric(argv[0], argv[1], i2CAddress, SENS_READ_HUMD, cBuffer);
       break;
 
     case CMD_SHT2X_TEMPERATURE:
       /*/
       /=/  SHT2X.Temperature[sdaPin, sclPin, i2cAddress]
       /*/
-      if (!isSafePin(arg[0]) || !isSafePin(arg[1])) { break; }
-      // (uint8_t) arg[2] is i2c address, 7 bytes size
-      result = getSHT2XMetric(arg[0], arg[1], i2CAddress, SENS_READ_TEMP, cBuffer);
+      if (!isSafePin(argv[0]) || !isSafePin(argv[1])) { break; }
+      // (uint8_t) argv[2] is i2c address, 7 bytes size
+      result = getSHT2XMetric(argv[0], argv[1], i2CAddress, SENS_READ_TEMP, cBuffer);
       break;
 #endif // FEATURE_SHT2X_ENABLE  
 
@@ -1301,7 +1314,7 @@ int16_t executeCommand(int16_t* _argOffset)
       /*/
       /=/  acs7xx.zc[sensorPin, refVoltage]
       /*/
-      if (!isSafePin(arg[0])) { break; }
+      if (!isSafePin(argv[0])) { break; }
          /*
             for ATmega1280, ATmega2560, ATmega1284, ATmega1284P, ATmega644, ATmega644A, ATmega644P, ATmega644PA
                INTERNAL1V1 	2  - 1,1V
@@ -1314,33 +1327,33 @@ int16_t executeCommand(int16_t* _argOffset)
 */
          // if refVoltage skipped - use DEFAULT source
        if ('\0' != cBuffer[_argOffset[1]]) {
-          arg[1] = DEFAULT;
+          argv[1] = DEFAULT;
        }
-       result = getACS7XXMetric(arg[0], arg[1], SENS_READ_ZC, 0, 0, cBuffer);
+       result = getACS7XXMetric(argv[0], argv[1], SENS_READ_ZC, 0, 0, cBuffer);
       break;
 
     case CMD_ACS7XX_AC:
       /*/
       /=/  acs7xx.ac[sensorPin, refVoltage, sensitivity, zeroPoint] 
       /*/
-      if (!isSafePin(arg[0])) { break; }
+      if (!isSafePin(argv[0])) { break; }
       // if refVoltage skipped - use DEFAULT source
       if ('\0' != cBuffer[_argOffset[1]]) {
-         arg[1] = DEFAULT;
+         argv[1] = DEFAULT;
       }
-      result = getACS7XXMetric(arg[0], arg[1], SENS_READ_AC, arg[2], (int32_t) arg[3], cBuffer);
+      result = getACS7XXMetric(argv[0], argv[1], SENS_READ_AC, argv[2], (int32_t) argv[3], cBuffer);
       break;
 
     case CMD_ACS7XX_DC:
       /*/
       /=/  acs7xx.dc[sensorPin, refVoltage, sensitivity, zeroPoint] 
       /*/
-      if (!isSafePin(arg[0])) { break; }
+      if (!isSafePin(argv[0])) { break; }
          // if refVoltage skipped - use DEFAULT source
       if ('\0' != cBuffer[_argOffset[1]]) {
-         arg[1] = DEFAULT;
+         argv[1] = DEFAULT;
       }
-      result = getACS7XXMetric(arg[0], arg[1], SENS_READ_DC, arg[2], (int32_t) arg[3], cBuffer);
+      result = getACS7XXMetric(argv[0], argv[1], SENS_READ_DC, argv[2], (int32_t) argv[3], cBuffer);
       break;
 
 #endif // FEATURE_ACS7XX_ENABLE
@@ -1351,8 +1364,8 @@ int16_t executeCommand(int16_t* _argOffset)
       /*/
       /=/  ultrasonic.distance[triggerPin, echoPin]
       /*/
-      if (!isSafePin(arg[0]) || !isSafePin(arg[1])) { break; }
-      value.ulongvar = (uint32_t) getUltrasonicMetric(arg[0], arg[1]);
+      if (!isSafePin(argv[0]) || !isSafePin(argv[1])) { break; }
+      value.ulongvar = (uint32_t) getUltrasonicMetric(argv[0], argv[1]);
       result = RESULT_IN_ULONGVAR;
       break;
 #endif // FEATURE_ULTRASONIC_ENABLE
@@ -1365,10 +1378,10 @@ int16_t executeCommand(int16_t* _argOffset)
       /*/
       // ATmega328: Use D3 only at this time
       // Refer to other Arduino's pinouts to find OC2B pin
-//      if (isSafePin(arg[0]) && TIMER2B == digitalPinToTimer(arg[0])) {
+//      if (isSafePin(argv[0]) && TIMER2B == digitalPinToTimer(argv[0])) {
          // irPWMPin - global wariable that replace IRremote's TIMER_PWM_PIN
-//         irPWMPin = arg[0];
-      result = sendCommandByIR(arg[1], arg[2], arg[3], arg[4], arg[5]);
+//         irPWMPin = argv[0];
+      result = sendCommandByIR(argv[1], argv[2], argv[3], argv[4], argv[5]);
 //      }
       break;
 
@@ -1379,10 +1392,10 @@ int16_t executeCommand(int16_t* _argOffset)
       /*/
       // ATmega328: Use D3 only at this time
       // Refer to other Arduino's pinouts to find OC2B pin
- //     if (isSafePin(arg[0]) && TIMER2B == digitalPinToTimer(arg[0])) {
+ //     if (isSafePin(argv[0]) && TIMER2B == digitalPinToTimer(argv[0])) {
          // irPWMPin - global wariable that replace IRremote's TIMER_PWM_PIN
-//         irPWMPin = arg[0];
-      result = sendRawByIR(arg[1], arg[2], &cBuffer[_argOffset[3]]);
+//         irPWMPin = argv[0];
+      result = sendRawByIR(argv[1], argv[2], &cBuffer[_argOffset[3]]);
  //     }
       break;
 #endif // FEATURE_IR_ENABLE
@@ -1396,31 +1409,31 @@ int16_t executeCommand(int16_t* _argOffset)
       /*/
       /=/  pzem004.current[rxPin, txPin, ip]
       /*/
-      if (!isSafePin(arg[0]) || !isSafePin(arg[1])) { break; }
+      if (!isSafePin(argv[0]) || !isSafePin(argv[1])) { break; }
       // cBuffer cast to (uint8_t*) to use with subroutine math and SoftwareSerial subs, because used instead sub's internal buffer and save a little RAM size.
       // Its will be casted to char* inside at moment when its need
-      result = getPZEM004Metric(arg[0], arg[1], SENS_READ_AC, &cBuffer[_argOffset[2]], (uint8_t*) cBuffer);
+      result = getPZEM004Metric(argv[0], argv[1], SENS_READ_AC, &cBuffer[_argOffset[2]], (uint8_t*) cBuffer);
       break;
     case CMD_PZEM004_VOLTAGE:
       /*/
       /=/  pzem004.voltage[rxPin, txPin, ip]
       /*/
-      if (!isSafePin(arg[0]) || !isSafePin(arg[1])) { break; }
-      result = getPZEM004Metric(arg[0], arg[1], SENS_READ_VOLTAGE, &cBuffer[_argOffset[2]], (uint8_t*) cBuffer);
+      if (!isSafePin(argv[0]) || !isSafePin(argv[1])) { break; }
+      result = getPZEM004Metric(argv[0], argv[1], SENS_READ_VOLTAGE, &cBuffer[_argOffset[2]], (uint8_t*) cBuffer);
       break;
     case CMD_PZEM004_POWER:
       /*/
       /=/  pzem004.power[rxPin, txPin, ip]
       /*/
-      if (!isSafePin(arg[0]) || !isSafePin(arg[1])) { break; }
-      result = getPZEM004Metric(arg[0], arg[1], SENS_READ_POWER, &cBuffer[_argOffset[2]], (uint8_t*) cBuffer);
+      if (!isSafePin(argv[0]) || !isSafePin(argv[1])) { break; }
+      result = getPZEM004Metric(argv[0], argv[1], SENS_READ_POWER, &cBuffer[_argOffset[2]], (uint8_t*) cBuffer);
       break;
     case CMD_PZEM004_ENERGY:
       /*/
       /=/  pzem004.energy[rxPin, txPin, ip]
       /*/
-      if (!isSafePin(arg[0]) || !isSafePin(arg[1])) { break; }
-      result = getPZEM004Metric(arg[0], arg[1], SENS_READ_ENERGY, &cBuffer[_argOffset[2]], (uint8_t*) cBuffer);
+      if (!isSafePin(argv[0]) || !isSafePin(argv[1])) { break; }
+      result = getPZEM004Metric(argv[0], argv[1], SENS_READ_ENERGY, &cBuffer[_argOffset[2]], (uint8_t*) cBuffer);
       break;
 #endif // FEATURE_PZEM004_ENABLE
 
@@ -1431,8 +1444,8 @@ int16_t executeCommand(int16_t* _argOffset)
       /=/  ups.apcsmart[rxPin, txPin, command]
       /=/    command - HEX or ASCII
       /*/  
-      if (!isSafePin(arg[0]) || !isSafePin(arg[1])) { break; }
-      result = getAPCSmartUPSMetric(arg[0], arg[1], (uint8_t*) &cBuffer[_argOffset[2]], (_argOffset[3] - _argOffset[2]) , (uint8_t*) cBuffer);
+      if (!isSafePin(argv[0]) || !isSafePin(argv[1])) { break; }
+      result = getAPCSmartUPSMetric(argv[0], argv[1], (uint8_t*) &cBuffer[_argOffset[2]], (_argOffset[3] - _argOffset[2]) , (uint8_t*) cBuffer);
       break;
 
 #endif // FEATURE_UPS_APCSMART_ENABLE
@@ -1443,8 +1456,8 @@ int16_t executeCommand(int16_t* _argOffset)
       /=/  ups.megatec[rxPin, txPin, command, fieldNumber]
       /=/    command - HEX or ASCII
       /*/  
-      if (!isSafePin(arg[0]) || !isSafePin(arg[1])) { break; }
-      result = getMegatecUPSMetric(arg[0], arg[1], (uint8_t*) &cBuffer[_argOffset[2]], arg[3], (uint8_t*) cBuffer);
+      if (!isSafePin(argv[0]) || !isSafePin(argv[1])) { break; }
+      result = getMegatecUPSMetric(argv[0], argv[1], (uint8_t*) &cBuffer[_argOffset[2]], argv[3], (uint8_t*) cBuffer);
       break;
 
 #endif // FEATURE_UPS_APCSMART_ENABLE

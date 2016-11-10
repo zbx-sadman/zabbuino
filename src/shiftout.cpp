@@ -1,11 +1,13 @@
 #include "shiftout.h"
 
-/* ****************************************************************************************************************************
+/*****************************************************************************************************************************
 *
-*  Advanced shiftOut()
-*  Can get HEX-string as the data to shift out
+*  Do bit-bang on the specified pin. Sub can get HEX-string as the data to shift out
 *
-**************************************************************************************************************************** */
+*   Returns: 
+*     - none
+*
+*****************************************************************************************************************************/
 void shiftOutAdvanced(const uint8_t _dataPin, const uint8_t _clockPin, const uint8_t _bitOrder, char* _src)
 {
   uint16_t lenOfBuffer = 0;
@@ -57,11 +59,14 @@ void shiftOutAdvanced(const uint8_t _dataPin, const uint8_t _clockPin, const uin
     interrupts();
 }
 
-/* ****************************************************************************************************************************
+/*****************************************************************************************************************************
 *
-*  Push bitstream to WS2812 chip(s)
+*  Push bitstream to WS2812 chip(s). Sub can get HEX-string as the data to shift out
 *
-**************************************************************************************************************************** */
+*   Returns: 
+*     - none
+*
+*****************************************************************************************************************************/
 void WS2812Out(const uint8_t _dataPin, char* _src) 
 {
   volatile uint8_t  *port;         // Output PORT register
@@ -135,15 +140,16 @@ void WS2812Out(const uint8_t _dataPin, char* _src)
    interrupts(); 
 }
 
-/* ****************************************************************************************************************************
+/*****************************************************************************************************************************
 *
-*  Prepare buffer for fast shiftOut.
-*  Convert byte to two nibble if need to push DEC-value
-*  Convert HEX-string to array of nibbles
-*  Reverse array of nibbles (and reverse bit order in nibbles) if bitOrder is LSBFIRST
+*  Prepare buffer for fast bit-banging. Convert byte to two nibble if need to push DEC-value. 
+*  Convert HEX-string to array of nibbles. Reverse array of nibbles (and reverse bit order in nibbles) if bitOrder is LSBFIRST.
 *
-**************************************************************************************************************************** */
-uint16_t prepareBufferForAdvShiftout(const uint8_t _bitOrder, char* _src)
+*  Returns: 
+*    - number of bytes in the prepared data buffer
+*
+*****************************************************************************************************************************/
+static uint16_t prepareBufferForAdvShiftout(const uint8_t _bitOrder, char* _src)
 {
   static const uint8_t bitReverseTable16[] = {
    // 0x00  0x01  0x02  0x03  0x04  0x05  0x06  0x07  0x08  0x09  0x0A  0x0B  0x0C  0x0D  0x0E  0x0F       <- number

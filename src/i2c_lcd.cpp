@@ -9,6 +9,14 @@ version 1.1.2 is used
 */
 
 
+/*****************************************************************************************************************************
+*
+*  Send data to I2C extender
+*
+*   Returns: 
+*     - none
+*
+*****************************************************************************************************************************/
 void sendToLCD(const uint8_t _i2cAddress, const uint8_t _data, const uint8_t _mode)
 {
   // Send first nibble (first four bits) into high byte area
@@ -17,12 +25,28 @@ void sendToLCD(const uint8_t _i2cAddress, const uint8_t _data, const uint8_t _mo
   write4bitsToLCD(_i2cAddress, ((_data << 4) & 0xF0) | _mode);
 }
 
+/*****************************************************************************************************************************
+*
+*  Write four bits to I2C extender (if HD44780 controller is used in 4-bit mode)
+*
+*   Returns: 
+*     - none
+*
+*****************************************************************************************************************************/
 void write4bitsToLCD(const uint8_t _i2cAddress, uint8_t _data) 
 {
   writeBytesToI2C(_i2cAddress, I2C_NO_REG_SPECIFIED, &_data, 1);
   pulseEnableOnLCD(_i2cAddress, _data);
 }
 
+/*****************************************************************************************************************************
+*
+*  Make pulse action for HD44780
+*
+*   Returns: 
+*     - none
+*
+*****************************************************************************************************************************/
 void pulseEnableOnLCD(const uint8_t _i2cAddress, const uint8_t _data)
 {
   uint8_t sendByte;
@@ -34,6 +58,15 @@ void pulseEnableOnLCD(const uint8_t _i2cAddress, const uint8_t _data)
   delayMicroseconds(50);	                        // commands need > 37us to settle
 } 
 
+/*****************************************************************************************************************************
+*
+*  Interprets and print incoming data to LCD which used HD44780 controller
+*
+*   Returns: 
+*     - RESULT_IS_OK on success
+*     - DEVICE_ERROR_CONNECT on connection error
+*
+*****************************************************************************************************************************/
 int8_t printToPCF8574LCD(const uint8_t _sdaPin, const uint8_t _sclPin, uint8_t _i2cAddress, uint8_t _lcdBacklight, const uint16_t _lcdType, const char *_src)
 {
   uint8_t displayFunction, lastLine, currLine, currChar, i, isHexString;

@@ -1,8 +1,17 @@
 #include "interrupts.h"
 
-/* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
-                                                                 EXTERNAL INTERRUPTS HANDLING SECTION
-*/
+/*-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
+
+                                                      EXTERNAL INTERRUPTS HANDLING SECTION
+
+-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-*/
+
+/*****************************************************************************************************************************
+*
+*  Create interrupts handling subs from the Macro (see interrupts.h)
+*
+*****************************************************************************************************************************/
+
 #ifdef FEATURE_EXTERNAL_INTERRUPT_ENABLE
 // Basic configuration => EXTERNAL_NUM_INTERRUPTS == 3
    HANDLE_INT_N_FOR_EXTINT(INT0)
@@ -27,6 +36,15 @@
 #endif
 
 
+/*****************************************************************************************************************************
+*
+*  Attach/detach interrupts, return counter value
+*
+*  Returns: 
+*    - value of counter belonging to interrupt
+*    - RESULT_IS_FAIL if interrupt mode is wrong of wrong pin is specified
+*
+*****************************************************************************************************************************/
 // This function make more that just return counter...
 int8_t manageExtInt(uint32_t* _dst, uint8_t _pin, uint8_t _mode) {
    // TODO: maybe need to rework code block
@@ -50,15 +68,9 @@ int8_t manageExtInt(uint32_t* _dst, uint8_t _pin, uint8_t _mode) {
       extInterrupt[interruptNumber].mode = _mode;
       switch (interruptNumber) {
 // Basic configuration => EXTERNAL_NUM_INTERRUPTS == 3
-        // CASE_INT_N - glue macro from interrupts.h
+        // CASE_INT_N_FOR_EXTINT - glue macro from interrupts.h
         CASE_INT_N_FOR_EXTINT(INT0)
         CASE_INT_N_FOR_EXTINT(INT1)
-//        case INT0:
-//          interruptHandler = handleINT0;
-//          break;
-//        case INT1:
-//          interruptHandler = handleINT1;
-//          break;
 // AVR_ATmega1284, AVR_ATmega1284P, AVR_ATmega644, AVR_ATmega644A, AVR_ATmega644P, AVR_ATmega644PA => EXTERNAL_NUM_INTERRUPTS == 3
 #if (EXTERNAL_NUM_INTERRUPTS > 2)
         CASE_INT_N_FOR_EXTINT(INT2)
@@ -105,17 +117,44 @@ int8_t manageExtInt(uint32_t* _dst, uint8_t _pin, uint8_t _mode) {
 #endif // FEATURE_EXTERNAL_INTERRUPT_ENABLE
 
 
-/* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
-                                                                 ENCODER INTERRUPTS HANDLING SECTION
+/*-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
 
-   Q: Encoder counter is the same that inerrupt counter: uint32_t  variable. What to do with countdown?
+                                                      ENCODER INTERRUPTS HANDLING SECTION
 
-*/
+-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-*/
 
 #ifdef FEATURE_INCREMENTAL_ENCODER_ENABLE
    HANDLE_INT_N_FOR_INCENC(INT0);
    HANDLE_INT_N_FOR_INCENC(INT1);
+// AVR_ATmega1284, AVR_ATmega1284P, AVR_ATmega644, AVR_ATmega644A, AVR_ATmega644P, AVR_ATmega644PA => EXTERNAL_NUM_INTERRUPTS == 3
+#if (EXTERNAL_NUM_INTERRUPTS > 2)
+   HANDLE_INT_N_FOR_INCENC(INT2)
+   HANDLE_INT_N_FOR_INCENC(INT3)
+#endif
 
+// AVR_ATmega32U4 => EXTERNAL_NUM_INTERRUPTS == 5
+#if (EXTERNAL_NUM_INTERRUPTS > 3)
+   HANDLE_INT_N_FOR_INCENC(INT3)
+   HANDLE_INT_N_FOR_INCENC(INT4)
+#endif
+
+#if (EXTERNAL_NUM_INTERRUPTS > 5)
+// AVR_ATmega1280, AVR_ATmega2560, AVR_ATmega128RFA1, AVR_ATmega256RFR2 => EXTERNAL_NUM_INTERRUPTS == 8
+   HANDLE_INT_N_FOR_INCENC(INT5)
+   HANDLE_INT_N_FOR_INCENC(INT6)
+   HANDLE_INT_N_FOR_INCENC(INT7)
+#endif
+
+
+/*****************************************************************************************************************************
+*
+*  Attach/detach interrupts, return encoder's variable value
+*
+*  Returns: 
+*    - value of variable belonging to interrupt applies to the pin to which encoder's "Terminal A" connected
+*    - RESULT_IS_FAIL if wrong pin is specified
+*
+*****************************************************************************************************************************/
 int8_t manageIncEnc(int32_t* _dst, uint8_t const _terminalAPin, uint8_t const _terminalBPin, int32_t const _initialValue) {
       // TODO: maybe need to rework code block
       // 
@@ -130,27 +169,36 @@ int8_t manageIncEnc(int32_t* _dst, uint8_t const _terminalAPin, uint8_t const _t
       // Interrupt not attached?
       if (NOT_AN_INTERRUPT == extInterrupt[interruptNumber].mode) {
          extInterrupt[interruptNumber].mode = CHANGE;
-         switch (interruptNumber) {
+      switch (interruptNumber) {
 // Basic configuration => EXTERNAL_NUM_INTERRUPTS == 3
-           case INT0:
-             interruptHandler = handleIncEncINT0;
-             break;
-           case INT1:
-             interruptHandler = handleIncEncINT1;
-             break;
-           default:
-           // still not attached
-             extInterrupt[interruptNumber].mode = NOT_AN_INTERRUPT;
-         }  // switch (interruptNumber)
+        // CASE_INT_N_FOR_EXTINT - glue macro from interrupts.h
+        CASE_INT_N_FOR_INCENC(INT0)
+        CASE_INT_N_FOR_INCENC(INT1)
+// AVR_ATmega1284, AVR_ATmega1284P, AVR_ATmega644, AVR_ATmega644A, AVR_ATmega644P, AVR_ATmega644PA => EXTERNAL_NUM_INTERRUPTS == 3
+#if (EXTERNAL_NUM_INTERRUPTS > 2)
+        CASE_INT_N_FOR_INCENC(INT2)
+#endif // EXTERNAL_NUM_INTERRUPTS > 2
+// AVR_ATmega32U4 => EXTERNAL_NUM_INTERRUPTS == 5
+#if (EXTERNAL_NUM_INTERRUPTS > 3)
+        CASE_INT_N_FOR_INCENC(INT3)
+        CASE_INT_N_FOR_INCENC(INT4)
+#endif // EXTERNAL_NUM_INTERRUPTS > 3
+// AVR_ATmega1280, AVR_ATmega2560, AVR_ATmega128RFA1, AVR_ATmega256RFR2 => EXTERNAL_NUM_INTERRUPTS == 8
+#if (EXTERNAL_NUM_INTERRUPTS > 5)
+        CASE_INT_N_FOR_INCENC(INT5)
+        CASE_INT_N_FOR_INCENC(INT6)
+        CASE_INT_N_FOR_INCENC(INT7)
+#endif // EXTERNAL_NUM_INTERRUPTS > 5
+        default:
+          // still not attached
+          extInterrupt[interruptNumber].mode = NOT_AN_INTERRUPT;
+      }  // switch (interruptNumber)
          // check again to take in account 'No interrupt choosed' case
          if (NOT_AN_INTERRUPT != extInterrupt[interruptNumber].mode) {
             // if pin still not INPUT_PULLUP - system will hang up
             pinMode(_terminalAPin, INPUT_PULLUP);
             pinMode(_terminalBPin, INPUT_PULLUP);
             attachInterrupt(interruptNumber, interruptHandler, CHANGE);
-            // Need to store port/bitmask to avoid digitalRead() calling in interrupt subroutine
-//            extInterrupt[interruptNumber].encTerminalAPin = _terminalAPin;
-//            extInterrupt[interruptNumber].encTerminalBPin = _terminalBPin;
             extInterrupt[interruptNumber].encTerminalAPinBit = digitalPinToBitMask(_terminalAPin);
             extInterrupt[interruptNumber].encTerminalBPinBit = digitalPinToBitMask(_terminalBPin);
             extInterrupt[interruptNumber].encTerminalAPIR = portInputRegister(digitalPinToPort(_terminalAPin));

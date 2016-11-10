@@ -1,7 +1,16 @@
 #include "i2c_bmp.h"
 
 
-uint8_t waitToBMPReady(const uint8_t _i2cAddress, const int16_t _registerAddress, const int16_t _mask, const uint16_t _timeout)
+/*****************************************************************************************************************************
+*
+*   Waiting for a timeout to detect the BMP sensor ready state
+*
+*   Returns: 
+*     - true on sensor ready
+*     - false on timeout
+*
+**************************************************************************************************************************** */
+static uint8_t waitToBMPReady(const uint8_t _i2cAddress, const int16_t _registerAddress, const int16_t _mask, const uint16_t _timeout)
 {
   uint8_t value;
   uint32_t nowTime;
@@ -17,6 +26,16 @@ uint8_t waitToBMPReady(const uint8_t _i2cAddress, const int16_t _registerAddress
 }
 
 
+/*****************************************************************************************************************************
+*
+*   Call the subroutine (based on sensor ID) for obtaining a metric of sensor 
+*
+*   Returns: 
+*     - result code of the called subroutine 
+*     - DEVICE_ERROR_CONNECT on connection error
+*     - RESULT_IS_FAIL if unknown chip ID found
+*
+*****************************************************************************************************************************/
 int8_t getBMPMetric(const uint8_t _sdaPin, const uint8_t _sclPin, uint8_t _i2cAddress, const uint8_t _overSampling, const uint8_t _filterCoef, const uint8_t _metric, char* _dst)
 {
   uint8_t chipID; 
@@ -61,12 +80,16 @@ int8_t getBMPMetric(const uint8_t _sdaPin, const uint8_t _sclPin, uint8_t _i2cAd
 }
 
 
-/* ****************************************************************************************************************************
+/*****************************************************************************************************************************
 *
-*  Read temperature or pressure from digital sensor BMP280
+*   Read specified metric's value of the BMP280/BME280 sensor, put it to output buffer on success. 
 *
-**************************************************************************************************************************** */
-int8_t getBMP280Metric(const uint8_t _sdaPin, const uint8_t _sclPin, uint8_t _i2cAddress, const uint8_t _overSampling, uint8_t _filterCoef, const uint8_t _metric, char* _dst)
+*   Returns: 
+*     - RESULT_IN_BUFFER on success
+*     - DEVICE_ERROR_TIMEOUT if sensor do not ready to work
+*
+*****************************************************************************************************************************/
+static int8_t getBMP280Metric(const uint8_t _sdaPin, const uint8_t _sclPin, uint8_t _i2cAddress, const uint8_t _overSampling, uint8_t _filterCoef, const uint8_t _metric, char* _dst)
 {
   uint16_t dig_T1;
   int16_t  dig_T2, dig_T3;
@@ -282,12 +305,16 @@ int8_t getBMP280Metric(const uint8_t _sdaPin, const uint8_t _sclPin, uint8_t _i2
   return RESULT_IN_BUFFER;
 }
 
-/* ****************************************************************************************************************************
+/*****************************************************************************************************************************
 *
-*  Read temperature or pressure from digital sensor BMP180(BMP085)
+*   Read specified metric's value of the BMP180/BMP085 sensor, put it to output buffer on success. 
 *
-**************************************************************************************************************************** */
-int8_t getBMP180Metric(const uint8_t _sdaPin, const uint8_t _sclPin, uint8_t _i2cAddress, uint8_t _overSampling, const uint8_t _metric, char* _dst)
+*   Returns: 
+*     - RESULT_IN_BUFFER on success
+*     - DEVICE_ERROR_TIMEOUT if sensor do not ready to work
+*
+*****************************************************************************************************************************/
+static int8_t getBMP180Metric(const uint8_t _sdaPin, const uint8_t _sclPin, uint8_t _i2cAddress, uint8_t _overSampling, const uint8_t _metric, char* _dst)
 {
   uint8_t msb, lsb, xlsb;
   uint8_t value[3];
@@ -345,7 +372,7 @@ int8_t getBMP180Metric(const uint8_t _sdaPin, const uint8_t _sclPin, uint8_t _i2
         _overSampling = BMP180_STANDARD;
   }
 
-  // We must wait to Bxx0xxxxx value in "Control" register to know that device is not busy
+  // We must wait for 50ms to Bxx0xxxxx value in "Control" register to know that device is not busy
   if (false == waitToBMPReady(_i2cAddress, BMP_REGISTER_CONTROL, BMP180_READY_MASK, 50)) { return DEVICE_ERROR_TIMEOUT; }
   // ******** Get Temperature ********
   // Write 0x2E into Register 0xF4
@@ -355,7 +382,7 @@ int8_t getBMP180Metric(const uint8_t _sdaPin, const uint8_t _sclPin, uint8_t _i2
   // Wait at least 4.5ms
   //delay(5);
 
-  // We must wait to Bxx0xxxxx value in "Control" register to know about end of conversion
+  // We must wait for 50ms to Bxx0xxxxx value in "Control" register to know about end of conversion
   if (false == waitToBMPReady(_i2cAddress, BMP_REGISTER_CONTROL, BMP180_READY_MASK, 50)) { return DEVICE_ERROR_TIMEOUT; }
   // Read two bytes from registers 0xF6 and 0xF7
   readBytesFromi2C(_i2cAddress, BMP180_REGISTER_TEMPDATA, value, 2);

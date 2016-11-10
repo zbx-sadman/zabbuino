@@ -15,7 +15,15 @@ Second modification is by:
 #include "busMicrowire.h"
 
 
-void writeByteTOMAX7219(const uint8_t _dataPin, const uint8_t _clockPin, const uint8_t _data) 
+/*****************************************************************************************************************************
+*
+*  Send one byte to MAX7219 controller
+*
+*  Returns: 
+*    - none
+*
+*****************************************************************************************************************************/
+void writeByteToMAX7219(const uint8_t _dataPin, const uint8_t _clockPin, const uint8_t _data) 
 {
   int8_t i = 7;
   while(i >= 0) {
@@ -26,18 +34,34 @@ void writeByteTOMAX7219(const uint8_t _dataPin, const uint8_t _clockPin, const u
   }
 }
 
+/*****************************************************************************************************************************
+*
+*  Push one byte of data to MAX7219 controller
+*
+*  Returns: 
+*    - none
+*
+*****************************************************************************************************************************/
 void pushDataToMAX7219(const uint8_t _dataPin, const uint8_t _clockPin, const uint8_t _loadPin, const uint8_t _register, const uint8_t _data) {    
   digitalWrite(_loadPin, LOW);
   // specify register or column
-  writeByteTOMAX7219(_dataPin, _clockPin, _register);   
+  writeByteToMAX7219(_dataPin, _clockPin, _register);   
   // put data  
-  writeByteTOMAX7219(_dataPin, _clockPin, _data);
+  writeByteToMAX7219(_dataPin, _clockPin, _data);
   // show it
   digitalWrite(_loadPin, LOW);
   digitalWrite(_loadPin,HIGH);
 }
 
-void drawOnMAX7219Matrix8x8(const uint8_t _dataPin, const uint8_t _clockPin, const uint8_t _loadPin, const uint8_t _intensity, char* _src) {    
+/*****************************************************************************************************************************
+*
+*  Print incoming data on MAX7219 based digital led indicator or draw on led matrix.
+*
+*  Returns: 
+*    - none
+*
+*****************************************************************************************************************************/
+void printToMAX7219(const uint8_t _dataPin, const uint8_t _clockPin, const uint8_t _loadPin, const uint8_t _intensity, char* _src) {    
   uint8_t col, currByte,  isHexString = false;
   // Init the module 
   // Mark all columns as active

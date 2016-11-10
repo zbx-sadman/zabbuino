@@ -30,7 +30,16 @@ Implemented:
 - Support APC Smart UPS (with RS232 interface);
 - Simulate varuious vendor's IR transmitters.
 
-####22 Sep 2016
+####10 Nov 2016
+
+Fixes:
+  - Wrong MCU Signature reading.
+
+Changes: 
+ - Subroutine that save config to EEPROM now search non-damaged area if corrupted cell is detected.
+ 
+
+####07 Nov 2016
 
 Refactoring is processed...
 
