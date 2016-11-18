@@ -14,7 +14,7 @@
 *     - always true
 *
 *****************************************************************************************************************************/
-uint8_t serialRXFlush(SoftwareSerial* _swSerial, const uint8_t _slowMode)
+uint8_t serialRXFlush(SoftwareSerial *_swSerial, const uint8_t _slowMode)
 {
   while (true) {
     // Seems that APC UPS's slow a bit and need to wait some time before check recieve buffer. 
@@ -34,7 +34,7 @@ uint8_t serialRXFlush(SoftwareSerial* _swSerial, const uint8_t _slowMode)
 *     - The number of the readed bytes
 *
 *****************************************************************************************************************************/
-uint8_t serialRecive(SoftwareSerial* _swSerial, uint8_t* _src, const uint8_t _size, const uint32_t _readTimeout, const uint8_t _stopOn, const uint8_t _slowMode)
+uint8_t serialRecive(SoftwareSerial *_swSerial, uint8_t *_src, const uint8_t _size, const uint32_t _readTimeout, const uint8_t _stopOn, const uint8_t _slowMode)
 {
   unsigned long startTime = millis();
   uint8_t len = 0;
@@ -65,19 +65,19 @@ uint8_t serialRecive(SoftwareSerial* _swSerial, uint8_t* _src, const uint8_t _si
 *     - always true
 *
 *****************************************************************************************************************************/
-uint8_t serialSend(SoftwareSerial* _swSerial, const uint8_t* _src, const uint8_t _size, const uint8_t _slowMode)
+void serialSend(SoftwareSerial *_swSerial, const uint8_t *_src, const uint8_t _size, const uint8_t _slowMode)
 {
   uint8_t i; 
   if (_swSerial) {
      // Send data
-     for (i = 0; i <  _size; i++) {
+     for (i = 0; i < _size; i++) {
        // do not rush when work with APC UPS's
        if (_slowMode) { delay(10); }
 //       Serial.print("Byte# "); Serial.print(i); Serial.print(" => "); Serial.print(_src[i], HEX);  Serial.print(" '"); Serial.print((char) _src[i]); Serial.println("' ");
-       if (! _swSerial->write(_src[i])) { return false; }
+       // HardwareSerial::write() always return 1
+       _swSerial->write(_src[i]);
     }
   }
-  return true;
 }
 
 

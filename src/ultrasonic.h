@@ -15,4 +15,4 @@
 *****************************************************************************************************************************/
 uint32_t getUltrasonicMetric(const uint8_t _triggerPin, const uint8_t _echoPin);
 
-#endif
+#endif // #ifndef ZabbuinoULTRASONIC_h

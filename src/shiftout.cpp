@@ -8,7 +8,7 @@
 *     - none
 *
 *****************************************************************************************************************************/
-void shiftOutAdvanced(const uint8_t _dataPin, const uint8_t _clockPin, const uint8_t _bitOrder, char* _src)
+void shiftOutAdvanced(const uint8_t _dataPin, const uint8_t _clockPin, const uint8_t _bitOrder, char *_src)
 {
   uint16_t lenOfBuffer = 0;
   uint8_t dataPinBit, clockPinBit;
@@ -51,12 +51,12 @@ void shiftOutAdvanced(const uint8_t _dataPin, const uint8_t _clockPin, const uin
        *_src = *_src << 1;
        // bit counter increase
        i--;
-      }
-      // Move pointer to next value
-      _src++;
-      lenOfBuffer--;
-    }
-    interrupts();
+     }
+     // Move pointer to next value
+     _src++;
+     lenOfBuffer--;
+  }
+  interrupts();
 }
 
 /*****************************************************************************************************************************
@@ -67,7 +67,7 @@ void shiftOutAdvanced(const uint8_t _dataPin, const uint8_t _clockPin, const uin
 *     - none
 *
 *****************************************************************************************************************************/
-void WS2812Out(const uint8_t _dataPin, char* _src) 
+void WS2812Out(const uint8_t _dataPin, char *_src) 
 {
   volatile uint8_t  *port;         // Output PORT register
   uint8_t pinMask;       // Output PORT bitmask
@@ -149,7 +149,7 @@ void WS2812Out(const uint8_t _dataPin, char* _src)
 *    - number of bytes in the prepared data buffer
 *
 *****************************************************************************************************************************/
-static uint16_t prepareBufferForAdvShiftout(const uint8_t _bitOrder, char* _src)
+static uint16_t prepareBufferForAdvShiftout(const uint8_t _bitOrder, char *_src)
 {
   static const uint8_t bitReverseTable16[] = {
    // 0x00  0x01  0x02  0x03  0x04  0x05  0x06  0x07  0x08  0x09  0x0A  0x0B  0x0C  0x0D  0x0E  0x0F       <- number

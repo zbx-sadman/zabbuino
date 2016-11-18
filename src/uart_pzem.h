@@ -19,7 +19,25 @@ version 1.0 is used
 #define PZEM_PACKET_SIZE                   0x07
 #define PZEM_DEFAULT_READ_TIMEOUT          1000L
 
-uint8_t crcPZEM004(uint8_t* _data, uint8_t _size);
-int8_t getPZEM004Metric(const uint8_t _rxPin, const uint8_t _txPin, uint8_t _metric, const char* _ip, uint8_t* _dst);
+/*****************************************************************************************************************************
+*
+*   Calculate CRC of Peacefair PZEM-004 data packet
+*
+*   Returns: 
+*     - CRC
+*
+*****************************************************************************************************************************/
+uint8_t crcPZEM004(uint8_t *_data, uint8_t _size);
 
-#endif
+/*****************************************************************************************************************************
+*
+*   Read values of the specified metric from the Peacefair PZEM-004 Energy Meter, put it to output buffer on success. 
+*
+*   Returns: 
+*     - RESULT_IN_BUFFER on success
+*     - DEVICE_ERROR_TIMEOUT if device stop talking
+*
+*****************************************************************************************************************************/
+int8_t getPZEM004Metric(const uint8_t _rxPin, const uint8_t _txPin, uint8_t _metric, const char *_ip, uint8_t *_dst);
+
+#endif // #ifndef ZabbuinoUART_PZEM_h

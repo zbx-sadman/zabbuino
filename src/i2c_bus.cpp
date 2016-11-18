@@ -48,9 +48,9 @@ int8_t scanI2C(EthernetClient *_ethClient)
 *
 *****************************************************************************************************************************/
 //#define writeByteToI2C((_i2cAddress), (_registerAddress), (_data)) 
-uint8_t writeByteToI2C(const uint8_t _i2cAddress, const int16_t _registerAddress, const uint8_t _data)
+uint8_t writeByteToI2C(const uint8_t _i2cAddress, const int16_t _registerAddress, const uint8_t _src)
 {
-  return writeBytesToI2C(_i2cAddress, _registerAddress, &_data, 1);
+  return writeBytesToI2C(_i2cAddress, _registerAddress, &_src, 1);
 }
 
 
@@ -67,7 +67,7 @@ uint8_t writeByteToI2C(const uint8_t _i2cAddress, const int16_t _registerAddress
 *       4 - other error
 *
 *****************************************************************************************************************************/
-uint8_t writeBytesToI2C(const uint8_t _i2cAddress, const int16_t _registerAddress, const uint8_t* _data, uint8_t _len) 
+uint8_t writeBytesToI2C(const uint8_t _i2cAddress, const int16_t _registerAddress, const uint8_t *_src, uint8_t _len) 
 {
   Wire.beginTransmission(_i2cAddress); // start transmission to device 
   // registerAddress is 0x00 and above ?
@@ -75,8 +75,8 @@ uint8_t writeBytesToI2C(const uint8_t _i2cAddress, const int16_t _registerAddres
      Wire.write((uint8_t) _registerAddress); // sends register address to be written
   }
   while (_len) {
-    Wire.write(*_data);  // write data
-    _data++;
+    Wire.write(*_src);  // write data
+    _src++;
     _len--;
   }
   return Wire.endTransmission(true); // end transmission
@@ -96,7 +96,7 @@ uint8_t writeBytesToI2C(const uint8_t _i2cAddress, const int16_t _registerAddres
 *
 *
 *****************************************************************************************************************************/
-uint8_t readBytesFromi2C(const uint8_t _i2cAddress, const int16_t _registerAddress, uint8_t* _dst, uint8_t _len)
+uint8_t readBytesFromi2C(const uint8_t _i2cAddress, const int16_t _registerAddress, uint8_t *_dst, uint8_t _len)
 {
     if (!_len) return false;
     Wire.beginTransmission(_i2cAddress); 	
@@ -141,7 +141,7 @@ uint8_t readBytesFromi2C(const uint8_t _i2cAddress, const int16_t _registerAddre
 *     - DEVICE_ERROR_CONNECT on connection error
 *
 *****************************************************************************************************************************/
-int8_t getBH1750Metric(const uint8_t _sdaPin, const uint8_t _sclPin, uint8_t _i2cAddress, uint8_t _mode, const uint8_t _metric, char* _dst)
+int8_t getBH1750Metric(const uint8_t _sdaPin, const uint8_t _sclPin, uint8_t _i2cAddress, uint8_t _mode, const uint8_t _metric, char *_dst)
 {
   int32_t result;
   uint8_t setModeTimeout = 24; // 24ms - max time to complete measurement in low-resolution

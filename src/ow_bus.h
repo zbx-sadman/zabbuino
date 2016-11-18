@@ -20,4 +20,4 @@
 int8_t scanOneWire(const uint8_t _pin, EthernetClient *_ethClient);
 
 
-#endif
+#endif // #ifndef ZabbuinoBUSONEWIRE_h

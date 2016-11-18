@@ -14,7 +14,7 @@
 *     - none
 *
 *****************************************************************************************************************************/
-void shiftOutAdvanced(const uint8_t _dataPin, const uint8_t _clockPin, const uint8_t _bitOrder, char* _dataBuffer);
+void shiftOutAdvanced(const uint8_t _dataPin, const uint8_t _clockPin, const uint8_t _bitOrder, char *_src);
 
 /*****************************************************************************************************************************
 *
@@ -24,7 +24,7 @@ void shiftOutAdvanced(const uint8_t _dataPin, const uint8_t _clockPin, const uin
 *     - none
 *
 *****************************************************************************************************************************/
-void WS2812Out(const uint8_t _dataPin, char* _dataBuffer);
+void WS2812Out(const uint8_t _dataPin, char *_src);
 
 /*****************************************************************************************************************************
 *
@@ -35,7 +35,7 @@ void WS2812Out(const uint8_t _dataPin, char* _dataBuffer);
 *    - number of bytes in the prepared data buffer
 *
 *****************************************************************************************************************************/
-uint16_t prepareBufferForAdvShiftout(const uint8_t _bitOrder, char* _dataBuffer);
+static uint16_t prepareBufferForAdvShiftout(const uint8_t _bitOrder, char *_src);
 
 
-#endif
+#endif // #ifndef ZabbuinoSHIFTOUT_h

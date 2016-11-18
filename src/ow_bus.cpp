@@ -55,7 +55,7 @@ int8_t scanOneWire(const uint8_t _pin, EthernetClient *_ethClient) {
     _ethClient->print('\n');
   }
   delete owDevice;
-  return ((0 < numDevices)  ? RESULT_IS_PRINTED : RESULT_IS_FAIL);
+  return ((0 < numDevices) ? RESULT_IS_PRINTED : RESULT_IS_FAIL);
 }
 
 

@@ -19,7 +19,8 @@
 *     - DEVICE_ERROR_TIMEOUT if device stop talking
 *
 *****************************************************************************************************************************/
-int8_t getMegatecUPSMetric(const uint8_t _rxPin, const uint8_t _txPin, uint8_t* _command, uint8_t _fieldNumber, uint8_t* _dst) {
+int8_t getMegatecUPSMetric(const uint8_t _rxPin, const uint8_t _txPin, uint8_t *_command, uint8_t _fieldNumber, uint8_t *_dst) {
+  int8_t rc = DEVICE_ERROR_TIMEOUT;
   uint8_t command, len, srcPos, dstPos, fileldNumber;
   SoftwareSerial swSerial(_rxPin, _txPin);
 
@@ -81,22 +82,17 @@ int8_t getMegatecUPSMetric(const uint8_t _rxPin, const uint8_t _txPin, uint8_t* 
   // Flush all device's transmitted data to avoid get excess data in recieve buffer
   serialRXFlush(&swSerial, false);
 
-  if (! serialSend(&swSerial, _command, len , false)) {
-     return DEVICE_ERROR_TIMEOUT; 
-  };
+  serialSend(&swSerial, _command, len , false);
   // Recieve answer from UPS. Answer placed to buffer directly for additional processing 
   len = serialRecive(&swSerial, _dst, MEGATEC_MAX_ANSWER_LENGTH, MEGATEC_DEFAULT_READ_TIMEOUT, '\r', false);
-  // return timeout sign if packet not finished by <CR>
-  if ('\r' != _dst[len-1]) { 
-     return DEVICE_ERROR_TIMEOUT; 
-  };
-  if ('(' != _dst[0]) { 
-     return DEVICE_ERROR_WRONG_ANSWER; 
-  };
-  _dst[len-1] = '\0';
-  if (0 == fileldNumber) { 
-     return RESULT_IN_BUFFER; 
-  }
+  // Answer will start with '('
+  if ('(' != _dst[0]) { rc = DEVICE_ERROR_WRONG_ANSWER; goto finish; }
+  len--;
+  // probaly recieve timeout occurs if packet do not finished by <CR>
+  if ('\r' != _dst[len])  { goto finish; } // rc inited with DEVICE_ERROR_TIMEOUT value
+  _dst[len] = '\0';
+
+//  if (0 == fileldNumber) { rc = RESULT_IN_BUFFER; }
   
   //  Step #2. Search the field that specified by number & move data to the output buffer begin
   //           If the field number is greater than the available, then use the data from the last field.
@@ -108,26 +104,25 @@ int8_t getMegatecUPSMetric(const uint8_t _rxPin, const uint8_t _txPin, uint8_t* 
     // Just copy chars from the current "field" to begin of the output buffer
     _dst[dstPos] = _dst[srcPos];
     // The separator was found
-    if (0x20 == _dst[srcPos]) {
-       fileldNumber++;
-       // It is specified field number?
-       if (_fieldNumber == fileldNumber) { 
-          // jump out from copy-on-search cycle if it's true
-          break;
-       } else {
-          // Otherwise - start next field writing from begin of the output buffer
-          dstPos = 0;  
-       }
+    if (0x20 != _dst[srcPos]) {
+       dstPos++;
     } else {
-      dstPos++;
-    } // if (0x20 == _dst[srcPos]) .. else ..
+       fileldNumber++;
+       // Jump out from copy-on-search cycle if specified field number is found
+       if (_fieldNumber == fileldNumber) { break; }
+       // Otherwise - start next field writing from begin of the output buffer
+       dstPos = 0;  
+    } // if (0x20 != _dst[srcPos]) .. else ..
     srcPos++; 
   };
   // make C-string
   _dst[dstPos] = '\0';
-  swSerial.~SoftwareSerial();
 
-  return RESULT_IN_BUFFER;
+  rc = RESULT_IN_BUFFER;
+
+  finish:
+  swSerial.~SoftwareSerial(); 
+  return rc;
 }
 
 

@@ -18,15 +18,16 @@ version 0.1.13 is used
 *     - DEVICE_ERROR_TIMEOUT if sensor stops answer to the request
 *
 *****************************************************************************************************************************/
-int8_t getDHTMetric(const uint8_t _pin, const uint8_t _sensorModel, const uint8_t _metric, char* _dst)
+int8_t getDHTMetric(const uint8_t _pin, const uint8_t _sensorModel, const uint8_t _metric, char *_dst)
 {
+  int8_t rc = DEVICE_ERROR_CONNECT;
   // INIT BUFFERVAR TO RECEIVE DATA
   uint8_t mask = 128,
           idx = 0,
           data = 0,
           state = LOW,
           pstate = LOW,
-          leadingZeroBits, wakeupDelay,
+          leadingZeroBits, wakeupDelay, sum,
           bits[5];  // buffer to receive data
   uint16_t zeroLoop = DHTLIB_TIMEOUT,
            delta = 0;
@@ -64,13 +65,11 @@ int8_t getDHTMetric(const uint8_t _pin, const uint8_t _sensorModel, const uint8_
   waitTime = millis() - lastReadTime;
   waitTime = (waitTime < 1100) ? (1100 - waitTime) : 0;
 
-  // Sensor wont connect if no HIGH level on pin before work for a few time 
+  // Sensor won't to connect if no HIGH level exist on pin for a few time (500ms at least)
   if ((*PIR & bit) == LOW ) {
      digitalWrite(_pin, HIGH);
-     // Increase delay to 0.5sec if it less
      if (waitTime < 500) {waitTime = 500;}
   }
-  // do nothing to give a rest to sensor
   delay(waitTime); 
 
   // REQUEST SAMPLE
@@ -79,40 +78,27 @@ int8_t getDHTMetric(const uint8_t _pin, const uint8_t _sensorModel, const uint8_
   digitalWrite(_pin, HIGH); // T-go
   pinMode(_pin, INPUT);
 
-  // XXX: not better place to save millis(), its must be saved after sample taking.
-  lastReadTime = millis();
-
-  // disable interrupt
+  // data exchange with DHT sensor must not be interrupted
   noInterrupts();
   uint16_t loopCount = DHTLIB_TIMEOUT * 2;  // 200uSec max
   // while(digitalRead(_pin) == HIGH)
-  while ((*PIR & bit) != LOW )
-    {
-       if (--loopCount == 0) { 
-          interrupts();
-          return DEVICE_ERROR_CONNECT; 
-       }
-    }
+  while ((*PIR & bit) != LOW ) {
+    if (--loopCount == 0) { goto finish; }  // rc already init with DEVICE_ERROR_CONNECT value
+  }
 
   // GET ACKNOWLEDGE or TIMEOUT
   loopCount = DHTLIB_TIMEOUT;
-  // while(digitalRead(_pin) == LOW)
+  // following operation eqial to: while(digitalRead(_pin) == LOW)
   while ((*PIR & bit) == LOW )  // T-rel
     {
-      if (--loopCount == 0) {
-         interrupts();
-         return DEVICE_ERROR_ACK_L;
-      }
+      if (--loopCount == 0) { rc = DEVICE_ERROR_ACK_L; goto finish; }
     }
 
   loopCount = DHTLIB_TIMEOUT;
-  // while(digitalRead(_pin) == HIGH)
+  // following operation eqial to: while(digitalRead(_pin) == HIGH)
   while ((*PIR & bit) != LOW )  // T-reh
     {
-      if (--loopCount == 0) {
-         interrupts();
-         return DEVICE_ERROR_ACK_H;
-      }
+      if (--loopCount == 0) { rc = DEVICE_ERROR_ACK_H; goto finish; }
     }
 
   loopCount = DHTLIB_TIMEOUT;
@@ -121,11 +107,12 @@ int8_t getDHTMetric(const uint8_t _pin, const uint8_t _sensorModel, const uint8_
   for (uint8_t i = 40; i != 0; )
     {
       // WAIT FOR FALLING EDGE
-      //state = (digitalRead(_pin));
+      // following operation eqial to:  state = (digitalRead(_pin));
       state = (*PIR & bit);
       if (state == LOW && pstate != LOW)
          {
-           if (i > leadingZeroBits) // DHT22 first 6 bits are all zero !!   DHT11 only 1
+           // DHT22 return zero for first 6 bits!! DHT11 return only one zero bit
+           if (i > leadingZeroBits) 
               {
                 zeroLoop = min(zeroLoop, loopCount);
                 delta = (DHTLIB_TIMEOUT - zeroLoop)/4;
@@ -150,23 +137,19 @@ int8_t getDHTMetric(const uint8_t _pin, const uint8_t _sensorModel, const uint8_
       }
       pstate = state;
       // Check timeout
-      if (--loopCount == 0)
-         {
-           interrupts();
-           return DEVICE_ERROR_TIMEOUT;
-         }
+      if (--loopCount == 0) { rc = DEVICE_ERROR_TIMEOUT; goto finish; }  // rc already init with DEVICE_ERROR_CONNECT value
 
   }
   interrupts();
   pinMode(_pin, OUTPUT);
   digitalWrite(_pin, HIGH);
+
+  // Store time to use it to use on the next call of sub
+  lastReadTime = millis();
      
   // TEST CHECKSUM
-  uint8_t sum = bits[0] + bits[1] + bits[2] + bits[3];
-  if (bits[4] != sum)
-     {
-       return DEVICE_ERROR_CHECKSUM;
-     }
+  sum = bits[0] + bits[1] + bits[2] + bits[3];
+  if (bits[4] != sum) { rc = DEVICE_ERROR_CHECKSUM; goto finish; }
 
   switch (_sensorModel) {
     case DHT11_ID:
@@ -196,7 +179,11 @@ int8_t getDHTMetric(const uint8_t _pin, const uint8_t _sensorModel, const uint8_
   }
   result = (SENS_READ_HUMD == _metric) ? humidity : temperature;
   ltoaf(result, _dst, 1);
-  return RESULT_IN_BUFFER;
+  rc = RESULT_IN_BUFFER;
+
+  finish:
+  interrupts();
+  return rc;
 }
 
 

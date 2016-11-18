@@ -15,7 +15,8 @@
     
     When UIPEthernet's fix_errata12 brahch did not help to add stability, you can buy W5xxx shield.
     
-    Also u can try uncomment USE_DIRTY_HACK_AND_REBOOT_ENC28J60_IF_ITS_SEEMS_FREEZE declaration below to periodically ENC28J60 re-intit if EIR.TXERIF and EIR.RXERIF == 1
+    Also u can try uncomment USE_DIRTY_HACK_AND_REBOOT_ENC28J60_IF_ITS_SEEMS_FREEZE declaration below to periodically ENC28J60 re-intit 
+    if EIR.TXERIF or EIR.RXERIF == 1 or ECON1.RXEN == 0
 */
 
 #define W5100_ETHERNET_SHIELD             // Arduino Ethernet Shield and Compatibles ...
@@ -376,7 +377,7 @@
 #define SYS_DEFAULT_PASSWORD        	                        0x000
 
 // Digital pin which must shorted on the GND for HOLD_TIME_TO_FACTORY_RESET time to save default system setting into EEPROM
-#define PIN_FACTORY_RESET           	                        8 
+#define PIN_FACTORY_RESET           	                        0x08 
 
 /* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
                                                           AGENT CONFIGURATION SECTION 

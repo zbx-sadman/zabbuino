@@ -28,6 +28,6 @@ uint16_t getADCVoltage(const uint8_t _analogChannel);
 *     - always RESULT_IN_BUFFER 
 *
 *****************************************************************************************************************************/
-int8_t getACS7XXMetric(const uint8_t _sensorPin, uint32_t _aRefVoltage,  const uint8_t _metric, const uint8_t _sensitivity, const int32_t _ZeroCurrentPoint, char* _outBuffer);
+int8_t getACS7XXMetric(const uint8_t _sensorPin, uint32_t _aRefVoltage,  const uint8_t _metric, const uint8_t _sensitivity, const int32_t _ZeroCurrentPoint, char *_outBuffer);
 
-#endif
+#endif // #ifndef ZabbuinoADC_h

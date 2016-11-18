@@ -45,7 +45,7 @@ int8_t scanI2C(EthernetClient *_ethClient);
 *     - writeBytesToI2C()'s result code
 *
 *****************************************************************************************************************************/
-uint8_t writeByteToI2C(const uint8_t _i2cAddress, const int16_t _registerAddress, const uint8_t _data);
+uint8_t writeByteToI2C(const uint8_t _i2cAddress, const int16_t _registerAddress, const uint8_t _src);
 
 /*****************************************************************************************************************************
 *
@@ -60,7 +60,7 @@ uint8_t writeByteToI2C(const uint8_t _i2cAddress, const int16_t _registerAddress
 *       4 - other error
 *
 *****************************************************************************************************************************/
-uint8_t writeBytesToI2C(const uint8_t _i2cAddress, const int16_t _registerAddress, const uint8_t* _data, uint8_t _len);
+uint8_t writeBytesToI2C(const uint8_t _i2cAddress, const int16_t _registerAddress, const uint8_t *_src, uint8_t _len);
 
 /*****************************************************************************************************************************
 *
@@ -76,7 +76,7 @@ uint8_t writeBytesToI2C(const uint8_t _i2cAddress, const int16_t _registerAddres
 *
 *
 *****************************************************************************************************************************/
-uint8_t readBytesFromi2C(const uint8_t _i2cAddress, const int16_t _registerAddress, uint8_t* _dst, const uint8_t _len);
+uint8_t readBytesFromi2C(const uint8_t _i2cAddress, const int16_t _registerAddress, uint8_t *_dst, const uint8_t _len);
 
 /*****************************************************************************************************************************
 *
@@ -147,6 +147,6 @@ uint8_t inline isI2CDeviceReady(uint8_t _i2cAddress)
 *     - DEVICE_ERROR_CONNECT on connection error
 *
 *****************************************************************************************************************************/
-int8_t getBH1750Metric(const uint8_t _sdaPin, const uint8_t _sclPin, uint8_t _i2cAddress, uint8_t _mode, const uint8_t _metric, char* _dst);
+int8_t getBH1750Metric(const uint8_t _sdaPin, const uint8_t _sclPin, uint8_t _i2cAddress, uint8_t _mode, const uint8_t _metric, char *_dst);
 
-#endif
+#endif // #ifndef ZabbuinoI2C_BUS_h

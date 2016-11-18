@@ -54,7 +54,7 @@ void pushDataToMAX7219(const uint8_t _dataPin, const uint8_t _clockPin, const ui
 *    - none
 *
 *****************************************************************************************************************************/
-void printToMAX7219(const uint8_t _dataPin, const uint8_t _clockPin, const uint8_t _loadPin, const uint8_t _intensity, char* _data);
+void printToMAX7219(const uint8_t _dataPin, const uint8_t _clockPin, const uint8_t _loadPin, const uint8_t _intensity, char *_data);
 
 
-#endif
+#endif // #ifndef ZabbuinoBUSMICROWIRE_h

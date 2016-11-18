@@ -127,4 +127,4 @@ void pulseEnableOnLCD(const uint8_t _i2cAddress, const uint8_t _data);
 *****************************************************************************************************************************/
 int8_t printToPCF8574LCD(const uint8_t _sdaPin, const uint8_t _sclPin, uint8_t _i2cAddress, uint8_t _lcdBacklight, const uint16_t _lcdType, const char *_src);
 
-#endif
+#endif // #ifndef ZabbuinoI2C_LCD_h

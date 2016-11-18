@@ -21,7 +21,8 @@
 *     - DEVICE_ERROR_TIMEOUT if device stop talking
 *
 *****************************************************************************************************************************/
-int8_t getAPCSmartUPSMetric(const uint8_t _rxPin, const uint8_t _txPin, uint8_t* _command, uint8_t _commandLen,  uint8_t* _dst) {
+int8_t getAPCSmartUPSMetric(const uint8_t _rxPin, const uint8_t _txPin, uint8_t *_command, uint8_t _commandLen,  uint8_t *_dst) {
+  int8_t rc = DEVICE_ERROR_TIMEOUT;
   uint8_t command, 
           len, 
           sendTimes,
@@ -90,18 +91,12 @@ int8_t getAPCSmartUPSMetric(const uint8_t _rxPin, const uint8_t _txPin, uint8_t*
   // APC UPS can be flushed in slow mode
   serialRXFlush(&swSerial, true);
   command = 'Y';
-  if (! serialSend(&swSerial, &command, 1, true)) { 
-     return DEVICE_ERROR_TIMEOUT;      
-  };
+  serialSend(&swSerial, &command, 1, true);
   len = serialRecive(&swSerial, _dst, 0x03, APC_DEFAULT_READ_TIMEOUT, '\0', true);
   // Connection timeout occurs (recieved less than 3 byte)
-  if (len < 0x03) { 
-     return DEVICE_ERROR_TIMEOUT; 
-  }
+  if (len < 0x03) { goto finish; } // rc inited with DEVICE_ERROR_TIMEOUT value
   // Check for "SM\r"
-  if ( 'S' != _dst[0] || 'M' != _dst[1] || '\r' != _dst[2]) { 
-     return DEVICE_ERROR_WRONG_ANSWER; 
-  };    
+  if ( 'S' != _dst[0] || 'M' != _dst[1] || '\r' != _dst[2]) { goto finish; } // rc inited with DEVICE_ERROR_TIMEOUT value
   
   
   //  Step #2. Send user's command & recieve answer
@@ -113,16 +108,12 @@ int8_t getAPCSmartUPSMetric(const uint8_t _rxPin, const uint8_t _txPin, uint8_t*
   while (sendTimes) {
      // All commands fits to 1 byte
      //Serial.println("send");
-     if (! serialSend(&swSerial, _command, 1, true)) { 
-        return DEVICE_ERROR_TIMEOUT; 
-     };
+     serialSend(&swSerial, _command, 1, true);
      //Serial.println("recieve");
       // Recieve answer from Smart UPS. Answer placed to buffer directly and does not require additional processing 
      len = serialRecive(&swSerial, _dst, APC_MAX_ANSWER_LENGTH, APC_DEFAULT_READ_TIMEOUT, '\r', true);
      //Serial.print("len: "); Serial.println(len);
-     if (!sendCommandTwice && '\r' != _dst[len-1]) { 
-        return DEVICE_ERROR_TIMEOUT; 
-     };
+     if (!sendCommandTwice && '\r' != _dst[len-1]) { goto finish; } // rc inited with DEVICE_ERROR_TIMEOUT value
      //Serial.print("reply: "); Serial.println((char*) _dst);
 
      sendTimes--;
@@ -143,13 +134,14 @@ int8_t getAPCSmartUPSMetric(const uint8_t _rxPin, const uint8_t _txPin, uint8_t*
   //
   // 
   command = 'R';
-  if (! serialSend(&swSerial, &command, 1, true)) { 
-     return DEVICE_ERROR_TIMEOUT; 
-  };
+  serialSend(&swSerial, &command, 1, true);
   serialRXFlush(&swSerial, true);
   //Serial.println("Destroy current SoftwareSerial instance");
-  swSerial.~SoftwareSerial();
  
-  return RESULT_IN_BUFFER;
+  rc = RESULT_IN_BUFFER;
+
+  finish:
+  swSerial.~SoftwareSerial(); 
+  return rc;
 }
 

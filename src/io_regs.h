@@ -38,4 +38,4 @@ void writeToPort(const uint8_t _port, const uint8_t _value);
 **************************************************************************************************************************** */
 uint8_t isSafePin(const uint8_t _pin);
  
-#endif
+#endif // #ifndef ZabbuinoIOREGS_h

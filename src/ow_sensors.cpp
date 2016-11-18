@@ -22,6 +22,7 @@
 *****************************************************************************************************************************/
 int8_t getDS18X20Metric(const uint8_t _pin, uint8_t _resolution, char* _id, char* _dst)
 {
+  int8_t rc = DEVICE_ERROR_CONNECT;
   uint8_t i, signBit, dsAddr[8], scratchPad[9], parasitePowerUsed;
   int16_t conversionTimeout;
   uint32_t tRaw;
@@ -31,29 +32,27 @@ int8_t getDS18X20Metric(const uint8_t _pin, uint8_t _resolution, char* _id, char
   // Resolution must be: 9 <= _resolution <= 12 
   _resolution = constrain(_resolution, 9, 12);
 
-  OneWire* owDevice;
+  OneWire *owDevice;
   owDevice = new OneWire(_pin);
   
 
   if ('\0' == _id[0]) {
      // If ID not valid - search any sensor on OneWire bus and use its. Or return error when no devices found.    
      owDevice->reset_search();
-     if (!owDevice->search(dsAddr)) { delete owDevice; return DEVICE_ERROR_CONNECT;}
+     if (!owDevice->search(dsAddr)) { goto finish; } // rc already init with DEVICE_ERROR_CONNECT value
   } else {
      // Convert sensor ID (if its given) from HEX string to byte array (DeviceAddress structure). 
      // Sensor ID is equal DeviceAddress.
      // if converting not sucessfully - return DEVICE_ERROR_CONNECT because no sensor address here
-     if (!hstoba((uint8_t*) dsAddr, _id, 8)) {delete owDevice; return DEVICE_ERROR_CONNECT;}
+     if (!hstoba((uint8_t*) dsAddr, _id, 8)) { goto finish; }  // rc already init with DEVICE_ERROR_CONNECT value
   }
 
   // Validate sensor. Model id saved in first byte of DeviceAddress (sensor ID).
-  if (DS18S20_ID != dsAddr[0] && DS18B20_ID != dsAddr[0] && DS1822_ID != dsAddr[0]) {
-    delete owDevice;  return DEVICE_ERROR_CONNECT;}
+  if (DS18S20_ID != dsAddr[0] && DS18B20_ID != dsAddr[0] && DS1822_ID != dsAddr[0]) { goto finish; }  // rc already init with DEVICE_ERROR_CONNECT value
 
   // Get values of CONFIGURATION, HIGH_ALARM_TEMP, LOW_ALARM_TEMP registers via ScratchPad reading.
   // Or return error if bad CRC detected
-  if (!getScratchPadFromDS18X20(owDevice, dsAddr, scratchPad)) {
-    delete owDevice;  return DEVICE_ERROR_CHECKSUM; }
+  if (!getScratchPadFromDS18X20(owDevice, dsAddr, scratchPad)) { rc = DEVICE_ERROR_CHECKSUM; goto finish; }
 
   // Detect power on sensor - parasite or not
   parasitePowerUsed = false;
@@ -116,8 +115,7 @@ int8_t getDS18X20Metric(const uint8_t _pin, uint8_t _resolution, char* _id, char
   delay(conversionTimeout);
 
   // Read data from DS's ScratchPad or return 'Error' on failure
- if (!getScratchPadFromDS18X20(owDevice, dsAddr, scratchPad)) {
-    delete owDevice;  return DEVICE_ERROR_CHECKSUM;}
+ if (!getScratchPadFromDS18X20(owDevice, dsAddr, scratchPad)) { rc = DEVICE_ERROR_CHECKSUM; goto finish;} 
 
   // Temperature calculation
   tRaw = (((int16_t) scratchPad[DS18X20_BYTE_TEMP_MSB]) << 8) | scratchPad[DS18X20_BYTE_TEMP_LSB];
@@ -174,9 +172,12 @@ int8_t getDS18X20Metric(const uint8_t _pin, uint8_t _resolution, char* _id, char
   }
 
   ltoaf(tRaw, _dst, 4);
-  delete owDevice; 
 
-  return RESULT_IN_BUFFER;
+  rc = RESULT_IN_BUFFER;
+
+  finish:
+  delete owDevice; 
+  return rc;
 }
 
 /*****************************************************************************************************************************
@@ -188,7 +189,7 @@ int8_t getDS18X20Metric(const uint8_t _pin, uint8_t _resolution, char* _id, char
 *     - false on fail
 *
 *****************************************************************************************************************************/
-static  uint8_t getScratchPadFromDS18X20(OneWire* _owDevice, const uint8_t* _addr, uint8_t* _scratchPad) {
+static  uint8_t getScratchPadFromDS18X20(OneWire *_owDevice, const uint8_t *_addr, uint8_t *_scratchPad) {
   uint8_t i;
   _owDevice->reset();
   _owDevice->select(_addr);

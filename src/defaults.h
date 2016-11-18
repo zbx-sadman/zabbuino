@@ -5,6 +5,15 @@
    #define LIBWIRE_USE
 #endif
 
+#if defined(FEATURE_DEBUG_TO_SERIAL) || defined(FEATURE_SERIAL_LISTEN_TOO) || defined(FEATURE_NET_DEBUG_TO_SERIAL)
+   #define SERIAL_USE
+#endif
+
+#if defined(FEATURE_EXTERNAL_INTERRUPT_ENABLE) || defined(FEATURE_INCREMENTAL_ENCODER_ENABLE)
+   #define INTERRUPT_USE
+#endif
+
+
 /* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
                                                                  HEADERS SECTION
 */
@@ -27,12 +36,12 @@
 #define ERROR_NET                 	                        0x01
 #define ERROR_DHCP                 	                        0x02
 // Turn off state LED blink (no errors found)
-// State LED no blink type
-#define BLINK_NOPE                 	                        0x00
+// State LED no blink type, BLINK_* is used with millis(), that operate uint32_t numbers and better to use UL postfix for properly number cast
+#define BLINK_NOPE                 	                        000UL
 // State LED blink type with DHCP problem reached (no renew lease or more)
-#define BLINK_DHCP_PROBLEM         	                        150 // ~150ms on, ~850ms off
+#define BLINK_DHCP_PROBLEM         	                        150UL // ~150ms on, ~850ms off
 // State LED blink type with Network activity problem (no packets processed for NET_IDLE_TIMEOUT)
-#define BLINK_NET_PROBLEM          	                        500 // ~500ms on, ~500ms off
+#define BLINK_NET_PROBLEM          	                        500UL // ~500ms on, ~500ms off
 
 
 /* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
@@ -44,12 +53,17 @@
 
 
 // How often do ENC28J60 module reinit for more stable network
-#define NET_ENC28J60_REINIT_PERIOD  	                        10000UL  // 10 sec
+#define NET_ENC28J60_REINIT_PERIOD  	                        5000UL  // 10 sec
 
 // These macros used only to debug process on ENC28J60-powered systems 
 // ENC28J60 bank registers
+#define NET_ENC28J60_EIE                                        0x1B
 #define NET_ENC28J60_EIR                                        0x1C
 #define NET_ENC28J60_ESTAT                                      0x1D
+#define NET_ENC28J60_ECON1                                      0x1F
+#define NET_ENC28J60_ECON2                                      0x1E
+#define NET_ENC28J60_EPKTCNT                                    (0x19|0x20)
+
 // ENC28J60 EIE Register Bit Definitions
 #define NET_ENC28J60_EIE_INTIE                                  0x80
 #define NET_ENC28J60_EIE_PKTIE                                  0x40
@@ -74,6 +88,16 @@
 #define NET_ENC28J60_ESTAT_TXABRT                               0x02
 #define NET_ENC28J60_ESTAT_CLKRDY                               0x01
 
+// ENC28J60 ECON1 Register Bit Definitions
+#define NET_ENC28J60_ECON1_TXRST                                0x80
+#define NET_ENC28J60_ECON1_RXRST                                0x40
+#define NET_ENC28J60_ECON1_DMAST                                0x20
+#define NET_ENC28J60_ECON1_CSUMEN                               0x10
+#define NET_ENC28J60_ECON1_TXRTS                                0x08
+#define NET_ENC28J60_ECON1_RXEN                                 0x04
+#define NET_ENC28J60_ECON1_BSEL1                                0x02
+#define NET_ENC28J60_ECON1_BSEL0                                0x01
+
 
 // Network activity timeout (for which no packets processed or no DHCP lease renews finished with success)
 #define NET_IDLE_TIMEOUT            	                        60000UL  // 60 sec
@@ -89,14 +113,14 @@
 // How often do renew DHCP lease
 #define NET_DHCP_RENEW_PERIOD       	                        30000UL  // 30 sec
 // How often do renew DHCP lease
-#define NET_STABILIZATION_DELAY     	                        100L     // 0.1 sec
+#define NET_STABILIZATION_DELAY     	                        100UL     // 0.1 sec
 
 
 /* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
                                                          SYSTEM CONFIGURATION SECTION 
 */
 
-#define HOLD_TIME_TO_FACTORY_RESET  	                        5000L // 5 seconds
+#define HOLD_TIME_TO_FACTORY_RESET  	                        5000UL // 5 seconds
 
 // How many secs device may be stay in infinitibe loop before reboot
 // Also you can use:
@@ -106,7 +130,7 @@
 // WDTO_8S - not for all controllers (please reference to avr/wdt.h)
 #define WTD_TIMEOUT                   	                        WDTO_8S 
 
-#define SYS_METRIC_RENEW_PERIOD        	                        1000L // 1 sec
+#define SYS_METRIC_RENEW_PERIOD        	                        1000UL // 1 sec
 
 // Number of expected arguments of the command
 #define ARGS_MAX                    	                        6
@@ -197,7 +221,8 @@ D13 -^    ^- D8    <- pins   */
 
 
 
-const uint8_t port_mode[PORTS_NUM] = {
+const uint8_t port_mode[PORTS_NUM] PROGMEM = {
+//const uint8_t port_mode[PORTS_NUM] = {
 /*
  
   All bits equal '0' cause setting corresponding pin to INPUT mode
@@ -244,7 +269,8 @@ D13 -^    ^- D8    <- pins   */
 };
 
 
-const uint8_t port_pullup[PORTS_NUM] = {
+const uint8_t port_pullup[PORTS_NUM] PROGMEM = {
+//const uint8_t port_pullup[PORTS_NUM] = {
 /*
    All bits equal '0' cause do not pull-up corresponding pin
 
@@ -389,6 +415,10 @@ D13 -^    ^- D8    <- pins   */
 #define CMD_UPS_MEGATEC                                         0x41
 #define CMD_SYSTEM_RUN                                          0x42
 
+#define CMD_NET_ENC_REINITS                                     0x43
+#define CMD_NET_ENC_REINIT_REASON                               0x44
+#define CMD_NET_ENC_PKTCNT_MAX                                  0x45
+
 
 // add new command as "const char command_<COMMAND_MACRO> PROGMEM". Only 'const' push string to PROGMEM. Tanx, Arduino.
 // command_* values must be in lower case
@@ -486,6 +516,10 @@ const char command_CMD_UPS_APCSMART[]                           PROGMEM = "ups.a
 const char command_CMD_UPS_MEGATEC[]                            PROGMEM = "ups.megatec";
 
 const char command_CMD_SYSTEM_RUN[]                             PROGMEM = "system.run";
+
+const char command_CMD_NET_ENC_REINITS[]                        PROGMEM = "enc.reinits";
+const char command_CMD_NET_ENC_REINIT_REASON[]                  PROGMEM = "enc.reinit.rsn";
+const char command_CMD_NET_ENC_PKTCNT_MAX[]                     PROGMEM = "enc.pktcntmax";
 
 // do not insert new command to any position without syncing indexes. Tanx, Arduino and AVR, for this method of string array pushing to PROGMEM
 // ~300 bytes of PROGMEM space can be saved with crazy "#ifdef-#else-#endif" dance
@@ -721,6 +755,10 @@ const char* const commands[] PROGMEM = {
 
 command_CMD_SYSTEM_RUN,
 
+command_CMD_NET_ENC_REINITS,
+command_CMD_NET_ENC_REINIT_REASON,
+command_CMD_NET_ENC_PKTCNT_MAX,
+
 };
 
 /* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
@@ -738,6 +776,7 @@ command_CMD_SYSTEM_RUN,
   #define MSG_DEVICE_ERROR_CHECKSUM                             "Wrong checksum"
   #define MSG_DEVICE_ERROR_TIMEOUT                              "Timeout error"
   #define MSG_DEVICE_ERROR_WRONG_ANSWER                         "Wrong answer recieved"
+  #define MSG_DEVICE_ERROR_EEPROM                               "Can't save to EEPROM"
 #else
   #define MSG_DEVICE_ERROR_CONNECT                              "-131"
   #define MSG_DEVICE_ERROR_ACK_L                                "-132"
@@ -745,13 +784,14 @@ command_CMD_SYSTEM_RUN,
   #define MSG_DEVICE_ERROR_CHECKSUM                             "-134"
   #define MSG_DEVICE_ERROR_TIMEOUT                              "-135"
   #define MSG_DEVICE_ERROR_WRONG_ANSWER                         "-136"
+  #define MSG_DEVICE_ERROR_EEPROM                               "-151"
 #endif
 
 /* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
                                                            VARIOUS DEFINES SECTION 
 */
 
-#define IDX_METRICS_LAST                                        8
+#define IDX_METRICS_LAST                                        11
 #define IDX_METRICS_FIRST_CRONNED                               3
 
 #define IDX_METRIC_SYS_CMD_COUNT                                0
@@ -764,6 +804,9 @@ command_CMD_SYSTEM_RUN,
 #define IDX_METRIC_SYS_VCCMAX                                   6
 #define IDX_METRIC_SYS_RAM_FREE                                 7
 #define IDX_METRIC_SYS_RAM_FREEMIN                              8
+#define IDX_METRIC_NET_ENC_REINITS                              9
+#define IDX_METRIC_NET_ENC_REINIT_REASON                        10
+#define IDX_METRIC_NET_ENC_PKTCNT_MAX                           11 
 
 // Zabbix v2.x header prefix ('ZBXD\x01')
 #define ZBX_HEADER_PREFIX                                       "zbxd\1"
@@ -771,6 +814,26 @@ command_CMD_SYSTEM_RUN,
 #define ZBX_HEADER_PREFIX_LENGTH                                5
 // Zabbix v2.x header length
 #define ZBX_HEADER_LENGTH                                       12
+
+/*
+
+Enum take more progspace on compilation that macro :(
+Why? All sources tell me thah enum is preprocessor feature. May be its 16-bit width or so?
+
+typedef enum {
+   SENS_READ_RAW,
+   SENS_READ_TEMP,
+   SENS_READ_HUMD,
+   SENS_READ_PRSS,
+   SENS_READ_LUX,
+   SENS_READ_ZC,
+   SENS_READ_AC,
+   SENS_READ_DC,
+   SENS_READ_VOLTAGE,
+   SENS_READ_POWER,
+   SENS_READ_ENERGY
+} sens_metrics_t;
+*/
 
 #define SENS_READ_TEMP                                          0x01
 #define SENS_READ_HUMD                                          0x02
@@ -793,7 +856,7 @@ command_CMD_SYSTEM_RUN,
 #define RESULT_IS_PRINTED                                       0x04
 #define RESULT_IN_LONGVAR                                       0x08
 #define RESULT_IN_ULONGVAR                                      0x10
-#define RUN_NEW_COMMAND                                         -0x2
+#define RUN_NEW_COMMAND                                         -0x02
 
 // Error Codes
 //#define DEVICE_DISCONNECTED_C         	-127
@@ -803,6 +866,7 @@ command_CMD_SYSTEM_RUN,
 #define DEVICE_ERROR_CHECKSUM                                   -0x08
 #define DEVICE_ERROR_TIMEOUT                                    -0x10
 #define DEVICE_ERROR_WRONG_ANSWER                               -0x20
+#define DEVICE_ERROR_EEPROM_CORRUPTED                           -0x50
 
 
 /*
@@ -824,8 +888,8 @@ ADC channels
 #define DBG_PRINT_AS_MAC 		                        0x01
 #define DBG_PRINT_AS_IP  		                        0x02
 
-#define ENCODER_STABILIZATION_DELAY                             2000L // 2000 microseconds
-#define ADC_STABILIZATION_DELAY                                 1000L // 2000 microseconds
+#define ENCODER_STABILIZATION_DELAY                             2000UL // 2000 microseconds
+#define ADC_STABILIZATION_DELAY                                 1000UL // 2000 microseconds
 #define I2C_NO_REG_SPECIFIED                                    -0x01 //
 
 // On Leonardo, Micro and other ATmega32u4 boards wait to Serial Monitor ready for 5sec 
@@ -838,6 +902,11 @@ ADC channels
 #define CONFIG_STORE_DEFAULT_START_ADDRESS                      0x02
 // one byte used to pointer to EEPROM's start address from which config will saved, max stored pointer value is 255
 #define LAST_EEPROM_CELL_ADDRESS                                0xFF 
+
+
+#define OWNER_IS_NOBODY                                         0x00
+#define OWNER_IS_EXTINT                                         0x01
+#define OWNER_IS_INCENC                                         0x02
 
 /* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
                                                          PROGRAMM STRUCTURES SECTION 
@@ -864,6 +933,7 @@ typedef struct {                                  // 9 bytes:
     uint32_t count;        			  
     int32_t value;        			  
   };
+  uint8_t owner;                                  // 1 byte 
   // mode == -1 => Interrupt is not attached
   int8_t mode;                                    // 1 byte 
   volatile uint8_t *encTerminalAPIR;              // 1 byte
@@ -877,51 +947,6 @@ typedef union {                                   // 4 byte
   int32_t  longvar;
 } long_ulong_t;
 
-
-/* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
-                                                         INLINE AND "DEFINE" FUNCTIONS SECTION 
-*/
-
-// Use #define instead inline directive may be wrong, but save progspace
-
-
-// HEX char to number
-#define htod(_hex) ( (_hex >= 'a' && _hex <= 'f') ? (10 + _hex - 'a') : ( (_hex >= '0' && _hex <= '9') ? (_hex - '0') : 0)) 
-//inline uint8_t htod(char _hex) { return (_hex >= 'a' && _hex <= 'f') ? (10 + _hex - 'a') : ( (_hex >= '0' && _hex <= '9') ? (_hex - '0') : 0); } 
-
-// Convert dec number to hex char
-#define dtoh(_dec) ( (_dec > 9) ? ('A' - 10 + _dec) : ('0' + _dec) )
-//inline char dtoh(uint8_t _dec) { return (_dec > 9) ? ('A' - 10 + _dec) : ('0' + _dec); } 
-
-// if _source have hex prefix - return true
-#define haveHexPrefix(_src) ( (_src[0] == '0' && _src[1] == 'x') )
-//inline uint8_t haveHexPrefix(char *_src) { return (_src[0] == '0' && _src[1] == 'x')); } 
-
-#define arraySize(_array) sizeof(_array) / sizeof(*(_array))
-
-/* ****************************************************************************************************************************
-*
-*  Return "Free" memory size
-*
-**************************************************************************************************************************** */
-inline __attribute__((always_inline)) uint32_t getRamFree(void) {
-  extern uint16_t __heap_start, *__brkval;
-  uint16_t v;
-  return (uint32_t) &v - (__brkval == 0 ? (uint32_t) &__heap_start : (uint32_t) __brkval);
-}
-
-/* ****************************************************************************************************************************
-*
-*   Correct sys.vccmin/sys.vccmax metrics when VCC just taken
-*
-**************************************************************************************************************************** */
-// __attribute__((always_inline)) 
-inline void correctVCCMetrics(uint32_t _currVCC) {
-  // Global variable from outside
-  extern int32_t *sysMetrics;
-  if (sysMetrics[IDX_METRIC_SYS_VCCMIN] > _currVCC) { sysMetrics[IDX_METRIC_SYS_VCCMIN] = _currVCC; }
-  if (sysMetrics[IDX_METRIC_SYS_VCCMAX] < _currVCC) { sysMetrics[IDX_METRIC_SYS_VCCMAX] = _currVCC; }
-}
 
 #endif
 

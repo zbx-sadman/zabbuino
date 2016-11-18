@@ -54,7 +54,7 @@ uint16_t getADCVoltage(const uint8_t _analogChannel) {
 *     - always RESULT_IN_BUFFER 
 *
 *****************************************************************************************************************************/
-int8_t getACS7XXMetric(const uint8_t _sensorPin, uint32_t _aRefVoltage,  const uint8_t _metric, const uint8_t _sensitivity, const int32_t _ZeroCurrentPoint, char* _outBuffer)
+int8_t getACS7XXMetric(const uint8_t _sensorPin, uint32_t _aRefVoltage,  const uint8_t _metric, const uint8_t _sensitivity, const int32_t _ZeroCurrentPoint, char *_outBuffer)
 {  
   uint32_t sampleInterval, mVperUnit, prevMicros = 0;
   int32_t result, adcValue, numUnits = 0;

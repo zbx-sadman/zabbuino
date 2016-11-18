@@ -57,7 +57,7 @@
 *     - DEVICE_ERROR_CHECKSUM on detect data corruption
 *
 *****************************************************************************************************************************/
-int8_t getDS18X20Metric(const uint8_t _pin, uint8_t _resolution, char* _id, char* _outBuffer);
+int8_t getDS18X20Metric(const uint8_t _pin, uint8_t _resolution, char *_id, char *_outBuffer);
 
 /*****************************************************************************************************************************
 *
@@ -68,6 +68,6 @@ int8_t getDS18X20Metric(const uint8_t _pin, uint8_t _resolution, char* _id, char
 *     - false on fail
 *
 *****************************************************************************************************************************/
-static uint8_t getScratchPadFromDS18X20(OneWire* _owDevice, const uint8_t* _addr, uint8_t* _scratchPad);
+static uint8_t getScratchPadFromDS18X20(OneWire *_owDevice, const uint8_t *_addr, uint8_t *_scratchPad);
 
-#endif
+#endif // #ifndef ZabbuinoOW_SENSORS_h

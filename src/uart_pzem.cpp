@@ -8,7 +8,15 @@ version 1.0 is used
 */
 
 
-uint8_t crcPZEM004(uint8_t* _data, uint8_t _size) {
+/*****************************************************************************************************************************
+*
+*   Calculate CRC of Peacefair PZEM-004 data packet
+*
+*   Returns: 
+*     - CRC
+*
+*****************************************************************************************************************************/
+uint8_t crcPZEM004(uint8_t *_data, uint8_t _size) {
     uint16_t crc = 0;
     for(uint8_t i=0; i < _size; i++) { crc += (uint8_t) *_data; _data++;}
     //while (_size) { crc += *_data; _data++; _size--; }
@@ -24,7 +32,8 @@ uint8_t crcPZEM004(uint8_t* _data, uint8_t _size) {
 *     - DEVICE_ERROR_TIMEOUT if device stop talking
 *
 *****************************************************************************************************************************/
-int8_t getPZEM004Metric(const uint8_t _rxPin, const uint8_t _txPin, uint8_t _metric, const char* _ip, uint8_t* _dst) {
+int8_t getPZEM004Metric(const uint8_t _rxPin, const uint8_t _txPin, uint8_t _metric, const char *_ip, uint8_t *_dst) {
+  int8_t rc = RESULT_IS_FAIL;
   uint8_t command, len;
   int32_t result;
   SoftwareSerial swSerial(_rxPin, _txPin);
@@ -69,20 +78,20 @@ int8_t getPZEM004Metric(const uint8_t _rxPin, const uint8_t _txPin, uint8_t _met
     // 7-th byte - CRC
     _dst[6] = crcPZEM004(_dst, PZEM_PACKET_SIZE - 1); 
     //for(int i=0; i < sizeof(buffer); i++) { Serial.print("Byte# "); Serial.print(i); Serial.print(" => "); Serial.println(buffer[i], HEX);  }
-    if (! serialSend(&swSerial, _dst, PZEM_PACKET_SIZE, false)) { return DEVICE_ERROR_TIMEOUT; };
+    serialSend(&swSerial, _dst, PZEM_PACKET_SIZE, false);
 
     /*  Recieve from PZEM004 */
     len = serialRecive(&swSerial, _dst, PZEM_PACKET_SIZE, PZEM_DEFAULT_READ_TIMEOUT, '\0', false);
-    swSerial.~SoftwareSerial();// 
+//    swSerial.~SoftwareSerial();// 
 
     // Connection timeout occurs
     // if (len != PZEM_PACKET_SIZE) { return DEVICE_ERROR_TIMEOUT; }
-    if (len < PZEM_PACKET_SIZE) { return DEVICE_ERROR_TIMEOUT; }
+    if (len < PZEM_PACKET_SIZE) { rc = DEVICE_ERROR_TIMEOUT; goto finish; }
     // Wrong answer. buffer[0] must contain command - 0x10 (command B1 -> reply A1)
     // command = command - 0x10;
-    if (_dst[0] != (command - 0x10)) { return DEVICE_ERROR_WRONG_ANSWER; }
+    if (_dst[0] != (command - 0x10)) { rc = DEVICE_ERROR_WRONG_ANSWER; goto finish; }
     // Bad CRC
-    if (_dst[6] != crcPZEM004( _dst, len - 1)) { return DEVICE_ERROR_CHECKSUM; }
+    if (_dst[6] != crcPZEM004( _dst, len - 1)) { rc = DEVICE_ERROR_CHECKSUM; goto finish; }
     
    // data is placed in buffer from 2-th byte, because 1-th byte is Header
     switch (_metric) {
@@ -104,7 +113,10 @@ int8_t getPZEM004Metric(const uint8_t _rxPin, const uint8_t _txPin, uint8_t _met
         ltoa(result, (char*) _dst, 10);
         break;
     }
+  rc = RESULT_IN_BUFFER;
 
-  return RESULT_IN_BUFFER;
+  finish:
+  swSerial.~SoftwareSerial(); 
+  return rc;
 }
 

@@ -45,7 +45,7 @@ uint16_t getRawDataFromSHT2X(const uint8_t _i2cAddress, const uint8_t _command)
 *     - DEVICE_ERROR_TIMEOUT if sensor do not ready to work
 *
 *****************************************************************************************************************************/
-int8_t getSHT2XMetric(const uint8_t _sdaPin, const uint8_t _sclPin, uint8_t _i2cAddress, const uint8_t _metric, char* _dst) 
+int8_t getSHT2XMetric(const uint8_t _sdaPin, const uint8_t _sclPin, uint8_t _i2cAddress, const uint8_t _metric, char *_dst) 
 {
   int32_t result = 0;
   uint16_t rawData; 

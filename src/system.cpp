@@ -101,16 +101,19 @@ void stopTimerOne() { TCCR1B = 0; }
 *
 *****************************************************************************************************************************/
 void inline gatherSystemMetrics(){
-  // Global variable from outside
-  extern volatile int32_t *sysMetrics;
 #ifdef FEATURE_DEBUG_COMMANDS_ENABLE
-      sysMetrics[IDX_METRIC_SYS_RAM_FREE] = (int32_t) getRamFree(); 
-      // Correct sys.ram.freemin metric when FreeMem just taken
-      if (sysMetrics[IDX_METRIC_SYS_RAM_FREEMIN] > sysMetrics[IDX_METRIC_SYS_RAM_FREE]) {
-          sysMetrics[IDX_METRIC_SYS_RAM_FREEMIN] = sysMetrics[IDX_METRIC_SYS_RAM_FREE]; 
-
-      }
+  // Global variable from the outside
+  extern volatile int32_t *sysMetrics;
+  sysMetrics[IDX_METRIC_SYS_RAM_FREE] = (int32_t) getRamFree(); 
+  // Correct sys.ram.freemin metric when FreeMem just taken
+  if (sysMetrics[IDX_METRIC_SYS_RAM_FREEMIN] > sysMetrics[IDX_METRIC_SYS_RAM_FREE]) {
+     sysMetrics[IDX_METRIC_SYS_RAM_FREEMIN] = sysMetrics[IDX_METRIC_SYS_RAM_FREE]; 
+  }
+#else
+  // This line used to compile this sub in any case, even if the compiler optimize the code 
+  asm volatile ("nop");  
 #endif
+
 }
      
 

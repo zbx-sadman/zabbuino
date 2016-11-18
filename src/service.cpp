@@ -1,16 +1,17 @@
 #include "service.h"
 
 
-/* ****************************************************************************************************************************
+/*****************************************************************************************************************************
 *
 *   Set default values of network configuration
 *
-**************************************************************************************************************************** */
-void setConfigDefaults(netconfig_t* _configStruct)
+*****************************************************************************************************************************/
+void setConfigDefaults(netconfig_t *_configStruct)
 {
-  // Set defaults
+  // Copying defaut MAC to the config
   uint8_t mac[] = NET_DEFAULT_MAC_ADDRESS;
   memcpy(_configStruct->macAddress, mac, arraySize(_configStruct->macAddress));
+
   _configStruct->useDHCP = (NET_DEFAULT_USE_DHCP);
   _configStruct->ipAddress = IPAddress(NET_DEFAULT_IP_ADDRESS);
   _configStruct->ipNetmask = IPAddress(NET_DEFAULT_NETMASK);
@@ -18,43 +19,41 @@ void setConfigDefaults(netconfig_t* _configStruct)
   _configStruct->password  = (SYS_DEFAULT_PASSWORD);
   _configStruct->useProtection = (SYS_DEFAULT_PROTECTION);
   
-  // Make FDQN-hostname & modify MAC-address and IP-address if need
 #ifdef FEATURE_NET_USE_MCUID
-  // Write ID into hostname variable
+  // if FEATURE_NET_USE_MCUID is defined:
+  // 1. Make FDQN-hostname from MCU ID and default domain name
+  // 2. Modify MAC - the last default's MAC octet is replaced to the last byte of MCU ID
+  // 3. Modify IP - the last default's IP octet is replaced too to the last byte of MCU ID
   getBootSignatureBytes(_configStruct->hostname, 14, 10);
-  // Append domain name to ID 
   memcpy(&_configStruct->hostname[SYS_MCU_ID_LEN], (ZBX_AGENT_DEFAULT_DOMAIN), arraySize(ZBX_AGENT_DEFAULT_DOMAIN));
-  // Terminate string
   _configStruct->hostname[SYS_MCU_ID_LEN+sizeof(ZBX_AGENT_DEFAULT_DOMAIN)+1]='\0';
   
-  // Modify MAC & IP
+  // 
   // Interrupts must be disabled before boot_signature_byte_get will be called to avoid code crush
   noInterrupts();
-  // rewrite last MAC's two byte with MCU ID's bytes
   _configStruct->macAddress[5] = boot_signature_byte_get(23);
   interrupts();
   _configStruct->ipAddress[3] = _configStruct->macAddress[5];
 
 #else
-  // Write default hostname into hostname variable
+  // Otherwise - use default hostname and domain name for FDQN-hostname
   memcpy(&_configStruct->hostname[0], (ZBX_AGENT_DEFAULT_HOSTNAME), arraySize(ZBX_AGENT_DEFAULT_HOSTNAME));
-  // Append domain name to default hostname  
   memcpy(&_configStruct->hostname[sizeof(ZBX_AGENT_DEFAULT_HOSTNAME)-1], (ZBX_AGENT_DEFAULT_DOMAIN), arraySize(ZBX_AGENT_DEFAULT_DOMAIN));
-  // Terminate string
   _configStruct->hostname[sizeof(ZBX_AGENT_DEFAULT_HOSTNAME)+sizeof(ZBX_AGENT_DEFAULT_DOMAIN)+1]='\0';
 #endif
 }
 
-/* ****************************************************************************************************************************
+/*****************************************************************************************************************************
 *
 *   Convert _Qm.n_ float number (int64_t) to char[] 
 *
-**************************************************************************************************************************** */
-uint8_t qtoaf(const int64_t _number, char* _dst, uint8_t _fracBits){
+*****************************************************************************************************************************/
+void qtoaf(const int64_t _number, char *_dst, uint8_t _fracBits){
     int64_t tmp; 
+    // Write to _dst text representation of whole part, decimal comma, and add fract part if its exists
     tmp = _number >> _fracBits;
     ltoa(tmp, _dst, 10);
-    if (0 == _fracBits) { return true; }
+    if (0 == _fracBits) { return; }
     while (*_dst) {_dst++;}
     *_dst = '.'; _dst++;
     tmp = 1;
@@ -65,15 +64,16 @@ uint8_t qtoaf(const int64_t _number, char* _dst, uint8_t _fracBits){
     }
     tmp = _number & tmp;
     ltoa(tmp, _dst, 10);
+    return; 
 }
 
 
-/* ****************************************************************************************************************************
+/*****************************************************************************************************************************
 *
 *   Convert int32_t _number to char[]  with decimal point on _num_after_dot position 
 *   _number / (10 * _num_after_dot position) => char[]
 *
-**************************************************************************************************************************** */
+*****************************************************************************************************************************/
 void ltoaf(const int32_t _number, char* _dst, const uint8_t _num_after_dot)
 {
   uint8_t i, skipLeadingZeros = true, pointIsUsed = false;;
@@ -129,12 +129,12 @@ void ltoaf(const int32_t _number, char* _dst, const uint8_t _num_after_dot)
   *_dst = '\0';
 }
 
-/* ****************************************************************************************************************************
+/*****************************************************************************************************************************
 *
 *  Convert _len chars (exclude 0x prefix) of hex string to byte array
 *
-**************************************************************************************************************************** */
-uint8_t hstoba(uint8_t* _dst, const char* _src, uint8_t _len)
+*****************************************************************************************************************************/
+uint8_t hstoba(uint8_t *_dst, const char *_src, uint8_t _len)
 {
   // don't fill _array and return false if mailformed string detected
   if (!haveHexPrefix(_src)) { return false; }
@@ -151,94 +151,76 @@ uint8_t hstoba(uint8_t* _dst, const char* _src, uint8_t _len)
   return true;
 }
 
-/* ****************************************************************************************************************************
+/*****************************************************************************************************************************
 *
 *   Compute a Dallas Semiconductor 8 bit CRC directly. This is much slower, but much smaller, than the lookup table.
 *
 *   This function placed here to aviod compilation error when OneWire library is not #included
 *
-**************************************************************************************************************************** */
+*****************************************************************************************************************************/
 uint8_t dallas_crc8(const uint8_t *_src, uint8_t _len)
 {
-	uint8_t crc = 0;
-	
-	while (_len--) {
-		uint8_t inbyte = *_src++;
-		for (uint8_t i = 8; i; i--) {
-			uint8_t mix = (crc ^ inbyte) & 0x01;
-			crc >>= 1;
-			if (mix) crc ^= 0x8C;
-			inbyte >>= 1;
-		}
-	}
-	return crc;
+  uint8_t crc = 0;
+
+  while (_len) {
+    _len--;
+    uint8_t inbyte = *_src++;
+    for (uint8_t i = 8; i; i--) {
+ 	uint8_t mix = (crc ^ inbyte) & 0x01;
+	crc >>= 1;
+	if (mix) crc ^= 0x8C;
+	inbyte >>= 1;
+    }
+  }
+  return crc;
 }
 
-/* ****************************************************************************************************************************
+/*****************************************************************************************************************************
 *
 *  Print string stored in PROGMEM to Serial 
 *
-**************************************************************************************************************************** */
-void SerialPrint_P (const char* _src) {
+*****************************************************************************************************************************/
+void SerialPrint_P (const char *_src) {
   char currChar;
   while ((currChar = pgm_read_byte(_src++)) != 0)
   Serial.print(currChar);
 }
 
-/* ****************************************************************************************************************************
+/*****************************************************************************************************************************
 *
 *  Print string stored in PROGMEM to Serial + Line Feed
 *
-**************************************************************************************************************************** */
-void SerialPrintln_P (const char* _src) {
+*****************************************************************************************************************************/
+void SerialPrintln_P (const char *_src) {
   SerialPrint_P(_src);
   Serial.println();
 }
 
 
-/* ****************************************************************************************************************************
-*
-*   Convert array of char with given lenght to uint32_t variable
-*
-**************************************************************************************************************************** */
-uint32_t pl_atol(char const *_src, uint8_t _len) {
-  long result = 0;
-  uint8_t i;
-  int8_t sign = 1;
-
-  // Check lengh of buffer and work if its no more max digits of int_32 type (11 chars)
-  if ( 11 < _len ) {return 0; }
-  
-  // Sign of number is exist? 
-  if ('-' == (*_src)) {sign = -1; _src++; _len--; }
-
-  // Walk thru buffer and calculate int32_t number
-  for (i = 0 ; i < _len ; i++) {
-    if ((*_src < '0') or (*_src > '9')) { return 0; }
-    result = (result << 3) + ( result<<1 ) + *_src -'0';
-   _src++;
-  }
-
-  // If number with sign
-  return sign * result;
-}
-
-
-/* ****************************************************************************************************************************
+/*****************************************************************************************************************************
 *
 *  Print array to Serial as MAC or IP or other string with sign-separated parts
 *
-**************************************************************************************************************************** */
+*****************************************************************************************************************************/
 void printArray(uint8_t *_src, uint8_t _len, const uint8_t _type)
 {
+  char separator;
+  uint8_t format;
+
+  switch (_type) {
+    case DBG_PRINT_AS_MAC:
+      format = HEX;
+      separator = ':';
+      break;
+    case DBG_PRINT_AS_IP:
+    default:
+      format = DEC;
+      separator = '.';
+   }     
+
   while (_len--) {
-    if (DBG_PRINT_AS_MAC == _type) {
-       Serial.print(*_src, HEX);
-       if (1 <= _len) { Serial.print(':'); }
-    } else if (DBG_PRINT_AS_IP == _type) {
-       Serial.print(*_src, DEC);
-       if (1 <= _len) Serial.print('.');
-    }
+    Serial.print(*_src, format);
+    if (1 <= _len) Serial.print(separator);
     _src++;
   }
   Serial.println();

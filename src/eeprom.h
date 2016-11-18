@@ -18,7 +18,7 @@
 *     - false on fail
 *
 *****************************************************************************************************************************/
-uint8_t saveConfigToEEPROM(netconfig_t* _configStruct);
+uint8_t saveConfigToEEPROM(netconfig_t *_configStruct);
 
 /*****************************************************************************************************************************
 *
@@ -29,6 +29,6 @@ uint8_t saveConfigToEEPROM(netconfig_t* _configStruct);
 *     - false on fail
 *
 *****************************************************************************************************************************/
-uint8_t loadConfigFromEEPROM(netconfig_t* _configStruct);
+uint8_t loadConfigFromEEPROM(netconfig_t *_configStruct);
 
-#endif
+#endif // #ifndef ZabbuinoEEPROM_h
