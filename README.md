@@ -37,7 +37,7 @@ Fixes:
 
 Changes: 
   - Debug level is available in levels: low, mid, high (FEATURE_DEBUG_TO_SERIAL_LOW, FEATURE_DEBUG_TO_SERIAL_MIDDLE, FEATURE_DEBUG_TO_SERIAL_HIGH). Need to choose only one feature;
-  - Due fight for ENC28J60 stability UIPEthernet source code is changed. Library archive is uploaded to github. Testing continues...
+  - Due fight for ENC28J60 stability UIPEthernet source code is changed. [Library archive](https://github.com/zbx-sadman/Zabbuino/tree/experimental/libraries) is uploaded to github. Testing continues...
   - Free memory size measured on end of some subroutines. Perhaps this is to be more reliable. We'll see.
 
 
