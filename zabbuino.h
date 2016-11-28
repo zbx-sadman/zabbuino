@@ -287,9 +287,11 @@
 #define FEATURE_DEBUG_COMMANDS_ENABLE
 
 /*/
-/=/     View the debug messages on the Serial Monitor
+/=/     View the more or less debug messages on the Serial Monitor. Choose one.
 /*/
-//#define FEATURE_DEBUG_TO_SERIAL
+//#define FEATURE_DEBUG_TO_SERIAL_LOW
+//#define FEATURE_DEBUG_TO_SERIAL_MIDDLE
+//#define FEATURE_DEBUG_TO_SERIAL_HIGH
 
 /*/
 /=/     View the additional debug messages on the Serial Monitor when network errors probaly occurs
@@ -332,7 +334,7 @@
   #define NET_DEFAULT_IP_ADDRESS                              {192,168,0,228}
   #define NET_DEFAULT_GATEWAY                                 {192,168,0,1}
 #else
-  #define NET_DEFAULT_MAC_ADDRESS                              {0xDE,0xAD,0xBE,0xEF,0xFE,0xF7}
+  #define NET_DEFAULT_MAC_ADDRESS                             {0xDE,0xAD,0xBE,0xEF,0xFE,0xF7}
   #define NET_DEFAULT_IP_ADDRESS                              {172,16,100,228}
   #define NET_DEFAULT_GATEWAY                                 {172,16,100,254}
 #endif

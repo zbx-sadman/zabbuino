@@ -176,6 +176,7 @@ int8_t getDS18X20Metric(const uint8_t _pin, uint8_t _resolution, char* _id, char
   rc = RESULT_IN_BUFFER;
 
   finish:
+  gatherSystemMetrics(); // Measure memory consumption
   delete owDevice; 
   return rc;
 }

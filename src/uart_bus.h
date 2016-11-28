@@ -13,6 +13,9 @@
                                                       COMMON UART SECTION
 
 -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-*/
+#define UART_SLOW_MODE                                        true
+#define UART_STOP_ON_CHAR                                     true
+
 
 /*****************************************************************************************************************************
 *
@@ -32,7 +35,7 @@ uint8_t serialRXFlush(SoftwareSerial *_swSerial, const uint8_t _slowMode);
 *     - The number of the readed bytes
 *
 *****************************************************************************************************************************/
-uint8_t serialRecive(SoftwareSerial *_swSerial, uint8_t *_src, const uint8_t _size, const uint32_t _readTimeout, const uint8_t _stopOn, const uint8_t _slowMode);
+uint8_t serialRecive(SoftwareSerial *_swSerial, uint8_t *_src, const uint8_t _size, const uint32_t _readTimeout, const uint8_t _stopOnChar, const uint8_t _stopChar, const uint8_t _slowMode);
 
 /*****************************************************************************************************************************
 *

@@ -262,6 +262,7 @@ int8_t printToPCF8574LCD(const uint8_t _sdaPin, const uint8_t _sclPin, uint8_t _
     // move pointer to next char
     _src++;
   } // while(*_src)
+  gatherSystemMetrics(); // Measure memory consumption
   return RESULT_IS_OK;
 }
 

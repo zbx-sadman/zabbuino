@@ -52,8 +52,8 @@ void setup() {
   Serial.begin(9600);
 #endif // SERIAL_USE
 
-  DTS( SerialPrint_P(PSTR(ZBX_AGENT_VERISON)); )
-  DTS( SerialPrintln_P(PSTR(" waked up")); )
+  DTSL( SerialPrint_P(PSTR(ZBX_AGENT_VERISON)); )
+  DTSL( SerialPrintln_P(PSTR(" waked up")); )
   
   sysMetrics[IDX_METRIC_SYS_VCCMIN] = sysMetrics[IDX_METRIC_SYS_VCCMAX] = getADCVoltage(ANALOG_CHAN_VBG);
   sysMetrics[IDX_METRIC_SYS_RAM_FREE] = sysMetrics[IDX_METRIC_SYS_RAM_FREEMIN] = (int32_t) getRamFree();
@@ -94,18 +94,18 @@ So... no debug with Serial Monitor at this time
   // Check for PIN_FACTORY_RESET shorting to ground?
   // (when pulled INPUT pin shorted to GND - digitalRead() return LOW)
   if (LOW == digitalRead(PIN_FACTORY_RESET)){
-  DTS( SerialPrintln_P(PSTR("The factory reset button is pressed")); )
+  DTSM( SerialPrintln_P(PSTR("The factory reset button is pressed")); )
     // Fire up state LED
     digitalWrite(PIN_STATE_LED, HIGH);
     // Wait some msecs
     delay(HOLD_TIME_TO_FACTORY_RESET);
     // PIN_FACTORY_RESET still shorted?
     if (LOW == digitalRead(PIN_FACTORY_RESET)){
-       DTS( SerialPrintln_P(PSTR("Rewrite EEPROM with defaults...")); )
+       DTSM( SerialPrintln_P(PSTR("Rewrite EEPROM with defaults...")); )
        setConfigDefaults(netConfig);
        saveConfigToEEPROM(netConfig);
        // Blink fast while PIN_FACTORY_RESET shorted to GND
-       DTS( SerialPrintln_P(PSTR("Done. Release the factory reset button now")); )
+       DTSM( SerialPrintln_P(PSTR("Done. Release the factory reset button now")); )
        while (LOW == digitalRead(PIN_FACTORY_RESET)) {
           digitalWrite(PIN_STATE_LED, millis() % 100 < 50);
       }
@@ -118,7 +118,7 @@ So... no debug with Serial Monitor at this time
    -=-=-=-=-=-=-=-=-=-=-=- */
   // Try to load configuration from EEPROM
   if (false == loadConfigFromEEPROM(netConfig)) {
-     DTS( SerialPrintln_P(PSTR("Load error")); )
+     DTSM( SerialPrintln_P(PSTR("Load error")); )
      // bad CRC detected, use default values for this run
      setConfigDefaults(netConfig);
      if (!saveConfigToEEPROM(netConfig)) {
@@ -126,7 +126,7 @@ So... no debug with Serial Monitor at this time
      }
   }
 #else // FEATURE_EEPROM_ENABLE
-     DTS( SerialPrintln_P(PSTR("Use default network settings")); )
+     DTSM( SerialPrintln_P(PSTR("Use default network settings")); )
      // Use hardcoded values if EEPROM feature disabled
      setConfigDefaults(netConfig);
 #endif // FEATURE_EEPROM_ENABLE
@@ -141,7 +141,7 @@ So... no debug with Serial Monitor at this time
 #ifdef FEATURE_NET_DHCP_ENABLE
   // User want to use DHCP with Zabbuino?
   if (true == netConfig->useDHCP) {
-     DTS( SerialPrintln_P(PSTR("Obtaining address from DHCP...")); )
+     DTSM( SerialPrintln_P(PSTR("Obtaining address from DHCP...")); )
       // Try to ask DHCP server
      if (0 == Ethernet.begin(netConfig->macAddress)) {
         DTS( SerialPrintln_P(PSTR("No success")); )
@@ -155,22 +155,22 @@ So... no debug with Serial Monitor at this time
 
   // No DHCP offer recieved or no DHCP need - start with stored/default IP config
   if (false == netConfig->useDHCP) {
-     DTS( SerialPrintln_P(PSTR("Use static IP")); )
+     DTSM( SerialPrintln_P(PSTR("Use static IP")); )
      // That overloaded .begin() function return nothing
      // Second netConfig->ipAddress used as dns-address
      Ethernet.begin(netConfig->macAddress, netConfig->ipAddress, netConfig->ipAddress, netConfig->ipGateway, netConfig->ipNetmask);
   }
   
-  DTS( SerialPrintln_P(PSTR("Serving on:")); )
-  DTS( SerialPrint_P(PSTR("MAC     : ")); printArray(netConfig->macAddress, sizeof(netConfig->macAddress), DBG_PRINT_AS_MAC); )
-  DTS( SerialPrint_P(PSTR("Hostname: ")); Serial.println(netConfig->hostname); )
-  DTS( SerialPrint_P(PSTR("IP      : ")); Serial.println(Ethernet.localIP()); )
-  DTS( SerialPrint_P(PSTR("Subnet  : ")); Serial.println(Ethernet.subnetMask()); )
-  DTS( SerialPrint_P(PSTR("Gateway : ")); Serial.println(Ethernet.gatewayIP()); )
-  DTS( SerialPrint_P(PSTR("Password: ")); Serial.println(netConfig->password, DEC); )
+  DTSL( SerialPrintln_P(PSTR("Serving on:")); )
+  DTSL( SerialPrint_P(PSTR("MAC     : ")); printArray(netConfig->macAddress, sizeof(netConfig->macAddress), DBG_PRINT_AS_MAC); )
+  DTSL( SerialPrint_P(PSTR("Hostname: ")); Serial.println(netConfig->hostname); )
+  DTSL( SerialPrint_P(PSTR("IP      : ")); Serial.println(Ethernet.localIP()); )
+  DTSL( SerialPrint_P(PSTR("Subnet  : ")); Serial.println(Ethernet.subnetMask()); )
+  DTSL( SerialPrint_P(PSTR("Gateway : ")); Serial.println(Ethernet.gatewayIP()); )
+  DTSL( SerialPrint_P(PSTR("Password: ")); Serial.println(netConfig->password, DEC); )
   // This codeblock is compiled if UIPethernet.h is included
 #ifdef UIPETHERNET_H
-  DTS( SerialPrint_P(PSTR("ENC28J60: rev ")); Serial.println(Enc28J60.getrev()); )
+  DTSL( SerialPrint_P(PSTR("ENC28J60: rev ")); Serial.println(Enc28J60.getrev()); )
 #endif
 
   // Start listen sockets
@@ -264,7 +264,8 @@ void loop() {
 #endif 
        sysMetrics[IDX_METRIC_SYS_VCC] = getADCVoltage(ANALOG_CHAN_VBG);
        correctVCCMetrics(sysMetrics[IDX_METRIC_SYS_VCC]);
-       prevSysMetricGatherTime = millis();
+       //prevSysMetricGatherTime = millis();
+       prevSysMetricGatherTime += SYS_METRIC_RENEW_PERIOD;
     }
 
 #ifdef FEATURE_NET_DHCP_ENABLE
@@ -287,14 +288,13 @@ void loop() {
             // Got some errors - blink with "DHCP problem message"
             blinkType = BLINK_DHCP_PROBLEM;    
             errorCode = ERROR_DHCP;
- //         DTS( SerialPrintln_P(PSTR("DHCP renew problem occured")); )
+  /         DTSM( SerialPrintln_P(PSTR("DHCP renew problem occured")); )
        }
     }
 #endif // FEATURE_NET_DHCP_ENABLE
 
     // No DHCP problem found but no data recieved or network activity for a long time
     if (ERROR_NONE == errorCode && (NET_IDLE_TIMEOUT <= (uint32_t) (nowTime - prevNetProblemTime))) { 
-       //NDTS( SerialPrintln_P(PSTR("No data recieved for a long time")); )
        blinkType = BLINK_NET_PROBLEM; 
        errorCode = ERROR_NET;
     }
@@ -304,35 +304,39 @@ void loop() {
     if (sysMetrics[IDX_METRIC_NET_ENC_PKTCNT_MAX] < encPktCnt) { sysMetrics[IDX_METRIC_NET_ENC_PKTCNT_MAX] = encPktCnt; }
 
     // Time to reinit ENC28J60?
+/*
     if (NET_ENC28J60_REINIT_PERIOD <= (uint32_t) (nowTime - prevENCReInitTime)) {
        // if EIR.TXERIF or EIR.RXERIF is set - ENC28J60 detect error, if ECON1.RXEN is clear - ENC28J60's filter feature drop all packets. 
        // To resolve this situation need to re-init module 
        uint8_t stateEconRxen = Enc28J60.readReg((uint8_t) NET_ENC28J60_ECON1) & NET_ENC28J60_ECON1_RXEN;
-       uint8_t stateEir = Enc28J60.readReg((uint8_t) NET_ENC28J60_EIR) ;
-       if (!stateEconRxen || (stateEir & (NET_ENC28J60_EIR_TXERIF | NET_ENC28J60_EIR_RXERIF)))
+       uint8_t stateEirTxerif = Enc28J60.readReg((uint8_t) NET_ENC28J60_EIR) & NET_ENC28J60_EIR_TXERIF;
+       uint8_t stateEstatBuffer = Enc28J60.readReg((uint8_t) NET_ENC28J60_ESTAT) & NET_ENC28J60_ESTAT_BUFFER;
+       if (!stateEconRxen || (stateEstatBuffer & stateEirTxerif))
+       //if (!stateEconRxen || (stateEir & NET_ENC28J60_EIR_TXERIF))
+       //if (!stateEconRxen)
        {
           // just for debug. the code must be removed on release
           if (!stateEconRxen) {
               sysMetrics[IDX_METRIC_NET_ENC_REINIT_REASON] = 0x01;
-          } else if (stateEir & NET_ENC28J60_EIR_TXERIF) {
-              sysMetrics[IDX_METRIC_NET_ENC_REINIT_REASON] = 0x02;
           } else {
-              sysMetrics[IDX_METRIC_NET_ENC_REINIT_REASON] = 0x03;
-          }
+              sysMetrics[IDX_METRIC_NET_ENC_REINIT_REASON] = 0x02;
+          } 
 
-          DTS( SerialPrintln_P(PSTR("ENC28J60 reinit")); )
+          DTSM( SerialPrintln_P(PSTR("ENC28J60 reinit")); )
           Enc28J60.init(netConfig->macAddress); 
           sysMetrics[IDX_METRIC_NET_ENC_REINITS]++;
           sysMetrics[IDX_METRIC_NET_ENC_PKTCNT_MAX] = 0;
-          delay(NET_STABILIZATION_DELAY);
+          //delay(NET_STABILIZATION_DELAY);
        } 
-       prevENCReInitTime = nowTime;
+//       prevENCReInitTime = nowTime;
+       prevENCReInitTime += NET_ENC28J60_REINIT_PERIOD;
     }
+  */  
 #endif // USE_DIRTY_HACK_AND_REBOOT_ENC28J60_IF_ITS_SEEMS_FREEZE
 
  #ifdef FEATURE_NET_DEBUG_TO_SERIAL
        // Print debug data every... 5 seconds
-        if ((5000L <= (uint32_t) (nowTime - netDebugPrintTime))) {
+        if ((5000UL <= (uint32_t) (nowTime - netDebugPrintTime))) {
            NDTS( SerialPrint_P(PSTR("Millis: "));  Serial.println(nowTime); )
 //           NDTS( SerialPrint_P(PSTR("  ECON1: ")); Serial.println(Enc28J60.readReg((uint8_t) NET_ENC28J60_ECON1), BIN); )
            if (ERROR_NONE != errorCode) {
@@ -354,9 +358,12 @@ void loop() {
               NDTS( SerialPrint_P(PSTR("  ECON1: ")); Serial.println(Enc28J60.readReg((uint8_t) NET_ENC28J60_ECON1), BIN); )
               NDTS( SerialPrint_P(PSTR("  ECON2: ")); Serial.println(Enc28J60.readReg((uint8_t) NET_ENC28J60_ECON2), BIN); )
               NDTS( SerialPrint_P(PSTR("EPKTCNT: ")); Serial.println(Enc28J60.readReg((uint8_t) NET_ENC28J60_EPKTCNT)); )
+              NDTS( SerialPrint_P(PSTR("  ERXST: ")); Serial.println(Enc28J60.readReg((uint8_t) NET_ENC28J60_ERXST)); )
+              NDTS( SerialPrint_P(PSTR("  ERXND: ")); Serial.println(Enc28J60.readReg((uint8_t) NET_ENC28J60_ERXND)); )
+             
 #endif // #ifdef ENC28J60_ETHERNET_SHIELD
            }
-           netDebugPrintTime = millis();
+           netDebugPrintTime += 5000UL;
            Serial.println();
         }
 #endif
@@ -397,8 +404,6 @@ void loop() {
     // Do not need next char to analyze - EOL detected or there no room in buffer or max number or args parsed...   
     result = ethClient.read();
 #endif              
-
-//              Serial.print("incoming: "); Serial.print((char) result); Serial.print(" => "); Serial.println(result, HEX); 
     result = analyzeStream((char) result, _argOffset);
     if (true == result) { continue; }
     /*****  processing command *****/
@@ -412,11 +417,11 @@ void loop() {
     digitalWrite(PIN_STATE_LED, HIGH);
     // may be need test for client.connected()? 
     processStartTime = millis();
-    DTS( ramBefore = getRamFree(); )
+    DTSM( ramBefore = getRamFree(); )
     sysMetrics[IDX_METRIC_SYS_CMD_LAST] = executeCommand(_argOffset);
-    DTS( SerialPrint_P(PSTR("Memory bytes leak: ")); Serial.println((ramBefore - getRamFree())); Serial.println(); )
     // system.run[] recieved, need to run another command, which taken from option #0 by cmdIdx() sub
     if (RUN_NEW_COMMAND == sysMetrics[IDX_METRIC_SYS_CMD_LAST]) {
+       DTSM( SerialPrintln_P(PSTR("Run new command")); )
        int16_t k = 0;
        // simulate command recieving to properly string parsing
        while (analyzeStream(cBuffer[k], _argOffset)) { k++; }
@@ -425,6 +430,11 @@ void loop() {
     processEndTime = millis();
     // use processEndTime as processDurationTime
     processEndTime = processEndTime - processStartTime ;
+    DTSM( SerialPrint_P(PSTR("Execute time:")); Serial.println(processEndTime );
+          SerialPrint_P(PSTR("Memory bytes leak: ")); Serial.println((ramBefore - getRamFree()));
+          Serial.println(); 
+    )
+    
     if (sysMetrics[IDX_METRIC_SYS_CMD_TIMEMAX] < processEndTime) {
        sysMetrics[IDX_METRIC_SYS_CMD_TIMEMAX] = processEndTime;
        sysMetrics[IDX_METRIC_SYS_CMD_TIMEMAX_N] = sysMetrics[IDX_METRIC_SYS_CMD_LAST];
@@ -456,8 +466,13 @@ static uint8_t analyzeStream(char _charFromClient, int16_t* _argOffset) {
   
   // Put next char to buffer
   cBuffer[bufferWritePosition] = (doubleQuotedString) ? _charFromClient : tolower(_charFromClient); 
-  //Serial.print("Char: "); Serial.println(cBuffer[bufferWritePosition]);
-    
+  // no SerialPrint_P(PSTR(...)) used to avoid slow perfomance on analyze loops
+  // Development mode only debug message level used
+  DTSD( Serial.print("rcv: "); 
+       Serial.print(cBuffer[bufferWritePosition], HEX);  
+       Serial.print(" '"); 
+       Serial.print((char) cBuffer[bufferWritePosition]); Serial.println("' "); 
+  )
   // When ZBX_HEADER_PREFIX_LENGTH chars is saved to buffer - test its for Zabbix2 protocol header prefix ("ZBXD\01") presence
   if (ZBX_HEADER_PREFIX_LENGTH == bufferWritePosition) {
      if (0 == memcmp(&cBuffer, (ZBX_HEADER_PREFIX), ZBX_HEADER_PREFIX_LENGTH)) {
@@ -469,6 +484,7 @@ static uint8_t analyzeStream(char _charFromClient, int16_t* _argOffset) {
   // When ZBX_HEADER_LENGTH chars is saved to buffer - check 'skip whole header' flag and just begin write new data from begin of buffer.
   // This operation 'drops' Zabbix2 header
   if (ZBX_HEADER_LENGTH == bufferWritePosition && needSkipZabbix2Header) {
+     DTSD( Serial.println("ZBX header detected"); )
      bufferWritePosition = 0;
      needSkipZabbix2Header = false;
      // Return 'Need next char' and save a lot cpu time 
@@ -567,6 +583,8 @@ static int16_t executeCommand(int16_t* _argOffset)
   //int64_t value = 0;  // Zabbix use 64-bit numbers, but we can use only -uint32_t...+uint32_t range. Error can be occurs on ltoa() call with value > long_int_max 
   long_ulong_t value;
 
+  //DTS( Serial.print("[0] "); Serial.println(millis()); )
+
   value.longvar = 0;
   
   sysMetrics[IDX_METRIC_SYS_CMD_COUNT]++;
@@ -575,11 +593,13 @@ static int16_t executeCommand(int16_t* _argOffset)
   for (i = arraySize(commands); 0 != i;) {
   //while (i) {
     i--;
-    // Serial.print(i, HEX); Serial.print(": "); SerialPrintln_P((char*)pgm_read_word(&(commands[i])));
+    DTSD( Serial.print("# ");  Serial.print(i, HEX); Serial.print(" => "); SerialPrintln_P((char*)pgm_read_word(&(commands[i]))); )
     if (0 == strcmp_P(cBuffer, (char*)pgm_read_word(&(commands[i])))) {cmdIdx = i; break;}
   }
+
+  //DTS( Serial.print("[1] "); Serial.println(millis()); )
  
-  DTS( SerialPrint_P(PSTR("Execute command #")); Serial.print(cmdIdx, HEX); SerialPrint_P(PSTR(" => `")); Serial.print(cBuffer); Serial.println("`"); )
+  DTSM( SerialPrint_P(PSTR("Execute command #")); Serial.print(cmdIdx, HEX); SerialPrint_P(PSTR(" => `")); Serial.print(cBuffer); Serial.println("`"); )
 
   // batch convert args to number values
   // first _argOffset item have index 0
@@ -587,29 +607,31 @@ static int16_t executeCommand(int16_t* _argOffset)
   //  while (i) {
      i--;
      argv[i] = ('\0' == cBuffer[_argOffset[i]]) ? 0 : strtoul(&cBuffer[_argOffset[i]], NULL,0);
-
-#ifdef FEATURE_DEBUG_TO_SERIAL
-     SerialPrint_P(PSTR("argv[")); Serial.print(i); SerialPrint_P(PSTR("] => \"")); 
-     if ('\0' == cBuffer[_argOffset[i]]) {
-        SerialPrint_P(PSTR("<null>")); 
-     } else {
-        Serial.print(&cBuffer[_argOffset[i]]); 
-     }
-     SerialPrint_P(PSTR("\" => ")); Serial.print(argv[i]);
-     SerialPrint_P(PSTR(", offset =")); Serial.println(_argOffset[i]);
-#endif 
+     DTSH( 
+        SerialPrint_P(PSTR("argv[")); Serial.print(i); SerialPrint_P(PSTR("] => \"")); 
+        if ('\0' == cBuffer[_argOffset[i]]) {
+           SerialPrint_P(PSTR("<null>")); 
+        } else {
+           Serial.print(&cBuffer[_argOffset[i]]); 
+        }
+        SerialPrint_P(PSTR("\" => ")); Serial.print(argv[i]);
+        SerialPrint_P(PSTR(", offset =")); Serial.println(_argOffset[i]);
+     )
   }
-   
+
+//   DTS( Serial.print("[2] "); Serial.println(millis()); )
+
+  // 0.012 sec to switch(). need to use second switch?
   // Check rights for password protected commands
   accessGranted = (!netConfig->useProtection || argv[0] == netConfig->password); 
-
 
   i2CAddress = (uint8_t) argv[2];
   i2CRegister = (('\0' != cBuffer[_argOffset[3]]) ? (int16_t) argv[3] : I2C_NO_REG_SPECIFIED);
   // i2COption can be used as 'length', 'bitNumber' or 'data' variable
   i2COption = (uint8_t) argv[4];
 
- 
+  //DTS( Serial.print("[3] "); Serial.println(millis()); )
+
    switch (cmdIdx) {
 //  case  CMD_ZBX_NOPE: 
 //        break;
@@ -1478,6 +1500,7 @@ static int16_t executeCommand(int16_t* _argOffset)
 
    // Form the output buffer routine
 
+//   DTS( Serial.print("[4] "); Serial.println(millis()); )
    // The result is not printed or already placed in the buffer
    if (RESULT_IS_PRINTED != result) {
       switch (result) {
@@ -1526,7 +1549,8 @@ static int16_t executeCommand(int16_t* _argOffset)
       //  Push out the buffer to the client
       ethClient.println(cBuffer);
    }
-   DTS( SerialPrint_P(PSTR("Result: ")); Serial.println(cBuffer); )
+   DTSM( SerialPrint_P(PSTR("Result: ")); Serial.println(cBuffer); )
+//   DTSH( Serial.print("[5] "); Serial.println(millis()); )
    return cmdIdx;
 }
 

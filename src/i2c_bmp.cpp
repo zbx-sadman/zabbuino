@@ -306,6 +306,7 @@ static int8_t getBMP280Metric(const uint8_t _sdaPin, const uint8_t _sclPin, uint
       qtoaf(result, _dst, 10);
 #endif        
 }
+  gatherSystemMetrics(); // Measure memory consumption
   return RESULT_IN_BUFFER;
 }
 
@@ -454,6 +455,7 @@ static int8_t getBMP180Metric(const uint8_t _sdaPin, const uint8_t _sclPin, uint
     ltoaf(result, _dst, 1);
   }
 
+  gatherSystemMetrics(); // Measure memory consumption
   return RESULT_IN_BUFFER;
 }
 

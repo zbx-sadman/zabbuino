@@ -34,11 +34,13 @@ uint8_t serialRXFlush(SoftwareSerial *_swSerial, const uint8_t _slowMode)
 *     - The number of the readed bytes
 *
 *****************************************************************************************************************************/
-uint8_t serialRecive(SoftwareSerial *_swSerial, uint8_t *_src, const uint8_t _size, const uint32_t _readTimeout, const uint8_t _stopOn, const uint8_t _slowMode)
+uint8_t serialRecive(SoftwareSerial *_swSerial, uint8_t *_src, const uint8_t _size, const uint32_t _readTimeout, const uint8_t _stopOnChar, const uint8_t _stopChar, const uint8_t _slowMode)
 {
   unsigned long startTime = millis();
   uint8_t len = 0;
-  while ((len <  _size) && (millis() - startTime < _readTimeout)) {
+  //  while ((len <  _size) && (millis() - startTime < _readTimeout)) {
+  while (millis() - startTime < _readTimeout) {
+    if (len >=  _size) { break; }
     if (_swSerial) {
        // Slow talk with APC UPC'es
        if (_slowMode) { delay(10); }
@@ -47,9 +49,10 @@ uint8_t serialRecive(SoftwareSerial *_swSerial, uint8_t *_src, const uint8_t _si
           if (!c && !len) {
              continue; // skip 0 at startup
           }
+          DTSD( Serial.print("rcv: "); Serial.println(c, HEX); )
           _src[len] = c;
           // Stop and jump out from subroutine if some byte is reached
-          if (_stopOn == _src[len]) { return len+1; }
+          if (_stopOnChar && (_stopChar == _src[len])) { return len+1; }
           len++;
        }
     }
@@ -73,7 +76,13 @@ void serialSend(SoftwareSerial *_swSerial, const uint8_t *_src, const uint8_t _s
      for (i = 0; i < _size; i++) {
        // do not rush when work with APC UPS's
        if (_slowMode) { delay(10); }
-//       Serial.print("Byte# "); Serial.print(i); Serial.print(" => "); Serial.print(_src[i], HEX);  Serial.print(" '"); Serial.print((char) _src[i]); Serial.println("' ");
+       DTSD( Serial.print("send byte# "); 
+             Serial.print(i); 
+             Serial.print(" => "); 
+             Serial.print(_src[i], HEX);  
+             Serial.print(" '"); 
+             Serial.print((char) _src[i]); Serial.println("' "); 
+       )
        // HardwareSerial::write() always return 1
        _swSerial->write(_src[i]);
     }

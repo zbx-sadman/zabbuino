@@ -92,7 +92,7 @@ int8_t getAPCSmartUPSMetric(const uint8_t _rxPin, const uint8_t _txPin, uint8_t 
   serialRXFlush(&swSerial, true);
   command = 'Y';
   serialSend(&swSerial, &command, 1, true);
-  len = serialRecive(&swSerial, _dst, 0x03, APC_DEFAULT_READ_TIMEOUT, '\0', true);
+  len = serialRecive(&swSerial, _dst, 0x03, APC_DEFAULT_READ_TIMEOUT, UART_STOP_ON_CHAR, '\r', UART_SLOW_MODE);
   // Connection timeout occurs (recieved less than 3 byte)
   if (len < 0x03) { goto finish; } // rc inited with DEVICE_ERROR_TIMEOUT value
   // Check for "SM\r"
@@ -111,7 +111,7 @@ int8_t getAPCSmartUPSMetric(const uint8_t _rxPin, const uint8_t _txPin, uint8_t 
      serialSend(&swSerial, _command, 1, true);
      //Serial.println("recieve");
       // Recieve answer from Smart UPS. Answer placed to buffer directly and does not require additional processing 
-     len = serialRecive(&swSerial, _dst, APC_MAX_ANSWER_LENGTH, APC_DEFAULT_READ_TIMEOUT, '\r', true);
+     len = serialRecive(&swSerial, _dst, APC_MAX_ANSWER_LENGTH, APC_DEFAULT_READ_TIMEOUT, UART_STOP_ON_CHAR, '\r', UART_SLOW_MODE);
      //Serial.print("len: "); Serial.println(len);
      if (!sendCommandTwice && '\r' != _dst[len-1]) { goto finish; } // rc inited with DEVICE_ERROR_TIMEOUT value
      //Serial.print("reply: "); Serial.println((char*) _dst);
@@ -141,6 +141,7 @@ int8_t getAPCSmartUPSMetric(const uint8_t _rxPin, const uint8_t _txPin, uint8_t 
   rc = RESULT_IN_BUFFER;
 
   finish:
+  gatherSystemMetrics(); // Measure memory consumption
   swSerial.~SoftwareSerial(); 
   return rc;
 }

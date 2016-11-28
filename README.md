@@ -30,6 +30,17 @@ Implemented:
 - Support APC Smart UPS (with RS232 interface);
 - Simulate varuious vendor's IR transmitters.
 
+####28 Nov 2016
+
+Fixes:
+  - PZEM-004's commands works again (was broken a little on code refactoring).
+
+Changes: 
+  - Debug level is available in levels: low, mid, high (FEATURE_DEBUG_TO_SERIAL_LOW, FEATURE_DEBUG_TO_SERIAL_MIDDLE, FEATURE_DEBUG_TO_SERIAL_HIGH). Need to choose only one feature;
+  - Due fight for ENC28J60 stability UIPEthernet source code is changed. Library archive is uploaded to github. Testing continues...
+  - Free memory size measured on end of some subroutines. Perhaps this is to be more reliable. We'll see.
+
+
 ####10 Nov 2016
 
 Fixes:

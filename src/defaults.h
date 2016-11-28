@@ -5,7 +5,7 @@
    #define LIBWIRE_USE
 #endif
 
-#if defined(FEATURE_DEBUG_TO_SERIAL) || defined(FEATURE_SERIAL_LISTEN_TOO) || defined(FEATURE_NET_DEBUG_TO_SERIAL)
+#if defined(FEATURE_DEBUG_TO_SERIAL_DEV) || defined(FEATURE_DEBUG_TO_SERIAL_LOW) || defined(FEATURE_DEBUG_TO_SERIAL_MIDDLE) || defined(FEATURE_DEBUG_TO_SERIAL_HIGH) || defined(FEATURE_SERIAL_LISTEN_TOO) || defined(FEATURE_NET_DEBUG_TO_SERIAL)
    #define SERIAL_USE
 #endif
 
@@ -49,6 +49,11 @@
 
        Note, that changing MAC or IP-address separately may cause "strange" network errors until the moment when the router delete old ARP-records from the cache.
 
+// microchip forgot to step the number on the silcon when they
+    // released the revision B7. 6 is now rev B7. We still have
+    // to see what they do when they release B8. At the moment
+    // there is no B8 out yet
+
 */
 
 
@@ -63,6 +68,9 @@
 #define NET_ENC28J60_ECON1                                      0x1F
 #define NET_ENC28J60_ECON2                                      0x1E
 #define NET_ENC28J60_EPKTCNT                                    (0x19|0x20)
+
+#define NET_ENC28J60_ERXST                                      (0x08|0x00)
+#define NET_ENC28J60_ERXND                                      (0x0A|0x00)
 
 // ENC28J60 EIE Register Bit Definitions
 #define NET_ENC28J60_EIE_INTIE                                  0x80
@@ -83,6 +91,7 @@
 #define NET_ENC28J60_EIR_RXERIF                                 0x01
 // ENC28J60 ESTAT Register Bit Definitions
 #define NET_ENC28J60_ESTAT_INT                                  0x80
+#define NET_ENC28J60_ESTAT_BUFFER                               0x40
 #define NET_ENC28J60_ESTAT_LATECOL                              0x10
 #define NET_ENC28J60_ESTAT_RXBUSY                               0x04
 #define NET_ENC28J60_ESTAT_TXABRT                               0x02

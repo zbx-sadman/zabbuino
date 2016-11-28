@@ -17,7 +17,7 @@ uint8_t saveConfigToEEPROM(netconfig_t *_configStruct)
           restartWriteCycle, 
           *p_configStruct = (uint8_t*) _configStruct;
 
-  DTS ( SerialPrintln_P(PSTR("Saving config to EEPROM")); )
+  DTSM ( SerialPrintln_P(PSTR("Saving config to EEPROM")); )
   // Calculate CRC of _configStruct and place it to first byte of structure to batch writing.
   // CRC-byte must be skipped on CRC calculating
   _configStruct->CRC = dallas_crc8(((uint8_t*) _configStruct) + CONFIG_CRC_LEN, sizeof(netconfig_t));
@@ -35,7 +35,7 @@ uint8_t saveConfigToEEPROM(netconfig_t *_configStruct)
   while (index) {
      // Writing procedure must be stopped by return operator if EEPROM space is not enought to save sizeof() bytes of config
      if (startAddress > (LAST_EEPROM_CELL_ADDRESS - sizeof(netconfig_t))) { 
-        DTS ( SerialPrintln_P(PSTR("There is not room to save config")); )
+        DTSM ( SerialPrintln_P(PSTR("There is not room to save config")); )
         return false;
      }
 
@@ -49,7 +49,7 @@ uint8_t saveConfigToEEPROM(netconfig_t *_configStruct)
        if (EEPROM[index + startAddress] != p_configStruct[index]) {
           EEPROM[index + startAddress] = p_configStruct[index];
           if (EEPROM[index + startAddress] == p_configStruct[index]) { continue; }
-          DTS ( SerialPrintln_P(PSTR("Probaly EEPROM cell is corrupted...")); )
+          DTSM ( SerialPrintln_P(PSTR("Probaly EEPROM cell is corrupted...")); )
           startAddress = startAddress + index + 1;
           restartWriteCycle = true;
        } // if (EEPROM[index + startAddress] != p_configStruct[index])
@@ -82,7 +82,7 @@ uint8_t loadConfigFromEEPROM(netconfig_t *_configStruct)
           startAddress, 
           *p_configStruct = (uint8_t*) _configStruct;
 
-  DTS ( SerialPrintln_P(PSTR("Load configuration from EEPROM")); )
+  DTSM ( SerialPrintln_P(PSTR("Load configuration from EEPROM")); )
   // Read the pointer of config store start address and validate it: default_start_address < startAddress < (last_eeprom_cell_address - config_structure_size) 
   // On error - stop working
   startAddress = EEPROM[CONFIG_STORE_PTR_ADDRESS];

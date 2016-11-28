@@ -84,7 +84,7 @@ int8_t getMegatecUPSMetric(const uint8_t _rxPin, const uint8_t _txPin, uint8_t *
 
   serialSend(&swSerial, _command, len , false);
   // Recieve answer from UPS. Answer placed to buffer directly for additional processing 
-  len = serialRecive(&swSerial, _dst, MEGATEC_MAX_ANSWER_LENGTH, MEGATEC_DEFAULT_READ_TIMEOUT, '\r', false);
+  len = serialRecive(&swSerial, _dst, MEGATEC_MAX_ANSWER_LENGTH, MEGATEC_DEFAULT_READ_TIMEOUT, UART_STOP_ON_CHAR, '\r', !UART_SLOW_MODE);
   // Answer will start with '('
   if ('(' != _dst[0]) { rc = DEVICE_ERROR_WRONG_ANSWER; goto finish; }
   len--;

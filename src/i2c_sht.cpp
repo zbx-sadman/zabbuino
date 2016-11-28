@@ -19,11 +19,12 @@ uint16_t getRawDataFromSHT2X(const uint8_t _i2cAddress, const uint8_t _command)
     Wire.endTransmission();
 
     Wire.requestFrom((uint8_t)_i2cAddress, (uint8_t) 3);
-    uint32_t timeout = millis() + 300;       // Don't hang here for more than 300ms
+    // Don't hang here for more than 300ms
+    uint32_t lastTimeCheck = millis();
+    //uint32_t timeout = millis() + 300;
     while (Wire.available() < 3) {
-      if ((millis() - timeout) > 0) {
-            return 0;
-        }
+    //if ((millis() - timeout) > 0) {
+      if ((millis() - lastTimeCheck) > 300UL) { return 0; }
     }
     
     //Store the result
@@ -77,6 +78,7 @@ int8_t getSHT2XMetric(const uint8_t _sdaPin, const uint8_t _sclPin, uint8_t _i2c
   }
   // result /=100
   ltoaf(result, _dst, 2);
+  gatherSystemMetrics(); // Measure memory consumption
   return RESULT_IN_BUFFER;  
 
 }

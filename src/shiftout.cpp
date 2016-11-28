@@ -57,6 +57,7 @@ void shiftOutAdvanced(const uint8_t _dataPin, const uint8_t _clockPin, const uin
      lenOfBuffer--;
   }
   interrupts();
+  gatherSystemMetrics(); // Measure memory consumption
 }
 
 /*****************************************************************************************************************************

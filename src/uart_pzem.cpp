@@ -43,19 +43,15 @@ int8_t getPZEM004Metric(const uint8_t _rxPin, const uint8_t _txPin, uint8_t _met
    switch (_metric) {
      case SENS_READ_AC:
        command = PZEM_CURRENT; 
-       //Serial.println("Taking Voltage");
        break;
      case SENS_READ_VOLTAGE:
        command = PZEM_VOLTAGE; 
-       //Serial.println("Taking Voltage");
        break;
      case SENS_READ_POWER:
        command = PZEM_POWER; 
-       //Serial.println("Taking Power");
        break;
      case SENS_READ_ENERGY:
        command = PZEM_ENERGY; 
-       //Serial.println("Taking Energy");
        break;
    }
 
@@ -77,12 +73,12 @@ int8_t getPZEM004Metric(const uint8_t _rxPin, const uint8_t _txPin, uint8_t _met
     _dst[5] = 0x00; 
     // 7-th byte - CRC
     _dst[6] = crcPZEM004(_dst, PZEM_PACKET_SIZE - 1); 
-    //for(int i=0; i < sizeof(buffer); i++) { Serial.print("Byte# "); Serial.print(i); Serial.print(" => "); Serial.println(buffer[i], HEX);  }
+    // for(int i=0; i < sizeof(_dst); i++) { Serial.print("Byte# "); Serial.print(i); Serial.print(" => "); Serial.println(_dst[i], HEX);  }
     serialSend(&swSerial, _dst, PZEM_PACKET_SIZE, false);
 
-    /*  Recieve from PZEM004 */
-    len = serialRecive(&swSerial, _dst, PZEM_PACKET_SIZE, PZEM_DEFAULT_READ_TIMEOUT, '\0', false);
-//    swSerial.~SoftwareSerial();// 
+    //  Recieve from PZEM004
+    //  It actually do not use '\r', '\n', '\0' to terminate string
+    len = serialRecive(&swSerial, _dst, PZEM_PACKET_SIZE, PZEM_DEFAULT_READ_TIMEOUT, !UART_STOP_ON_CHAR, '\r', !UART_SLOW_MODE);
 
     // Connection timeout occurs
     // if (len != PZEM_PACKET_SIZE) { return DEVICE_ERROR_TIMEOUT; }
@@ -116,6 +112,7 @@ int8_t getPZEM004Metric(const uint8_t _rxPin, const uint8_t _txPin, uint8_t _met
   rc = RESULT_IN_BUFFER;
 
   finish:
+  gatherSystemMetrics(); // Measure memory consumption
   swSerial.~SoftwareSerial(); 
   return rc;
 }

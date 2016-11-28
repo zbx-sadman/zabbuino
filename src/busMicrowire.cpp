@@ -195,6 +195,7 @@ void printToMAX7219(const uint8_t _dataPin, const uint8_t _clockPin, const uint8
     // only 8 columns must be processeed, comment its if need more
     if (0x08 < col) { break; }
   }
+  gatherSystemMetrics(); // Measure memory consumption
   
 }
 
