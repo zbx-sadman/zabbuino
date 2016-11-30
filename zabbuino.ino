@@ -258,7 +258,7 @@ void loop() {
     // Gather internal metrics periodically
     if (SYS_METRIC_RENEW_PERIOD <= (uint32_t) (nowTime - prevSysMetricGatherTime)) { 
 
-// When FEATURE_DEBUG_COMMANDS_ENABLE is disabled, compiler can be omitt gatherSystemMetrics() sub (due find no operators inside) and trow exception
+// When FEATURE_DEBUG_COMMANDS_ENABLE is disabled, compiler can be omit gatherSystemMetrics() sub (due find no operators inside) and trow exception
 #ifndef GATHER_METRIC_USING_TIMER_INTERRUPT
        gatherSystemMetrics();
 #endif 
@@ -421,10 +421,10 @@ void loop() {
     sysMetrics[IDX_METRIC_SYS_CMD_LAST] = executeCommand(_argOffset);
     // system.run[] recieved, need to run another command, which taken from option #0 by cmdIdx() sub
     if (RUN_NEW_COMMAND == sysMetrics[IDX_METRIC_SYS_CMD_LAST]) {
-       DTSM( SerialPrintln_P(PSTR("Run new command")); )
        int16_t k = 0;
        // simulate command recieving to properly string parsing
        while (analyzeStream(cBuffer[k], _argOffset)) { k++; }
+       DTSM( SerialPrintln_P(PSTR("Run new command")); )
        sysMetrics[IDX_METRIC_SYS_CMD_LAST] = executeCommand(_argOffset);
     }
     processEndTime = millis();
@@ -659,6 +659,9 @@ static int16_t executeCommand(int16_t* _argOffset)
       break;
 
     case CMD_SYSTEM_RUN:
+      /*/
+      /=/  system.run[newCommand
+      /*/
       if ('\0' == cBuffer[_argOffset[0]]) { break; }
 
       // take length of 0-th arg + 1 byte for '\0'
@@ -666,9 +669,6 @@ static int16_t executeCommand(int16_t* _argOffset)
       // move it to begin of buffer to using as new incoming command
       // Note: ~8bytes can be saved with copying bytes in while() cycle. But source code will not beauty
       memmove(cBuffer, &cBuffer[_argOffset[0]], i);
-#ifdef FEATURE_DEBUG_TO_SERIAL
-      SerialPrint_P(PSTR("Run new command: ")); Serial.println(cBuffer);
-#endif
       cBuffer[i] = '\n';
       return RUN_NEW_COMMAND;
       break;
@@ -931,8 +931,8 @@ static int16_t executeCommand(int16_t* _argOffset)
       /*/
       /=/  shiftOut[dataPin, clockPin, latchPin, bitOrder, value]
       /*/
-      // i used as latchPinDefined
-      i = ('\0' != argv[2]) && isSafePin(argv[2]);   // << корректный способ проверки или нет?  
+      // i variable used as latchPinDefined
+      i = ('\0' != argv[2]) && isSafePin(argv[2]);  
       if (isSafePin(argv[0]) &&  isSafePin(argv[1])) {
          if (i) { digitalWrite(argv[2], LOW); }
          shiftOutAdvanced(argv[0], argv[1], argv[3], &cBuffer[_argOffset[4]]);
@@ -941,6 +941,20 @@ static int16_t executeCommand(int16_t* _argOffset)
       }
       break;
 #endif
+
+#ifdef FEATURE_WS2812_ENABLE
+    case CMD_WS2812_SENDRAW:
+      /*/
+      /=/  WS2812.sendRaw[dataPin, data]
+      /=/  >> need to increase ARGS_PART_SIZE, because every encoded LED color take _six_ HEX-chars => 10 leds stripe take 302 (2+50*6) byte of incoming buffer only
+      /*/
+      // Tested on ATmega328@16 and 8 pcs WS2812 5050 RGB LED bar
+      if (isSafePin(argv[0])) {
+         WS2812Out(argv[0], &cBuffer[_argOffset[1]]);
+         result = RESULT_IS_OK;
+      }
+      break;
+#endif // FEATURE_WS2812_ENABLE
 
     case CMD_SYS_REBOOT:
       /*/
@@ -1025,6 +1039,7 @@ static int16_t executeCommand(int16_t* _argOffset)
       /*/
       /=/  sys.ram.free
       /*/
+      //  That metric must be collected periodically to avoid returns always same data
       value.ulongvar = (uint32_t) sysMetrics[IDX_METRIC_SYS_RAM_FREE];
       result = RESULT_IN_ULONGVAR;
       break;
@@ -1137,7 +1152,7 @@ static int16_t executeCommand(int16_t* _argOffset)
 
     case CMD_I2C_READ:
       /*/
-      /=/ i2c.read(sdaPin, sclPin, i2cAddress, register, length, doDoubleReading)
+      /=/ i2c.read(sdaPin, sclPin, i2cAddress, register, length, numberOfReadings)
       /*/
       if (!isSafePin(argv[0]) || !isSafePin(argv[1])) { break; }
 

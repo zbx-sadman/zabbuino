@@ -38,18 +38,6 @@
 
 */
 
-/****       New              ****/
-// WS2812 led stripe support
-//#define FEATURE_WS2812_ENABLE
-
-// PZEM-004 energy monitor support
-//#define FEATURE_PZEM004_ENABLE
-
-// 
-//#define FEATURE_UPS_APCSMART_ENABLE
-//#define FEATURE_UPS_MEGATEC_ENABLE
-
-
 /****       Network              ****/
 /*/ 
 /=/      Obtain an IP-address using DHCP
@@ -197,6 +185,28 @@
 /*/
 //#define FEATURE_MAX7219_ENABLE
 
+/****       UART bus       ****/
+/*/ 
+/=/     Enable PZEM-004 energy monitor support and commands:
+/=/       - pzem004.current[]
+/=/       - pzem004.voltage[]
+/=/       - pzem004.power[]  
+/=/       - pzem004.energy[] 
+/*/
+//#define FEATURE_PZEM004_ENABLE
+
+/*/ 
+/=/     Enable APC SmartUPS protocol support and command:
+/=/       - ups.apcsmart[]
+/*/
+//#define FEATURE_UPS_APCSMART_ENABLE
+
+/*/ 
+/=/     Enable Megatec protocol support and command:
+/=/       - ups.megatec[]
+/*/
+//#define FEATURE_UPS_MEGATEC_ENABLE
+
 /****       DHT/AM family    ****/
 
 /*/
@@ -242,6 +252,14 @@
 //#define SUPPORT_IR_DISH
 //#define SUPPORT_IR_SHARP
 //#define SUPPORT_IR_DENON
+
+/****      Led Pixel modules     ****/
+/*/ 
+/=/     Enable WS2812 led chip support and command:
+/=/       - ws2812.sendraw[]
+/*/
+//#define FEATURE_WS2812_ENABLE
+
 
 /****       System        ****/
 
@@ -302,6 +320,11 @@
 /=/     Recieve command from Serial Monitor too
 /*/
 //#define FEATURE_SERIAL_LISTEN_TOO
+
+/*/
+/=/     Send back to user text messages if error is occurs. Otherwise - send numeric code
+/*/
+#define USE_TEXT_ERROR_MESSAGES
 
 /*/
 /=/     Use interrupt on Timer1 for internal metric gathering
