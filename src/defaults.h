@@ -776,8 +776,6 @@ command_CMD_NET_ENC_PKTCNT_MAX,
 
 #define MSG_ZBX_NOTSUPPORTED          	                      "ZBX_NOTSUPPORTED"
 
-#define USE_TEXT_ERROR_MESSAGES
-
 #ifdef USE_TEXT_ERROR_MESSAGES
   #define MSG_DEVICE_ERROR_CONNECT                              "Device not conected"
   #define MSG_DEVICE_ERROR_ACK_L                                "ACK (L) error"
