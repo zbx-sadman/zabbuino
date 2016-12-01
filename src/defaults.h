@@ -14,6 +14,12 @@
 #endif
 
 
+// BME280 is BMP280+Humidity sensor. If need to get all, SUPPORT_BMP280_INCLUDE must be defined too.
+#if defined(SUPPORT_BME280_INCLUDE)
+   #define SUPPORT_BMP280_INCLUDE
+#endif
+
+
 /* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
                                                                  HEADERS SECTION
 */

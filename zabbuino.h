@@ -51,7 +51,8 @@
 
 /*/ 
 /=/      Use last byte of MCU ID as MAC`s and IP's last byte 
-/=/      Note, that changing MAC or IP-address separately may cause "strange" network errors until the moment when the router delete old ARP-records from the cache.
+/=/      Note, that changing MAC or IP-address separately may cause "strange" network errors until the moment when the router delete 
+/=/      old ARP-records from the cache.
 /*/
 // need to test for ip rewriting
 //#define FEATURE_NET_USE_MCUID
@@ -63,10 +64,6 @@
 /=/        - Tone[];
 /=/        - NoTone[]
 /=/      
-/=/      Note, gatherSystemMetrics() subroutine that called by Timer1 interrupt if GATHER_METRIC_USING_TIMER_INTERRUPT macro is enabled conflicts with the tone() function -
-/=/      the buzz stops for a short while. 
-/=/      The reason for this seems is delayed Timer0(Timer2) interrupts that service tone() due getADCVoltage() subroutine that called from gatherSystemMetrics() run so long.
-/=/      If you need loud and clear buzz's, at this time - you must disable GATHER_METRIC_USING_TIMER_INTERRUPT macro. I hope to fix it later.
 /*/
 //#define FEATURE_TONE_ENABLE
 
@@ -152,7 +149,7 @@
 /=/     BME280 and enable command:
 /=/       - BME.Humidity[]
 /=/
-/=/     Note: BME280 is BMP280+Humidity sensor. If you want to get all, uncomment SUPPORT_BMP280_INCLUDE too.
+/=/     Note: BME280 is BMP280+Humidity sensor. Temperature and pressure is can be taken with BMP.Temperature[] / BMP.Pressure[] commands
 /*/
 //#define SUPPORT_BME280_INCLUDE
 
@@ -160,6 +157,8 @@
 /=/     Enable ROHM BH1750 ambient light sensor handling and command:
 /=/       - BH1750.Light[]
 /=/ 
+/=/     Note: To BH1750.Light command can be replaced with I2C.Read[....] with result multiplication by 0.83333.. (lux = raw / 1.2). 
+/=/     This replacement allow to save a little progmem space
 /*/
 //#define FEATURE_BH1750_ENABLE
 
@@ -204,6 +203,8 @@
 /*/ 
 /=/     Enable Megatec protocol support and command:
 /=/       - ups.megatec[]
+/=/     
+/=/     Note: command is not tested on real hardware. Please, send report to me.
 /*/
 //#define FEATURE_UPS_MEGATEC_ENABLE
 
@@ -397,11 +398,13 @@
                                                          SYSTEM CONFIGURATION SECTION 
 */
 
+// Access password must be used anytime.
 #define SYS_DEFAULT_PROTECTION      	                        true
+
 // It's just number of "long int" type. Surprise!
 #define SYS_DEFAULT_PASSWORD        	                        0x000
 
-// Digital pin which must shorted on the GND for HOLD_TIME_TO_FACTORY_RESET time to save default system setting into EEPROM
+// Digital pin which must shorted on the GND for HOLD_TIME_TO_FACTORY_RESET time to copy default system setting into EEPROM
 #define PIN_FACTORY_RESET           	                        0x08 
 
 /* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
@@ -409,6 +412,7 @@
 */
 
 #define ZBX_AGENT_DEFAULT_HOSTNAME                            "zabbuino"
+
 // Domain name used only to make FDQN if FEATURE_NET_USE_MCUID is allowed, and FEATURE_EEPROM_ENABLE is disabled
 #define ZBX_AGENT_DEFAULT_DOMAIN                              ".local.net"
 
@@ -451,7 +455,6 @@
 #include "src/uart_apcsmart.h"
 #include "src/uart_megatec.h"
 #include "src/uart_pzem.h"
-
 
 /* Other devices */
 #include "src/dht.h"

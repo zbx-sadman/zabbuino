@@ -110,7 +110,7 @@ uint8_t readBytesFromi2C(const uint8_t _i2cAddress, const int16_t _registerAddre
     Wire.requestFrom(_i2cAddress, _len); 	
     while(_len && (Wire.available() > 0)) {
       // 100 => 0.1 sec timeout
-      if ((millis() - lastTimeCheck) > 300) {
+      if ((millis() - lastTimeCheck) > 300UL) {
          Wire.endTransmission(true);
          return false;
       }

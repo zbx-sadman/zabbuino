@@ -144,7 +144,7 @@ So... no debug with Serial Monitor at this time
      DTSM( SerialPrintln_P(PSTR("Obtaining address from DHCP...")); )
       // Try to ask DHCP server
      if (0 == Ethernet.begin(netConfig->macAddress)) {
-        DTS( SerialPrintln_P(PSTR("No success")); )
+        DTSM( SerialPrintln_P(PSTR("No success")); )
          // No offer recieved - switch off DHCP feature for that session
          netConfig->useDHCP = false;
       }
@@ -264,8 +264,7 @@ void loop() {
 #endif 
        sysMetrics[IDX_METRIC_SYS_VCC] = getADCVoltage(ANALOG_CHAN_VBG);
        correctVCCMetrics(sysMetrics[IDX_METRIC_SYS_VCC]);
-       //prevSysMetricGatherTime = millis();
-       prevSysMetricGatherTime += SYS_METRIC_RENEW_PERIOD;
+       prevSysMetricGatherTime = millis();
     }
 
 #ifdef FEATURE_NET_DHCP_ENABLE
@@ -282,13 +281,13 @@ void loop() {
             blinkType = BLINK_NOPE;
             errorCode = ERROR_NONE;
            // No alarm blink  need, network activity registred, renewal period restarted
-            prevDHCPRenewTime = prevNetProblemTime = nowTime;
+            prevDHCPRenewTime = prevNetProblemTime = millis();
             break;
           default: 
             // Got some errors - blink with "DHCP problem message"
             blinkType = BLINK_DHCP_PROBLEM;    
             errorCode = ERROR_DHCP;
-  /         DTSM( SerialPrintln_P(PSTR("DHCP renew problem occured")); )
+            DTSM( SerialPrintln_P(PSTR("DHCP renew problem occured")); )
        }
     }
 #endif // FEATURE_NET_DHCP_ENABLE
@@ -328,8 +327,7 @@ void loop() {
           sysMetrics[IDX_METRIC_NET_ENC_PKTCNT_MAX] = 0;
           //delay(NET_STABILIZATION_DELAY);
        } 
-//       prevENCReInitTime = nowTime;
-       prevENCReInitTime += NET_ENC28J60_REINIT_PERIOD;
+       prevENCReInitTime = millis();
     }
   */  
 #endif // USE_DIRTY_HACK_AND_REBOOT_ENC28J60_IF_ITS_SEEMS_FREEZE
@@ -363,7 +361,7 @@ void loop() {
              
 #endif // #ifdef ENC28J60_ETHERNET_SHIELD
            }
-           netDebugPrintTime += 5000UL;
+           netDebugPrintTime = millis();
            Serial.println();
         }
 #endif
@@ -929,7 +927,7 @@ static int16_t executeCommand(int16_t* _argOffset)
 #ifdef FEATURE_SHIFTOUT_ENABLE
     case CMD_SYS_SHIFTOUT:
       /*/
-      /=/  shiftOut[dataPin, clockPin, latchPin, bitOrder, value]
+      /=/  shiftOut[dataPin, clockPin, latchPin, bitOrder, data]
       /*/
       // i variable used as latchPinDefined
       i = ('\0' != argv[2]) && isSafePin(argv[2]);  
@@ -1310,10 +1308,10 @@ static int16_t executeCommand(int16_t* _argOffset)
 #ifdef FEATURE_MAX7219_ENABLE
     case CMD_MAX7219_WRITE:
       /*/
-      /=/  MAX7219.write[dataPin, clockPin, loadPin, intensity, value]
+      /=/  MAX7219.write[dataPin, clockPin, loadPin, intensity, data]
       /*/
       if (!isSafePin(argv[0]) || !isSafePin(argv[1]) || !isSafePin(argv[2])) { break; }
-      drawOnMAX7219Matrix8x8(argv[0], argv[1], argv[2], argv[3], &cBuffer[_argOffset[4]]);
+      writeToMAX7219(argv[0], argv[1], argv[2], argv[3], &cBuffer[_argOffset[4]]);
       result = RESULT_IS_OK;
       break;
 #endif // FEATURE_MAX7219_ENABLE

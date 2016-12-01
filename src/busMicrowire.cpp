@@ -61,7 +61,7 @@ void pushDataToMAX7219(const uint8_t _dataPin, const uint8_t _clockPin, const ui
 *    - none
 *
 *****************************************************************************************************************************/
-void printToMAX7219(const uint8_t _dataPin, const uint8_t _clockPin, const uint8_t _loadPin, const uint8_t _intensity, char* _src) {    
+void writeToMAX7219(const uint8_t _dataPin, const uint8_t _clockPin, const uint8_t _loadPin, const uint8_t _intensity, char* _src) {    
   uint8_t col, currByte,  isHexString = false;
   // Init the module 
   // Mark all columns as active
