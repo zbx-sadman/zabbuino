@@ -16,7 +16,6 @@
     When UIPEthernet's fix_errata12 brahch did not help to add stability, you can buy W5xxx shield.
     
     Also u can try uncomment USE_DIRTY_HACK_AND_REBOOT_ENC28J60_IF_ITS_SEEMS_FREEZE declaration below to periodically ENC28J60 re-intit 
-    if EIR.TXERIF or EIR.RXERIF == 1 or ECON1.RXEN == 0
 */
 
 #define W5100_ETHERNET_SHIELD             // Arduino Ethernet Shield and Compatibles ...
@@ -318,7 +317,7 @@
 //#define FEATURE_NET_DEBUG_TO_SERIAL
 
 /*/
-/=/     Recieve command from Serial Monitor too
+/=/     Recieve command from Serial Monitor too. Do not forget to enable one of FEATURE_DEBUG_TO_SERIAL_* macro 
 /*/
 //#define FEATURE_SERIAL_LISTEN_TOO
 

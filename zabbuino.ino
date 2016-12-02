@@ -236,7 +236,7 @@ void loop() {
           errorCode = ERROR_NONE;
   uint16_t blinkType = BLINK_NOPE;
   int16_t *_argOffset;
-  uint32_t nowTime, processStartTime, processEndTime, prevDHCPRenewTime, prevENCReInitTime, prevNetProblemTime, prevSysMetricGatherTime, clentConnectTime, netDebugPrintTime;
+  uint32_t nowTime, processStartTime, processEndTime, prevDHCPRenewTime, prevENCReInitTime, prevNetProblemTime, prevSysMetricGatherTime, clientConnectTime, netDebugPrintTime;
   uint32_t ramBefore;
 
   _argOffset = new int16_t[ARGS_MAX];
@@ -292,7 +292,7 @@ void loop() {
     }
 #endif // FEATURE_NET_DHCP_ENABLE
 
-    // No DHCP problem found but no data recieved or network activity for a long time
+    // No DHCP problem found, but no data recieved or network activity for a long time
     if (ERROR_NONE == errorCode && (NET_IDLE_TIMEOUT <= (uint32_t) (nowTime - prevNetProblemTime))) { 
        blinkType = BLINK_NET_PROBLEM; 
        errorCode = ERROR_NET;
@@ -379,38 +379,51 @@ void loop() {
 #endif
     } // if (ERROR_NONE == errorCode) ... else 
 
-    // Active session is not exist. Try to take new for processing.
+    // No active session is exist. Looking for new connection.
     if (!ethClient.connected()) {
        ethClient = ethServer.available();
-       if (ethClient) { clentConnectTime = millis(); }
+       if (ethClient) { 
+           clientConnectTime = millis(); 
+       }
+    } else {
+       // Drop clients with slow connection
+       if (NET_ACTIVE_CLIENT_CONNECTION_TIMEOUT <= (uint32_t) (nowTime - clientConnectTime)) { 
+          // analyzeStream set internal read/write pointer to begin of buiffer after '\n' detection
+          analyzeStream('\n', _argOffset); 
+          ethClient.stop(); continue; 
+       } 
     }
-    // Event (probaly) may never occurs. Need to emulate slow connection to test.
-    // if (NET_ACTIVE_CLIENT_CONNECTION_TIMEOUT <= (uint32_t) (nowTime - clentConnectTime)) { ethClient.stop(); continue; } 
-
+    
 #ifdef FEATURE_SERIAL_LISTEN_TOO
     // A lot of chars wait for reading
     if (!ethClient.available() && !Serial.available()) { continue; }
-    // Do not need next char to analyze - EOL detected or there no room in buffer or max number or args parsed...   
-    // ethClient have more priority
-    result = (ethClient.available()) ? ethClient.read() : Serial.read();
+    // ethClient have more priority. Serial & Ethernet data may be mixed, so Serial input must be used for debug only.
+    result = ethClient.available() ? ethClient.read() : ( Serial.available() ?  Serial.read() : false);
+    Serial.println((char) result);
 #else
-    // Test state of active session: client still connected or unread data is exist in buffer?
-    // ethClient.available() eq ethClient.connected() here?
-    // if (!ethClient.connected()) { continue; }
-    // A lot of chars wait for reading
+    // ethClient.available() return available bytes in frame. Request can be splitted to few frames and .available() can return 0 on end of first frame
+    // But this does not mean that the request is complete, just need to wait next frame until ethClient.connected() == true.
     if (!ethClient.available()) { continue; }
-    // Do not need next char to analyze - EOL detected or there no room in buffer or max number or args parsed...   
     result = ethClient.read();
 #endif              
-    result = analyzeStream((char) result, _argOffset);
+    result = analyzeStream((char) result, _argOffset);    
+    // result is true if analyzeStream() do not finished and need more data
+    // result is false if EOL or trailing char detected or there no room in buffer or max number or args parsed...   
     if (true == result) { continue; }
+    // ethClient.connected() returns true even client is disconnected, but leave the data in the buffer. 
+    // Check this scenario... 
+    // But checking must be disable for commands which coming in from the Serial. Otherwise commands will be never executed if no active network client exist.
+#ifndef FEATURE_SERIAL_LISTEN_TOO
+    if (!ethClient.connected()) { continue; }
+#endif              
     /*****  processing command *****/
-    // Destroy unused client's data 
+    // Destroy unused client's data (if trailed symbol detected, but other data is still in the buffer).
     ethClient.flush(); 
 #ifdef FEATURE_SERIAL_LISTEN_TOO
     // Just flush buffer without current stream detection (serial or ethernet) because serial input used for debug purposes (when no ethernet avaiable) only. 
     Serial.flush(); 
 #endif              
+
     // Fire up State led, than will be turned off on next loop
     digitalWrite(PIN_STATE_LED, HIGH);
     // may be need test for client.connected()? 
@@ -437,9 +450,12 @@ void loop() {
        sysMetrics[IDX_METRIC_SYS_CMD_TIMEMAX] = processEndTime;
        sysMetrics[IDX_METRIC_SYS_CMD_TIMEMAX_N] = sysMetrics[IDX_METRIC_SYS_CMD_LAST];
     }
+
     // Wait some time to finishing answer send, close connection, and restart network activity control cycle
-    delay(NET_STABILIZATION_DELAY);
+    //delay(NET_STABILIZATION_DELAY);
     ethClient.stop(); 
+    // analyzeStream set internal read/write pointer to begin of buiffer after '\n' detection
+    analyzeStream('\n', _argOffset); 
     prevENCReInitTime = prevNetProblemTime = millis();
     blinkType = BLINK_NOPE;
     errorCode = ERROR_NONE;
@@ -476,15 +492,16 @@ static uint8_t analyzeStream(char _charFromClient, int16_t* _argOffset) {
      if (0 == memcmp(&cBuffer, (ZBX_HEADER_PREFIX), ZBX_HEADER_PREFIX_LENGTH)) {
         // If packet have prefix - set 'skip whole header' flag
         needSkipZabbix2Header = true;
+        DTSD( Serial.println("ZBX header detected"); )
      }
   }
 
   // When ZBX_HEADER_LENGTH chars is saved to buffer - check 'skip whole header' flag and just begin write new data from begin of buffer.
   // This operation 'drops' Zabbix2 header
   if (ZBX_HEADER_LENGTH == bufferWritePosition && needSkipZabbix2Header) {
-     DTSD( Serial.println("ZBX header detected"); )
      bufferWritePosition = 0;
      needSkipZabbix2Header = false;
+     DTSD( Serial.println("ZBX header dropped"); )
      // Return 'Need next char' and save a lot cpu time 
      return true;
   }
