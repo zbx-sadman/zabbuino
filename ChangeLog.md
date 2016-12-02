@@ -9,10 +9,12 @@ Features:
 - EEPROM read/write functions try to detect corruption and try to avoid "broken" cells;
 - New MCU metrics (ID, Signature) can be obtained;
 - Agent's name/MAC/IP can be gnerated using MCU ID;
+- Using ASCII for LCD Character display's commands is allowed;
+- Using ASCII for MAX7219 based digital indicators is allowed too;
 - WS2812 Led stripe support is implemented;
 - PZEM-004 energy meter's metrics can be readed via UART;
 - Handling of APC Smart UPS (with RS232 interface) added;
-- I2C commands improved, their number increased;
+- I2C commands improved;
 
 Important changes:
 - Source code is refactored.
