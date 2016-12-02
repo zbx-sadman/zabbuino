@@ -3,6 +3,8 @@ An Zabbix agent firmware for Arduino (**AVR only**)
 
 Actual release is v1.0.0. All new features (like APC Smart UPS, PZEM-004T implementation) can be found on [experimental](https://github.com/zbx-sadman/Zabbuino/tree/experimental) branch.
 
+See [change log](https://github.com/zbx-sadman/Zabbuino/blob/master/ChangeLog.md) before update.
+
 **You can help to the project** by providing hardware to testing and integrating. Or yoг can just donate for it. Contact to me via email: [zbx.sadman@gmail.com](mailto://zbx.sadman@gmail.com)
 
 ![Zabbuino: example of chart](https://cloud.githubusercontent.com/assets/12827470/20768231/30de116a-b74e-11e6-932f-09eb6f7712e3.png)
