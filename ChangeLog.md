@@ -1,7 +1,7 @@
 ##Zabbuino change log 
 
-###v1.1.0
-New features:
+###v1.1.0 (xx Dec 2016)
+Features:
 - Network procedures improved;
 - Commands can be entered via Arduino IDE Serial Monitor;
 - Zabbix can handle Zabbuino directly from Actions;
@@ -18,7 +18,7 @@ Important changes:
 - Source code is refactored.
 
 
-###v1.0.0
+###v1.0.0 (15 Aug 2016)
 
 Features:
 - Scaning OneWire and I2C buses to detect sensors ID or adresses is available;
