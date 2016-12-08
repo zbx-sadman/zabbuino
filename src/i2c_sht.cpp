@@ -9,7 +9,7 @@
 *     - 16-bit raw data on success
 *
 *****************************************************************************************************************************/
-uint16_t getRawDataFromSHT2X(const uint8_t _i2cAddress, const uint8_t _command)
+static uint16_t getRawDataFromSHT2X(const uint8_t _i2cAddress, const uint8_t _command)
 {
     uint16_t result;
 
@@ -20,11 +20,10 @@ uint16_t getRawDataFromSHT2X(const uint8_t _i2cAddress, const uint8_t _command)
 
     Wire.requestFrom((uint8_t)_i2cAddress, (uint8_t) 3);
     // Don't hang here for more than 300ms
-    uint32_t lastTimeCheck = millis();
+    uint32_t readTimeOut = millis() + 300UL;
     //uint32_t timeout = millis() + 300;
     while (Wire.available() < 3) {
-    //if ((millis() - timeout) > 0) {
-      if ((millis() - lastTimeCheck) > 300UL) { return 0; }
+      if (millis() > readTimeOut) { return 0; }
     }
     
     //Store the result

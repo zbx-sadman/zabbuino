@@ -120,7 +120,7 @@ uint8_t sendRawByIR(const uint16_t _frequency, unsigned int _nBits, const char* 
 // Sends an IR mark for the specified number of microseconds.
 // The mark output is modulated at the PWM frequency.
 //
-void mark (unsigned int time)
+static void mark (unsigned int time)
 {
 	TIMER_ENABLE_PWM; // Enable pin 3 PWM output
 	if (time > 0) custom_delay_usec(time);
@@ -131,7 +131,7 @@ void mark (unsigned int time)
 // Sends an IR space for the specified number of microseconds.
 // A space is no output, so the PWM output is disabled.
 //
-void  space (unsigned int time)
+static void space (unsigned int time)
 {
 	TIMER_DISABLE_PWM; // Disable pin 3 PWM output
 	if (time > 0) custom_delay_usec(time);
@@ -169,7 +169,7 @@ void  enableIROut (int khz)
 
 //+=============================================================================
 // Custom delay function that circumvents Arduino's delayMicroseconds limit
-void custom_delay_usec(unsigned long uSecs) {
+static void custom_delay_usec(unsigned long uSecs) {
 
   if (uSecs > 4) {
     unsigned long start = micros();

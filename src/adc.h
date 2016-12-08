@@ -1,8 +1,9 @@
-#ifndef ZabbuinoADC_h
-#define ZabbuinoADC_h
+#ifndef _ZABBINO_ADC_H_
+#define _ZABBINO_ADC_H_
 
-#include <Arduino.h>
-#include "defaults.h"
+#include "../basic.h"
+#include "tune.h"
+#include "service.h"
 #include "system.h"
 
 
@@ -30,4 +31,4 @@ uint16_t getADCVoltage(const uint8_t _analogChannel);
 *****************************************************************************************************************************/
 int8_t getACS7XXMetric(const uint8_t _sensorPin, uint32_t _aRefVoltage,  const uint8_t _metric, const uint8_t _sensitivity, const int32_t _ZeroCurrentPoint, char *_outBuffer);
 
-#endif // #ifndef ZabbuinoADC_h
+#endif // #ifndef _ZABBINO_ADC_H_

@@ -1,13 +1,10 @@
-#ifndef ZabbuinoINTERRUPTS_h
-#define ZabbuinoINTERRUPTS_h
+#ifndef _ZABBUINO_INTERRUPTS_H_
+#define _ZABBUINO_INTERRUPTS_H_
 
-#include <Arduino.h>
-#include <util/atomic.h>
-#include <avr/interrupt.h>
-#include "defaults.h"
-#include "../zabbuino.h"
+#include "../basic.h"
+#include "tune.h"
+#include "service.h"
 #include "system.h"
-
 
 /*-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
 
@@ -50,7 +47,7 @@
 */
 
 #define HANDLE_INT_N_FOR_EXTINT(_interrupt) \
-   void handleExt##_interrupt(void) { extern extInterrupt_t *extInterrupt; extInterrupt[_interrupt].count++; Serial.println("int!"); }
+   void handleExt##_interrupt(void) { extern extInterrupt_t extInterrupt[]; extInterrupt[_interrupt].count++; }
 
  
 #if EXTERNAL_NUM_INTERRUPTS > 7
@@ -113,10 +110,10 @@
        interruptHandler = handleIncEnc##_interrupt;\
     break;
 
-
+                                            
 #define HANDLE_INT_N_FOR_INCENC(_interrupt) \
-   void handleIncEnc##_interrupt(void) { extern extInterrupt_t *extInterrupt; volatile static uint8_t stateTerminalA = 0, statePrevTerminalA = 0;\
-         delayMicroseconds(ENCODER_STABILIZATION_DELAY);\
+   void handleIncEnc##_interrupt(void) { extern extInterrupt_t extInterrupt[]; volatile static uint8_t stateTerminalA = 0, statePrevTerminalA = 0;\
+         delayMicroseconds(constEncoderStabilizationDelay);\
          stateTerminalA = *extInterrupt[_interrupt].encTerminalAPIR & extInterrupt[_interrupt].encTerminalAPinBit;\
          if ((!stateTerminalA) && (statePrevTerminalA)) { \
            if (*extInterrupt[_interrupt].encTerminalBPIR & extInterrupt[_interrupt].encTerminalBPinBit) \
@@ -150,4 +147,4 @@
 
 #endif // FEATURE_INCREMENTAL_ENCODER_ENABLE
 
-#endif // #ifndef ZabbuinoINTERRUPTS_h
+#endif // #ifndef _ZABBUINO_INTERRUPTS_H_

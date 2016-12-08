@@ -1,5 +1,5 @@
-#ifndef ZabbuinoOW_SENSORS_h
-#define ZabbuinoOW_SENSORS_h
+#ifndef _ZABBUINO_OW_SENSORS_H_
+#define _ZABBUINO_OW_SENSORS_H_
 
 #include "ow_bus.h"
 
@@ -70,4 +70,4 @@ int8_t getDS18X20Metric(const uint8_t _pin, uint8_t _resolution, char *_id, char
 *****************************************************************************************************************************/
 static uint8_t getScratchPadFromDS18X20(OneWire *_owDevice, const uint8_t *_addr, uint8_t *_scratchPad);
 
-#endif // #ifndef ZabbuinoOW_SENSORS_h
+#endif // #ifndef _ZABBUINO_OW_SENSORS_H_

@@ -1,5 +1,5 @@
-#ifndef ZabbuinoI2C_SHT_h
-#define ZabbuinoI2C_SHT_h
+#ifndef _ZABBUINO_I2C_SHT_H_
+#define _ZABBUINO_I2C_SHT_H_
 
 #include "i2c_bus.h"
 
@@ -16,7 +16,7 @@
 *     - 16-bit raw data on success
 *
 *****************************************************************************************************************************/
-uint16_t getRawDataFromSHT2X(const uint8_t _i2cAddress, const uint8_t _command);
+static uint16_t getRawDataFromSHT2X(const uint8_t _i2cAddress, const uint8_t _command);
 
 /*****************************************************************************************************************************
 *
@@ -29,4 +29,4 @@ uint16_t getRawDataFromSHT2X(const uint8_t _i2cAddress, const uint8_t _command);
 *****************************************************************************************************************************/
 int8_t getSHT2XMetric(const uint8_t _sdaPin, const uint8_t _sclPin, uint8_t _i2cAddress, const uint8_t _metric, char *_dst);
 
-#endif // #ifndef ZabbuinoI2C_SHT_h
+#endif // #ifndef _ZABBUINO_I2C_SHT_H_

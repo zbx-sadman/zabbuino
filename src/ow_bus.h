@@ -1,12 +1,12 @@
-#ifndef ZabbuinoBUSONEWIRE_h
-#define ZabbuinoBUSONEWIRE_h
+#ifndef _ZABBUINO_OWBUS_H_
+#define _ZABBUINO_OWBUS_H_
 
-#include <Arduino.h>
 // OneWire lib for Dallas sensors
 #include <OneWire.h>
-#include "../zabbuino.h"
-#include "defaults.h"
+#include "../basic.h"
+#include "tune.h"
 #include "service.h"
+#include "network.h"
 
 /*****************************************************************************************************************************
 *
@@ -20,4 +20,4 @@
 int8_t scanOneWire(const uint8_t _pin, EthernetClient *_ethClient);
 
 
-#endif // #ifndef ZabbuinoBUSONEWIRE_h
+#endif // #ifndef _ZABBUINO_OWBUS_H_

@@ -1,11 +1,12 @@
-#ifndef ZabbuinoSYS_h
-#define ZabbuinoSYS_h
+#ifndef _ZABBUINO_SYSTEM_H_
+#define _ZABBUINO_SYSTEM_H_
 
 #include <Arduino.h>
-#include "defaults.h"
-#include "../zabbuino.h"
-#include "adc.h"
-
+#include <avr/boot.h>
+#include <util/atomic.h>
+#include "../basic.h"
+#include "tune.h"
+#include "service.h"
 
 /*****************************************************************************************************************************
 *
@@ -25,7 +26,7 @@ void getBootSignatureBytes(char* _dst, uint8_t _startByte, uint8_t _len, uint8_t
 *     - always true at this time
 *
 *****************************************************************************************************************************/
-uint8_t initTimerOne(const uint16_t _milliseconds);
+extern uint8_t initTimerOne(const uint16_t _milliseconds);
 
 /*****************************************************************************************************************************
 *
@@ -35,7 +36,7 @@ uint8_t initTimerOne(const uint16_t _milliseconds);
 *     - none
 *
 *****************************************************************************************************************************/
-void startTimerOne(void);
+extern void startTimerOne(void);
 
 
 /*****************************************************************************************************************************
@@ -56,7 +57,7 @@ ISR(TIMER1_COMPA_vect);
 *     - none
 *
 *****************************************************************************************************************************/
-void stopTimerOne(void);
+extern void stopTimerOne(void);
 
 /*****************************************************************************************************************************
 *
@@ -66,6 +67,6 @@ void stopTimerOne(void);
 *     - none
 *
 *****************************************************************************************************************************/
-void gatherSystemMetrics(void);
+extern void gatherSystemMetrics(void);
 
-#endif // #ifndef ZabbuinoSYS_h
+#endif // #ifndef _ZABBUINO_SYSTEM_H_

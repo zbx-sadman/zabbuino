@@ -1,5 +1,5 @@
-#ifndef ZabbuinoUART_PZEM_h
-#define ZabbuinoUART_PZEM_h
+#ifndef _ZABBUINO_UART_PZEM_H_ 
+#define _ZABBUINO_UART_PZEM_H_
 
 #include "uart_bus.h"
 
@@ -27,7 +27,7 @@ version 1.0 is used
 *     - CRC
 *
 *****************************************************************************************************************************/
-uint8_t crcPZEM004(uint8_t *_data, uint8_t _size);
+static uint8_t crcPZEM004(uint8_t *_data, uint8_t _size);
 
 /*****************************************************************************************************************************
 *
@@ -40,4 +40,4 @@ uint8_t crcPZEM004(uint8_t *_data, uint8_t _size);
 *****************************************************************************************************************************/
 int8_t getPZEM004Metric(const uint8_t _rxPin, const uint8_t _txPin, uint8_t _metric, const char *_ip, uint8_t *_dst);
 
-#endif // #ifndef ZabbuinoUART_PZEM_h
+#endif // #ifndef _ZABBUINO_UART_PZEM_H_

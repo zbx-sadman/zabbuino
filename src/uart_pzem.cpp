@@ -16,7 +16,7 @@ version 1.0 is used
 *     - CRC
 *
 *****************************************************************************************************************************/
-uint8_t crcPZEM004(uint8_t *_data, uint8_t _size) {
+static uint8_t crcPZEM004(uint8_t *_data, uint8_t _size) {
     uint16_t crc = 0;
     for(uint8_t i=0; i < _size; i++) { crc += (uint8_t) *_data; _data++;}
     //while (_size) { crc += *_data; _data++; _size--; }
@@ -53,6 +53,8 @@ int8_t getPZEM004Metric(const uint8_t _rxPin, const uint8_t _txPin, uint8_t _met
      case SENS_READ_ENERGY:
        command = PZEM_ENERGY; 
        break;
+     default:
+       goto finish; 
    }
 
    /*  Send to PZEM004 */

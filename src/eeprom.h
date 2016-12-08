@@ -1,11 +1,9 @@
-#ifndef ZabbuinoEEPROM_h
-#define ZabbuinoEEPROM_h
+#ifndef _ZABBUINO_EEPROM_H_
+#define _ZABBUINO_EEPROM_H_
 
-#include <Arduino.h>
-#include <IPAddress.h>
 #include <EEPROM.h>
-#include "defaults.h"
-#include "../zabbuino.h"
+#include "../basic.h"
+#include "tune.h"
 #include "service.h"
 
 /*****************************************************************************************************************************
@@ -31,4 +29,4 @@ uint8_t saveConfigToEEPROM(netconfig_t *_configStruct);
 *****************************************************************************************************************************/
 uint8_t loadConfigFromEEPROM(netconfig_t *_configStruct);
 
-#endif // #ifndef ZabbuinoEEPROM_h
+#endif // #ifndef _ZABBUINO_EEPROM_H_

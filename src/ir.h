@@ -9,13 +9,13 @@ version 2.2.1 is used
 
 */
 
-#ifndef ZabbuinoIR_h
-#define ZabbuinoIR_h
+#ifndef _ZABBUINO_IR_H_
+#define _ZABBUINO_IR_H_
 
-#include <Arduino.h>
-#include "defaults.h"
-#include "../zabbuino.h"
-
+#include "../basic.h"
+#include "tune.h"
+#include "structs.h"
+#include "service.h"
 
 #define IR_UNKNOWN      -0x01
 #define IR_UNUSED       0x00
@@ -126,10 +126,10 @@ version 2.2.1 is used
 
 uint8_t sendCommandByIR(const uint8_t _irPacketType, const uint8_t _nbits, const uint32_t _data, const uint8_t _repeat, const uint32_t _address);
 uint8_t sendRawByIR(const uint16_t _frequency, unsigned int _nBits, const char* _data);
-void mark (unsigned int time);
-void  space (unsigned int time);
-void  enableIROut (int khz);
-void custom_delay_usec(unsigned long uSecs);
+static void mark (unsigned int time);
+static void space (unsigned int time);
+void enableIROut (int khz);
+static void custom_delay_usec(unsigned long uSecs);
 #ifdef SUPPORT_IR_RC5
 #define MIN_RC5_SAMPLES     11
 
@@ -266,4 +266,4 @@ void custom_delay_usec(unsigned long uSecs);
 
 
 
-#endif // #ifndef ZabbuinoIR_h
+#endif // #ifndef _ZABBUINO_IR_H_

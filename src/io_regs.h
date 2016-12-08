@@ -1,9 +1,9 @@
-#ifndef ZabbuinoIOREGS_h
-#define ZabbuinoIOREGS_h
+#ifndef _ZABBUINO_REGS_H_
+#define _ZABBUINO_REGS_H_
 
-#include <Arduino.h>
-#include "defaults.h"
-#include "../zabbuino.h"
+#include <util/atomic.h>
+#include "../basic.h"
+#include "tune.h"
 
 
 /*****************************************************************************************************************************
@@ -14,7 +14,7 @@
 *     - none
 *
 **************************************************************************************************************************** */
-void setPortMode(const uint8_t _port, const uint8_t _mode, const uint8_t _pullup);
+extern void setPortMode(const uint8_t _port, const uint8_t _mode, const uint8_t _pullup);
 
 /*****************************************************************************************************************************
 *
@@ -24,7 +24,7 @@ void setPortMode(const uint8_t _port, const uint8_t _mode, const uint8_t _pullup
 *     - none
 *
 **************************************************************************************************************************** */
-void writeToPort(const uint8_t _port, const uint8_t _value);
+extern void writeToPort(const uint8_t _port, const uint8_t _value);
 
 
 /*****************************************************************************************************************************
@@ -36,6 +36,6 @@ void writeToPort(const uint8_t _port, const uint8_t _value);
 *     - false on fail (pin is unsafe)
 *
 **************************************************************************************************************************** */
-uint8_t isSafePin(const uint8_t _pin);
+extern uint8_t isSafePin(const uint8_t _pin);
  
 #endif // #ifndef ZabbuinoIOREGS_h

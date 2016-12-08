@@ -1,5 +1,5 @@
-#ifndef ZabbuinoDHT_h
-#define ZabbuinoDHT_h
+#ifndef _ZABBUINO_DHT_H_
+#define _ZABBUINO_DHT_H_
 
 /*
 Based on: http://playground.arduino.cc/Main/DHTLib
@@ -7,10 +7,9 @@ version 0.1.13 is used
 
 */
 
-#include <Arduino.h>
-#include "defaults.h"
+#include "../basic.h"
+#include "tune.h"
 #include "service.h"
-#include "../zabbuino.h"
 
 
 #define DHT11_ID                                                11

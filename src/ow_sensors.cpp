@@ -48,7 +48,16 @@ int8_t getDS18X20Metric(const uint8_t _pin, uint8_t _resolution, char* _id, char
   }
 
   // Validate sensor. Model id saved in first byte of DeviceAddress (sensor ID).
-  if (DS18S20_ID != dsAddr[0] && DS18B20_ID != dsAddr[0] && DS1822_ID != dsAddr[0]) { goto finish; }  // rc already init with DEVICE_ERROR_CONNECT value
+  //  if (DS18S20_ID != dsAddr[0] && DS18B20_ID != dsAddr[0] && DS1822_ID != dsAddr[0]) { goto finish; }  // rc already init with DEVICE_ERROR_CONNECT value
+  switch (dsAddr[0]) {
+     case DS18S20_ID:
+     case DS18B20_ID:
+     case DS1822_ID:
+       break;
+    default:
+       goto finish;
+  }
+
 
   // Get values of CONFIGURATION, HIGH_ALARM_TEMP, LOW_ALARM_TEMP registers via ScratchPad reading.
   // Or return error if bad CRC detected
@@ -190,7 +199,7 @@ int8_t getDS18X20Metric(const uint8_t _pin, uint8_t _resolution, char* _id, char
 *     - false on fail
 *
 *****************************************************************************************************************************/
-static  uint8_t getScratchPadFromDS18X20(OneWire *_owDevice, const uint8_t *_addr, uint8_t *_scratchPad) {
+static uint8_t getScratchPadFromDS18X20(OneWire *_owDevice, const uint8_t *_addr, uint8_t *_scratchPad) {
   uint8_t i;
   _owDevice->reset();
   _owDevice->select(_addr);

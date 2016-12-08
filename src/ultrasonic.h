@@ -1,8 +1,8 @@
 #ifndef ZabbuinoULTRASONIC_h
 #define ZabbuinoULTRASONIC_h
-#include <Arduino.h>
-#include "defaults.h"
-#include "../zabbuino.h"
+
+#include "../basic.h"
+#include "tune.h"
 
 
 /*****************************************************************************************************************************

@@ -14,7 +14,6 @@ Second modification is by:
 */
 #include "busMicrowire.h"
 
-
 /*****************************************************************************************************************************
 *
 *  Send one byte to MAX7219 controller
@@ -23,7 +22,7 @@ Second modification is by:
 *    - none
 *
 *****************************************************************************************************************************/
-void writeByteToMAX7219(const uint8_t _dataPin, const uint8_t _clockPin, const uint8_t _data) 
+static void writeByteToMAX7219(const uint8_t _dataPin, const uint8_t _clockPin, const uint8_t _data) 
 {
   int8_t i = 7;
   while(i >= 0) {
@@ -42,7 +41,7 @@ void writeByteToMAX7219(const uint8_t _dataPin, const uint8_t _clockPin, const u
 *    - none
 *
 *****************************************************************************************************************************/
-void pushDataToMAX7219(const uint8_t _dataPin, const uint8_t _clockPin, const uint8_t _loadPin, const uint8_t _register, const uint8_t _data) {    
+static void pushDataToMAX7219(const uint8_t _dataPin, const uint8_t _clockPin, const uint8_t _loadPin, const uint8_t _register, const uint8_t _data) {    
   digitalWrite(_loadPin, LOW);
   // specify register or column
   writeByteToMAX7219(_dataPin, _clockPin, _register);   
@@ -62,7 +61,7 @@ void pushDataToMAX7219(const uint8_t _dataPin, const uint8_t _clockPin, const ui
 *
 *****************************************************************************************************************************/
 void writeToMAX7219(const uint8_t _dataPin, const uint8_t _clockPin, const uint8_t _loadPin, const uint8_t _intensity, char* _src) {    
-  uint8_t col, currByte,  isHexString = false;
+  uint8_t col, currByte = 0,  isHexString = false;
   // Init the module 
   // Mark all columns as active
   pushDataToMAX7219(_dataPin, _clockPin, _loadPin, MAX7219_REGISTER_SCANLIMIT, 0x07);      
@@ -97,6 +96,7 @@ void writeToMAX7219(const uint8_t _dataPin, const uint8_t _clockPin, const uint8
           // Add its to byte if HEX not '\0'
           currByte |= htod(*_src);
        }
+#ifndef NO_ASCII_SUPPORT
     } else {
       //
       //  ASCII processing
@@ -110,7 +110,8 @@ void writeToMAX7219(const uint8_t _dataPin, const uint8_t _clockPin, const uint8
       //   E    C
       //    DDDD   DP
       //
-      switch ((char) *_src) {
+      char currChar=(char) *_src;
+      switch (currChar) {
          case '0':
             currByte = B1111110;
             break;
@@ -180,14 +181,17 @@ void writeToMAX7219(const uint8_t _dataPin, const uint8_t _clockPin, const uint8
          case 'r':
             currByte = B0000101;
             break;
+         default:
+            currByte = B0000000;
+            break;
      }
       // 'dot' sign is next? 
       if ('.' == ((char) *(_src+1))) {
          currByte |= 0x80;
          _src++;
       }
+#endif
     }
-
     _src++;
     // Pushing byte to column
      pushDataToMAX7219(_dataPin, _clockPin, _loadPin, col, currByte);

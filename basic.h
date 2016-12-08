@@ -1,30 +1,42 @@
-#ifndef Zabbuino_h
-#define Zabbuino_h
+#ifndef _ZABBUINO_BASIC_CONFIG_H_
+#define _ZABBUINO_BASIC_CONFIG_H_
+#include <Arduino.h>
+#include <IPAddress.h>
+//#define USE_NETWORK_192_168_0_0
 /* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
    
                                                              NETWORK MODULE SECTION
    
-   Old releases of Arduino IDE can do not processing #includes inside #if pragmas (see NETWORK MODULE SECTION) and hangs on compiling or show errors
-   If you use that release - comment all #includes, exclude your's module related block 
+   Old releases of Arduino IDE can do not processing #includes inside #if pragmas (see NETWORK MODULE SECTION) and stops on compiling or show errors
+   If you use that release - comment all #includes, exclude your's module related block.
 
                                                               !!! ENC28J60 users !!!
 
-    Please try to use https://github.com/ntruchsess/arduino_uip/tree/fix_errata12 brahch of UIPEthernet if your ENC28J60 seems freeze or loose connection.
+   1. Please try to use https://github.com/ntruchsess/arduino_uip/tree/fix_errata12 brahch of UIPEthernet if your ENC28J60 seems freeze or loose connection.
+   2. Leave as much free memory as possible. If Arduino IDE show to you "Low memory available, stability problems may occur", it means that the chances 
+      of sudden and unpredictable hang your device are large. You can get more memory if disable DHCP feature for Zabbuino and disabe UDP protocol support
+      for UIPEthernet (uipethernet-conf.h -> #define UIP_CONF_UDP 0). 
+      Also, you can increase number of sockets for UIPEthernet (uipethernet-conf.h -> #define #define UIP_CONF_MAX_CONNECTIONS .. ).
+   3. Sometime "low memory" problem (probaly) cause corrupt ENC28J60's RX buffer (i don't know how, experiments will go on. May be it my algo error) and 
+      chip re-init is enough to recovery work state. You can enable USE_DIRTY_HACK_AND_REBOOT_ENC28J60_IF_ITS_SEEMS_FREEZE declaration to re-intit 
+      ENC28J60 when corruption is detected. 
+      Note that you need to move the _readReg(uint8_t address)_ declaration from **private** to **public** area in UIPEthernet\utility\Enc28J60Network.h file.
+
+   4. When (1) & (2) & (3) did not help to add stability, you can buy Wiznet 5xxx shield or rewrite the source code.
    
-    Tested on UIPEthernet v1.09
-    
-    When UIPEthernet's fix_errata12 brahch did not help to add stability, you can buy W5xxx shield.
-    
-    Also u can try uncomment USE_DIRTY_HACK_AND_REBOOT_ENC28J60_IF_ITS_SEEMS_FREEZE declaration below to periodically ENC28J60 re-intit 
+   Tested on UIPEthernet v1.09
+        
 */
 
 #define W5100_ETHERNET_SHIELD             // Arduino Ethernet Shield and Compatibles ...
 //#define ENC28J60_ETHERNET_SHIELD          // Microchip __ENC28J60__ network modules
+//#define USE_DIRTY_HACK_AND_REBOOT_ENC28J60_IF_ITS_SEEMS_FREEZE
 
-// not tested yet, but set up to use WizNet official library: https://github.com/Wiznet/WIZ_Ethernet_Library/tree/master/Arduino%20IDE%201.5.x/Ethernet
+// Not tested yet, but can be used with WizNet official library: https://github.com/Wiznet/WIZ_Ethernet_Library/tree/master/Arduino%20IDE%201.5.x/Ethernet
 // Unfortunatly network chip selection can't be carried from outside of Wiznet library :(
 // You must edit "%Program Files%\Arduino\libraries\Ethernet\src\utility\w5100.h" directly to comment 
 //     and uncomment the same #defines - W5100_ETHERNET_SHIELD or W5500_ETHERNET_SHIELD or another else
+
 //#define W5200_ETHERNET_SHIELD             // WIZ820io, W5200 Ethernet Shield 
 //#define W5500_ETHERNET_SHIELD             // WIZ550io, ioShield series of WIZnet
 
@@ -40,6 +52,8 @@
 /****       Network              ****/
 /*/ 
 /=/      Obtain an IP-address using DHCP
+/=/      
+/=/      Note: Do not forget to enable UDP prototol support for network module driver.
 /*/
 //#define FEATURE_NET_DHCP_ENABLE
 
@@ -50,10 +64,10 @@
 
 /*/ 
 /=/      Use last byte of MCU ID as MAC`s and IP's last byte 
-/=/      Note, that changing MAC or IP-address separately may cause "strange" network errors until the moment when the router delete 
+/=/      
+/=/      Note: changing MAC or IP-address separately may cause "strange" network errors until the moment when the router delete 
 /=/      old ARP-records from the cache.
 /*/
-// need to test for ip rewriting
 //#define FEATURE_NET_USE_MCUID
 
 /****       Arduino wrappers     ****/
@@ -111,9 +125,6 @@
 
 /****       I2C bus        ****/
 
-// Note #1: I2C library (Wire.h) takes at least 32bytes of memory for internal buffers
-// Note #2: I2C library (Wire.h) activate internal pullups for SDA & SCL pins when Wire.begin() called
-
 /*/ 
 /=/     Enable I2C processing and commands:
 /=/       - I2C.Scan[];
@@ -121,8 +132,11 @@
 /=/       - I2C.Read[];
 /=/       - I2C.BitWrite[];
 /=/       - I2C.BitRead[]
+/=/
+/=/ Note #1: I2C library (Wire.h) takes at least 32bytes of memory for internal buffers
+/=/ Note #2: I2C library (Wire.h) activate internal pullups for SDA & SCL pins when Wire.begin() called
 /*/
-#define FEATURE_I2C_ENABLE
+//#define FEATURE_I2C_ENABLE
 
 /*/ 
 /=/     Enable BOSCH BMP sensors handling and commands:
@@ -191,7 +205,7 @@
 /=/       - pzem004.power[]  
 /=/       - pzem004.energy[] 
 /*/
-//#define FEATURE_PZEM004_ENABLE
+#define FEATURE_PZEM004_ENABLE
 
 /*/ 
 /=/     Enable APC SmartUPS protocol support and command:
@@ -285,7 +299,7 @@
 /*/
 /=/     Store runtime settings in EEPROM and use its on start
 /*/
-#define FEATURE_EEPROM_ENABLE
+//#define FEATURE_EEPROM_ENABLE
 
 /*/
 /=/     Force protect (enable even netConfig.useProtection is false) your system from illegal access for change runtime settings and reboots 
@@ -310,6 +324,7 @@
 //#define FEATURE_DEBUG_TO_SERIAL_LOW
 //#define FEATURE_DEBUG_TO_SERIAL_MIDDLE
 //#define FEATURE_DEBUG_TO_SERIAL_HIGH
+//#define FEATURE_DEBUG_TO_SERIAL_DEV
 
 /*/
 /=/     View the additional debug messages on the Serial Monitor when network errors probaly occurs
@@ -333,136 +348,60 @@
 #define GATHER_METRIC_USING_TIMER_INTERRUPT
 
 /* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
-                                                               ALARM SECTION 
-*/
-
-// Where is state LED connected
-#define PIN_STATE_LED              	                        0x09
-// State LED must blink or just be turned on?
-#define ON_ALARM_STATE_BLINK            
-// Use more blinks to runtime stage indication
-//#define ADVANCED_BLINKING
-
-/* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
                                                             NETWORK MODULE SECTION 
 
        Note, that changing MAC or IP-address separately may cause "strange" network errors until the moment when the router delete old ARP-records from the cache.
 
 */
 
-#define NET_DEFAULT_USE_DHCP                                  false
+const uint8_t constNetDefaultUseDHCP = false;
 
 #ifdef USE_NETWORK_192_168_0_0
-  #define NET_DEFAULT_MAC_ADDRESS                             {0xDE,0xAD,0xBE,0xEF,0xFE,0xF9}
-  #define NET_DEFAULT_IP_ADDRESS                              {192,168,0,228}
-  #define NET_DEFAULT_GATEWAY                                 {192,168,0,1}
+  #define NET_DEFAULT_MAC_ADDRESS                              {0xDE,0xAD,0xBE,0xEF,0xFE,0xF9}
+  #define NET_DEFAULT_IP_ADDRESS                               {192,168,0,228}
+  #define NET_DEFAULT_GATEWAY                                  {192,168,0,1}
+  #define NET_DEFAULT_NETMASK                                  {255,255,255,0}
 #else
-  #define NET_DEFAULT_MAC_ADDRESS                             {0xDE,0xAD,0xBE,0xEF,0xFE,0xF7}
-  #define NET_DEFAULT_IP_ADDRESS                              {172,16,100,228}
-  #define NET_DEFAULT_GATEWAY                                 {172,16,100,254}
-#endif
-#define NET_DEFAULT_NETMASK                                   {255,255,255,0}
-
-
-// Include headers for an network module
-#if defined (W5100_ETHERNET_SHIELD)
-   #define NET_MODULE_NAME                                   "W5100"
-   #include <Ethernet.h> 
-   #include <SPI.h>
-#elif defined(W5200_ETHERNET_SHIELD)
-   #define NET_MODULE_NAME                                   "W5200"
-   #include <Ethernet.h>
-   #include <SPI.h>
-#elif defined(W5500_ETHERNET_SHIELD)
-   #define NET_MODULE_NAME                                   "W5500"
-   #include <Ethernet.h>
-   #include <SPI.h>
-#elif defined(ENC28J60_ETHERNET_SHIELD)
-   #define NET_MODULE_NAME                                   "ENC28J60"
-   #include <UIPEthernet.h>
-/* You need to do one change in UIPEthernet\utility\Enc28J60Network.h before uncomment USE_DIRTY_HACK_AND_REBOOT_ENC28J60_IF_ITS_SEEMS_FREEZE:         
-    *  private:
-            ...    
-            static uint8_t readReg(uint8_t address);  // << move its to __public__ section
-            ...
-             
-         public: 
-             ...
-   */
-   //#define USE_DIRTY_HACK_AND_REBOOT_ENC28J60_IF_ITS_SEEMS_FREEZE
+  #define NET_DEFAULT_MAC_ADDRESS                              {0xDE,0xAD,0xBE,0xEF,0xFE,0xF0}
+  #define NET_DEFAULT_IP_ADDRESS                               {172,16,100,227}
+  #define NET_DEFAULT_GATEWAY                                  {172,16,100,254}
+  #define NET_DEFAULT_NETMASK                                  {255,255,255,0}
 #endif
 
+/* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
+                                                               ALARM SECTION 
+*/
+
+// Where is state LED connected
+const uint8_t constStateLedPin                                 = 0x09; 
+// State LED must blink or just be turned on?
+#define ON_ALARM_STATE_BLINK            
+// Use more blinks to runtime stage indication
+//#define ADVANCED_BLINKING
 
 /* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
                                                          SYSTEM CONFIGURATION SECTION 
 */
 
 // Access password must be used anytime.
-#define SYS_DEFAULT_PROTECTION      	                        true
+const uint8_t constSysDefaultProtection                        = true; 
 
 // It's just number of "long int" type. Surprise!
-#define SYS_DEFAULT_PASSWORD        	                        0x000
+const uint32_t constSysDefaultPassword                         = 0x000; 
 
-// Digital pin which must shorted on the GND for HOLD_TIME_TO_FACTORY_RESET time to copy default system setting into EEPROM
-#define PIN_FACTORY_RESET           	                        0x08 
+// Digital pin which must shorted on the GND for constHoldTimeToFactoryReset time to copy default system setting into EEPROM
+const uint8_t constFactoryResetButtonPin                       = 0x08; 
 
 /* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
                                                           AGENT CONFIGURATION SECTION 
 */
 
-#define ZBX_AGENT_DEFAULT_HOSTNAME                            "zabbuino"
+#define ZBX_AGENT_DEFAULT_HOSTNAME                             "zabbuino"
 
 // Domain name used only to make FDQN if FEATURE_NET_USE_MCUID is allowed, and FEATURE_EEPROM_ENABLE is disabled
-#define ZBX_AGENT_DEFAULT_DOMAIN                              ".local.net"
+#define ZBX_AGENT_DEFAULT_DOMAIN                               ".local.net"
 
 
-#define ZBX_AGENT_VERISON             	                      "Zabbuino 1.1.0"
-
-
-/* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
-                                                                 HEADERS SECTION
-*/
-
-#include <Arduino.h>
-#include <avr/pgmspace.h>
-#include <avr/wdt.h>
-#include <avr/boot.h>
-// used by interrupts-related macroses
-#include <wiring_private.h>
-
-#include "src/platforms.h"
-#include "src/defaults.h"
-
-/* runtime libs */
-#include "src/adc.h"
-#include "src/eeprom.h"
-#include "src/io_regs.h"
-#include "src/system.h"
-
-/* I2C devices */
-#include "src/i2c_bus.h"
-#include "src/i2c_bmp.h"
-#include "src/i2c_lcd.h"
-#include "src/i2c_sht.h"
-
-/* 1-Wire devices */
-#include "src/ow_bus.h"
-#include "src/ow_sensors.h"
-
-/* UART connected devices */
-#include "src/uart_bus.h"
-#include "src/uart_apcsmart.h"
-#include "src/uart_megatec.h"
-#include "src/uart_pzem.h"
-
-/* Other devices */
-#include "src/dht.h"
-#include "src/ir.h"
-#include "src/interrupts.h"
-#include "src/ultrasonic.h"
-#include "src/shiftout.h"
-#include "src/busMicrowire.h"
-
-#endif
-
+#define ZBX_AGENT_VERISON                                      "Zabbuino 1.1.0"
+#endif // #ifndef _ZABBUINO_BASIC_CONFIG_H_
 

@@ -1,8 +1,7 @@
-#ifndef ZabbuinoI2C_BMP_h
-#define ZabbuinoI2C_BMP_h
+#ifndef _ZABBUINO_I2C_BMP_H_
+#define _ZABBUINO_I2C_BMP_H_
 
 #include "i2c_bus.h"
-
 
 #define BMP180_I2C_ADDRESS                                      0x77  // I2C address of BMP085/180 sensor
 
@@ -186,4 +185,4 @@ static int8_t getBMP280Metric(const uint8_t _sdaPin, const uint8_t _sclPin, uint
 static int8_t getBMP180Metric(const uint8_t _sdaPin, const uint8_t _sclPin, uint8_t _i2cAddress, uint8_t _overSampling, const uint8_t _metric, char *_dst);
 
 
-#endif // #ifndef ZabbuinoI2C_BMP_h
+#endif // #ifndef _ZABBUINO_I2C_BMP_H_

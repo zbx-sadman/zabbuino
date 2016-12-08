@@ -1,12 +1,13 @@
-#ifndef ZabbuinoI2C_BUS_h
-#define ZabbuinoI2C_BUS_h
+#ifndef _ZABBUINO_I2C_BUS_H_
+#define _ZABBUINO_I2C_BUS_H_
 
-#include <Arduino.h>
 // Wire lib for I2C sensors
 #include <Wire.h>
-#include "../zabbuino.h"
-#include "defaults.h"
+#include "../basic.h"
+#include "tune.h"
 #include "service.h"
+#include "system.h"
+#include "network.h"
 
 /*-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
 
@@ -149,4 +150,4 @@ uint8_t inline isI2CDeviceReady(uint8_t _i2cAddress)
 *****************************************************************************************************************************/
 int8_t getBH1750Metric(const uint8_t _sdaPin, const uint8_t _sclPin, uint8_t _i2cAddress, uint8_t _mode, const uint8_t _metric, char *_dst);
 
-#endif // #ifndef ZabbuinoI2C_BUS_h
+#endif // #ifndef _ZABBUINO_I2C_BUS_H_

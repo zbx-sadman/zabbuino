@@ -1,5 +1,5 @@
-#ifndef ZabbuinoUART_MEGATEC_h
-#define ZabbuinoUART_MEGATEC_h
+#ifndef _ZABBUINO_UART_MEGATEC_H_
+#define _ZABBUINO_UART_MEGATEC_H_
 
 #include "uart_bus.h"
 
@@ -28,4 +28,4 @@
 *****************************************************************************************************************************/
 int8_t getMegatecUPSMetric(const uint8_t _rxPin, const uint8_t _txPin, uint8_t *_command, uint8_t _fieldNumber, uint8_t *_dst);
 
-#endif // #ifndef ZabbuinoUART_MEGATEC_h
+#endif // #ifndef _ZABBUINO_UART_MEGATEC_H_

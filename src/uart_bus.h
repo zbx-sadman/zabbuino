@@ -1,10 +1,9 @@
-#ifndef ZabbuinoUART_BUS_h
-#define ZabbuinoUART_BUS_h
+#ifndef _ZABBUINO_UART_BUS_H_
+#define _ZABBUINO_UART_BUS_H_
 
-#include <Arduino.h>
 #include <SoftwareSerial.h>
-#include "../zabbuino.h"
-#include "defaults.h"
+#include "../basic.h"
+#include "tune.h"
 #include "service.h"
 #include "system.h"
 
@@ -47,4 +46,4 @@ uint8_t serialRecive(SoftwareSerial *_swSerial, uint8_t *_src, const uint8_t _si
 *****************************************************************************************************************************/
 void serialSend(SoftwareSerial *_swSerial, const uint8_t *_src, const uint8_t _size, const uint8_t _slowMode);
 
-#endif // #ifndef ZabbuinoUART_BUS_h
+#endif // #ifndef _ZABBUINO_UART_BUS_H_

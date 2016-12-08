@@ -8,12 +8,15 @@
 *     - none
 *
 *****************************************************************************************************************************/
+// Todo: need to rewrite code to use "uint8_t *_src" instead "char *_src" and remove cast to uint8_t
+// in prepareBufferForAdvShiftout => _src[dataBufferPosition] = bitReverseTable16[(uint8_t) _src[dataBufferPosition]];
+
 void shiftOutAdvanced(const uint8_t _dataPin, const uint8_t _clockPin, const uint8_t _bitOrder, char *_src)
 {
   uint16_t lenOfBuffer = 0;
   uint8_t dataPinBit, clockPinBit;
   volatile uint8_t *dataPortOutputRegister, *clockPortOutputRegister;
-  uint8_t i, currByte;
+  uint8_t i;
 
   dataPinBit = digitalPinToBitMask(_dataPin);
   clockPinBit = digitalPinToBitMask(_clockPin);
@@ -72,7 +75,7 @@ void WS2812Out(const uint8_t _dataPin, char *_src)
 {
   volatile uint8_t  *port;         // Output PORT register
   uint8_t pinMask;       // Output PORT bitmask
-  volatile uint16_t i, lenOfBuffer;  // = numBytes; // Loop counter
+  volatile uint16_t i;  // = numBytes; // Loop counter
   volatile uint8_t
                    *ptr, // = pixels,   // Pointer to next byte
                    b, //   = *ptr++,   // Current byte value
@@ -211,7 +214,7 @@ static uint16_t prepareBufferForAdvShiftout(const uint8_t _bitOrder, char *_src)
      // That procedure is stand separately because one central item not processeed on previous stage if buffer length is odd
      // usung for() _here_ give more pgmspace that using while() 
      for (dataBufferPosition = 0; dataBufferPosition <= lenOfBuffer; dataBufferPosition++){
-       _src[dataBufferPosition] = bitReverseTable16[_src[dataBufferPosition]];
+       _src[dataBufferPosition] = bitReverseTable16[(uint8_t) _src[dataBufferPosition]];
      }
   }
   return lenOfBuffer;

@@ -1,9 +1,10 @@
-#ifndef ZabbuinoBUSMICROWIRE_h
-#define ZabbuinoBUSMICROWIRE_h
+#ifndef _ZABBUINO_BUSMICROWIRE_H_
+#define _ZABBUINO_BUSMICROWIRE_H_
 
-#include <Arduino.h>
-#include "defaults.h"
-#include "../zabbuino.h"
+#include "../basic.h"
+#include "tune.h"
+#include "system.h"
+
 
 /* 
 The original code was written for the Wiring board by:
@@ -20,6 +21,9 @@ Second modification is by:
 
 */
 
+// Uncomment to save ram, but loose ASCII support
+#define  NO_ASCII_SUPPORT
+
 #define MAX7219_REGISTER_DECODE_MODE                                     0x09
 #define MAX7219_REGISTER_INTENSITY                                       0x0A
 #define MAX7219_REGISTER_SCANLIMIT                                       0x0B
@@ -34,7 +38,7 @@ Second modification is by:
 *    - none
 *
 *****************************************************************************************************************************/
-void writeByteToMAX7219(const uint8_t _dataPin, const uint8_t _clockPin, const uint8_t _data);
+static void writeByteToMAX7219(const uint8_t _dataPin, const uint8_t _clockPin, const uint8_t _data);
 
 /*****************************************************************************************************************************
 *
@@ -44,7 +48,7 @@ void writeByteToMAX7219(const uint8_t _dataPin, const uint8_t _clockPin, const u
 *    - none
 *
 *****************************************************************************************************************************/
-void pushDataToMAX7219(const uint8_t _dataPin, const uint8_t _clockPin, const uint8_t _loadPin, const uint8_t _register, const uint8_t _data);
+static void pushDataToMAX7219(const uint8_t _dataPin, const uint8_t _clockPin, const uint8_t _loadPin, const uint8_t _register, const uint8_t _data);
 
 /*****************************************************************************************************************************
 *
@@ -57,4 +61,4 @@ void pushDataToMAX7219(const uint8_t _dataPin, const uint8_t _clockPin, const ui
 void writeToMAX7219(const uint8_t _dataPin, const uint8_t _clockPin, const uint8_t _loadPin, const uint8_t _intensity, char *_data);
 
 
-#endif // #ifndef ZabbuinoBUSMICROWIRE_h
+#endif // #ifndef _ZABBUINO_BUSMICROWIRE_H_

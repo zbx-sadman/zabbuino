@@ -97,10 +97,6 @@ static int8_t getBMP280Metric(const uint8_t _sdaPin, const uint8_t _sclPin, uint
   uint16_t dig_P1;
   int16_t  dig_P2, dig_P3, dig_P4, dig_P5, dig_P6, dig_P7, dig_P8, dig_P9;
 
-  uint8_t dig_H1, dig_H3;
-  int8_t dig_H6;
-  int16_t  dig_H2, dig_H4, dig_H5;
-
   int32_t adc, result, var1, var2, t_fine;
   uint8_t value[3];
   uint8_t i;
@@ -240,7 +236,7 @@ static int8_t getBMP280Metric(const uint8_t _sdaPin, const uint8_t _sclPin, uint
 
       result = (((uint32_t)(((int32_t) 1048576) - adc)-(var2 >> 12))) * 3125;
        
-      result = (result < 0x80000000L) ? ((result << 1) / ((uint32_t) var1)) : ((result / (uint32_t) var1) * 2); 
+      result = ((uint32_t) result < 0x80000000L) ? ((result << 1) / ((uint32_t) var1)) : ((result / (uint32_t) var1) * 2); 
 
 /*
       if (result < 0x80000000) {
@@ -264,7 +260,11 @@ static int8_t getBMP280Metric(const uint8_t _sdaPin, const uint8_t _sclPin, uint
      
 #ifdef SUPPORT_BME280_INCLUDE
     case SENS_READ_HUMD:
-      //read calibration data 
+      uint8_t  dig_H1, dig_H3;
+      int8_t   dig_H6;
+      int16_t  dig_H2, dig_H4, dig_H5;
+
+      //read calibration data
 
       readBytesFromi2C(_i2cAddress, BME280_REGISTER_DIG_H1, value, 1);
       dig_H1 = WireToU8(value);
@@ -305,7 +305,7 @@ static int8_t getBMP280Metric(const uint8_t _sdaPin, const uint8_t _sclPin, uint
 
       qtoaf(result, _dst, 10);
 #endif        
-}
+  }  // switch (_metric)
   gatherSystemMetrics(); // Measure memory consumption
   return RESULT_IN_BUFFER;
 }

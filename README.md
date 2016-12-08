@@ -30,6 +30,13 @@ Implemented:
 - Support APC Smart UPS (with RS232 interface);
 - Simulate varuious vendor's IR transmitters.
 
+####08 Dec 2016
+
+Changes: 
+  - Zabbuino configs was splitted to _basic.h_ (a little basic setting set) and _src/tune.h_ (tuning settings);
+  - Compilation is improved (i think so);
+  - Network processing reworked a little again.
+
 ####28 Nov 2016
 
 Fixes:

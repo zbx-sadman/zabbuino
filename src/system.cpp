@@ -1,6 +1,4 @@
 #include "system.h"
-#include <avr/boot.h>
-#include <util/atomic.h>
 
 
 /*****************************************************************************************************************************
@@ -40,7 +38,7 @@ void getBootSignatureBytes(char* _dst, uint8_t _startByte, uint8_t _len, uint8_t
 *     - always true at this time
 *
 *****************************************************************************************************************************/
-uint8_t initTimerOne(const uint16_t _milliseconds) 
+extern uint8_t initTimerOne(const uint16_t _milliseconds) 
 {
   // Don't allow more that 5 sec to avoid overflow on 16Mhz with prescaler 1024 
   if ((1000 > _milliseconds) && (5000 < _milliseconds)) { return false; }
@@ -64,7 +62,7 @@ uint8_t initTimerOne(const uint16_t _milliseconds)
 *     - none
 *
 *****************************************************************************************************************************/
-void startTimerOne() { TCCR1B = _BV(CS12) | _BV(CS10); }
+extern void startTimerOne() { TCCR1B = _BV(CS12) | _BV(CS10); }
 
 /*****************************************************************************************************************************
 *
@@ -90,7 +88,7 @@ ISR(TIMER1_COMPA_vect)
 *     - none
 *
 *****************************************************************************************************************************/
-void stopTimerOne() { TCCR1B = 0; }
+extern void stopTimerOne() { TCCR1B = 0; }
 
 /*****************************************************************************************************************************
 *
@@ -100,10 +98,10 @@ void stopTimerOne() { TCCR1B = 0; }
 *     - none
 *
 *****************************************************************************************************************************/
-void inline gatherSystemMetrics(){
+extern void gatherSystemMetrics(){
 #ifdef FEATURE_DEBUG_COMMANDS_ENABLE
   // Global variable from the outside
-  extern volatile int32_t *sysMetrics;
+  extern volatile int32_t sysMetrics[];
   sysMetrics[IDX_METRIC_SYS_RAM_FREE] = (int32_t) getRamFree(); 
   // Correct sys.ram.freemin metric when FreeMem just taken
   if (sysMetrics[IDX_METRIC_SYS_RAM_FREEMIN] > sysMetrics[IDX_METRIC_SYS_RAM_FREE]) {

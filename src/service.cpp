@@ -12,21 +12,21 @@ void setConfigDefaults(netconfig_t *_configStruct)
   uint8_t mac[] = NET_DEFAULT_MAC_ADDRESS;
   memcpy(_configStruct->macAddress, mac, arraySize(_configStruct->macAddress));
 
-  _configStruct->useDHCP = (NET_DEFAULT_USE_DHCP);
+  _configStruct->useDHCP = constNetDefaultUseDHCP;
   _configStruct->ipAddress = IPAddress(NET_DEFAULT_IP_ADDRESS);
   _configStruct->ipNetmask = IPAddress(NET_DEFAULT_NETMASK);
   _configStruct->ipGateway = IPAddress(NET_DEFAULT_GATEWAY);
-  _configStruct->password  = (SYS_DEFAULT_PASSWORD);
-  _configStruct->useProtection = (SYS_DEFAULT_PROTECTION);
+  _configStruct->password  = constSysDefaultPassword;
+  _configStruct->useProtection = constSysDefaultProtection;
   
 #ifdef FEATURE_NET_USE_MCUID
   // if FEATURE_NET_USE_MCUID is defined:
   // 1. Make FDQN-hostname from MCU ID and default domain name
   // 2. Modify MAC - the last default's MAC octet is replaced to the last byte of MCU ID
   // 3. Modify IP - the last default's IP octet is replaced too to the last byte of MCU ID
-  getBootSignatureBytes(_configStruct->hostname, 14, 10);
-  memcpy(&_configStruct->hostname[SYS_MCU_ID_LEN], (ZBX_AGENT_DEFAULT_DOMAIN), arraySize(ZBX_AGENT_DEFAULT_DOMAIN));
-  _configStruct->hostname[SYS_MCU_ID_LEN+sizeof(ZBX_AGENT_DEFAULT_DOMAIN)+1]='\0';
+  getBootSignatureBytes(_configStruct->hostname, 14, 10, 1);
+  memcpy(&_configStruct->hostname[constMcuIdLength], (ZBX_AGENT_DEFAULT_DOMAIN), arraySize(ZBX_AGENT_DEFAULT_DOMAIN));
+  _configStruct->hostname[constMcuIdLength+sizeof(ZBX_AGENT_DEFAULT_DOMAIN)+1]='\0';
   
   // 
   // Interrupts must be disabled before boot_signature_byte_get will be called to avoid code crush
@@ -78,9 +78,10 @@ void ltoaf(const int32_t _number, char* _dst, const uint8_t _num_after_dot)
 {
   uint8_t i, skipLeadingZeros = true, pointIsUsed = false;;
   char currChar;
-  uint32_t value = _number;
+  int32_t value = _number;
   const uint8_t maxStringLen = 10;
-  const uint32_t dividers[maxStringLen]={1000000000, 100000000, 10000000, 1000000, 100000, 10000, 1000, 100, 10, 1};
+  // int32_t used cuz value & _number is int32_t too
+  const int32_t dividers[maxStringLen]={1000000000, 100000000, 10000000, 1000000, 100000, 10000, 1000, 100, 10, 1};
   
   // If Zero given - Zero returned without long processing 
   if (0 == value) { _dst[0] = '0';  _dst[1] = '\0'; return;} 
@@ -229,9 +230,9 @@ void printArray(uint8_t *_src, uint8_t _len, const uint8_t _type)
 void blinkMore(const uint8_t _times, const uint16_t _onTime, const uint16_t _offTime) 
 {
   for (uint8_t i=0; i < _times ; i++) {
-    digitalWrite(PIN_STATE_LED, HIGH);   // turn the LED on (HIGH is the voltage level)
+    digitalWrite(constStateLedPin, HIGH);   // turn the LED on (HIGH is the voltage level)
     delay(_onTime);              // wait for a second
-    digitalWrite(PIN_STATE_LED, LOW);   // turn the LED on (HIGH is the voltage level)
+    digitalWrite(constStateLedPin, LOW);   // turn the LED on (HIGH is the voltage level)
     delay(_offTime);              // wait for a second
   }
 }

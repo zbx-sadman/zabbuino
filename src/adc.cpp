@@ -58,8 +58,7 @@ int8_t getACS7XXMetric(const uint8_t _sensorPin, uint32_t _aRefVoltage,  const u
 {  
   uint32_t sampleInterval, mVperUnit, prevMicros = 0;
   int32_t result, adcValue, numUnits = 0;
-  int16_t temp, samplesCount = 0; // adcTable[ADC_SAMPLES], 
-  uint8_t swapped, oldSREG;
+  int16_t samplesCount = 0; // adcTable[ADC_SAMPLES], 
 
   pinMode(_sensorPin, INPUT);
   
@@ -106,7 +105,7 @@ int8_t getACS7XXMetric(const uint8_t _sensorPin, uint32_t _aRefVoltage,  const u
        samplesCount++;
        prevMicros = micros();
        // ADC stabilization delay
-       delayMicroseconds(ADC_STABILIZATION_DELAY);
+       delayMicroseconds(constAdcStabilizationDelay);
     }
   }
 
@@ -140,6 +139,8 @@ int8_t getACS7XXMetric(const uint8_t _sensorPin, uint32_t _aRefVoltage,  const u
       // (VCC / 1024) * units - how many mV give ACS712
       // (1 / SENSITIVITY) - Amps on mV
       result =  mVperUnit * numUnits / _sensitivity;
+     default:
+       return RESULT_IS_FAIL;
   }
 
   ltoa(result, _outBuffer, 10);

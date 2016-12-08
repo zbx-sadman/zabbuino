@@ -1,5 +1,5 @@
-#ifndef ZabbuinoI2C_LCD_h
-#define ZabbuinoI2C_LCD_h
+#ifndef _ZABBUINO_I2C_LCD_H_
+#define _ZABBUINO_I2C_LCD_H_
 
 #include "i2c_bus.h"
 
@@ -93,7 +93,7 @@
 *     - none
 *
 *****************************************************************************************************************************/
-void sendToLCD(const uint8_t _i2cAddress, const uint8_t _data, const uint8_t _mode);
+static void sendToLCD(const uint8_t _i2cAddress, const uint8_t _data, const uint8_t _mode);
 
 
 /*****************************************************************************************************************************
@@ -104,7 +104,7 @@ void sendToLCD(const uint8_t _i2cAddress, const uint8_t _data, const uint8_t _mo
 *     - none
 *
 *****************************************************************************************************************************/
-void write4bitsToLCD(const uint8_t _i2cAddress, uint8_t _data);
+static void write4bitsToLCD(const uint8_t _i2cAddress, uint8_t _data);
 
 /*****************************************************************************************************************************
 *
@@ -114,7 +114,7 @@ void write4bitsToLCD(const uint8_t _i2cAddress, uint8_t _data);
 *     - none
 *
 *****************************************************************************************************************************/
-void pulseEnableOnLCD(const uint8_t _i2cAddress, const uint8_t _data);
+static void pulseEnableOnLCD(const uint8_t _i2cAddress, const uint8_t _data);
 
 /*****************************************************************************************************************************
 *
@@ -127,4 +127,4 @@ void pulseEnableOnLCD(const uint8_t _i2cAddress, const uint8_t _data);
 *****************************************************************************************************************************/
 int8_t printToPCF8574LCD(const uint8_t _sdaPin, const uint8_t _sclPin, uint8_t _i2cAddress, uint8_t _lcdBacklight, const uint16_t _lcdType, const char *_src);
 
-#endif // #ifndef ZabbuinoI2C_LCD_h
+#endif // #ifndef _ZABBUINO_I2C_LCD_H_

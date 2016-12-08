@@ -1,71 +1,31 @@
-#ifndef ZabbuinoDEFAULTS_h
-#define ZabbuinoDEFAULTS_h
+#ifndef _ZABBUINO_STRUCTS_H_
+#define _ZABBUINO_STRUCTS_H_
 
-#if defined(FEATURE_I2C_ENABLE) || defined(FEATURE_BMP_ENABLE) || defined(FEATURE_BH1750_ENABLE) || defined (FEATURE_PCF8574_LCD_ENABLE) || defined (FEATURE_SHT2X_ENABLE)
-   #define LIBWIRE_USE
-#endif
-
-#if defined(FEATURE_DEBUG_TO_SERIAL_DEV) || defined(FEATURE_DEBUG_TO_SERIAL_LOW) || defined(FEATURE_DEBUG_TO_SERIAL_MIDDLE) || defined(FEATURE_DEBUG_TO_SERIAL_HIGH) || defined(FEATURE_SERIAL_LISTEN_TOO) || defined(FEATURE_NET_DEBUG_TO_SERIAL)
-   #define SERIAL_USE
-#endif
-
-#if defined(FEATURE_EXTERNAL_INTERRUPT_ENABLE) || defined(FEATURE_INCREMENTAL_ENCODER_ENABLE)
-   #define INTERRUPT_USE
-#endif
-
-
-// BME280 is BMP280+Humidity sensor. If need to get all, SUPPORT_BMP280_INCLUDE must be defined too.
-#if defined(SUPPORT_BME280_INCLUDE)
-   #define SUPPORT_BMP280_INCLUDE
-#endif
-
-
-/* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
-                                                                 HEADERS SECTION
-*/
-
-#include <Arduino.h>
 #include <IPAddress.h>
-#include <avr/pgmspace.h>
-#include <avr/wdt.h>
-#include <avr/boot.h>
-// used by interrupts-related macroses
-#include <wiring_private.h>
-
+#include <Arduino.h>
+#include "../basic.h"
+#include "tune.h"
 
 /* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
-                                                               ALARM SECTION 
+                                                            ALARM SECTION 
 */
 
-
+// "No error detected" code
 #define ERROR_NONE                 	                        0x00
+// "No network activity" error code
 #define ERROR_NET                 	                        0x01
+// "DHCP problem" error code
 #define ERROR_DHCP                 	                        0x02
-// Turn off state LED blink (no errors found)
-// State LED no blink type, BLINK_* is used with millis(), that operate uint32_t numbers and better to use UL postfix for properly number cast
-#define BLINK_NOPE                 	                        000UL
-// State LED blink type with DHCP problem reached (no renew lease or more)
-#define BLINK_DHCP_PROBLEM         	                        150UL // ~150ms on, ~850ms off
-// State LED blink type with Network activity problem (no packets processed for NET_IDLE_TIMEOUT)
-#define BLINK_NET_PROBLEM          	                        500UL // ~500ms on, ~500ms off
-
 
 /* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
-                                                            NETWORK MODULE SECTION 
+                                                        NETWORK MODULE SECTION 
 
-       Note, that changing MAC or IP-address separately may cause "strange" network errors until the moment when the router delete old ARP-records from the cache.
+   Note, that changing MAC or IP-address separately may cause "strange" network errors until the moment when the router delete old ARP-records from the cache.
 
-// microchip forgot to step the number on the silcon when they
-    // released the revision B7. 6 is now rev B7. We still have
-    // to see what they do when they release B8. At the moment
-    // there is no B8 out yet
+   // Microchip forgot to step the number on the silcon when they released the revision B7. 6 is now rev B7. We still have
+   // to see what they do when they release B8. At the moment there is no B8 out yet
 
 */
-
-
-// How often do ENC28J60 module reinit for more stable network
-#define NET_ENC28J60_REINIT_PERIOD  	                        5000UL  // 10 sec
-
 // These macros used only to debug process on ENC28J60-powered systems 
 // ENC28J60 bank registers
 #define NET_ENC28J60_EIE                                        0x1B
@@ -114,230 +74,53 @@
 #define NET_ENC28J60_ECON1_BSEL0                                0x01
 
 
-// Network activity timeout (for which no packets processed or no DHCP lease renews finished with success)
-#define NET_IDLE_TIMEOUT            	                        60000UL  // 60 sec
-
-// How long active client can transmit packets
-#ifdef FEATURE_DEBUG_TO_SERIAL
-  // on debug serial's output can make network processing slow
-  #define NET_ACTIVE_CLIENT_CONNECTION_TIMEOUT                    5000UL  // 5 sec
-#else
-  #define NET_ACTIVE_CLIENT_CONNECTION_TIMEOUT                    1000UL  // 1 sec
-#endif
-
-// How often do renew DHCP lease
-#define NET_DHCP_RENEW_PERIOD       	                        30000UL  // 30 sec
-// How often do renew DHCP lease
-#define NET_STABILIZATION_DELAY     	                        100UL     // 0.1 sec
-
 
 /* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
-                                                         SYSTEM CONFIGURATION SECTION 
+                                                         PROGRAMM STRUCTURES SECTION 
 */
-
-#define HOLD_TIME_TO_FACTORY_RESET  	                        5000UL // 5 seconds
-
-// How many secs device may be stay in infinitibe loop before reboot
-// Also you can use:
-// WDTO_1S
-// WDTO_2S
-// WDTO_4S - not for all controllers (please reference to avr/wdt.h)
-// WDTO_8S - not for all controllers (please reference to avr/wdt.h)
-#define WTD_TIMEOUT                   	                        WDTO_8S 
-
-#define SYS_METRIC_RENEW_PERIOD        	                        1000UL // 1 sec
-
-// Number of expected arguments of the command
-#define ARGS_MAX                    	                        6
-// Size of buffer's argument part. All separators and delimiters must be taken into account. See note to BUFFER_SIZE macro too
-#define ARGS_PART_SIZE         	                                100
-// Size of buffer's command part
-#define CMD_PART_SIZE          	                                25
-
-// ***NOTE****    
-// Total buffer size cannot be so small, because many subroutines use its too.
-// getMegatecUPSMetric() can write to its up to MEGATEC_MAX_ANSWER_LENGTH bytes, for example
-// The total size of the buffer. 
-#define BUFFER_SIZE                   	                        CMD_PART_SIZE + ARGS_PART_SIZE
-
-#define SYS_MCU_ID_LEN                                          20
-
-/* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
-                                                          AGENT CONFIGURATION SECTION 
-*/
-
-// How much bytes will be allocated to hostname store
-// sizeof() is not used here to get constant memory allocation due set.hostname() can operate longer strings
-#define ZBX_AGENT_HOSTNAME_MAXLEN   	                        32  // MCU ID as hostname take 20 chars
-
-/* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
-                                                          I/O PORTS/PINS PRE-CONFIGURATION SECTION 
-*/
-
-// see below: const uint8_t port_protect[PORTS_NUM] = {...}
-#if defined (ARDUINO_AVR_DUEMILANOVE) || defined (ARDUINO_AVR_MINI) || defined (ARDUINO_AVR_NANO) || defined (ARDUINO_AVR_NG) || defined (ARDUINO_AVR_PRO) || defined (ARDUINO_AVR_ETHERNET)
-#define PORTS_NUM                                               0x05
-#elif defined(ARDUINO_AVR_LEONARDO) || defined (ARDUINO_AVR_MICRO) || defined(ARDUINO_AVR_ROBOT_CONTROL) || defined(ARDUINO_AVR_ROBOT_MOTOR) || defined (ARDUINO_AVR_YUN)
-#define PORTS_NUM                                               0x07
-#elif defined (ARDUINO_AVR_MEGA) || defined(ARDUINO_AVR_MEGA2560)
-#define PORTS_NUM                                               0x0D
-#else // Unknow boards equal to "Arduino Duemilanove"
-#define PORTS_NUM 						0x05
-#define ARDUINO_AVR_DUEMILANOVE
-#endif
-
-const uint8_t port_protect[PORTS_NUM] = {
-/*
-
-  All bits equal '0' cause setting corresponding pin to non-protection mode
-  
-  All bits equal '1' cause setting corresponding pin to protection mode (it's will be not affected by portWrite[], digitalWrite[] and other commands)
-  
-*/
-#if defined (ARDUINO_AVR_DUEMILANOVE) || defined (ARDUINO_AVR_MINI) || defined (ARDUINO_AVR_NANO) || defined (ARDUINO_AVR_NG) || defined (ARDUINO_AVR_PRO) || defined (ARDUINO_AVR_ETHERNET)
-  B00000000, // not a port
-  B00000000, // not a port
-  // Pins D10, D11, D12, D13 is protected by setting 2, 3, 4, 5 bits, due its used to SPI (ethernet shield)
-  // Pin D9 is used by Timer1 and can't be used for PWM (analogWrite) when system metric was gathered on Timer1 interrupt
-  // Bits 6, 7 have not correspondented pins in Arduino Mini Pro / Freeduino 2009
-  B11111110, /*     PORTB        
-D13 -^    ^- D8    <- pins   */
-  B00000000, /*     PORTC 
-   ^-A7   ^-A0   <- pins    */
-  // Pins D0, D1 is protected by settings 0, 1 bits, due its used to RX/TX lines of UART and make it possible to transmit data to Serial Monitor  
-  B00000000  /*     PORTD 
-   ^-D7   ^-D0   <- pins    */
-#elif defined(ARDUINO_AVR_LEONARDO) || defined (ARDUINO_AVR_MICRO) || defined(ARDUINO_AVR_ROBOT_CONTROL) || defined(ARDUINO_AVR_ROBOT_MOTOR) || defined (ARDUINO_AVR_YUN)
-  // check ports settings for your platform
-  B00000000, // not a port
-  B00000000, // not a port
-  B00000000, // PORTB
-  B00000000, // PORTC
-  B00000000, // PORTD
-  B00000000, // PORTE
-  B00000000  // PORTF
-#elif defined (ARDUINO_AVR_MEGA) || defined(ARDUINO_AVR_MEGA2560)
-  // check ports settings for your platform
-  B00000000, // not a port
-  B00000000, // PORTA
-  B00000000, // PORTB
-  B00000000, // PORTC
-  B00000000, // PORTD
-  B00000000, // PORTE
-  B00000000, // PORTF
-  B00000000, // PORTG
-  B00000000, // PORTH
-  B00000000, // not a port
-  B00000000, // PORTJ
-  B00000000, // PORTK
-  B00000000  // PORTL
-#endif
-};
+// Note: netconfig_t size must be no more ___uint8_t___ bytes, because readConfig()'s read cycle use uint8_t counter. 
+// Change the index's variable type if bigger size need
+//#pragma pack(push,1)
+typedef struct {
+  uint8_t CRC;                                    // 1 byte, CRC stores first, due it's EEPROM cell rewrites everytime on config saving if it changed. 
+                                                  //         When the cell was broken, we just shift start config store address to next cell.
+  uint8_t useDHCP;         	 		  // 1 byte
+  uint8_t macAddress[6];                          // 6 byte 
+  IPAddress ipAddress;     			  // 6 byte (uint8_t[])
+  IPAddress ipNetmask;     			  // 6 byte (uint8_t[])
+  IPAddress ipGateway;     			  // 6 byte (uint8_t[])
+  char hostname[constAgentHostnameMaxLength+1];     // +1 for '\0', 255 - (1 + 6*4 + 4 + 1) = 225 bytes max
+  // #ifdef ... #elif ... #endif does not work with struct operator
+  uint32_t password;                              // 4 byte
+  uint8_t useProtection;                          // 1 byte
+} netconfig_t ;
 
 
+typedef struct {                                  // 9 bytes: 
+  union {                                         // 4 byte
+    uint32_t count;        			  
+    int32_t value;        			  
+  };
+  uint8_t owner;                                  // 1 byte 
+  // mode == -1 => Interrupt is not attached
+  int8_t mode;                                    // 1 byte 
+  volatile uint8_t *encTerminalAPIR;              // 1 byte
+  volatile uint8_t *encTerminalBPIR;              // 1 byte
+  uint8_t encTerminalAPinBit;                     // 1 byte
+  uint8_t encTerminalBPinBit;                     // 1 byte
+} extInterrupt_t ;
 
-const uint8_t port_mode[PORTS_NUM] PROGMEM = {
-//const uint8_t port_mode[PORTS_NUM] = {
-/*
- 
-  All bits equal '0' cause setting corresponding pin to INPUT mode
-  
-  All bits equal '1' cause setting corresponding pin to OUTPUT mode
-  
-*/
- 
-#if defined (ARDUINO_AVR_DUEMILANOVE) || defined (ARDUINO_AVR_MINI) || defined (ARDUINO_AVR_NANO) || defined (ARDUINO_AVR_NG) || defined (ARDUINO_AVR_PRO) || defined (ARDUINO_AVR_ETHERNET)
-  B00000000, // not a port
-  B00000000, // not a port
-  // Bits 6, 7 have not correspondented pins in Arduino Mini Pro / Freeduino 2009
-  B00111110, /*     PORTB        
-D13 -^    ^- D8    <- pins   */
-  B11111100, /*     PORTC 
-   ^-A7   ^-A0   <- pins    */
-  B11111111  /*     PORTD 
-   ^-D7   ^-D0   <- pins    */
-#elif defined(ARDUINO_AVR_LEONARDO) || defined (ARDUINO_AVR_MICRO) || defined(ARDUINO_AVR_ROBOT_CONTROL) || defined(ARDUINO_AVR_ROBOT_MOTOR) || defined (ARDUINO_AVR_YUN)
-  // check ports settings for your platform
-  B00000000, // not a port
-  B00000000, // not a port
-  B11111111, // PORTB
-  B11111111, // PORTC
-  B11111111, // PORTD
-  B11111111, // PORTE
-  B11111111  // PORTF
-#elif defined (ARDUINO_AVR_MEGA) || defined(ARDUINO_AVR_MEGA2560)
-  // check ports settings for your platform
-  B00000000, // not a port
-  B11111111, // PORTA
-  B11111111, // PORTB
-  B11111111, // PORTC
-  B11111111, // PORTD
-  B11111111, // PORTE
-  B11111111, // PORTF
-  B11111111, // PORTG
-  B11111111, // PORTH
-  B00000000, // not a port
-  B11111111, // PORTJ
-  B11111111, // PORTK
-  B11111111  // PORTL
-#endif
-};
+typedef union {                                   // 4 byte
+  uint32_t ulongvar;
+  int32_t  longvar;
+} long_ulong_t;
 
-
-const uint8_t port_pullup[PORTS_NUM] PROGMEM = {
-//const uint8_t port_pullup[PORTS_NUM] = {
-/*
-   All bits equal '0' cause do not pull-up corresponding pin
-
-   All bits equal '1' cause pull-up corresponding pin
-
-*/
-
-#if defined (ARDUINO_AVR_DUEMILANOVE) || defined (ARDUINO_AVR_MINI) || defined (ARDUINO_AVR_NANO) || defined (ARDUINO_AVR_NG) || defined (ARDUINO_AVR_PRO) || defined (ARDUINO_AVR_ETHERNET)
-  B00000000, // not a port
-  B00000000, // not a port
-  // Bits 6, 7 have not correspondented pins in Arduino Mini Pro / Freeduino 2009
-  B00111101, /*     PORTB        
-D13 -^    ^- D8    <- pins   */
-  B00000000, /*     PORTC 
-   ^-A7   ^-A0   <- pins    */
-  B00000011  /*     PORTD 
-   ^-D7   ^-D0   <- pins    */
-#elif defined(ARDUINO_AVR_LEONARDO) || defined (ARDUINO_AVR_MICRO) || defined(ARDUINO_AVR_ROBOT_CONTROL) || defined(ARDUINO_AVR_ROBOT_MOTOR) || defined (ARDUINO_AVR_YUN)
-  // check ports settings for your platform
-  B00000000, // not a port
-  B00000000, // not a port
-  B00000000, // PORTB
-  B00000000, // PORTC
-  B00000000, // PORTD
-  B00000000, // PORTE
-  B00000000  // PORTF
-#elif defined (ARDUINO_AVR_MEGA) || defined(ARDUINO_AVR_MEGA2560)
-  // check ports settings for your platform
-  B00000000, // not a port
-  B00000000, // PORTA
-  B00000000, // PORTB
-  B00000000, // PORTC
-  B00000000, // PORTD
-  B00000000, // PORTE
-  B00000000, // PORTF
-  B00000000, // PORTG
-  B00000000, // PORTH
-  B00000000, // not a port
-  B00000000, // PORTJ
-  B00000000, // PORTK
-  B00000000  // PORTL
-#endif
-};
-
-
+//#pragma pack(pop) 
 /* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
                                                             COMMAND NAMES SECTION 
 */
-// Increase this if add new command 
-//#define CMD_MAX                                                 0x3F
 
-// Add command macro with new sequental number
+// Need to add command macro with sequental number
 #define CMD_ZBX_NOPE                                            0x00
 #define CMD_ZBX_AGENT_PING                                      0x01
 #define CMD_ZBX_AGENT_HOSTNAME                                  0x02
@@ -436,8 +219,8 @@ D13 -^    ^- D8    <- pins   */
 
 
 // add new command as "const char command_<COMMAND_MACRO> PROGMEM". Only 'const' push string to PROGMEM. Tanx, Arduino.
-// command_* values must be in lower case
-const char command_CMD_ZBX_NOPE[]                               PROGMEM = "";
+// command_* values must be in lower case due analyze sub convert all chars to lower
+const char command_CMD_ZBX_NOPE[]                               PROGMEM = "\1";
 const char command_CMD_ZBX_AGENT_PING[]                         PROGMEM = "agent.ping";
 const char command_CMD_ZBX_AGENT_HOSTNAME[]                     PROGMEM = "agent.hostname";
 const char command_CMD_ZBX_AGENT_VERSION[]                      PROGMEM = "agent.version";
@@ -777,30 +560,6 @@ command_CMD_NET_ENC_PKTCNT_MAX,
 };
 
 /* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
-                                                             MESSAGES SECTION 
-*/
-
-#define MSG_ZBX_NOTSUPPORTED          	                      "ZBX_NOTSUPPORTED"
-
-#ifdef USE_TEXT_ERROR_MESSAGES
-  #define MSG_DEVICE_ERROR_CONNECT                              "Device not conected"
-  #define MSG_DEVICE_ERROR_ACK_L                                "ACK (L) error"
-  #define MSG_DEVICE_ERROR_ACK_H                                "ACK (H) error"
-  #define MSG_DEVICE_ERROR_CHECKSUM                             "Wrong checksum"
-  #define MSG_DEVICE_ERROR_TIMEOUT                              "Timeout error"
-  #define MSG_DEVICE_ERROR_WRONG_ANSWER                         "Wrong answer recieved"
-  #define MSG_DEVICE_ERROR_EEPROM                               "Can't save to EEPROM"
-#else
-  #define MSG_DEVICE_ERROR_CONNECT                              "-131"
-  #define MSG_DEVICE_ERROR_ACK_L                                "-132"
-  #define MSG_DEVICE_ERROR_ACK_H                                "-133"
-  #define MSG_DEVICE_ERROR_CHECKSUM                             "-134"
-  #define MSG_DEVICE_ERROR_TIMEOUT                              "-135"
-  #define MSG_DEVICE_ERROR_WRONG_ANSWER                         "-136"
-  #define MSG_DEVICE_ERROR_EEPROM                               "-151"
-#endif
-
-/* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
                                                            VARIOUS DEFINES SECTION 
 */
 
@@ -824,7 +583,7 @@ command_CMD_NET_ENC_PKTCNT_MAX,
 // Zabbix v2.x header prefix ('ZBXD\x01')
 #define ZBX_HEADER_PREFIX                                       "zbxd\1"
 // sizeof() returns wrong result -> 6
-#define ZBX_HEADER_PREFIX_LENGTH                                5
+#define ZBX_HEADER_PREFIX_LENGTH                                4
 // Zabbix v2.x header length
 #define ZBX_HEADER_LENGTH                                       12
 
@@ -881,11 +640,10 @@ typedef enum {
 #define DEVICE_ERROR_WRONG_ANSWER                               -0x20
 #define DEVICE_ERROR_EEPROM_CORRUPTED                           -0x50
 
-
 /*
 ADC channels 
 
-     â€¢ Bits 3:0 â€“ MUX[3:0]: Analog Channel Selection Bits
+     • Bits 3:0 – MUX[3:0]: Analog Channel Selection Bits
        The value of these bits selects which analog inputs are connected to the ADC. See Table 24-4 for details. If
        these bits are changed during a conversion, the change will not go in effect until this conversion is complete
        (ADIF in ADCSRA is set).
@@ -901,12 +659,7 @@ ADC channels
 #define DBG_PRINT_AS_MAC 		                        0x01
 #define DBG_PRINT_AS_IP  		                        0x02
 
-#define ENCODER_STABILIZATION_DELAY                             2000UL // 2000 microseconds
-#define ADC_STABILIZATION_DELAY                                 1000UL // 2000 microseconds
 #define I2C_NO_REG_SPECIFIED                                    -0x01 //
-
-// On Leonardo, Micro and other ATmega32u4 boards wait to Serial Monitor ready for 5sec 
-#define SERIAL_WAIT_TIMEOUT            	                        5000UL  // 5 sec
 
 // Length of netconfig_t's CRC field
 #define CONFIG_CRC_LEN                                          0x01
@@ -916,50 +669,14 @@ ADC channels
 // one byte used to pointer to EEPROM's start address from which config will saved, max stored pointer value is 255
 #define LAST_EEPROM_CELL_ADDRESS                                0xFF 
 
-
+// Who is use interrupt pin
 #define OWNER_IS_NOBODY                                         0x00
 #define OWNER_IS_EXTINT                                         0x01
 #define OWNER_IS_INCENC                                         0x02
 
-/* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
-                                                         PROGRAMM STRUCTURES SECTION 
-*/
-// Note: netconfig_t size must be no more ___uint8_t___ bytes, because readConfig()'s read cycle use uint8_t counter. 
-// Change the index's variable type if bigger size need
-typedef struct {
-  uint8_t CRC;                                    // 1 byte, CRC stores first, due it's EEPROM cell rewrites everytime on config saving if it changed. 
-                                                  //         When the cell was broken, we just shift start config store address to next cell.
-  uint8_t useDHCP;         	 		  // 1 byte
-  uint8_t macAddress[6];                          // 6 byte 
-  IPAddress ipAddress;     			  // 6 byte (uint8_t[])
-  IPAddress ipNetmask;     			  // 6 byte (uint8_t[])
-  IPAddress ipGateway;     			  // 6 byte (uint8_t[])
-  char hostname[ZBX_AGENT_HOSTNAME_MAXLEN+1];     // +1 for '\0', 255 - (1 + 6*4 + 4 + 1) = 225 bytes max
-  // #ifdef ... #elif ... #endif does not work with struct operator
-  uint32_t password;                              // 4 byte
-  uint8_t useProtection;                          // 1 byte
-} netconfig_t ;
+#define NO_REINIT_ANALYZER                                      false
+#define REINIT_ANALYZER                                         true
 
 
-typedef struct {                                  // 9 bytes: 
-  union {                                         // 4 byte
-    uint32_t count;        			  
-    int32_t value;        			  
-  };
-  uint8_t owner;                                  // 1 byte 
-  // mode == -1 => Interrupt is not attached
-  int8_t mode;                                    // 1 byte 
-  volatile uint8_t *encTerminalAPIR;              // 1 byte
-  volatile uint8_t *encTerminalBPIR;              // 1 byte
-  uint8_t encTerminalAPinBit;                     // 1 byte
-  uint8_t encTerminalBPinBit;                     // 1 byte
-} extInterrupt_t ;
-
-typedef union {                                   // 4 byte
-  uint32_t ulongvar;
-  int32_t  longvar;
-} long_ulong_t;
-
-
-#endif
+#endif // _ZABBUINO_STRUCTS_H_
 

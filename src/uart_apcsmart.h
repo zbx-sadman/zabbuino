@@ -1,5 +1,5 @@
-#ifndef ZabbuinoUART_APCSMART_h
-#define ZabbuinoUART_APCSMART_h
+#ifndef _ZABBUINO_UART_APCSMART_H_
+#define _ZABBUINO_UART_APCSMART_H_
 
 #include "uart_bus.h"
 
@@ -28,4 +28,4 @@
 *****************************************************************************************************************************/
 int8_t getAPCSmartUPSMetric(const uint8_t _rxPin, const uint8_t _txPin, uint8_t *_command, uint8_t _commandLen,  uint8_t *_dst);
 
-#endif // #ifndef ZabbuinoUART_APCSMART_h
+#endif // #ifndef _ZABBUINO_UART_APCSMART_H_

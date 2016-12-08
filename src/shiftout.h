@@ -1,9 +1,11 @@
-#ifndef ZabbuinoSHIFTOUT_h
-#define ZabbuinoSHIFTOUT_h
+#ifndef _ZABBUINO_SHIFTOUT_H_
+#define _ZABBUINO_SHIFTOUT_H_
 
-#include <Arduino.h>
-#include "defaults.h"
-#include "../zabbuino.h"
+#include <util/atomic.h>
+#include "../basic.h"
+#include "tune.h"
+#include "service.h"
+#include "system.h"
 
 
 /*****************************************************************************************************************************
@@ -38,4 +40,4 @@ void WS2812Out(const uint8_t _dataPin, char *_src);
 static uint16_t prepareBufferForAdvShiftout(const uint8_t _bitOrder, char *_src);
 
 
-#endif // #ifndef ZabbuinoSHIFTOUT_h
+#endif // #ifndef _ZABBUINO_SHIFTOUT_H_

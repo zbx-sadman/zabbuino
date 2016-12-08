@@ -1,10 +1,13 @@
-#ifndef ZabbuinoSERVICE_h
-#define ZabbuinoSERVICE_h
+#ifndef _ZABBUINO_SERVICE_H_
+#define _ZABBUINO_SERVICE_H_
 
 #include <Arduino.h>
-#include "defaults.h"
-#include "../zabbuino.h"
-	
+#include <avr/boot.h>
+#include "../basic.h"
+#include "tune.h"
+#include "structs.h"
+#include "system.h"
+
 /*****************************************************************************************************************************
 *
 *   Set default values of network configuration
@@ -48,14 +51,14 @@ uint8_t dallas_crc8(const uint8_t *addr, uint8_t len);
 *  Print string stored in PROGMEM to Serial 
 *
 *****************************************************************************************************************************/
-void SerialPrint_P (const char *_src);
+extern void SerialPrint_P (const char *_src);
 
 /*****************************************************************************************************************************
 *
 *  Print string stored in PROGMEM to Serial + Line Feed
 *
 *****************************************************************************************************************************/
-void SerialPrintln_P (const char *_src);
+extern void SerialPrintln_P (const char *_src);
 
 /*****************************************************************************************************************************
 *
@@ -106,9 +109,9 @@ inline __attribute__((always_inline)) uint32_t getRamFree(void) {
 // __attribute__((always_inline)) 
 inline void correctVCCMetrics(uint32_t _currVCC) {
   // Global variable from outside
-  extern int32_t *sysMetrics;
-  if (sysMetrics[IDX_METRIC_SYS_VCCMIN] > _currVCC) { sysMetrics[IDX_METRIC_SYS_VCCMIN] = _currVCC; }
-  if (sysMetrics[IDX_METRIC_SYS_VCCMAX] < _currVCC) { sysMetrics[IDX_METRIC_SYS_VCCMAX] = _currVCC; }
+  extern volatile int32_t sysMetrics[];
+  if ((uint32_t) sysMetrics[IDX_METRIC_SYS_VCCMIN] > _currVCC) { sysMetrics[IDX_METRIC_SYS_VCCMIN] = _currVCC; }
+  if ((uint32_t) sysMetrics[IDX_METRIC_SYS_VCCMAX] < _currVCC) { sysMetrics[IDX_METRIC_SYS_VCCMAX] = _currVCC; }
 }
 
 #ifdef FEATURE_DEBUG_TO_SERIAL_HIGH
@@ -147,4 +150,5 @@ inline void correctVCCMetrics(uint32_t _currVCC) {
  #define NDTS(X) /* blank */
 #endif 
 
-#endif // #ifndef ZabbuinoSERVICE_h
+
+#endif // #ifndef _ZABBUINO_SERVICE_H_

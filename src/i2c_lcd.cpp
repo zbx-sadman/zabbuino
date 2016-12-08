@@ -17,7 +17,7 @@ version 1.1.2 is used
 *     - none
 *
 *****************************************************************************************************************************/
-void sendToLCD(const uint8_t _i2cAddress, const uint8_t _data, const uint8_t _mode)
+static void sendToLCD(const uint8_t _i2cAddress, const uint8_t _data, const uint8_t _mode)
 {
   // Send first nibble (first four bits) into high byte area
   write4bitsToLCD(_i2cAddress, (_data & 0xF0) | _mode);
@@ -33,7 +33,7 @@ void sendToLCD(const uint8_t _i2cAddress, const uint8_t _data, const uint8_t _mo
 *     - none
 *
 *****************************************************************************************************************************/
-void write4bitsToLCD(const uint8_t _i2cAddress, uint8_t _data) 
+static void write4bitsToLCD(const uint8_t _i2cAddress, uint8_t _data) 
 {
   writeBytesToI2C(_i2cAddress, I2C_NO_REG_SPECIFIED, &_data, 1);
   pulseEnableOnLCD(_i2cAddress, _data);
@@ -47,13 +47,13 @@ void write4bitsToLCD(const uint8_t _i2cAddress, uint8_t _data)
 *     - none
 *
 *****************************************************************************************************************************/
-void pulseEnableOnLCD(const uint8_t _i2cAddress, const uint8_t _data)
+static void pulseEnableOnLCD(const uint8_t _i2cAddress, const uint8_t _data)
 {
   uint8_t sendByte;
   sendByte = _data | _BV(LCD_E);
   writeBytesToI2C(_i2cAddress, I2C_NO_REG_SPECIFIED, &sendByte, 1);	// 'Enable' high
   delayMicroseconds(1);		                        // enable pulse must be >450ns
-  sendByte = _data | _data & ~_BV(LCD_E);
+  sendByte = _data | (_data & ~_BV(LCD_E));
   writeBytesToI2C(_i2cAddress, I2C_NO_REG_SPECIFIED, &sendByte, 1);	// 'Enable' low
   delayMicroseconds(50);	                        // commands need > 37us to settle
 } 

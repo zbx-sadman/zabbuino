@@ -17,7 +17,7 @@
 *****************************************************************************************************************************/
 int8_t scanI2C(EthernetClient *_ethClient)
 {
-  int8_t i2cAddress, numDevices;
+  int8_t i2cAddress, numDevices = 0;
 
   for(i2cAddress = 0x01; i2cAddress < 0x7F; i2cAddress++ ) {
     // The i2c_scanner uses the return value of
