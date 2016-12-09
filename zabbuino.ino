@@ -291,7 +291,7 @@ void loop() {
     // Time to reinit ENC28J60?
     if (constNetEnc28j60ReinitPeriod <= (uint32_t) (nowTime - prevENCCheckTime)) {
        // if EIR.TXERIF or EIR.RXERIF is set - ENC28J60 detect error, if ECON1.RXEN is clear - ENC28J60's filter feature drop all packets. 
-       // To resolve this situation need to re-init module 
+       // To solve this issue we try to re-init module 
        uint8_t stateEconRxen = Enc28J60.readReg((uint8_t) NET_ENC28J60_ECON1) & NET_ENC28J60_ECON1_RXEN;
        uint8_t stateEirRxerif = Enc28J60.readReg((uint8_t) NET_ENC28J60_EIR) & NET_ENC28J60_EIR_RXERIF;
        uint8_t stateEstatBuffer = Enc28J60.readReg((uint8_t) NET_ENC28J60_ESTAT) & NET_ENC28J60_ESTAT_BUFFER;
@@ -364,13 +364,9 @@ void loop() {
     // Network connections will processed if no data in Serial buffer exist
     if (Serial.available() <= 0) { 
 #endif      
- 
-       // Test active client connection. If no active connection - try to get new, prepare (reinit) analyzer internal variables and store connect time
-       // ethClient.connected() can return 'true' if client is already disconnected, but network driver buffer have unread data
-       // ethClient only checking sometime cause processing error (may be algo error is exist)
-       if (!(ethClient && ethClient.connected())) {
+        if (!ethClient) {
           ethClient = ethServer.available(); 
-          if (!(ethClient && ethClient.connected())) { continue;}
+          if (!ethClient) { continue;}
              // reinit analyzer because previous session can be dropped or losted
              analyzeStream('\0', cBuffer, argOffset, REINIT_ANALYZER);    
              clientConnectTime = millis(); 
@@ -1543,8 +1539,9 @@ static int16_t executeCommand(char* _dst, int16_t* _argOffset)
    if (*_dst == '\0') {
       Serial.println("Oops"); 
       Serial.println(result, HEX); 
+      Serial.println(cmdIdx, HEX); 
+      Serial.println(_dst); 
    }
-   
 //   DTSM( Serial.print("[5] "); Serial.println(millis()); )
    return cmdIdx;
 }
