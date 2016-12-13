@@ -35,7 +35,7 @@ void setup() {
   uint8_t i;
 
 #ifdef SERIAL_USE
-  Serial.begin(115200);
+  Serial.begin(9600);
 #endif // SERIAL_USE
 
   DTSL( SerialPrint_P(PSTR(ZBX_AGENT_VERISON)); )
