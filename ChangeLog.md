@@ -1,6 +1,6 @@
 ##Zabbuino change log 
 
-###v1.1.0 (xx Dec 2016)
+###v1.1.0 (13 Dec 2016)
 Features:
 - Network procedures improved;
 - Commands can be entered via Arduino IDE Serial Monitor;
