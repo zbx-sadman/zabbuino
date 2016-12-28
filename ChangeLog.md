@@ -1,5 +1,11 @@
 ##Zabbuino change log 
 
+###v1.1.1 (28 Dec 2016)
+Fixed:
+- DHT11 readings;
+- MAX7219 ASCII output on digital led indicator;
+- ENC28J60 reinit on "hang" code;
+
 ###v1.1.0 (13 Dec 2016)
 Features:
 - Network procedures improved;
