@@ -76,12 +76,32 @@ void writeToMAX7219(const uint8_t _dataPin, const uint8_t _clockPin, const uint8
 
   // Draw line by line from first column...
   col = 1;
+  // MAX7219.write[4,5,6,1,"1.2.3.4.5.6.7.8"]
+  // MAX7219.write[4,5,6,1,"    1.25"]
   
   // HEX strings must be processeed specially
   if (haveHexPrefix(_src)) {
      // Skip "0x"
      _src += 2;
      isHexString = true;
+  } else {
+
+    uint8_t dataBufferSwapPosition = 0;
+    uint8_t lenOfBuffer = 0;
+    while (_src[lenOfBuffer]) { lenOfBuffer++; }
+    uint8_t dataBufferPosition = lenOfBuffer-1;
+    lenOfBuffer = lenOfBuffer >> 1;
+    // 
+    while (lenOfBuffer){
+       // swap buffer items 
+       char tmpVal = _src[dataBufferSwapPosition];
+       _src[dataBufferSwapPosition] = _src[dataBufferPosition];
+       _src[dataBufferPosition] = tmpVal;
+       // shrink swapping area
+       dataBufferPosition--;
+       dataBufferSwapPosition++;
+       lenOfBuffer--;
+     } 
   }
   
   while (*_src) {
@@ -113,6 +133,7 @@ void writeToMAX7219(const uint8_t _dataPin, const uint8_t _clockPin, const uint8
       char currChar=(char) *_src;
       switch (currChar) {
          case '0':
+         case 'O':
             currByte = B1111110;
             break;
          case '1':
@@ -142,11 +163,11 @@ void writeToMAX7219(const uint8_t _dataPin, const uint8_t _clockPin, const uint8
          case '9':
             currByte = B1111011;
             break;
-         case 0x20:
-            currByte = B0000000;
-            break;
          case '-':
             currByte = B0000001;
+            break;
+         case 'b':
+            currByte = B0011111;
             break;
          case 'C':
             currByte = B1001110;
@@ -154,11 +175,14 @@ void writeToMAX7219(const uint8_t _dataPin, const uint8_t _clockPin, const uint8
          case 'c':
             currByte = B0001101;
             break;
+         case 'd':
+            currByte = B0111101;
+            break;
          case 'H':
             currByte = B0110111;
             break;
          case 'h':
-            currByte = B0010110;
+            currByte = B0010111;
             break;
          case 'E':
             currByte = B1001111;
@@ -181,23 +205,27 @@ void writeToMAX7219(const uint8_t _dataPin, const uint8_t _clockPin, const uint8
          case 'r':
             currByte = B0000101;
             break;
+         case '.':
+            // dot just skip and processed on next step
+            goto next;
+            break;
+         case 0x20:
          default:
             currByte = B0000000;
             break;
-     }
+     } // switch 
       // 'dot' sign is next? 
-      if ('.' == ((char) *(_src+1))) {
-         currByte |= 0x80;
-         _src++;
-      }
+      if ('.' == ((char) *(_src-1))) {currByte |= 0x80; }
 #endif
     }
-    _src++;
     // Pushing byte to column
-     pushDataToMAX7219(_dataPin, _clockPin, _loadPin, col, currByte);
-    col++;
+    pushDataToMAX7219(_dataPin, _clockPin, _loadPin, col, currByte);
     // only 8 columns must be processeed, comment its if need more
+    col++;
     if (0x08 < col) { break; }
+    next:
+    _src++;
+
   }
   gatherSystemMetrics(); // Measure memory consumption
   

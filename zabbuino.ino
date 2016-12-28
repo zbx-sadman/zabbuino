@@ -236,6 +236,10 @@ void loop() {
     // reset watchdog every loop
     wdt_reset();
 #endif
+#ifdef ENC28J60_ETHERNET_SHIELD
+    Ethernet.maintain();
+#endif; 
+
 
     nowTime = millis();
 
@@ -295,7 +299,7 @@ void loop() {
        uint8_t stateEconRxen = Enc28J60.readReg((uint8_t) NET_ENC28J60_ECON1) & NET_ENC28J60_ECON1_RXEN;
        uint8_t stateEirRxerif = Enc28J60.readReg((uint8_t) NET_ENC28J60_EIR) & NET_ENC28J60_EIR_RXERIF;
        uint8_t stateEstatBuffer = Enc28J60.readReg((uint8_t) NET_ENC28J60_ESTAT) & NET_ENC28J60_ESTAT_BUFFER;
-       if (!stateEconRxen || (stateEstatBuffer & stateEirRxerif)) {
+       if (!stateEconRxen || (stateEstatBuffer && stateEirRxerif)) {
           // just for debug. the code must be removed on release
           if (!stateEconRxen) {
               sysMetrics[IDX_METRIC_NET_ENC_REINIT_REASON] = 0x01;
@@ -450,7 +454,6 @@ void loop() {
 **************************************************************************************************************************** */
 static uint8_t analyzeStream(char _charFromClient, char* _dst, int16_t* _argOffset, uint8_t doReInit) {
   uint8_t static needSkipZabbix2Header = false, 
-                 //droppedZabbix2Header  = false, 
                  cmdSliceNumber        = 0,
                  isEscapedChar         = 0,
                  doubleQuotedString    = false;
@@ -458,9 +461,9 @@ static uint8_t analyzeStream(char _charFromClient, char* _dst, int16_t* _argOffs
 
   // Jump into reInitStage procedure. This is a bad programming style, but the subroutine must be lightweight.
   if (doReInit) { 
-     // buffer can contain 
-     //memset(_dst, '\0', constBufferSize+1);
-     //memset(_argOffset, '\0', constArgC);
+     // Temporary clean code stub 
+     memset(_argOffset, '\0', constArgC*sizeof(int16_t));
+     *_dst = '\0';
      goto reInitStage; 
   }
 
@@ -491,7 +494,6 @@ static uint8_t analyzeStream(char _charFromClient, char* _dst, int16_t* _argOffs
   if (ZBX_HEADER_LENGTH == bufferWritePosition && needSkipZabbix2Header) {
      bufferWritePosition = 0;
      needSkipZabbix2Header = false;
-     //droppedZabbix2Header = true;
      DTSD( Serial.println("ZBX header dropped"); )
      // Return 'Need next char' and save a lot cpu time 
      return true;

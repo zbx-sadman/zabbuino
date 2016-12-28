@@ -360,6 +360,7 @@
 
 const uint8_t constNetDefaultUseDHCP = false;
 
+// Zabbuino's IP address
 #ifdef USE_NETWORK_192_168_0_0
   #define NET_DEFAULT_MAC_ADDRESS                              {0xDE,0xAD,0xBE,0xEF,0xFE,0xF9}
   #define NET_DEFAULT_IP_ADDRESS                               {192,168,0,1}
@@ -406,6 +407,6 @@ const uint8_t constFactoryResetButtonPin                       = 0x08;
 #define ZBX_AGENT_DEFAULT_DOMAIN                               ".local.net"
 
 
-#define ZBX_AGENT_VERISON                                      "Zabbuino 1.1.0"
+#define ZBX_AGENT_VERISON                                      "Zabbuino 1.1.1"
 #endif // #ifndef _ZABBUINO_BASIC_CONFIG_H_
 

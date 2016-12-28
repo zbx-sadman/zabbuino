@@ -1,6 +1,13 @@
 ##Zabbuino change log 
 
-###v1.1.0 (xx Dec 2016)
+###v1.1.1 (28 Dec 2016)
+Fixed:
+- DHT11 readings;
+- MAX7219 ASCII output on digital led indicator;
+- ENC28J60 reinit code;
+
+
+###v1.1.0 (13 Dec 2016)
 Features:
 - Network procedures improved;
 - Commands can be entered via Arduino IDE Serial Monitor;

@@ -118,12 +118,14 @@ const uint8_t constArgC                                        = 6;
 //const uint16_t constArgsPartSize                               = 163;
 const uint16_t constArgsPartSize                               = 25;
 // Size of buffer's command part
-const uint8_t constCmdPartSize                                 = 25;
+const uint8_t constCmdPartSize                                 = 100;
 
 
 // ***NOTE****    
-// Total buffer size cannot be so small, because many subroutines use its too.
-// getMegatecUPSMetric() can write to its up to MEGATEC_MAX_ANSWER_LENGTH bytes, for example
+//                  
+// Total buffer size cannot be so small, because many subroutines use its too:
+// - you need at least 75 bytes if set.network[] command will be used
+// - getMegatecUPSMetric() can write to its up to MEGATEC_MAX_ANSWER_LENGTH bytes, for example
 // The total size of the buffer. 
 const uint16_t constBufferSize                                 = constCmdPartSize + constArgsPartSize;
 
