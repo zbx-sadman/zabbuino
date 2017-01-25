@@ -320,7 +320,7 @@
 /=/       - Sys.RAM.Free[];
 /=/       - Sys.RAM.FreeMin[]
 /*/
-//#define FEATURE_DEBUG_COMMANDS_ENABLE
+#define FEATURE_DEBUG_COMMANDS_ENABLE
 
 /*/
 /=/     View the more or less debug messages on the Serial Monitor. Choose one.
@@ -362,12 +362,12 @@ const uint8_t constNetDefaultUseDHCP = false;
 
 // Zabbuino's IP address
 #ifdef USE_NETWORK_192_168_0_0
-  #define NET_DEFAULT_MAC_ADDRESS                              {0xDE,0xAD,0xBE,0xEF,0xFE,0xF9}
+  #define NET_DEFAULT_MAC_ADDRESS                              {0xDE,0xAD,0xBE,0xEF,0xFE,0xF1}
   #define NET_DEFAULT_IP_ADDRESS                               {192,168,0,1}
   #define NET_DEFAULT_GATEWAY                                  {192,168,0,254}
   #define NET_DEFAULT_NETMASK                                  {255,255,255,0}
 #else
-  #define NET_DEFAULT_MAC_ADDRESS                              {0xDE,0xAD,0xBE,0xEF,0xFE,0xF7}
+  #define NET_DEFAULT_MAC_ADDRESS                              {0xDE,0xAD,0xBE,0xEF,0xFE,0xF1}
   #define NET_DEFAULT_IP_ADDRESS                               {172,16,100,1}
   #define NET_DEFAULT_GATEWAY                                  {172,16,100,254}
   #define NET_DEFAULT_NETMASK                                  {255,255,255,0}
@@ -407,6 +407,6 @@ const uint8_t constFactoryResetButtonPin                       = 0x08;
 #define ZBX_AGENT_DEFAULT_DOMAIN                               ".local.net"
 
 
-#define ZBX_AGENT_VERISON                                      "Zabbuino 1.1.1"
+#define ZBX_AGENT_VERISON                                      "Zabbuino 1.1.2"
 #endif // #ifndef _ZABBUINO_BASIC_CONFIG_H_
 

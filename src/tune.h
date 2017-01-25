@@ -158,7 +158,7 @@ const uint8_t port_protect[PORTS_NUM] = {
   // Pins D10, D11, D12, D13 is protected by setting 2, 3, 4, 5 bits, due its used to SPI (ethernet shield)
   // Pin D9 is used by Timer1 and can't be used for PWM (analogWrite) when system metric was gathered on Timer1 interrupt
   // Bits 6, 7 have not correspondented pins in Arduino Mini Pro / Freeduino 2009
-  B11111110, /*     PORTB        
+  B11111111, /*     PORTB        
 D13 -^    ^- D8    <- pins   */
   B00000000, /*     PORTC 
    ^-A7   ^-A0   <- pins    */
@@ -210,7 +210,7 @@ const uint8_t port_mode[PORTS_NUM] PROGMEM = {
   // Bits 6, 7 have not correspondented pins in Arduino Mini Pro / Freeduino 2009
   B00111110, /*     PORTB        
 D13 -^    ^- D8    <- pins   */
-  B11111100, /*     PORTC 
+  B11111111, /*     PORTC 
    ^-A7   ^-A0   <- pins    */
   B11111111  /*     PORTD 
    ^-D7   ^-D0   <- pins    */
@@ -259,7 +259,7 @@ const uint8_t port_pullup[PORTS_NUM] PROGMEM = {
 D13 -^    ^- D8    <- pins   */
   B00000000, /*     PORTC 
    ^-A7   ^-A0   <- pins    */
-  B00000011  /*     PORTD 
+  B00000000  /*     PORTD 
    ^-D7   ^-D0   <- pins    */
 #elif defined(ARDUINO_AVR_LEONARDO) || defined (ARDUINO_AVR_MICRO) || defined(ARDUINO_AVR_ROBOT_CONTROL) || defined(ARDUINO_AVR_ROBOT_MOTOR) || defined (ARDUINO_AVR_YUN)
   // check ports settings for your platform
