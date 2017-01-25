@@ -1,5 +1,9 @@
 ##Zabbuino change log 
 
+###v1.1.2 (25 Jan 2017)
+Fixed:
+- Wrong output of discovered OneWire device ID (some zeros not displayed).
+
 ###v1.1.1 (28 Dec 2016)
 Fixed:
 - DHT11 readings;
