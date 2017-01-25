@@ -4,6 +4,9 @@
 Fixed:
 - Wrong output of discovered OneWire device ID (some zeros not displayed).
 
+Changed:
+- Default of pins init state. 
+
 ###v1.1.1 (28 Dec 2016)
 Fixed:
 - DHT11 readings;
