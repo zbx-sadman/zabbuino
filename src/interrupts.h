@@ -1,6 +1,7 @@
 #ifndef _ZABBUINO_INTERRUPTS_H_
 #define _ZABBUINO_INTERRUPTS_H_
 
+#include <wiring_private.h>
 #include "../basic.h"
 #include "tune.h"
 #include "service.h"
@@ -50,28 +51,28 @@
    void handleExt##_interrupt(void) { extern extInterrupt_t extInterrupt[]; extInterrupt[_interrupt].count++; }
 
  
-#if EXTERNAL_NUM_INTERRUPTS > 7
+#if (EXTERNAL_NUM_INTERRUPTS > 7)
   void handleExtINT7(void);
 #endif
-#if EXTERNAL_NUM_INTERRUPTS > 6
+#if (EXTERNAL_NUM_INTERRUPTS > 6)
   void handleExtINT6(void);
 #endif
-#if EXTERNAL_NUM_INTERRUPTS > 5
+#if (EXTERNAL_NUM_INTERRUPTS > 5)
   void handleExtINT5(void);
 #endif
-#if EXTERNAL_NUM_INTERRUPTS > 4
+#if (EXTERNAL_NUM_INTERRUPTS > 4)
   void handleExtINT4(void);
 #endif
-#if EXTERNAL_NUM_INTERRUPTS > 3
+#if (EXTERNAL_NUM_INTERRUPTS > 3)
   void handleExtINT3(void);
 #endif
-#if EXTERNAL_NUM_INTERRUPTS > 2
+#if (EXTERNAL_NUM_INTERRUPTS > 2)
   void handleExtINT2(void);
 #endif
-#if EXTERNAL_NUM_INTERRUPTS > 1
+#if (EXTERNAL_NUM_INTERRUPTS > 1)
   void handleExtINT1(void);
 #endif
-#if EXTERNAL_NUM_INTERRUPTS > 0
+#if (EXTERNAL_NUM_INTERRUPTS > 0)
   void handleExtINT0(void);
 #endif
 
@@ -120,28 +121,28 @@
               { extInterrupt[_interrupt].value++; } else { extInterrupt[_interrupt].value--; } \
          } statePrevTerminalA = stateTerminalA; }
 
-#if EXTERNAL_NUM_INTERRUPTS > 7
+#if (EXTERNAL_NUM_INTERRUPTS > 7)
   void handleIncEncINT7(void);
 #endif
-#if EXTERNAL_NUM_INTERRUPTS > 6
+#if (EXTERNAL_NUM_INTERRUPTS > 6)
   void handleIncEncINT6(void);
 #endif
-#if EXTERNAL_NUM_INTERRUPTS > 5
+#if (EXTERNAL_NUM_INTERRUPTS > 5)
   void handleIncEncINT5(void);
 #endif
-#if EXTERNAL_NUM_INTERRUPTS > 4
+#if (EXTERNAL_NUM_INTERRUPTS > 4)
   void handleIncEncINT4(void);
 #endif
-#if EXTERNAL_NUM_INTERRUPTS > 3
+#if (EXTERNAL_NUM_INTERRUPTS > 3)
   void handleIncEncINT3(void);
 #endif
-#if EXTERNAL_NUM_INTERRUPTS > 2
+#if (EXTERNAL_NUM_INTERRUPTS > 2)
   void handleIncEncINT2(void);
 #endif
-#if EXTERNAL_NUM_INTERRUPTS > 1
+#if (EXTERNAL_NUM_INTERRUPTS > 1)
   void handleIncEncINT1(void);
 #endif
-#if EXTERNAL_NUM_INTERRUPTS > 0
+#if (EXTERNAL_NUM_INTERRUPTS > 0)
   void handleIncEncINT0(void);
 #endif
 

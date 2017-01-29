@@ -22,7 +22,7 @@ Second modification is by:
 */
 
 // Uncomment to save ram, but loose ASCII support
-#define  NO_ASCII_SUPPORT
+//#define  NO_ASCII_SUPPORT
 
 #define MAX7219_REGISTER_DECODE_MODE                                     0x09
 #define MAX7219_REGISTER_INTENSITY                                       0x0A

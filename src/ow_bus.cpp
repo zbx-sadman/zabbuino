@@ -27,7 +27,7 @@ int8_t scanOneWire(const uint8_t _pin, EthernetClient *_ethClient) {
     numDevices++;
     _ethClient->print("0x");
     for (i = 0; i < arraySize(dsAddr); i++ ) {
-      if (dsAddr[i] < 0x0F){ _ethClient->print("0"); }
+      if (dsAddr[i] < 0x10){ _ethClient->print("0"); }
       _ethClient->print(dsAddr[i], HEX);
     }
     _ethClient->print('\n');

@@ -1,8 +1,8 @@
 /*-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
 *                                                                 PROGRAMM FEATURES SECTION
 *
-*   Please refer to the "zabbuino.h" file for enabling or disabling Zabbuino's features and "src/defaults.h" to deep tuning.
-*   if connected sensors seems not work - first check setting in port_protect[], port_mode[], port_pullup[] arrays in I/O PORTS SETTING SECTION of "src/defaults.h" file
+*   Please refer to the "basic.h" file for enabling or disabling Zabbuino's features and "src/tune.h" to deep tuning.
+*   if connected sensors seems not work - first check setting in port_protect[], port_mode[], port_pullup[] arrays in I/O PORTS SETTING SECTION of "src/tune.h" file
 */
 #include "src/dispatcher.h"
 
@@ -50,14 +50,15 @@ void setup() {
 /*
 On ATMega32u4 (may be breadboard and dupont wires is bad)
 
-wait for serial with timeout: 
+>>> wait for serial with timeout: 
+
 64 bytes from 172.16.100.226: icmp_req=382 ttl=64 time=755 ms
 64 bytes from 172.16.100.226: icmp_req=383 ttl=64 time=1076 ms
 ...
 64 bytes from 172.16.100.226: icmp_req=389 ttl=64 time=1270 ms
 64 bytes from 172.16.100.226: icmp_req=390 ttl=64 time=1104 ms
 
-no wait for serial: 
+>>> no wait for serial: 
 64 bytes from 172.16.100.226: icmp_req=400 ttl=64 time=1.29 ms
 64 bytes from 172.16.100.226: icmp_req=401 ttl=64 time=1.25 ms
 ...
@@ -208,8 +209,7 @@ So... no debug with Serial Monitor at this time
   // blink on init end
   blinkMore(2, 1000, 1000);
 #endif
-
- }
+}
 
 
 /* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
@@ -236,6 +236,10 @@ void loop() {
     // reset watchdog every loop
     wdt_reset();
 #endif
+#ifdef ENC28J60_ETHERNET_SHIELD
+    Ethernet.maintain();
+#endif; 
+
 
     nowTime = millis();
 
@@ -284,7 +288,7 @@ void loop() {
        errorCode = ERROR_NET;
     }
 
-#ifdef USE_DIRTY_HACK_AND_REBOOT_ENC28J60_IF_ITS_SEEMS_FREEZE
+#if defined(USE_DIRTY_HACK_AND_REBOOT_ENC28J60_IF_ITS_SEEMS_FREEZE) && defined(ENC28J60_ETHERNET_SHIELD)
     encPktCnt = Enc28J60.readReg((uint8_t) NET_ENC28J60_EPKTCNT);
     if (sysMetrics[IDX_METRIC_NET_ENC_PKTCNT_MAX] < encPktCnt) { sysMetrics[IDX_METRIC_NET_ENC_PKTCNT_MAX] = encPktCnt; }
 
@@ -295,7 +299,7 @@ void loop() {
        uint8_t stateEconRxen = Enc28J60.readReg((uint8_t) NET_ENC28J60_ECON1) & NET_ENC28J60_ECON1_RXEN;
        uint8_t stateEirRxerif = Enc28J60.readReg((uint8_t) NET_ENC28J60_EIR) & NET_ENC28J60_EIR_RXERIF;
        uint8_t stateEstatBuffer = Enc28J60.readReg((uint8_t) NET_ENC28J60_ESTAT) & NET_ENC28J60_ESTAT_BUFFER;
-       if (!stateEconRxen || (stateEstatBuffer & stateEirRxerif)) {
+       if (!stateEconRxen || (stateEstatBuffer && stateEirRxerif)) {
           // just for debug. the code must be removed on release
           if (!stateEconRxen) {
               sysMetrics[IDX_METRIC_NET_ENC_REINIT_REASON] = 0x01;
@@ -450,7 +454,6 @@ void loop() {
 **************************************************************************************************************************** */
 static uint8_t analyzeStream(char _charFromClient, char* _dst, int16_t* _argOffset, uint8_t doReInit) {
   uint8_t static needSkipZabbix2Header = false, 
-                 //droppedZabbix2Header  = false, 
                  cmdSliceNumber        = 0,
                  isEscapedChar         = 0,
                  doubleQuotedString    = false;
@@ -458,9 +461,9 @@ static uint8_t analyzeStream(char _charFromClient, char* _dst, int16_t* _argOffs
 
   // Jump into reInitStage procedure. This is a bad programming style, but the subroutine must be lightweight.
   if (doReInit) { 
-     // buffer can contain 
-     //memset(_dst, '\0', constBufferSize+1);
-     //memset(_argOffset, '\0', constArgC);
+     // Temporary clean code stub 
+     memset(_argOffset, '\0', constArgC*sizeof(int16_t));
+     *_dst = '\0';
      goto reInitStage; 
   }
 
@@ -491,7 +494,6 @@ static uint8_t analyzeStream(char _charFromClient, char* _dst, int16_t* _argOffs
   if (ZBX_HEADER_LENGTH == bufferWritePosition && needSkipZabbix2Header) {
      bufferWritePosition = 0;
      needSkipZabbix2Header = false;
-     //droppedZabbix2Header = true;
      DTSD( Serial.println("ZBX header dropped"); )
      // Return 'Need next char' and save a lot cpu time 
      return true;
@@ -1476,6 +1478,34 @@ static int16_t executeCommand(char* _dst, int16_t* _argOffset)
       break;
 #endif // FEATURE_UPS_APCSMART_ENABLE
 
+#ifdef FEATURE_INA219_ENABLE
+    case CMD_INA219_BUSVOLTAGE:
+      /*/
+      /=/  INA219.BusVoltage[sdaPin, sclPin, i2cAddress, maxVoltage, maxCurrent]
+      /*/
+      if (!isSafePin(argv[0]) || !isSafePin(argv[1])) { break; }
+      result = getINA219Metric(argv[0], argv[1], i2CAddress, SENS_READ_BUS_VOLTAGE, argv[3], argv[4], _dst);
+      break;
+
+    case CMD_INA219_CURRENT:
+      /*/
+      /=/  INA219.Current[sdaPin, sclPin, i2cAddress, maxVoltage, maxCurrent]
+      /*/
+      if (!isSafePin(argv[0]) || !isSafePin(argv[1])) { break; }
+      result = getINA219Metric(argv[0], argv[1], i2CAddress, SENS_READ_DC, argv[3], argv[4], _dst);
+      break;
+
+    case CMD_INA219_POWER:
+      /*/
+      /=/  INA219.Power[sdaPin, sclPin, i2cAddress, maxVoltage, maxCurrent]
+      /*/
+      if (!isSafePin(argv[0]) || !isSafePin(argv[1])) { break; }
+      result = getINA219Metric(argv[0], argv[1], i2CAddress, SENS_READ_POWER, argv[3], argv[4], _dst);
+      break;
+
+#endif // FEATURE_INA219_ENABLE
+
+
     default:
       // Early increased command counter is decremented
       sysMetrics[IDX_METRIC_SYS_CMD_COUNT]--;
@@ -1531,17 +1561,15 @@ static int16_t executeCommand(char* _dst, int16_t* _argOffset)
          case DEVICE_ERROR_EEPROM_CORRUPTED:
             strcpy_P(_dst, PSTR((MSG_DEVICE_ERROR_EEPROM)));
             break;
+         default:
+            // otherwise subroutine return unexpected value, need to check its source code
+            strcpy_P(_dst, PSTR("Unexpected retcode"));
+            break;
       }
       //  Push out the buffer to the client
       if (ethClient.connected()) { ethClient.println(_dst); }
    }
    DTSL( SerialPrint_P(PSTR("Result: ")); Serial.println(_dst); )
-   if (*_dst == '\0') {
-      Serial.println("Oops"); 
-      Serial.println(result, HEX); 
-      Serial.println(cmdIdx, HEX); 
-      Serial.println(_dst); 
-   }
 //   DTSM( Serial.print("[5] "); Serial.println(millis()); )
    return cmdIdx;
 }

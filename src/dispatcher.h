@@ -42,6 +42,7 @@
 #include "i2c_bmp.h"
 #include "i2c_lcd.h"
 #include "i2c_sht.h"
+#include "i2c_ina2xx.h"
 
 /* 1-Wire devices */
 #include "ow_bus.h"

@@ -13,11 +13,11 @@
 static uint8_t waitToBMPReady(const uint8_t _i2cAddress, const int16_t _registerAddress, const int16_t _mask, const uint16_t _timeout)
 {
   uint8_t value;
-  uint32_t nowTime;
+  uint32_t startTime;
 
-  nowTime = millis();
+  startTime = millis();
   
-  while((millis() - nowTime) < _timeout){
+  while((millis() - startTime) < _timeout){
      readBytesFromi2C(_i2cAddress, _registerAddress, &value, 1);
      if (0 == (value & _mask)) return true;
      delay(10);  
@@ -38,6 +38,7 @@ static uint8_t waitToBMPReady(const uint8_t _i2cAddress, const int16_t _register
 *****************************************************************************************************************************/
 int8_t getBMPMetric(const uint8_t _sdaPin, const uint8_t _sclPin, uint8_t _i2cAddress, const uint8_t _overSampling, const uint8_t _filterCoef, const uint8_t _metric, char *_dst)
 {
+  int8_t rc = RESULT_IS_FAIL;
   uint8_t chipID; 
   switch (_i2cAddress) {
     case BMP180_I2C_ADDRESS:
@@ -48,41 +49,44 @@ int8_t getBMPMetric(const uint8_t _sdaPin, const uint8_t _sclPin, uint8_t _i2cAd
        _i2cAddress = BMP180_I2C_ADDRESS;
   }
 
-  if (false == isI2CDeviceReady(_i2cAddress)) { return DEVICE_ERROR_CONNECT; }
+  if (false == isI2CDeviceReady(_i2cAddress)) { rc = DEVICE_ERROR_CONNECT; goto finish;  }
 
   // Taking Chip ID
   // false == 0 == succes transmission
-  if (false != readBytesFromi2C(_i2cAddress, BMP_REGISTER_CHIPID, &chipID, 1)) { return RESULT_IS_FAIL; }
+  if (false != readBytesFromi2C(_i2cAddress, BMP_REGISTER_CHIPID, &chipID, 1)) { rc = DEVICE_ERROR_TIMEOUT; goto finish; }
+  
   switch (chipID) {
     // BMP085 and BMP180 have the same ID  
 #ifdef SUPPORT_BMP180_INCLUDE
     case BMP180_CHIPID: 
-       return getBMP180Metric(_sdaPin, _sclPin, _i2cAddress, _overSampling, _metric, _dst);
+       rc =  getBMP180Metric(_sdaPin, _sclPin, _i2cAddress, _overSampling, _metric, _dst);
        break;
 #endif
 #ifdef SUPPORT_BMP280_INCLUDE
     case BMP280_CHIPID_1: 
     case BMP280_CHIPID_2: 
     case BMP280_CHIPID_3: 
-       return getBMP280Metric(_sdaPin, _sclPin, _i2cAddress, _overSampling, _filterCoef, _metric, _dst);
+       rc = getBMP280Metric(_sdaPin, _sclPin, _i2cAddress, _overSampling, _filterCoef, _metric, _dst);
        break;
 #endif
 #ifdef SUPPORT_BME280_INCLUDE
     case BME280_CHIPID:
        // BME280 is BMP280 with additional humidity sensor
-       return getBMP280Metric(_sdaPin, _sclPin, _i2cAddress, _overSampling, _filterCoef, _metric, _dst);
+       rc = getBMP280Metric(_sdaPin, _sclPin, _i2cAddress, _overSampling, _filterCoef, _metric, _dst);
        break;
 #endif
     default:  
-       break;
+       rc = RESULT_IS_FAIL;
   }
-  return RESULT_IS_FAIL; 
+
+  finish:
+  return rc;
 }
 
 
 /*****************************************************************************************************************************
 *
-*   Read specified metric's value of the BMP280/BME280 sensor, put it to output buffer on success. 
+*   Read specified metric's value of the BMP280/BME280 sensor, put it to output b\uffer on success. 
 *
 *   Returns: 
 *     - RESULT_IN_BUFFER on success
@@ -91,6 +95,7 @@ int8_t getBMPMetric(const uint8_t _sdaPin, const uint8_t _sclPin, uint8_t _i2cAd
 *****************************************************************************************************************************/
 static int8_t getBMP280Metric(const uint8_t _sdaPin, const uint8_t _sclPin, uint8_t _i2cAddress, const uint8_t _overSampling, uint8_t _filterCoef, const uint8_t _metric, char* _dst)
 {
+  int8_t rc = DEVICE_ERROR_TIMEOUT;
   uint16_t dig_T1;
   int16_t  dig_T2, dig_T3;
 
@@ -136,7 +141,7 @@ static int8_t getBMP280Metric(const uint8_t _sdaPin, const uint8_t _sclPin, uint
   }
   
   // We must wait to Bxxxx0xx0 value in "Status" register
-  if (!waitToBMPReady(_i2cAddress, BMP280_REGISTER_STATUS, BMP280_READY_MASK, 50)) { return DEVICE_ERROR_TIMEOUT;}
+  if (!waitToBMPReady(_i2cAddress, BMP280_REGISTER_STATUS, BMP280_READY_MASK, BMP280_READY_TIMEOUT)) { goto finish; } // rc inited with DEVICE_ERROR_TIMEOUT value
 
   // The “ctrl_hum” register sets the humidity data acquisition options of the device. Changes to this register only become effective after a write operation to “ctrl_meas”.
   writeByteToI2C(_i2cAddress, BME280_REGISTER_CONTROLHUMID, BME280_STANDARD_OVERSAMP_HUMIDITY);
@@ -145,15 +150,14 @@ static int8_t getBMP280Metric(const uint8_t _sdaPin, const uint8_t _sclPin, uint
   // BMP280_FORCED_MODE -> BME280 act like BMP180
   // We need "forced mode" to avoid mix-up bytes of data belonging to different measurements of various metrics on "normal mode"
   // Need to double read to take properly data (not from previous measure round)
-  // use var as mode variable
+  // use var as 'mode' variable
   var1 = (var1 << 6)| (var2 << 3) | BMP280_FORCED_MODE;
   for (i = 0; i < 2; i++) { 
     writeByteToI2C(_i2cAddress, BMP_REGISTER_CONTROL, var1);
     // We must wait to Bxxxx0xx0 value in "Status" register. It's most reliable way to detect end of conversion 
-    if (!waitToBMPReady(_i2cAddress, BMP280_REGISTER_STATUS, BMP280_READY_MASK, 50)) {
-       return DEVICE_ERROR_TIMEOUT;
-    }
+    if (!waitToBMPReady(_i2cAddress, BMP280_REGISTER_STATUS, BMP280_READY_MASK, BMP280_READY_TIMEOUT)) { goto finish; } // rc inited with DEVICE_ERROR_TIMEOUT value  
   }
+
 
   // Compensate temperature caculation
 
@@ -306,8 +310,12 @@ static int8_t getBMP280Metric(const uint8_t _sdaPin, const uint8_t _sclPin, uint
       qtoaf(result, _dst, 10);
 #endif        
   }  // switch (_metric)
+
+  rc = RESULT_IN_BUFFER;
+
+  finish:
   gatherSystemMetrics(); // Measure memory consumption
-  return RESULT_IN_BUFFER;
+  return rc;
 }
 
 /*****************************************************************************************************************************
@@ -321,6 +329,7 @@ static int8_t getBMP280Metric(const uint8_t _sdaPin, const uint8_t _sclPin, uint
 *****************************************************************************************************************************/
 static int8_t getBMP180Metric(const uint8_t _sdaPin, const uint8_t _sclPin, uint8_t _i2cAddress, uint8_t _overSampling, const uint8_t _metric, char *_dst)
 {
+  int8_t rc = DEVICE_ERROR_TIMEOUT;
   uint8_t msb, lsb, xlsb;
   uint8_t value[3];
   // Calibration values
@@ -378,7 +387,7 @@ static int8_t getBMP180Metric(const uint8_t _sdaPin, const uint8_t _sclPin, uint
   }
 
   // We must wait for 50ms to Bxx0xxxxx value in "Control" register to know that device is not busy
-  if (!waitToBMPReady(_i2cAddress, BMP_REGISTER_CONTROL, BMP180_READY_MASK, 50)) { return DEVICE_ERROR_TIMEOUT; }
+  if (!waitToBMPReady(_i2cAddress, BMP_REGISTER_CONTROL, BMP180_READY_MASK, BMP180_READY_TIMEOUT)) { goto finish; } // rc inited with DEVICE_ERROR_TIMEOUT value
   // ******** Get Temperature ********
   // Write 0x2E into Register 0xF4
   // This requests a temperature reading
@@ -388,7 +397,7 @@ static int8_t getBMP180Metric(const uint8_t _sdaPin, const uint8_t _sclPin, uint
   //delay(5);
 
   // We must wait for 50ms to Bxx0xxxxx value in "Control" register to know about end of conversion
-  if (!waitToBMPReady(_i2cAddress, BMP_REGISTER_CONTROL, BMP180_READY_MASK, 50)) { return DEVICE_ERROR_TIMEOUT; }
+  if (!waitToBMPReady(_i2cAddress, BMP_REGISTER_CONTROL, BMP180_READY_MASK, BMP180_READY_TIMEOUT)) { goto finish; } // rc inited with DEVICE_ERROR_TIMEOUT value
   // Read two bytes from registers 0xF6 and 0xF7
   readBytesFromi2C(_i2cAddress, BMP180_REGISTER_TEMPDATA, value, 2);
   ut = WireToU16(value);
@@ -455,7 +464,11 @@ static int8_t getBMP180Metric(const uint8_t _sdaPin, const uint8_t _sclPin, uint
     ltoaf(result, _dst, 1);
   }
 
+  rc = RESULT_IN_BUFFER;
+
+  finish:
   gatherSystemMetrics(); // Measure memory consumption
-  return RESULT_IN_BUFFER;
+  return rc;
+
 }
 

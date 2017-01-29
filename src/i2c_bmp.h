@@ -48,6 +48,7 @@
 #define BMP180_READY_MASK                                       0x20  // Sco (register F4h <5>): Start of conversion. 
                                                                       // The value of this bit stays “1” during conversion and is reset to “0” after conversion is 
                                                                       // complete (data registers are filled). 
+#define BMP180_READY_TIMEOUT                                    100 // ms
 
 #define BMP280_REGISTER_DIG_T1                                  0x88
 #define BMP280_REGISTER_DIG_T2                                  0x8A
@@ -119,6 +120,7 @@
 #define BMP280_STANDBY_TIME_4000_MS                             0x07
 
 #define BMP280_READY_MASK                                       0x09 // Byte 0 + Byte 3 must be equial 0 if BMP280 do not busy
+#define BMP280_READY_TIMEOUT                                    100 // ms
 
 // BME280 additional registers and constants
 #define BME280_STANDARD_OVERSAMP_HUMIDITY 	                BMP280_OVERSAMP_1X

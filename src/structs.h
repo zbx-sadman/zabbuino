@@ -213,9 +213,13 @@ typedef union {                                   // 4 byte
 #define CMD_UPS_MEGATEC                                         0x41
 #define CMD_SYSTEM_RUN                                          0x42
 
-#define CMD_NET_ENC_REINITS                                     0x43
-#define CMD_NET_ENC_REINIT_REASON                               0x44
-#define CMD_NET_ENC_PKTCNT_MAX                                  0x45
+#define CMD_INA219_BUSVOLTAGE                                   0x43
+#define CMD_INA219_CURRENT                                      0x44
+#define CMD_INA219_POWER                                        0x45
+
+#define CMD_NET_ENC_REINITS                                     0x46
+#define CMD_NET_ENC_REINIT_REASON                               0x47
+#define CMD_NET_ENC_PKTCNT_MAX                                  0x48
 
 
 // add new command as "const char command_<COMMAND_MACRO> PROGMEM". Only 'const' push string to PROGMEM. Tanx, Arduino.
@@ -314,6 +318,10 @@ const char command_CMD_UPS_APCSMART[]                           PROGMEM = "ups.a
 const char command_CMD_UPS_MEGATEC[]                            PROGMEM = "ups.megatec";
 
 const char command_CMD_SYSTEM_RUN[]                             PROGMEM = "system.run";
+
+const char command_CMD_INA219_BUSVOLTAGE[]                      PROGMEM = "ina219.busvoltage";
+const char command_CMD_INA219_CURRENT[]                         PROGMEM = "ina219.current";
+const char command_CMD_INA219_POWER[]                           PROGMEM = "ina219.power";
 
 const char command_CMD_NET_ENC_REINITS[]                        PROGMEM = "enc.reinits";
 const char command_CMD_NET_ENC_REINIT_REASON[]                  PROGMEM = "enc.reinit.rsn";
@@ -553,6 +561,17 @@ const char* const commands[] PROGMEM = {
 
 command_CMD_SYSTEM_RUN,
 
+#ifdef FEATURE_INA219_ENABLE
+  command_CMD_INA219_BUSVOLTAGE,
+  command_CMD_INA219_CURRENT,
+  command_CMD_INA219_POWER,
+#else
+  command_CMD_ZBX_NOPE,
+  command_CMD_ZBX_NOPE,
+  command_CMD_ZBX_NOPE,
+#endif
+
+
 command_CMD_NET_ENC_REINITS,
 command_CMD_NET_ENC_REINIT_REASON,
 command_CMD_NET_ENC_PKTCNT_MAX,
@@ -617,8 +636,10 @@ typedef enum {
 #define SENS_READ_DC                                            0x0A
 
 #define SENS_READ_VOLTAGE                                       0x0B
-#define SENS_READ_POWER                                         0x0C
-#define SENS_READ_ENERGY                                        0x0D
+#define SENS_READ_SHUNT_VOLTAGE                                 0x0C
+#define SENS_READ_BUS_VOLTAGE                                   0x0D
+#define SENS_READ_POWER                                         0x0E
+#define SENS_READ_ENERGY                                        0x0F
 
 #define SENS_READ_RAW                                           0xFF
 

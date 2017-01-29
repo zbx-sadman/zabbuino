@@ -2,7 +2,7 @@
 #define _ZABBUINO_DHT_H_
 
 /*
-Based on: http://playground.arduino.cc/Main/DHTLib
+Based on: https://github.com/RobTillaart/Arduino/tree/master/libraries/DHTstable
 version 0.1.13 is used
 
 */
@@ -21,6 +21,11 @@ version 0.1.13 is used
 #define AM2302_ID                                               22
 
 
+// max timeout is 100usec.
+// For a 16Mhz proc that is max 1600 clock cycles
+// loops using TIMEOUT use at least 4 clock cycli
+// so 100 us takes max 400 loops
+// so by dividing F_CPU by 40000 we "fail" as fast as possible
 #ifndef F_CPU
   #define DHTLIB_TIMEOUT                                        1000  // ahould be approx. clock/40000
 #else

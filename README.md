@@ -1,4 +1,4 @@
-# Zabbuino 1.1.0
+# Zabbuino 1.2.0
 
 Implemented:
 - A few Zabbix agent commands;
@@ -29,6 +29,26 @@ Implemented:
 - Support PZEM-004 energy meter;
 - Support APC Smart UPS (with RS232 interface);
 - Simulate varuious vendor's IR transmitters.
+
+####29 Jan 2016
+
+Going to Zabbuino 1.2.0.
+
+Fixes:
+  - DHT11 really works with _dht.\*_ commands (tested on real hardware);
+  - _ow.scan[]_ command wrong address print (some zeros was lost).
+
+New commands:
+ - _INA219.BusVoltage[sdaPin, sclPin, i2cAddress, maxVoltage, maxCurrent]_ - command returns value of "bus voltage" metric (in mV), obtained from INA219 Current/Power Monitor, connected to I2C bus: 
+  - _sdaPin, sclPin_ - I2C pins;
+  - _i2cAddress_ - address of I2C device. It can be found with _I2C.scan[]_ command;
+  - _maxVoltage_ - Bus Voltage Range - 16, 32 (V, optional, default is 32);
+  - _maxCurrent_ - Maximum expected current - 1000, 2000, 3000  (mA, optional, default is 3000);
+ - _INA219.Current [sdaPin, sclPin, i2cAddress, maxVoltage, maxCurrent]_ - command returns value of "current" metric (in mA);
+ - _INA219.Power [sdaPin, sclPin, i2cAddress, maxVoltage, maxCurrent]_ - command returns value of "power" metric (in mW).
+Example: `zabbix_get -s 192.168.0.1 -k "ina219.current[18,19,0x40,16,1000]"` - get value of current on electrical circuit section, that used 12V power supply and consume no more 1A.
+
+Note: currently you can use 1000, 2000, 3000 (1A, 2A, 3A) as _maxCurrent_. Overflow bit not controlled at this time.
 
 ####08 Dec 2016
 
