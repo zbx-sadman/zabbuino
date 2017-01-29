@@ -2,7 +2,8 @@
 #define _ZABBUINO_BASIC_CONFIG_H_
 #include <Arduino.h>
 #include <IPAddress.h>
-//#define USE_NETWORK_192_168_0_0
+#define USE_NETWORK_192_168_0_0
+
 /* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
    
                                                              NETWORK MODULE SECTION
@@ -10,6 +11,13 @@
    Old releases of Arduino IDE can do not processing #includes inside #if pragmas (see NETWORK MODULE SECTION) and stops on compiling or show errors
    If you use that release - comment all #includes, exclude your's module related block.
 
+                                                                      Wizet users
+
+    WizNet official library: https://github.com/Wiznet/WIZ_Ethernet_Library/tree/master/Arduino%20IDE%201.5.x/Ethernet can be used with Zabbuino
+    Unfortunatly network chip selection can't be carried from outside of Wiznet library :(
+    You must edit "%Program Files%\Arduino\libraries\Ethernet\src\utility\w5100.h" directly to comment and uncomment the 
+    same #defines - W5100_ETHERNET_SHIELD or W5500_ETHERNET_SHIELD or another else.
+                                                              
                                                               !!! ENC28J60 users !!!
 
    1. Please try to use https://github.com/ntruchsess/arduino_uip/tree/fix_errata12 brahch of UIPEthernet if your ENC28J60 seems freeze or loose connection.
@@ -17,7 +25,7 @@
       of sudden and unpredictable hang your device are large. You can get more memory if disable DHCP feature for Zabbuino and disabe UDP protocol support
       for UIPEthernet (uipethernet-conf.h -> #define UIP_CONF_UDP 0). 
       Also, you can increase number of sockets for UIPEthernet (uipethernet-conf.h -> #define #define UIP_CONF_MAX_CONNECTIONS .. ).
-   3. Sometime "low memory" problem (probaly) cause corrupt ENC28J60's RX buffer (i don't know how, experiments will go on. May be it my algo error) and 
+   3. Sometime ENC28J60's RX buffer or configuration registry have corrupt (i don't know how, experiments will go on. May be it my algo error) and 
       chip re-init is enough to recovery work state. You can enable USE_DIRTY_HACK_AND_REBOOT_ENC28J60_IF_ITS_SEEMS_FREEZE declaration to re-intit 
       ENC28J60 when corruption is detected. 
       Note that you need to move the _readReg(uint8_t address)_ declaration from **private** to **public** area in UIPEthernet\utility\Enc28J60Network.h file.
@@ -25,20 +33,16 @@
    4. When (1) & (2) & (3) did not help to add stability, you can buy Wiznet 5xxx shield or rewrite the source code.
    
    Tested on UIPEthernet v1.09
-        
+
+
 */
 
-#define W5100_ETHERNET_SHIELD             // Arduino Ethernet Shield and Compatibles ...
-//#define ENC28J60_ETHERNET_SHIELD          // Microchip __ENC28J60__ network modules
+//#define W5100_ETHERNET_SHIELD             // Arduino Ethernet Shield and Compatibles ...
+#define ENC28J60_ETHERNET_SHIELD          // Microchip __ENC28J60__ network modules
 //#define USE_DIRTY_HACK_AND_REBOOT_ENC28J60_IF_ITS_SEEMS_FREEZE
 
-// Not tested yet, but can be used with WizNet official library: https://github.com/Wiznet/WIZ_Ethernet_Library/tree/master/Arduino%20IDE%201.5.x/Ethernet
-// Unfortunatly network chip selection can't be carried from outside of Wiznet library :(
-// You must edit "%Program Files%\Arduino\libraries\Ethernet\src\utility\w5100.h" directly to comment 
-//     and uncomment the same #defines - W5100_ETHERNET_SHIELD or W5500_ETHERNET_SHIELD or another else
-
-//#define W5200_ETHERNET_SHIELD             // WIZ820io, W5200 Ethernet Shield 
-//#define W5500_ETHERNET_SHIELD             // WIZ550io, ioShield series of WIZnet
+//#define W5200_ETHERNET_SHIELD             // WIZ820io, W5200 Ethernet Shield , not tested yet
+//#define W5500_ETHERNET_SHIELD             // WIZ550io, ioShield series of WIZnet , not tested yet
 
 
 
@@ -48,6 +52,17 @@
                                   Comment #define's below to save RAM and Flash and uncomment to enable some feature 
 
 */
+
+/* NEW */
+/*/ 
+/=/      Enable INA219 Zer0-Drift, Bidirectional Current/Power Monitor With I2C Interface support and commands:
+/=/        - INA219.BusVoltage[]
+/=/        - INA219.Current[]
+/=/        - INA219.Power[]
+/*/
+//#define FEATURE_EXTERNAL_INTERRUPT_ENABLE
+#define FEATURE_INA219_ENABLE
+ 
 
 /****       Network              ****/
 /*/ 
@@ -136,7 +151,7 @@
 /=/ Note #1: I2C library (Wire.h) takes at least 32bytes of memory for internal buffers
 /=/ Note #2: I2C library (Wire.h) activate internal pullups for SDA & SCL pins when Wire.begin() called
 /*/
-//#define FEATURE_I2C_ENABLE
+#define FEATURE_I2C_ENABLE
 
 /*/ 
 /=/     Enable BOSCH BMP sensors handling and commands:
@@ -205,7 +220,7 @@
 /=/       - pzem004.power[]  
 /=/       - pzem004.energy[] 
 /*/
-#define FEATURE_PZEM004_ENABLE
+//#define FEATURE_PZEM004_ENABLE
 
 /*/ 
 /=/     Enable APC SmartUPS protocol support and command:
@@ -316,13 +331,13 @@
 /=/       - Sys.RAM.Free[];
 /=/       - Sys.RAM.FreeMin[]
 /*/
-#define FEATURE_DEBUG_COMMANDS_ENABLE
+//#define FEATURE_DEBUG_COMMANDS_ENABLE
 
 /*/
 /=/     View the more or less debug messages on the Serial Monitor. Choose one.
 /*/
 //#define FEATURE_DEBUG_TO_SERIAL_LOW
-//#define FEATURE_DEBUG_TO_SERIAL_MIDDLE
+#define FEATURE_DEBUG_TO_SERIAL_MIDDLE
 //#define FEATURE_DEBUG_TO_SERIAL_HIGH
 //#define FEATURE_DEBUG_TO_SERIAL_DEV
 
@@ -356,14 +371,15 @@
 
 const uint8_t constNetDefaultUseDHCP = false;
 
+// Zabbuino's IP address
 #ifdef USE_NETWORK_192_168_0_0
-  #define NET_DEFAULT_MAC_ADDRESS                              {0xDE,0xAD,0xBE,0xEF,0xFE,0xF9}
-  #define NET_DEFAULT_IP_ADDRESS                               {192,168,0,228}
+  #define NET_DEFAULT_MAC_ADDRESS                              {0xDE,0xAD,0xBE,0xEF,0xFE,0xF0}
+  #define NET_DEFAULT_IP_ADDRESS                               {192,168,0,220}
   #define NET_DEFAULT_GATEWAY                                  {192,168,0,1}
   #define NET_DEFAULT_NETMASK                                  {255,255,255,0}
 #else
   #define NET_DEFAULT_MAC_ADDRESS                              {0xDE,0xAD,0xBE,0xEF,0xFE,0xF0}
-  #define NET_DEFAULT_IP_ADDRESS                               {172,16,100,227}
+  #define NET_DEFAULT_IP_ADDRESS                               {172,16,100,220}
   #define NET_DEFAULT_GATEWAY                                  {172,16,100,254}
   #define NET_DEFAULT_NETMASK                                  {255,255,255,0}
 #endif
@@ -402,6 +418,6 @@ const uint8_t constFactoryResetButtonPin                       = 0x08;
 #define ZBX_AGENT_DEFAULT_DOMAIN                               ".local.net"
 
 
-#define ZBX_AGENT_VERISON                                      "Zabbuino 1.1.0"
+#define ZBX_AGENT_VERISON                                      "Zabbuino 1.1.1"
 #endif // #ifndef _ZABBUINO_BASIC_CONFIG_H_
 
