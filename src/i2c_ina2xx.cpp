@@ -54,7 +54,7 @@ uint8_t getINA219Metric(const uint8_t _sdaPin, const uint8_t _sclPin, const uint
   // But i think that need to rewrite code or append more variants
   switch (_maxVoltage) {
     case 16: //16V 
-      switch (_maxVoltage) {
+      switch (_maxCurrent) {
         // 16V, 400mA
         case 400:                    
           calValue = 8192;
@@ -95,7 +95,7 @@ uint8_t getINA219Metric(const uint8_t _sdaPin, const uint8_t _sclPin, const uint
   
     case 32: // 32V 
     default: 
-      switch (_maxVoltage) {
+      switch (_maxCurrent) {
         // 32V, 1A
         case 1000:                 
           calValue = 8192;

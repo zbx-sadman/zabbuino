@@ -17,7 +17,7 @@ version 1.1.2 is used
 *     - none
 *
 *****************************************************************************************************************************/
-static void sendToLCD(const uint8_t _i2cAddress, const uint8_t _data, const uint8_t _mode)
+void sendToLCD(const uint8_t _i2cAddress, const uint8_t _data, const uint8_t _mode)
 {
   // Send first nibble (first four bits) into high byte area
   write4bitsToLCD(_i2cAddress, (_data & 0xF0) | _mode);
@@ -33,7 +33,7 @@ static void sendToLCD(const uint8_t _i2cAddress, const uint8_t _data, const uint
 *     - none
 *
 *****************************************************************************************************************************/
-static void write4bitsToLCD(const uint8_t _i2cAddress, uint8_t _data) 
+void write4bitsToLCD(const uint8_t _i2cAddress, uint8_t _data) 
 {
   writeBytesToI2C(_i2cAddress, I2C_NO_REG_SPECIFIED, &_data, 1);
   pulseEnableOnLCD(_i2cAddress, _data);
@@ -47,7 +47,7 @@ static void write4bitsToLCD(const uint8_t _i2cAddress, uint8_t _data)
 *     - none
 *
 *****************************************************************************************************************************/
-static void pulseEnableOnLCD(const uint8_t _i2cAddress, const uint8_t _data)
+void pulseEnableOnLCD(const uint8_t _i2cAddress, const uint8_t _data)
 {
   uint8_t sendByte;
   sendByte = _data | _BV(LCD_E);

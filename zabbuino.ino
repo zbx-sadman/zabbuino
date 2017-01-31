@@ -1,10 +1,11 @@
 /*-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
 *                                                                 PROGRAMM FEATURES SECTION
 *
-*   Please refer to the "basic.h" file for enabling or disabling Zabbuino's features and "src/tune.h" to deep tuning.
+*   Please refer to the "basic.h" file for enabling or disabling Zabbuino's features and refer to the "src/tune.h" to deep tuning.
 *   if connected sensors seems not work - first check setting in port_protect[], port_mode[], port_pullup[] arrays in I/O PORTS SETTING SECTION of "src/tune.h" file
 */
 #include "src/dispatcher.h"
+#include "src/transport.h" 
 
 /*-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
 *                                                                 GLOBAL VARIABLES SECTION
@@ -15,10 +16,7 @@ netconfig_t netConfig;
 // some array items used into timer's interrupt
 // too hard to calculate "enough to non-hung work" ram size if *sysMetrics & sysMetrics = new int32_t[IDX_METRICS_LAST+1] is used
 volatile int32_t sysMetrics[IDX_METRICS_LAST+1];
-
-EthernetServer ethServer(10050);
-
-EthernetClient ethClient;
+TransportClass Transport;
 
 #ifdef INTERRUPT_USE
  // Init external interrupts info structure
@@ -44,7 +42,7 @@ void setup() {
   sysMetrics[IDX_METRIC_SYS_VCCMIN] = sysMetrics[IDX_METRIC_SYS_VCCMAX] = getADCVoltage(ANALOG_CHAN_VBG);
   sysMetrics[IDX_METRIC_SYS_RAM_FREE] = sysMetrics[IDX_METRIC_SYS_RAM_FREEMIN] = (int32_t) getRamFree();
   sysMetrics[IDX_METRIC_SYS_CMD_LAST] = sysMetrics[IDX_METRIC_SYS_CMD_COUNT] = sysMetrics[IDX_METRIC_SYS_CMD_TIMEMAX] = sysMetrics[IDX_METRIC_SYS_CMD_TIMEMAX_N] = 0;
-  sysMetrics[IDX_METRIC_NET_ENC_REINIT_REASON] = sysMetrics[IDX_METRIC_NET_ENC_REINITS] = sysMetrics[IDX_METRIC_NET_ENC_PKTCNT_MAX] = 0;
+  sysMetrics[IDX_METRIC_SYS_NET_REINITS] = 0;
   
 //  uint32_t startSerial = millis();
 /*
@@ -132,7 +130,7 @@ So... no debug with Serial Monitor at this time
   if (true == netConfig.useDHCP) {
      DTSM( SerialPrintln_P(PSTR("Obtaining address from DHCP...")); )
       // Try to ask DHCP server
-     if (0 == Ethernet.begin(netConfig.macAddress)) {
+     if (0 == Transport.begin(netConfig.macAddress)) {
         DTSM( SerialPrintln_P(PSTR("No success")); )
          // No offer recieved - switch off DHCP feature for that session
          netConfig.useDHCP = false;
@@ -147,23 +145,23 @@ So... no debug with Serial Monitor at this time
      DTSM( SerialPrintln_P(PSTR("Use static IP")); )
      // That overloaded .begin() function return nothing
      // Second netConfig.ipAddress used as dns-address
-     Ethernet.begin(netConfig.macAddress, netConfig.ipAddress, netConfig.ipAddress, netConfig.ipGateway, netConfig.ipNetmask);
+     Transport.begin(netConfig.macAddress, netConfig.ipAddress, netConfig.ipAddress, netConfig.ipGateway, netConfig.ipNetmask);
   }
   
   DTSL( SerialPrintln_P(PSTR("Serving on:")); )
   DTSL( SerialPrint_P(PSTR("MAC     : ")); printArray(netConfig.macAddress, sizeof(netConfig.macAddress), DBG_PRINT_AS_MAC); )
   DTSL( SerialPrint_P(PSTR("Hostname: ")); Serial.println(netConfig.hostname); )
-  DTSL( SerialPrint_P(PSTR("IP      : ")); Serial.println(Ethernet.localIP()); )
-  DTSL( SerialPrint_P(PSTR("Subnet  : ")); Serial.println(Ethernet.subnetMask()); )
-  DTSL( SerialPrint_P(PSTR("Gateway : ")); Serial.println(Ethernet.gatewayIP()); )
+  DTSL( SerialPrint_P(PSTR("IP      : ")); Serial.println(Transport.localIP()); )
+  DTSL( SerialPrint_P(PSTR("Subnet  : ")); Serial.println(Transport.subnetMask()); )
+  DTSL( SerialPrint_P(PSTR("Gateway : ")); Serial.println(Transport.gatewayIP()); )
   DTSL( SerialPrint_P(PSTR("Password: ")); Serial.println(netConfig.password, DEC); )
   // This codeblock is compiled if UIPethernet.h is included
-#ifdef UIPETHERNET_H
+#ifdef TRANSPORT_ETH_ENC28J60
   DTSL( SerialPrint_P(PSTR("ENC28J60: rev ")); Serial.println(Enc28J60.getrev()); )
 #endif
 
   // Start listen sockets
-  ethServer.begin();
+  Transport.server.begin();
 
 /* -=-=-=-=-=-=-=-=-=-=-=-   OTHER STUFF INIT BLOCK    -=-=-=-=-=-=-=-=-=-=-=- */
 
@@ -216,18 +214,18 @@ So... no debug with Serial Monitor at this time
 *                                                                      RUN SECTION
 */
 void loop() {
-  uint8_t result, encPktCnt,
+  uint8_t result, 
           errorCode = ERROR_NONE;
   char incomingData;
   uint16_t blinkType = constBlinkNope ;
   // Last idx is not the same that array size
   int16_t argOffset[constArgC];
-  uint32_t nowTime, processStartTime, processEndTime, prevDHCPRenewTime, prevENCCheckTime, prevNetProblemTime, prevSysMetricGatherTime, clientConnectTime, netDebugPrintTime;
+  uint32_t nowTime, processStartTime, processEndTime, prevNetModuleCheckTime, prevNetProblemTime, prevSysMetricGatherTime, clientConnectTime, netDebugPrintTime;
   uint32_t ramBefore;
   char cBuffer[constBufferSize+1]; // +1 for trailing \0
     
   // Correcting timestamps
-  prevDHCPRenewTime = prevENCCheckTime = prevNetProblemTime = prevSysMetricGatherTime = netDebugPrintTime = clientConnectTime = millis();
+  prevNetModuleCheckTime = prevNetProblemTime = prevSysMetricGatherTime = netDebugPrintTime = clientConnectTime = millis();
   
   // if no exist while() here - netProblemTime must be global or static - its will be 0 every loop() and time-related cases will be processeed abnormally
   // ...and while save some cpu ticks because do not call everytime from "hidden main()" subroutine, and do not init var, and so.
@@ -236,15 +234,7 @@ void loop() {
     // reset watchdog every loop
     wdt_reset();
 #endif
-#ifdef ENC28J60_ETHERNET_SHIELD
-    Ethernet.maintain();
-#endif; 
-
-
-    nowTime = millis();
-
-      // correctVCCMetrics() must be always inline compiled
-    
+    nowTime = millis();    
     // Gather internal metrics periodically
     if (constSysMetricGatherPeriod <= (uint32_t) (nowTime - prevSysMetricGatherTime)) { 
 
@@ -253,31 +243,33 @@ void loop() {
        gatherSystemMetrics();
 #endif 
        sysMetrics[IDX_METRIC_SYS_VCC] = getADCVoltage(ANALOG_CHAN_VBG);
+       // correctVCCMetrics() must be always inline compiled
        correctVCCMetrics(sysMetrics[IDX_METRIC_SYS_VCC]);
        prevSysMetricGatherTime = millis();
     }
 
-#ifdef FEATURE_NET_DHCP_ENABLE
-    // DHCP used in this session and time to renew lease?
-    if (true == netConfig.useDHCP && (constNetDhcpRenewPeriod <= (uint32_t) (nowTime - prevDHCPRenewTime))) {
-       // Ethernet library's manual say that Ethernet.maintain() can be called every loop for DHCP renew, but i won't do this so often
-       // ...and how many overhead give Ethernet.maintain() ?
-       result = Ethernet.maintain();
+#if defined(FEATURE_NET_DHCP_ENABLE) || defined (TRANSPORT_ETH_ENC28J60)
+    // maintain() is very important for UIPEthernet, because it call internal tick() subroutine
+    // but this subroutine adds more fat to WIZnet drivers, because includes DHCP functionality to firmware
+    result = Transport.maintain();
+#endif
+    
+#if defined(FEATURE_NET_DHCP_ENABLE)
+    if (true == netConfig.useDHCP) {
        // Renew procedure finished with success
        switch (result) {
-          case DHCP_CHECK_NONE:
-          case DHCP_CHECK_RENEW_OK:
-          case DHCP_CHECK_REBIND_OK:
-            blinkType = constBlinkNope;
-            errorCode = ERROR_NONE;
-           // No alarm blink  need, network activity registred, renewal period restarted
-            prevDHCPRenewTime = prevNetProblemTime = millis();
-            break;
-          default: 
-            // Got some errors - blink with "DHCP problem message"
-            blinkType = constBlinkDhcpProblem;    
-            errorCode = ERROR_DHCP;
-            DTSM( SerialPrintln_P(PSTR("DHCP renew problem occured")); )
+         case DHCP_CHECK_NONE:
+         case DHCP_CHECK_RENEW_OK:
+         case DHCP_CHECK_REBIND_OK:
+           // No alarm blink need, network activity registred
+           blinkType = constBlinkNope;
+           errorCode = ERROR_NONE;
+           break;
+         default: 
+          // Got some errors - blink with "DHCP problem message"
+          blinkType = constBlinkDhcpProblem;    
+          errorCode = ERROR_DHCP;
+          DTSM( SerialPrintln_P(PSTR("DHCP renew problem occured")); )
        }
     }
 #endif // FEATURE_NET_DHCP_ENABLE
@@ -288,68 +280,16 @@ void loop() {
        errorCode = ERROR_NET;
     }
 
-#if defined(USE_DIRTY_HACK_AND_REBOOT_ENC28J60_IF_ITS_SEEMS_FREEZE) && defined(ENC28J60_ETHERNET_SHIELD)
-    encPktCnt = Enc28J60.readReg((uint8_t) NET_ENC28J60_EPKTCNT);
-    if (sysMetrics[IDX_METRIC_NET_ENC_PKTCNT_MAX] < encPktCnt) { sysMetrics[IDX_METRIC_NET_ENC_PKTCNT_MAX] = encPktCnt; }
-
-    // Time to reinit ENC28J60?
-    if (constNetEnc28j60ReinitPeriod <= (uint32_t) (nowTime - prevENCCheckTime)) {
-       // if EIR.TXERIF or EIR.RXERIF is set - ENC28J60 detect error, if ECON1.RXEN is clear - ENC28J60's filter feature drop all packets. 
-       // To solve this issue we try to re-init module 
-       uint8_t stateEconRxen = Enc28J60.readReg((uint8_t) NET_ENC28J60_ECON1) & NET_ENC28J60_ECON1_RXEN;
-       uint8_t stateEirRxerif = Enc28J60.readReg((uint8_t) NET_ENC28J60_EIR) & NET_ENC28J60_EIR_RXERIF;
-       uint8_t stateEstatBuffer = Enc28J60.readReg((uint8_t) NET_ENC28J60_ESTAT) & NET_ENC28J60_ESTAT_BUFFER;
-       if (!stateEconRxen || (stateEstatBuffer && stateEirRxerif)) {
-          // just for debug. the code must be removed on release
-          if (!stateEconRxen) {
-              sysMetrics[IDX_METRIC_NET_ENC_REINIT_REASON] = 0x01;
-          } else {
-              sysMetrics[IDX_METRIC_NET_ENC_REINIT_REASON] = 0x02;
-          } 
-
-          DTSM( SerialPrintln_P(PSTR("ENC28J60 reinit")); )
-          Enc28J60.init(netConfig.macAddress); 
-          sysMetrics[IDX_METRIC_NET_ENC_REINITS]++;
-          sysMetrics[IDX_METRIC_NET_ENC_PKTCNT_MAX] = 0;
-          //delay(constNetStabilizationDelay);
-       } 
-       prevENCCheckTime = millis();
+#if defined(FEATURE_NETWORK_MONITORING)
+    if (constNetModuleCheckPeriod <= (uint32_t) (nowTime - prevNetModuleCheckTime)) {
+       // netModuleCheck() subroutine returns true if detect network module error and reinit it. 
+       if (Transport.netModuleCheck()) { 
+          sysMetrics[IDX_METRIC_SYS_NET_REINITS]++; 
+          DTSM( SerialPrint_P(PSTR("Network module reinit #")); Serial.println(sysMetrics[IDX_METRIC_SYS_NET_REINITS]); )
+       }
+       prevNetModuleCheckTime = millis();
     }
-#endif // USE_DIRTY_HACK_AND_REBOOT_ENC28J60_IF_ITS_SEEMS_FREEZE
-
- #ifdef FEATURE_NET_DEBUG_TO_SERIAL
-       // Print debug data every... 5 seconds
-        if ((5000UL <= (uint32_t) (nowTime - netDebugPrintTime))) {
-           NDTS( SerialPrint_P(PSTR("Millis: "));  Serial.println(nowTime); )
-//           NDTS( SerialPrint_P(PSTR("  ECON1: ")); Serial.println(Enc28J60.readReg((uint8_t) NET_ENC28J60_ECON1), BIN); )
-           if (ERROR_NONE != errorCode) {
-              NDTS( SerialPrint_P(PSTR("Error code: ")); Serial.println(errorCode); )
-              NDTS( SerialPrint_P(PSTR("Last executed command: ")); Serial.println(sysMetrics[IDX_METRIC_SYS_CMD_LAST], HEX); )
-              NDTS( SerialPrint_P(PSTR("Memory free: ")); Serial.println(sysMetrics[IDX_METRIC_SYS_RAM_FREE]); )
-              NDTS( SerialPrint_P(PSTR("Memory free (min): ")); ATOMIC_BLOCK(ATOMIC_RESTORESTATE) { Serial.println(sysMetrics[IDX_METRIC_SYS_RAM_FREEMIN]); } )
-              NDTS( SerialPrint_P(PSTR("Client: ")); Serial.println(ethClient, HEX); )
-              NDTS( SerialPrint_P(PSTR("MAC     : ")); printArray(netConfig.macAddress, sizeof(netConfig.macAddress), DBG_PRINT_AS_MAC); )
-              NDTS( SerialPrint_P(PSTR("IP      : ")); Serial.println(Ethernet.localIP()); )
-              NDTS( SerialPrint_P(PSTR("Subnet  : ")); Serial.println(Ethernet.subnetMask()); )
-              NDTS( SerialPrint_P(PSTR("Gateway : ")); Serial.println(Ethernet.gatewayIP()); )
-#ifdef ENC28J60_ETHERNET_SHIELD
-              NDTS( SerialPrintln_P(PSTR("ENC28J60")); )
-              NDTS( SerialPrint_P(PSTR("reinits: ")); Serial.println(sysMetrics[IDX_METRIC_NET_ENC_REINITS]); )
-              NDTS( SerialPrint_P(PSTR("  ESTAT: ")); Serial.println(Enc28J60.readReg((uint8_t) NET_ENC28J60_ESTAT), BIN); )
-              NDTS( SerialPrint_P(PSTR("    EIE: ")); Serial.println(Enc28J60.readReg((uint8_t) NET_ENC28J60_EIE), BIN); )
-              NDTS( SerialPrint_P(PSTR("    EIR: ")); Serial.println(Enc28J60.readReg((uint8_t) NET_ENC28J60_EIR), BIN); )
-              NDTS( SerialPrint_P(PSTR("  ECON1: ")); Serial.println(Enc28J60.readReg((uint8_t) NET_ENC28J60_ECON1), BIN); )
-              NDTS( SerialPrint_P(PSTR("  ECON2: ")); Serial.println(Enc28J60.readReg((uint8_t) NET_ENC28J60_ECON2), BIN); )
-              NDTS( SerialPrint_P(PSTR("EPKTCNT: ")); Serial.println(Enc28J60.readReg((uint8_t) NET_ENC28J60_EPKTCNT)); )
-              NDTS( SerialPrint_P(PSTR("  ERXST: ")); Serial.println(Enc28J60.readReg((uint8_t) NET_ENC28J60_ERXST)); )
-              NDTS( SerialPrint_P(PSTR("  ERXND: ")); Serial.println(Enc28J60.readReg((uint8_t) NET_ENC28J60_ERXND)); )
-             
-#endif // #ifdef ENC28J60_ETHERNET_SHIELD
-           }
-           netDebugPrintTime = millis();
-           Serial.println();
-        }
-#endif
+#endif // FEATURE_NETWORK_MONITORING
 
     // Turn off state led if no errors occured in the current loop.
     // Otherwise - make LED blinked or just turn on
@@ -368,25 +308,25 @@ void loop() {
     // Network connections will processed if no data in Serial buffer exist
     if (Serial.available() <= 0) { 
 #endif      
-        if (!ethClient) {
-          ethClient = ethServer.available(); 
-          if (!ethClient) { continue;}
+        if (!Transport.client) {
+          Transport.client = Transport.server.available(); 
+          if (!Transport.client) { continue;}
              // reinit analyzer because previous session can be dropped or losted
              analyzeStream('\0', cBuffer, argOffset, REINIT_ANALYZER);    
              clientConnectTime = millis(); 
-             DTSH( SerialPrint_P(PSTR("New client #")); Serial.println(ethClient); )
+             DTSH( SerialPrint_P(PSTR("New client #")); Serial.println(Transport.client); )
        }
     
        // Client will be dropped if its connection so slow. Then round must be restarted.
        if (constNetSessionTimeout <= (uint32_t) (millis() - clientConnectTime)) { 
-          DTSH( SerialPrint_P(PSTR("Drop client #")); Serial.println(ethClient); )
-          ethClient.stop(); 
+          DTSH( SerialPrint_P(PSTR("Drop client #")); Serial.println(Transport.client); )
+          Transport.client.stop(); 
           continue; 
        } 
        
        // Network data can be splitted to a number frames and ethClient.available() can return 0 on first frame processing. Need to ignore it.
-       if (!ethClient.available()) { continue; }
-       incomingData = ethClient.read();
+       if (!Transport.client.available()) { continue; }
+       incomingData = Transport.client.read();
 #ifdef FEATURE_SERIAL_LISTEN_TOO
     } else {
       // If in Serial buffer is exist just read it
@@ -402,20 +342,22 @@ void loop() {
     // Data can be readed, command will executed, but why get answer? If no recipient - why need to load MCU?
     // But checking must be disable for commands which coming in from the Serial. Otherwise commands will be never executed if no active network client exist.
 #ifndef FEATURE_SERIAL_LISTEN_TOO
-    if (!ethClient.connected()) { continue; }
+    if (!Transport.client.connected()) { continue; }
 #endif       
     // Fire up State led, than will be turned off on next loop
     digitalWrite(constStateLedPin, HIGH);
     // may be need test for client.connected()? 
     processStartTime = millis();
     DTSM( ramBefore = getRamFree(); )
+    DTSL( Serial.print(cBuffer); SerialPrint_P(PSTR(" => ")); )
     sysMetrics[IDX_METRIC_SYS_CMD_LAST] = executeCommand(cBuffer, argOffset);
     // When system.run[] command is recieved, need to run another command, which taken from option #0 by cmdIdx() sub
     if (RUN_NEW_COMMAND == sysMetrics[IDX_METRIC_SYS_CMD_LAST]) {
        int16_t k = 0;
        // simulate command recieving to properly string parsing
        while (analyzeStream(cBuffer[k], cBuffer, argOffset, false)) { k++; }
-       DTSM( SerialPrintln_P(PSTR("Run new command")); )
+       DTSL( SerialPrintln_P(PSTR("Run new command")); )
+       DTSL( Serial.println(cBuffer); SerialPrint_P(PSTR(" => ")); )
        sysMetrics[IDX_METRIC_SYS_CMD_LAST] = executeCommand(cBuffer, argOffset);
     }
     processEndTime = millis();
@@ -434,13 +376,13 @@ void loop() {
     // Wait some time to finishing answer send, close connection, and restart network activity control cycle
     //delay(constNetStabilizationDelay);
     // Actually Ethernet lib's flush() do nothing, but UIPEthernet flush() free ENC28J60 memory blocks where incoming (?) data stored
-    ethClient.flush(); 
-    ethClient.stop(); 
+    Transport.client.flush(); 
+    Transport.client.stop(); 
 #ifdef FEATURE_SERIAL_LISTEN_TOO
     // Flush the incoming Serial buffer by reading because Serial object have no clear procedure.
     while (0 < Serial.available()) { Serial.read(); }
 #endif
-    prevENCCheckTime = prevNetProblemTime = millis();
+    prevNetModuleCheckTime = prevNetProblemTime = millis();
     blinkType = constBlinkNope;
     errorCode = ERROR_NONE;
  } // while(true)
@@ -600,13 +542,17 @@ static int16_t executeCommand(char* _dst, int16_t* _argOffset)
   cmdIdx = -1;
   
   sysMetrics[IDX_METRIC_SYS_CMD_COUNT]++;
-
-  // Search given related command in the list of implemented functions
   i = arraySize(commands);
-  for (i = arraySize(commands); 0 != i;) {
+  // Search given related command in the list of implemented functions
+  for (; 0 != i;) {
     i--;
     DTSD( Serial.print("# ");  Serial.print(i, HEX); Serial.print(" => "); SerialPrintln_P((char*)pgm_read_word(&(commands[i]))); )
     if (0 == strcmp_P(_dst, (char*)pgm_read_word(&(commands[i])))) {cmdIdx = i; break;}
+/*
+    DTSD( Serial.print(">> # ");  Serial.print(i, HEX); Serial.print(" => "); SerialPrint_P((char*)pgm_read_word(&(commands[i].name))); )
+    DTSD( Serial.print(" >> "); Serial.println(pgm_read_byte(&(commands[i].idx))); )
+    if (0 == strcmp_P(_dst, (char*)pgm_read_word(&(commands[i].name)))) {cmdIdx = pgm_read_byte(&(commands[i].idx)); break;}
+*/    
   }
 
   // Do nothing if command not found and function not implemented
@@ -692,31 +638,13 @@ static int16_t executeCommand(char* _dst, int16_t* _argOffset)
       result = RESULT_IN_ULONGVAR;
       break;
 
-    case CMD_NET_ENC_REINITS:
+    case CMD_SYS_NET_REINITS:
       /*/
-      /=/  enc.reinits
+      /=/  sys.net.reinits
       /*/
-      value.ulongvar  = (uint32_t) sysMetrics[IDX_METRIC_NET_ENC_REINITS];
+      value.ulongvar  = (uint32_t) sysMetrics[IDX_METRIC_SYS_NET_REINITS];
       result = RESULT_IN_ULONGVAR;
       break;
-
-    case CMD_NET_ENC_REINIT_REASON:
-      /*/
-      /=/  enc.reinits
-      /*/
-      value.ulongvar  = (uint32_t) sysMetrics[IDX_METRIC_NET_ENC_REINIT_REASON];
-      result = RESULT_IN_ULONGVAR;
-      break;
-
-    case CMD_NET_ENC_PKTCNT_MAX:
-      /*/
-      /=/  enc.pktcntmax
-      /*/
-      value.ulongvar  = (uint32_t) sysMetrics[IDX_METRIC_NET_ENC_PKTCNT_MAX];
-      result = RESULT_IN_ULONGVAR;
-      break;
-
-
 
     case CMD_ARDUINO_ANALOGWRITE:
       /*/
@@ -955,10 +883,10 @@ static int16_t executeCommand(char* _dst, int16_t* _argOffset)
       /=/  reboot[password]
       /*/
       if (! accessGranted) { break; }
-      if (ethClient.connected()) { ethClient.println(1); }
+      if (Transport.client.connected()) { Transport.client.println(1); }
       // hang-up if no delay
       delay(constNetStabilizationDelay);
-      ethClient.stop();
+      Transport.client.stop();
 #ifdef FEATURE_WATCHDOG_ENABLE
       // Watchdog deactivation
       wdt_disable();
@@ -1024,7 +952,7 @@ static int16_t executeCommand(char* _dst, int16_t* _argOffset)
       /=/  sys.cmd.timemax.n
       /*/
       value.ulongvar = (uint32_t) sysMetrics[IDX_METRIC_SYS_CMD_TIMEMAX_N];
-      ethClient.println(value.ulongvar, HEX);
+      Transport.client.println(value.ulongvar, HEX);
       result = RESULT_IS_PRINTED;
       break;
    
@@ -1107,7 +1035,7 @@ static int16_t executeCommand(char* _dst, int16_t* _argOffset)
       /=/  OW.scan[pin]
       /*/
       if (! isSafePin(argv[0])) { break; }
-      result = scanOneWire(argv[0], &ethClient);
+      result = scanOneWire(argv[0], &Transport.client);
       break;
 #endif // FEATURE_ONEWIRE_ENABLE
 
@@ -1117,7 +1045,7 @@ static int16_t executeCommand(char* _dst, int16_t* _argOffset)
       /=/  I2C.scan[sdaPin, sclPin]
       /*/
       if (! isSafePin(argv[0]) || ! isSafePin(argv[1])) { break;}
-      result = scanI2C(&ethClient);
+      result = scanI2C(&Transport.client);
       break;
 
     case CMD_I2C_WRITE:
@@ -1555,6 +1483,12 @@ static int16_t executeCommand(char* _dst, int16_t* _argOffset)
          case DEVICE_ERROR_TIMEOUT:
             strcpy_P(_dst, PSTR((MSG_DEVICE_ERROR_TIMEOUT)));
             break;
+         case DEVICE_ERROR_WRONG_ID:
+            strcpy_P(_dst, PSTR((MSG_DEVICE_ERROR_WRONG_ID)));
+            break;
+         case DEVICE_ERROR_NOT_SUPPORTED:
+            strcpy_P(_dst, PSTR((MSG_DEVICE_ERROR_NOT_SUPPORTED)));
+            break;
          case DEVICE_ERROR_WRONG_ANSWER:
             strcpy_P(_dst, PSTR((MSG_DEVICE_ERROR_WRONG_ANSWER)));
             break;
@@ -1567,9 +1501,9 @@ static int16_t executeCommand(char* _dst, int16_t* _argOffset)
             break;
       }
       //  Push out the buffer to the client
-      if (ethClient.connected()) { ethClient.println(_dst); }
+      if (Transport.client.connected()) { Transport.client.println(_dst); }
    }
-   DTSL( SerialPrint_P(PSTR("Result: ")); Serial.println(_dst); )
+   DTSL( Serial.println(_dst); )
 //   DTSM( Serial.print("[5] "); Serial.println(millis()); )
    return cmdIdx;
 }

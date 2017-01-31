@@ -69,7 +69,7 @@ const uint32_t constBlinkNetworkProblem                        = 500UL;
 
 // How often do ENC28J60 module reinit for more stable network
 // 10 sec
-const uint32_t constNetEnc28j60ReinitPeriod                    = 10000UL; 
+const uint32_t constNetModuleCheckPeriod                       = 5000UL; 
 
 // Network activity timeout (for which no packets processed or no DHCP lease renews finished with success)
 // 60 sec
@@ -87,7 +87,7 @@ const uint32_t constNetIdleTimeout            	               = 60000UL;
 
 // How often do renew DHCP lease
 // 30 sec
-const uint32_t constNetDhcpRenewPeriod                         = 30000UL;
+//const uint32_t constNetDhcpRenewPeriod                         = 30000UL;
 // How often do renew DHCP lease
 // 0.1 sec
 const uint32_t constNetStabilizationDelay                      = 100UL; 
@@ -301,6 +301,8 @@ D13 -^    ^- D8    <- pins   */
   #define MSG_DEVICE_ERROR_ACK_H                                "ACK (H) error"
   #define MSG_DEVICE_ERROR_CHECKSUM                             "Wrong checksum"
   #define MSG_DEVICE_ERROR_TIMEOUT                              "Timeout error"
+  #define MSG_DEVICE_ERROR_WRONG_ID                             "Wrong ID" 
+  #define MSG_DEVICE_ERROR_NOT_SUPPORTED                        "Device not supported" 
   #define MSG_DEVICE_ERROR_WRONG_ANSWER                         "Wrong answer recieved"
   #define MSG_DEVICE_ERROR_EEPROM                               "Can't save to EEPROM"
 #else
@@ -309,7 +311,9 @@ D13 -^    ^- D8    <- pins   */
   #define MSG_DEVICE_ERROR_ACK_H                                "-133"
   #define MSG_DEVICE_ERROR_CHECKSUM                             "-134"
   #define MSG_DEVICE_ERROR_TIMEOUT                              "-135"
-  #define MSG_DEVICE_ERROR_WRONG_ANSWER                         "-136"
+  #define MSG_DEVICE_ERROR_WRONG_ID                             "-136" 
+  #define MSG_DEVICE_ERROR_NOT_SUPPORTED                        "-137" 
+  #define MSG_DEVICE_ERROR_WRONG_ANSWER                         "-138"
   #define MSG_DEVICE_ERROR_EEPROM                               "-151"
 #endif
 

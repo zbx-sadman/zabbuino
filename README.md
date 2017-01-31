@@ -30,13 +30,21 @@ Implemented:
 - Support APC Smart UPS (with RS232 interface);
 - Simulate varuious vendor's IR transmitters.
 
+####31 Jan 2016
+
+Changes: 
+ - Network drivers (UIPEthernet and Wiznet libraries) now integrated to source code. It works but not tested so much;
+ - _USE_DIRTY_HACK_AND_REBOOT_ENC28J60_IF_ITS_SEEMS_FREEZE_ renamed to _FEATURE_NETWORK_MONITORING_ ;
+ - if _FEATURE_NET_USE_MCUID_ enabled - 3 last byte of MCU ID's will used for 4, 5, 6 octets of MAC address, and last ID's byte used for 4-th octet of IP address;
+ - Refactored Dallas temperature sensors subroutines, device ID validation and tesing for presence on the bus is added. 
+
 ####29 Jan 2016
 
 Going to Zabbuino 1.2.0.
 
 Fixes:
-  - DHT11 really works with _dht.\*_ commands (tested on real hardware);
-  - _ow.scan[]_ command wrong address print (some zeros was lost).
+ - DHT11 really works with _dht.\*_ commands (tested on real hardware);
+ - _ow.scan[]_ command wrong address print (some zeros was lost).
 
 New commands:
  - _INA219.BusVoltage[sdaPin, sclPin, i2cAddress, maxVoltage, maxCurrent]_ - command returns value of "bus voltage" metric (in mV), obtained from INA219 Current/Power Monitor, connected to I2C bus: 

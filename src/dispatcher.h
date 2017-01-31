@@ -26,7 +26,7 @@
 #include "tune.h"
 
 #include "structs.h"
-#include "network.h"
+#include "transport.h"
 #include "platforms.h"
 
 /* runtime libs */
@@ -35,7 +35,6 @@
 #include "io_regs.h"
 #include "system.h"
 #include "service.h"
-
 
 /* I2C devices */
 #include "i2c_bus.h"

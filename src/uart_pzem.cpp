@@ -16,7 +16,7 @@ version 1.0 is used
 *     - CRC
 *
 *****************************************************************************************************************************/
-static uint8_t crcPZEM004(uint8_t *_data, uint8_t _size) {
+uint8_t crcPZEM004(uint8_t *_data, uint8_t _size) {
     uint16_t crc = 0;
     for(uint8_t i=0; i < _size; i++) { crc += (uint8_t) *_data; _data++;}
     //while (_size) { crc += *_data; _data++; _size--; }

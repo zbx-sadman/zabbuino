@@ -9,7 +9,7 @@
 *     - 16-bit raw data on success
 *
 *****************************************************************************************************************************/
-static uint16_t getRawDataFromSHT2X(const uint8_t _i2cAddress, const uint8_t _command)
+uint16_t getRawDataFromSHT2X(const uint8_t _i2cAddress, const uint8_t _command)
 {
     uint16_t result;
 

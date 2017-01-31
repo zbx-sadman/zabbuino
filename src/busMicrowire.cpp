@@ -22,7 +22,7 @@ Second modification is by:
 *    - none
 *
 *****************************************************************************************************************************/
-static void writeByteToMAX7219(const uint8_t _dataPin, const uint8_t _clockPin, const uint8_t _data) 
+void writeByteToMAX7219(const uint8_t _dataPin, const uint8_t _clockPin, const uint8_t _data) 
 {
   int8_t i = 7;
   while(i >= 0) {
@@ -41,7 +41,7 @@ static void writeByteToMAX7219(const uint8_t _dataPin, const uint8_t _clockPin, 
 *    - none
 *
 *****************************************************************************************************************************/
-static void pushDataToMAX7219(const uint8_t _dataPin, const uint8_t _clockPin, const uint8_t _loadPin, const uint8_t _register, const uint8_t _data) {    
+void pushDataToMAX7219(const uint8_t _dataPin, const uint8_t _clockPin, const uint8_t _loadPin, const uint8_t _register, const uint8_t _data) {    
   digitalWrite(_loadPin, LOW);
   // specify register or column
   writeByteToMAX7219(_dataPin, _clockPin, _register);   

@@ -7,6 +7,9 @@
 
                                                                    DS18x20 SECTION
 
+   Based on: Dallas Temperature Control Library
+   Version 3.7.2  is used
+
  -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-*/
 
 // Model IDs
@@ -68,6 +71,7 @@ int8_t getDS18X20Metric(const uint8_t _pin, uint8_t _resolution, char *_id, char
 *     - false on fail
 *
 *****************************************************************************************************************************/
-static uint8_t getScratchPadFromDS18X20(OneWire *_owDevice, const uint8_t *_addr, uint8_t *_scratchPad);
+uint8_t getScratchPadFromDevice(OneWire *_owDevice, const uint8_t *_addr, uint8_t *_scratchPad);
 
+inline uint8_t isCRCOK(uint8_t *_scratchPad);
 #endif // #ifndef _ZABBUINO_OW_SENSORS_H_

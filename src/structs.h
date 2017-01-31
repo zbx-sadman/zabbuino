@@ -26,58 +26,17 @@
    // to see what they do when they release B8. At the moment there is no B8 out yet
 
 */
-// These macros used only to debug process on ENC28J60-powered systems 
-// ENC28J60 bank registers
-#define NET_ENC28J60_EIE                                        0x1B
-#define NET_ENC28J60_EIR                                        0x1C
-#define NET_ENC28J60_ESTAT                                      0x1D
-#define NET_ENC28J60_ECON1                                      0x1F
-#define NET_ENC28J60_ECON2                                      0x1E
-#define NET_ENC28J60_EPKTCNT                                    (0x19|0x20)
-
-#define NET_ENC28J60_ERXST                                      (0x08|0x00)
-#define NET_ENC28J60_ERXND                                      (0x0A|0x00)
-
-// ENC28J60 EIE Register Bit Definitions
-#define NET_ENC28J60_EIE_INTIE                                  0x80
-#define NET_ENC28J60_EIE_PKTIE                                  0x40
-#define NET_ENC28J60_EIE_DMAIE                                  0x20
-#define NET_ENC28J60_EIE_LINKIE                                 0x10
-#define NET_ENC28J60_EIE_TXIE                                   0x08
-#define NET_ENC28J60_EIE_WOLIE                                  0x04
-#define NET_ENC28J60_EIE_TXERIE                                 0x02
-#define NET_ENC28J60_EIE_RXERIE                                 0x01
-// ENC28J60 EIR Register Bit Definitions
-#define NET_ENC28J60_EIR_PKTIF                                  0x40
-#define NET_ENC28J60_EIR_DMAIF                                  0x20
-#define NET_ENC28J60_EIR_LINKIF                                 0x10
-#define NET_ENC28J60_EIR_TXIF                                   0x08
-#define NET_ENC28J60_EIR_WOLIF                                  0x04
-#define NET_ENC28J60_EIR_TXERIF                                 0x02
-#define NET_ENC28J60_EIR_RXERIF                                 0x01
-// ENC28J60 ESTAT Register Bit Definitions
-#define NET_ENC28J60_ESTAT_INT                                  0x80
-#define NET_ENC28J60_ESTAT_BUFFER                               0x40
-#define NET_ENC28J60_ESTAT_LATECOL                              0x10
-#define NET_ENC28J60_ESTAT_RXBUSY                               0x04
-#define NET_ENC28J60_ESTAT_TXABRT                               0x02
-#define NET_ENC28J60_ESTAT_CLKRDY                               0x01
-
-// ENC28J60 ECON1 Register Bit Definitions
-#define NET_ENC28J60_ECON1_TXRST                                0x80
-#define NET_ENC28J60_ECON1_RXRST                                0x40
-#define NET_ENC28J60_ECON1_DMAST                                0x20
-#define NET_ENC28J60_ECON1_CSUMEN                               0x10
-#define NET_ENC28J60_ECON1_TXRTS                                0x08
-#define NET_ENC28J60_ECON1_RXEN                                 0x04
-#define NET_ENC28J60_ECON1_BSEL1                                0x02
-#define NET_ENC28J60_ECON1_BSEL0                                0x01
-
-
 
 /* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
                                                          PROGRAMM STRUCTURES SECTION 
 */
+
+typedef struct {
+  char * const name;
+  uint8_t const idx;
+} command_t;
+
+
 // Note: netconfig_t size must be no more ___uint8_t___ bytes, because readConfig()'s read cycle use uint8_t counter. 
 // Change the index's variable type if bigger size need
 //#pragma pack(push,1)
@@ -217,9 +176,7 @@ typedef union {                                   // 4 byte
 #define CMD_INA219_CURRENT                                      0x44
 #define CMD_INA219_POWER                                        0x45
 
-#define CMD_NET_ENC_REINITS                                     0x46
-#define CMD_NET_ENC_REINIT_REASON                               0x47
-#define CMD_NET_ENC_PKTCNT_MAX                                  0x48
+#define CMD_SYS_NET_REINITS                                     0x46
 
 
 // add new command as "const char command_<COMMAND_MACRO> PROGMEM". Only 'const' push string to PROGMEM. Tanx, Arduino.
@@ -323,9 +280,7 @@ const char command_CMD_INA219_BUSVOLTAGE[]                      PROGMEM = "ina21
 const char command_CMD_INA219_CURRENT[]                         PROGMEM = "ina219.current";
 const char command_CMD_INA219_POWER[]                           PROGMEM = "ina219.power";
 
-const char command_CMD_NET_ENC_REINITS[]                        PROGMEM = "enc.reinits";
-const char command_CMD_NET_ENC_REINIT_REASON[]                  PROGMEM = "enc.reinit.rsn";
-const char command_CMD_NET_ENC_PKTCNT_MAX[]                     PROGMEM = "enc.pktcntmax";
+const char command_CMD_SYS_NET_REINITS[]                        PROGMEM = "sys.net.reinits";
 
 // do not insert new command to any position without syncing indexes. Tanx, Arduino and AVR, for this method of string array pushing to PROGMEM
 // ~300 bytes of PROGMEM space can be saved with crazy "#ifdef-#else-#endif" dance
@@ -571,18 +526,181 @@ command_CMD_SYSTEM_RUN,
   command_CMD_ZBX_NOPE,
 #endif
 
-
-command_CMD_NET_ENC_REINITS,
-command_CMD_NET_ENC_REINIT_REASON,
-command_CMD_NET_ENC_PKTCNT_MAX,
+command_CMD_SYS_NET_REINITS,
 
 };
 
+/*
+command_t const commands[] PROGMEM = {
+  { command_CMD_ZBX_NOPE, CMD_ZBX_NOPE },
+  { command_CMD_ZBX_AGENT_PING, CMD_ZBX_AGENT_PING },
+  { command_CMD_ZBX_AGENT_HOSTNAME, CMD_ZBX_AGENT_HOSTNAME },
+  { command_CMD_ZBX_AGENT_VERSION, CMD_ZBX_AGENT_VERSION },
+  { command_CMD_SYS_UPTIME, CMD_SYS_UPTIME },
+
+  { command_CMD_ARDUINO_ANALOGWRITE, CMD_ARDUINO_ANALOGWRITE },
+  { command_CMD_ARDUINO_ANALOGREAD,  CMD_ARDUINO_ANALOGREAD }, 
+
+#ifdef FEATURE_AREF_ENABLE
+  { command_CMD_ARDUINO_ANALOGREFERENCE, CMD_ARDUINO_ANALOGREFERENCE},
+#endif
+
+  { command_CMD_ARDUINO_DELAY,        CMD_ARDUINO_DELAY },        
+  { command_CMD_ARDUINO_DIGITALWRITE, CMD_ARDUINO_DIGITALWRITE }, 
+  { command_CMD_ARDUINO_DIGITALREAD,  CMD_ARDUINO_DIGITALREAD },  
+
+#ifdef FEATURE_TONE_ENABLE
+  { command_CMD_ARDUINO_TONE,   CMD_ARDUINO_TONE },   
+  { command_CMD_ARDUINO_NOTONE, CMD_ARDUINO_NOTONE }, 
+#endif
+
+#ifdef FEATURE_RANDOM_ENABLE
+  { command_CMD_ARDUINO_RANDOMSEED, CMD_ARDUINO_RANDOMSEED },
+  { command_CMD_ARDUINO_RANDOM,     CMD_ARDUINO_RANDOM },    
+#endif
+
+#ifdef FEATURE_EEPROM_ENABLE
+  { command_CMD_SET_HOSTNAME,   CMD_SET_HOSTNAME },   
+  { command_CMD_SET_PASSWORD,   CMD_SET_PASSWORD },   
+  { command_CMD_SET_SYSPROTECT, CMD_SET_SYSPROTECT }, 
+  { command_CMD_SET_NETWORK,    CMD_SET_NETWORK },    
+#endif
+
+  { command_CMD_SYS_PORTWRITE, CMD_SYS_PORTWRITE },
+
+#ifdef FEATURE_SHIFTOUT_ENABLE 
+  { command_CMD_SYS_SHIFTOUT,  CMD_SYS_SHIFTOUT },
+#endif
+
+  { command_CMD_SYS_REBOOT, CMD_SYS_REBOOT },
+
+#ifdef FEATURE_DEBUG_COMMANDS_ENABLE
+  { command_CMD_SYS_MCU_NAME,      CMD_SYS_MCU_NAME },      
+  { command_CMD_SYS_NET_MODULE,    CMD_SYS_NET_MODULE },    
+  { command_CMD_SYS_CMD_COUNT,     CMD_SYS_CMD_COUNT },     
+  { command_CMD_SYS_CMD_TIMEMAX,   CMD_SYS_CMD_TIMEMAX },   
+  { command_CMD_SYS_CMD_TIMEMAX_N, CMD_SYS_CMD_TIMEMAX_N }, 
+  
+  { command_CMD_SYS_RAM_FREE, CMD_SYS_RAM_FREE },
+  { command_CMD_SYS_RAM_FREEMIN, CMD_SYS_RAM_FREEMIN },
+#endif
+  
+  { command_CMD_SYS_VCC,    CMD_SYS_VCC },   
+  { command_CMD_SYS_VCCMIN, CMD_SYS_VCCMIN },
+  { command_CMD_SYS_VCCMAX, CMD_SYS_VCCMAX },
+
+#ifdef FEATURE_EXTERNAL_INTERRUPT_ENABLE
+  { command_CMD_EXTINT_COUNT, CMD_EXTINT_COUNT },
+#endif
+
+#ifdef FEATURE_INCREMENTAL_ENCODER_ENABLE
+  { command_CMD_INCENC_VALUE, CMD_INCENC_VALUE },
+#endif
+
+#ifdef FEATURE_OW_ENABLE
+  { command_CMD_OW_SCAN, CMD_OW_SCAN },
+#endif
+
+#ifdef FEATURE_I2C_ENABLE
+  { command_CMD_I2C_SCAN,     CMD_I2C_SCAN },     
+  { command_CMD_I2C_WRITE,    CMD_I2C_WRITE },    
+  { command_CMD_I2C_READ,     CMD_I2C_READ },     
+  { command_CMD_I2C_BITWRITE, CMD_I2C_BITWRITE },
+  { command_CMD_I2C_BITREAD,  CMD_I2C_BITREAD },  
+#endif
+
+#ifdef FEATURE_DS18X20_ENABLE
+  { command_CMD_DS18X20_TEMPERATURE, CMD_DS18X20_TEMPERATURE },
+#endif
+
+#ifdef FEATURE_DHT_ENABLE
+  { command_CMD_DHT_HUMIDITY,    CMD_DHT_HUMIDITY },   
+  { command_CMD_DHT_TEMPERATURE, CMD_DHT_TEMPERATURE },
+#endif
+
+#ifdef FEATURE_BMP_ENABLE
+  { command_CMD_BMP_PRESSURE,   CMD_BMP_PRESSURE },
+  { command_CMD_BMP_TEMPERATURE, CMD_BMP_TEMPERATURE },
+#endif
+
+#ifdef SUPPORT_BME280_INCLUDE
+  { command_CMD_BME_HUMIDITY, CMD_BME_HUMIDITY },
+#endif
+
+#ifdef FEATURE_BH1750_ENABLE
+  { command_CMD_BH1750_LIGHT, CMD_BH1750_LIGHT },
+#endif
+
+#ifdef FEATURE_MAX7219_ENABLE
+  { command_CMD_MAX7219_WRITE, CMD_MAX7219_WRITE },
+#endif
+
+#ifdef FEATURE_PCF8574_LCD_ENABLE
+  { command_CMD_PCF8574_LCDPRINT, CMD_PCF8574_LCDPRINT },
+#endif
+  
+#ifdef FEATURE_SHT2X_ENABLE
+  { command_CMD_SHT2X_HUMIDITY,    CMD_SHT2X_HUMIDITY },    
+  { command_CMD_SHT2X_TEMPERATURE, CMD_SHT2X_TEMPERATURE }, 
+#endif
+  
+#ifdef FEATURE_ACS7XX_ENABLE
+  { command_CMD_ACS7XX_ZC, CMD_ACS7XX_ZC }, 
+  { command_CMD_ACS7XX_AC, CMD_ACS7XX_AC }, 
+  { command_CMD_ACS7XX_DC, CMD_ACS7XX_DC }, 
+#endif
+
+#ifdef FEATURE_ULTRASONIC_ENABLE
+  { command_CMD_ULTRASONIC_DISTANCE, CMD_ULTRASONIC_DISTANCE },
+#endif
+
+#ifdef FEATURE_IR_ENABLE
+  { command_CMD_IR_SEND,    CMD_IR_SEND },    
+  { command_CMD_IR_SENDRAW, CMD_IR_SENDRAW }, 
+#endif
+
+#ifdef FEATURE_WS2812_ENABLE
+  { command_CMD_WS2812_SENDRAW, CMD_WS2812_SENDRAW },
+#endif
+
+#ifdef FEATURE_DEBUG_COMMANDS_ENABLE
+  { command_CMD_SYS_MCU_ID,   CMD_SYS_MCU_ID },   
+  { command_CMD_SYS_MCU_SIGN, CMD_SYS_MCU_SIGN }, 
+#endif
+
+#ifdef FEATURE_PZEM004_ENABLE
+  { command_CMD_PZEM004_CURRENT, CMD_PZEM004_CURRENT }, 
+  { command_CMD_PZEM004_VOLTAGE, CMD_PZEM004_VOLTAGE }, 
+  { command_CMD_PZEM004_POWER,   CMD_PZEM004_POWER },   
+  { command_CMD_PZEM004_ENERGY,  CMD_PZEM004_ENERGY },  
+#endif
+
+#ifdef FEATURE_UPS_APCSMART_ENABLE
+  { command_CMD_UPS_APCSMART, CMD_UPS_APCSMART },
+#endif
+
+#ifdef FEATURE_UPS_MEGATEC_ENABLE
+  { command_CMD_UPS_MEGATEC, CMD_UPS_MEGATEC },
+#endif
+
+  { command_CMD_SYSTEM_RUN, CMD_SYSTEM_RUN },
+
+#ifdef FEATURE_INA219_ENABLE
+  { command_CMD_INA219_BUSVOLTAGE, CMD_INA219_BUSVOLTAGE },
+  { command_CMD_INA219_CURRENT,    CMD_INA219_CURRENT },   
+  { command_CMD_INA219_POWER,      CMD_INA219_POWER },     
+#endif
+
+  { command_CMD_NET_ENC_REINITS,       CMD_NET_ENC_REINITS },       
+  { command_CMD_NET_ENC_REINIT_REASON, CMD_NET_ENC_REINIT_REASON }, 
+  { command_CMD_NET_ENC_PKTCNT_MAX,    CMD_NET_ENC_PKTCNT_MAX },    
+};
+*/
 /* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
                                                            VARIOUS DEFINES SECTION 
 */
 
-#define IDX_METRICS_LAST                                        11
+#define IDX_METRICS_LAST                                        9
 #define IDX_METRICS_FIRST_CRONNED                               3
 
 #define IDX_METRIC_SYS_CMD_COUNT                                0
@@ -595,9 +713,7 @@ command_CMD_NET_ENC_PKTCNT_MAX,
 #define IDX_METRIC_SYS_VCCMAX                                   6
 #define IDX_METRIC_SYS_RAM_FREE                                 7
 #define IDX_METRIC_SYS_RAM_FREEMIN                              8
-#define IDX_METRIC_NET_ENC_REINITS                              9
-#define IDX_METRIC_NET_ENC_REINIT_REASON                        10
-#define IDX_METRIC_NET_ENC_PKTCNT_MAX                           11 
+#define IDX_METRIC_SYS_NET_REINITS                              9
 
 // Zabbix v2.x header prefix ('ZBXD\x01')
 #define ZBX_HEADER_PREFIX                                       "zbxd\1"
@@ -658,7 +774,9 @@ typedef enum {
 #define DEVICE_ERROR_ACK_H                                      -0x04
 #define DEVICE_ERROR_CHECKSUM                                   -0x08
 #define DEVICE_ERROR_TIMEOUT                                    -0x10
-#define DEVICE_ERROR_WRONG_ANSWER                               -0x20
+#define DEVICE_ERROR_WRONG_ID                                   -0x20
+#define DEVICE_ERROR_NOT_SUPPORTED                              -0x30
+#define DEVICE_ERROR_WRONG_ANSWER                               -0x40
 #define DEVICE_ERROR_EEPROM_CORRUPTED                           -0x50
 
 /*

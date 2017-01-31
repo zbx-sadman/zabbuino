@@ -37,7 +37,7 @@ void WS2812Out(const uint8_t _dataPin, char *_src);
 *    - number of bytes in the prepared data buffer
 *
 *****************************************************************************************************************************/
-static uint16_t prepareBufferForAdvShiftout(const uint8_t _bitOrder, char *_src);
+uint16_t prepareBufferForAdvShiftout(const uint8_t _bitOrder, char *_src);
 
 
 #endif // #ifndef _ZABBUINO_SHIFTOUT_H_

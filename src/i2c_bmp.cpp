@@ -10,7 +10,7 @@
 *     - false on timeout
 *
 **************************************************************************************************************************** */
-static uint8_t waitToBMPReady(const uint8_t _i2cAddress, const int16_t _registerAddress, const int16_t _mask, const uint16_t _timeout)
+uint8_t waitToBMPReady(const uint8_t _i2cAddress, const int16_t _registerAddress, const int16_t _mask, const uint16_t _timeout)
 {
   uint8_t value;
   uint32_t startTime;
@@ -93,7 +93,7 @@ int8_t getBMPMetric(const uint8_t _sdaPin, const uint8_t _sclPin, uint8_t _i2cAd
 *     - DEVICE_ERROR_TIMEOUT if sensor do not ready to work
 *
 *****************************************************************************************************************************/
-static int8_t getBMP280Metric(const uint8_t _sdaPin, const uint8_t _sclPin, uint8_t _i2cAddress, const uint8_t _overSampling, uint8_t _filterCoef, const uint8_t _metric, char* _dst)
+int8_t getBMP280Metric(const uint8_t _sdaPin, const uint8_t _sclPin, uint8_t _i2cAddress, const uint8_t _overSampling, uint8_t _filterCoef, const uint8_t _metric, char* _dst)
 {
   int8_t rc = DEVICE_ERROR_TIMEOUT;
   uint16_t dig_T1;
@@ -327,15 +327,15 @@ static int8_t getBMP280Metric(const uint8_t _sdaPin, const uint8_t _sclPin, uint
 *     - DEVICE_ERROR_TIMEOUT if sensor do not ready to work
 *
 *****************************************************************************************************************************/
-static int8_t getBMP180Metric(const uint8_t _sdaPin, const uint8_t _sclPin, uint8_t _i2cAddress, uint8_t _overSampling, const uint8_t _metric, char *_dst)
+int8_t getBMP180Metric(const uint8_t _sdaPin, const uint8_t _sclPin, uint8_t _i2cAddress, uint8_t _overSampling, const uint8_t _metric, char *_dst)
 {
   int8_t rc = DEVICE_ERROR_TIMEOUT;
-  uint8_t msb, lsb, xlsb;
+  //uint8_t msb, lsb, xlsb;
   uint8_t value[3];
   // Calibration values
   int16_t ac1, ac2, ac3;
   uint16_t ac4, ac5, ac6;
-  int16_t b1, b2, mb, mc, md;
+  int16_t b1, b2, mc, md; // mb - not used 
   uint16_t ut;
   uint32_t up;
   int32_t x1, x2, x3, b3, b5, b6, result;
@@ -367,8 +367,9 @@ static int8_t getBMP180Metric(const uint8_t _sdaPin, const uint8_t _sclPin, uint
   readBytesFromi2C(_i2cAddress, BMP180_REGISTER_CAL_B2, value, 2);
   b2 = WireToS16(value);
   
-  readBytesFromi2C(_i2cAddress, BMP180_REGISTER_CAL_MB, value, 2);
-  mb = WireToS16(value);
+  // Not used in calculation (see datasheet)
+  //readBytesFromi2C(_i2cAddress, BMP180_REGISTER_CAL_MB, value, 2);
+  //mb = WireToS16(value);
 
   readBytesFromi2C(_i2cAddress, BMP180_REGISTER_CAL_MC, value, 2);
   mc = WireToS16(value);

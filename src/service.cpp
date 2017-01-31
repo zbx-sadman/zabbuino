@@ -22,16 +22,22 @@ void setConfigDefaults(netconfig_t *_configStruct)
 #ifdef FEATURE_NET_USE_MCUID
   // if FEATURE_NET_USE_MCUID is defined:
   // 1. Make FDQN-hostname from MCU ID and default domain name
-  // 2. Modify MAC - the last default's MAC octet is replaced to the last byte of MCU ID
+  // 2. Modify MAC - the 4,5,6 default's MAC octets is replaced to the last 3 byte of MCU ID
   // 3. Modify IP - the last default's IP octet is replaced too to the last byte of MCU ID
-  getBootSignatureBytes(_configStruct->hostname, 14, 10, 1);
+  //
+  // Note: Unique MCU ID defined for ATMega328PB and can not exist on other MCU's. 
+  //       You need try to read it before use for network addresses generating.
+  //       Using only 3 last bytes not guarantee making unique MAC or IP.
+  getBootSignatureBytes(_configStruct->hostname, 0x0E, 10, 1);
   memcpy(&_configStruct->hostname[constMcuIdLength], (ZBX_AGENT_DEFAULT_DOMAIN), arraySize(ZBX_AGENT_DEFAULT_DOMAIN));
   _configStruct->hostname[constMcuIdLength+sizeof(ZBX_AGENT_DEFAULT_DOMAIN)+1]='\0';
   
   // 
   // Interrupts must be disabled before boot_signature_byte_get will be called to avoid code crush
   noInterrupts();
-  _configStruct->macAddress[5] = boot_signature_byte_get(23);
+  _configStruct->macAddress[3] = boot_signature_byte_get(0x15);
+  _configStruct->macAddress[4] = boot_signature_byte_get(0x16);
+  _configStruct->macAddress[5] = boot_signature_byte_get(0x17);
   interrupts();
   _configStruct->ipAddress[3] = _configStruct->macAddress[5];
 
