@@ -9,6 +9,9 @@
    Old releases of Arduino IDE can do not processing #includes inside #if pragmas and stops on compiling or show errors.
    Release 1.6.11 is okay.
                                                                
+   Go to NETWORK MODULE SECTION, that placed below to change local address / subnet / gateway
+
+
                                                      !!! ENC28J60 users !!!
 
    1. Please do not try to get 3.3V from Arduino board pin if you do not sure that it provide sufficient power. 
@@ -21,7 +24,6 @@
    4. When (1) & (2) & (3) did not help to add stability, you can buy Wiznet 5xxx shield or rewrite the source code.
    
                 >>> NOTE that network drivers (UIPEthernet & WIZNet libs) are integrated to Zabbuino source code <<<
-
 */
 
 //#define W5100_ETHERNET_SHIELD       // Arduino Ethernet Shield and Compatibles ...
@@ -400,6 +402,9 @@ const uint8_t constStateLedPin                                 = 0x09;
 /* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
                                                          SYSTEM CONFIGURATION SECTION 
 */
+
+// Debug serial port speed in baud
+const uint16_t constSerialMonitorSpeed                          = 9600; 
 
 // Access password must be used anytime.
 const uint8_t constSysDefaultProtection                        = true; 

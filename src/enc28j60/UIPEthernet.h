@@ -17,8 +17,8 @@
  along with this program.  If not, see <http://www.gnu.org/licenses/>.
   */
 
-#include "../transport_hlp.h"
-#ifdef TRANSPORT_ETH_ENC28J60
+#include "../network_hlp.h"
+#ifdef NETWORK_ETH_ENC28J60
 
 #ifndef _UIP_UIPETHERNET_H_
 #define _UIP_UIPETHERNET_H_
@@ -131,4 +131,4 @@ private:
 extern UIPEthernetClass UIPEthernet;
 
 #endif // _UIP_UIPETHERNET_H_
-#endif // TRANSPORT_ETH_ENC28J60
+#endif // NETWORK_ETH_ENC28J60

@@ -49,8 +49,8 @@
  *
  */
 
-#include "../transport_hlp.h"
-#ifdef TRANSPORT_ETH_ENC28J60
+#include "../network_hlp.h"
+#ifdef NETWORK_ETH_ENC28J60
 
 #ifndef _UIP_UIP_ARP_H_
 #define _UIP_UIP_ARP_H_
@@ -146,5 +146,5 @@ void uip_arp_timer(void);
 /** @} */
 /** @} */
 
-#endif // TRANSPORT_ETH_ENC28J60
+#endif // NETWORK_ETH_ENC28J60
 #endif // _UIP_UIP_ARP_H_

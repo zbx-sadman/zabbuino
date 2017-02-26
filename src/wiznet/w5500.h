@@ -6,8 +6,8 @@
  * or the GNU Lesser General Public License version 2.1, both as
  * published by the Free Software Foundation.
  */
-#include "../transport_hlp.h"
-#ifdef TRANSPORT_ETH_WIZNET
+#include "../network_hlp.h"
+#ifdef NETWORK_ETH_WIZNET
 
 #ifndef	_WIZNET_W5500_H_ 
 #define	_WIZNET_W5500_H_
@@ -436,4 +436,4 @@ uint8_t W5500Class::getPHYCFGR() {
 }
 
 #endif // _WIZNET_W5500_H_
-#endif // TRANSPORT_ETH_WIZNET
+#endif // NETWORK_ETH_WIZNET

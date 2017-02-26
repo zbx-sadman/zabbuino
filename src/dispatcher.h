@@ -26,7 +26,8 @@
 #include "tune.h"
 
 #include "structs.h"
-#include "transport.h"
+#include "NetworkAddress.h"
+#include "network.h"
 #include "platforms.h"
 
 /* runtime libs */

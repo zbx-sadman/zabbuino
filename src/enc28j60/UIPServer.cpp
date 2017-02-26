@@ -16,8 +16,8 @@
  You should have received a copy of the GNU General Public License
  along with this program.  If not, see <http://www.gnu.org/licenses/>.
   */
-#include "../transport_hlp.h"
-#ifdef TRANSPORT_ETH_ENC28J60
+#include "../network_hlp.h"
+#ifdef NETWORK_ETH_ENC28J60
 
 
 #include "UIPEthernet.h"
@@ -63,4 +63,4 @@ size_t UIPServer::write(const uint8_t *buf, size_t size)
   return ret;
 }
 
-#endif // TRANSPORT_ETH_ENC28J60
+#endif // NETWORK_ETH_ENC28J60

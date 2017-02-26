@@ -18,8 +18,8 @@
  Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
  */
 
-#include "../transport_hlp.h"
-#ifdef TRANSPORT_ETH_ENC28J60
+#include "../network_hlp.h"
+#ifdef NETWORK_ETH_ENC28J60
 
 #include "clock-arch.h"
 
@@ -29,4 +29,4 @@ clock_time(void)
   return (clock_time_t) millis();
 }
 
-#endif // TRANSPORT_ETH_ENC28J60
+#endif // NETWORK_ETH_ENC28J60

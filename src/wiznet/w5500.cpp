@@ -7,8 +7,8 @@
  * published by the Free Software Foundation.
  */
 
-#include "../transport_hlp.h"
-#ifdef TRANSPORT_ETH_WIZNET
+#include "../network_hlp.h"
+#ifdef NETWORK_ETH_WIZNET
 
 //#include <stdio.h>
 //#include <string.h>
@@ -202,4 +202,4 @@ void W5500Class::execCmdSn(SOCKET s, SockCMD _cmd) {
     ;
 }
 #endif
-#endif // TRANSPORT_ETH_WIZNET
+#endif // NETWORK_ETH_WIZNET

@@ -60,7 +60,7 @@
 *     - DEVICE_ERROR_CHECKSUM on detect data corruption
 *
 *****************************************************************************************************************************/
-int8_t getDS18X20Metric(const uint8_t _pin, uint8_t _resolution, char *_id, char *_outBuffer);
+int8_t getDS18X20Metric(const uint8_t, uint8_t, char*, char*);
 
 /*****************************************************************************************************************************
 *
@@ -71,7 +71,7 @@ int8_t getDS18X20Metric(const uint8_t _pin, uint8_t _resolution, char *_id, char
 *     - false on fail
 *
 *****************************************************************************************************************************/
-uint8_t getScratchPadFromDevice(OneWire *_owDevice, const uint8_t *_addr, uint8_t *_scratchPad);
+uint8_t getScratchPadFromDevice(OneWire*, const uint8_t*, uint8_t*);
 
-inline uint8_t isCRCOK(uint8_t *_scratchPad);
+inline uint8_t isCRCOK(uint8_t*);
 #endif // #ifndef _ZABBUINO_OW_SENSORS_H_

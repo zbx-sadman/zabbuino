@@ -1,5 +1,5 @@
-#include "../transport_hlp.h"
-#ifdef TRANSPORT_ETH_WIZNET
+#include "../network_hlp.h"
+#ifdef NETWORK_ETH_WIZNET
 
 #ifndef _WIZNET_ETHERNETCLIENT_H_
 #define _WIZNET_ETHERNETCLIENT_H_
@@ -55,4 +55,4 @@ private:
 };
 
 #endif // _WIZNET_ETHERNETCLIENT_H_
-#endif // TRANSPORT_ETH_WIZNET
+#endif // NETWORK_ETH_WIZNET

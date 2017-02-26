@@ -1,8 +1,8 @@
 // DHCP Library v0.3 - April 25, 2009
 // Author: Jordan Terrell - blog.jordanterrell.com
 
-#include "../transport_hlp.h"
-#ifdef TRANSPORT_ETH_WIZNET
+#include "../network_hlp.h"
+#ifdef NETWORK_ETH_WIZNET
 
 #ifndef _WIZNET_DHCP_H_
 #define _WIZNET_DHCP_H_
@@ -184,4 +184,4 @@ public:
 };
 
 #endif // _WIZNET_DHCP_H_
-#endif // TRANSPORT_ETH_WIZNET
+#endif // NETWORK_ETH_WIZNET

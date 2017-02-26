@@ -40,8 +40,8 @@
  *
  */
 
-#include "../transport_hlp.h"
-#ifdef TRANSPORT_ETH_ENC28J60
+#include "../network_hlp.h"
+#ifdef NETWORK_ETH_ENC28J60
 
 #ifndef _UIP_UIP_CONF_H_
 #define _UIP_UIP_CONF_H_
@@ -186,4 +186,4 @@ void uipudp_appcall(void);
 #define UIP_ARCH_CHKSUM 1
 
 #endif // _UIP_UIP_CONF_H_
-#endif // TRANSPORT_ETH_ENC28J60
+#endif // NETWORK_ETH_ENC28J60

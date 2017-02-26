@@ -3,6 +3,7 @@
 
 #include <IPAddress.h>
 #include <Arduino.h>
+#include "NetworkAddress.h"
 #include "../basic.h"
 #include "tune.h"
 
@@ -43,23 +44,24 @@ typedef struct {
 typedef struct {
   uint8_t CRC;                                    // 1 byte, CRC stores first, due it's EEPROM cell rewrites everytime on config saving if it changed. 
                                                   //         When the cell was broken, we just shift start config store address to next cell.
+  // struct {
+  // uint8_t useProtection: 1;                    // 1 bit
+  // uint8_t useDHCP: 1;         	 	  // 1 bit
+  // }
+  uint8_t useProtection;                          // 1 byte
   uint8_t useDHCP;         	 		  // 1 byte
   uint8_t macAddress[6];                          // 6 byte 
-  IPAddress ipAddress;     			  // 6 byte (uint8_t[])
-  IPAddress ipNetmask;     			  // 6 byte (uint8_t[])
-  IPAddress ipGateway;     			  // 6 byte (uint8_t[])
-  char hostname[constAgentHostnameMaxLength+1];     // +1 for '\0', 255 - (1 + 6*4 + 4 + 1) = 225 bytes max
+  NetworkAddress ipAddress;     		  // 4 byte (uint8_t[])
+  NetworkAddress ipNetmask;     		  // 4 byte (uint8_t[])
+  NetworkAddress ipGateway;     	          // 4 byte (uint8_t[])
+  char hostname[constAgentHostnameMaxLength+1];     // +1 for '\0', 255 - (1 + 1 + 1 + 6 + 4*4 + 1) = 229 bytes max
   // #ifdef ... #elif ... #endif does not work with struct operator
   uint32_t password;                              // 4 byte
-  uint8_t useProtection;                          // 1 byte
 } netconfig_t ;
 
 
 typedef struct {                                  // 9 bytes: 
-  union {                                         // 4 byte
-    uint32_t count;        			  
-    int32_t value;        			  
-  };
+  uint32_t value;        			  
   uint8_t owner;                                  // 1 byte 
   // mode == -1 => Interrupt is not attached
   int8_t mode;                                    // 1 byte 
@@ -69,10 +71,6 @@ typedef struct {                                  // 9 bytes:
   uint8_t encTerminalBPinBit;                     // 1 byte
 } extInterrupt_t ;
 
-typedef union {                                   // 4 byte
-  uint32_t ulongvar;
-  int32_t  longvar;
-} long_ulong_t;
 
 //#pragma pack(pop) 
 /* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
@@ -765,7 +763,8 @@ typedef enum {
 #define RESULT_IS_PRINTED                                       0x04
 #define RESULT_IN_LONGVAR                                       0x08
 #define RESULT_IN_ULONGVAR                                      0x10
-#define RUN_NEW_COMMAND                                         -0x02
+// RESULT_IS_NEW_COMMAND's value must not equal any command index to avoid incorrect processing
+#define RESULT_IS_NEW_COMMAND                                   -0x02
 
 // Error Codes
 //#define DEVICE_DISCONNECTED_C         	-127

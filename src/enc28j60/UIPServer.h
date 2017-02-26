@@ -16,8 +16,8 @@
  You should have received a copy of the GNU General Public License
  along with this program.  If not, see <http://www.gnu.org/licenses/>.
   */
-#include "../transport_hlp.h"
-#ifdef TRANSPORT_ETH_ENC28J60
+#include "../network_hlp.h"
+#ifdef NETWORK_ETH_ENC28J60
 
 #ifndef _UIP_UIPSERVER_H_
 #define _UIP_UIPSERVER_H_
@@ -42,4 +42,4 @@ private:
 
 
 #endif // _UIP_UIPSERVER_H_
-#endif // TRANSPORT_ETH_ENC28J60
+#endif // NETWORK_ETH_ENC28J60

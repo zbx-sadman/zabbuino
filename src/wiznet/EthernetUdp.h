@@ -34,8 +34,8 @@
  * bjoern@cs.stanford.edu 12/30/2008
  */
 
-#include "../transport_hlp.h"
-#ifdef TRANSPORT_ETH_WIZNET
+#include "../network_hlp.h"
+#ifdef NETWORK_ETH_WIZNET
 
 #ifndef _WIZNET_ETHERNETUDP_H_
 #define _WIZNET_ETHERNETUDP_H_
@@ -102,4 +102,4 @@ public:
 };
 
 #endif // _WIZNET_ETHERNETUDP_H_
-#endif // TRANSPORT_ETH_WIZNET
+#endif // NETWORK_ETH_WIZNET

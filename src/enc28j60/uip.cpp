@@ -1,5 +1,5 @@
-#include "../transport_hlp.h"
-#ifdef TRANSPORT_ETH_ENC28J60
+#include "../network_hlp.h"
+#ifdef NETWORK_ETH_ENC28J60
 
 #define DEBUG_PRINTF(...) /*printf(__VA_ARGS__)*/
 
@@ -1890,4 +1890,4 @@ uip_send(const void *data, int len)
   }
 }
 /** @} */
-#endif // TRANSPORT_ETH_ENC28J60
+#endif // NETWORK_ETH_ENC28J60

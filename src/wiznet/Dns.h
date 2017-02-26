@@ -2,8 +2,8 @@
 // (c) Copyright 2009-2010 MCQN Ltd.
 // Released under Apache License, version 2.0
 
-#include "../transport_hlp.h"
-#ifdef TRANSPORT_ETH_WIZNET
+#include "../network_hlp.h"
+#ifdef NETWORK_ETH_WIZNET
 
 #ifndef _WIZNET_DNSCLIENT_H_
 #define _WIZNET_DNSCLIENT_H_
@@ -48,4 +48,4 @@ protected:
 };
 
 #endif // _WIZNET_DNSCLIENT_H_
-#endif // TRANSPORT_ETH_WIZNET
+#endif // NETWORK_ETH_WIZNET

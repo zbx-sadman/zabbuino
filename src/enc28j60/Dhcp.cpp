@@ -1,8 +1,8 @@
 // DHCP Library v0.3 - April 25, 2009
 // Author: Jordan Terrell - blog.jordanterrell.com
 
-#include "../transport_hlp.h"
-#ifdef TRANSPORT_ETH_ENC28J60
+#include "../network_hlp.h"
+#ifdef NETWORK_ETH_ENC28J60
 
 #include "Dhcp.h"
 
@@ -475,4 +475,4 @@ void DhcpClass::printByte(char * buf, uint8_t n ) {
     *str-- = c < 10 ? c + '0' : c + 'A' - 10;
   } while(n);
 }
-#endif // TRANSPORT_ETH_ENC28J60
+#endif // NETWORK_ETH_ENC28J60

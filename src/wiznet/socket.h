@@ -1,7 +1,7 @@
 #ifndef	_WIZNET_SOCKET_H_
 #define	_WIZNET_SOCKET_H_
-#include "../transport_hlp.h"
-#ifdef TRANSPORT_ETH_WIZNET
+#include "../network_hlp.h"
+#ifdef NETWORK_ETH_WIZNET
 
 #include "w5100.h"
 
@@ -40,5 +40,5 @@ uint16_t bufferData(SOCKET s, uint16_t offset, const uint8_t* buf, uint16_t len)
 */
 int sendUDP(SOCKET s);
 
-#endif // TRANSPORT_ETH_WIZNET
+#endif // NETWORK_ETH_WIZNET
 #endif // _WIZNET_SOCKET_H_

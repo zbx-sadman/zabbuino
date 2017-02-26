@@ -7,8 +7,8 @@
  * published by the Free Software Foundation.
  */
 
-#include "../transport_hlp.h"
-#ifdef TRANSPORT_ETH_WIZNET
+#include "../network_hlp.h"
+#ifdef NETWORK_ETH_WIZNET
 
 #ifndef	_WIZNET_W5200_H_
 #define	_WIZNET_W5200_H_
@@ -401,4 +401,4 @@ void W5200Class::setRetransmissionCount(uint8_t _retry) {
 }
 
 #endif // _WIZNET_W5200_H_
-#endif // TRANSPORT_ETH_WIZNET
+#endif // NETWORK_ETH_WIZNET

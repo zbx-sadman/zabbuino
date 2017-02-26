@@ -58,8 +58,8 @@
  *
  */
 
-#include "../transport_hlp.h"
-#ifdef TRANSPORT_ETH_ENC28J60
+#include "../network_hlp.h"
+#ifdef NETWORK_ETH_ENC28J60
 
 #include "uip_arp.h"
 
@@ -421,4 +421,4 @@ uip_arp_out(void)
 
 /** @} */
 /** @} */
-#endif // TRANSPORT_ETH_ENC28J60
+#endif // NETWORK_ETH_ENC28J60

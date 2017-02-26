@@ -23,8 +23,8 @@
  */
 
 
-#include "../transport_hlp.h"
-#ifdef TRANSPORT_ETH_ENC28J60
+#include "../network_hlp.h"
+#ifdef NETWORK_ETH_ENC28J60
 
 #ifndef _UIP_ENC28J60NETWORK_H_
 #define _UIP_ENC28J60NETWORK_H_
@@ -103,4 +103,4 @@ public:
 
 extern Enc28J60Network Enc28J60;
 #endif // _UIP_ENC28J60NETWORK_H_
-#endif // TRANSPORT_ETH_ENC28J60
+#endif // NETWORK_ETH_ENC28J60

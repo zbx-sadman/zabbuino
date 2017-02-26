@@ -331,7 +331,7 @@ int8_t getBMP180Metric(const uint8_t _sdaPin, const uint8_t _sclPin, uint8_t _i2
 {
   int8_t rc = DEVICE_ERROR_TIMEOUT;
   //uint8_t msb, lsb, xlsb;
-  uint8_t value[3];
+  uint8_t* value = (uint8_t*) _dst;
   // Calibration values
   int16_t ac1, ac2, ac3;
   uint16_t ac4, ac5, ac6;
@@ -341,6 +341,7 @@ int8_t getBMP180Metric(const uint8_t _sdaPin, const uint8_t _sclPin, uint8_t _i2
   int32_t x1, x2, x3, b3, b5, b6, result;
   uint32_t b4, b7;
 
+  value = (uint8_t*) _dst;
 
   /* read calibration data */
   readBytesFromi2C(_i2cAddress, BMP180_REGISTER_CAL_AC1, value, 2);

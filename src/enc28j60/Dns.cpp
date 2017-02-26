@@ -1,8 +1,8 @@
 // Arduino DNS client for Enc28J60-based Ethernet shield
 // (c) Copyright 2009-2010 MCQN Ltd.
 // Released under Apache License, version 2.0
-#include "../transport_hlp.h"
-#ifdef TRANSPORT_ETH_ENC28J60
+#include "../network_hlp.h"
+#ifdef NETWORK_ETH_ENC28J60
 
 #include "Dns.h"
 
@@ -415,4 +415,4 @@ uint16_t DNSClient::ProcessResponse(uint16_t aTimeout, IPAddress& aAddress)
     return -10;//INVALID_RESPONSE;
 }
 
-#endif // TRANSPORT_ETH_ENC28J60
+#endif // NETWORK_ETH_ENC28J60

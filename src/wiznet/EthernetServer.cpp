@@ -1,5 +1,5 @@
-#include "../transport_hlp.h"
-#ifdef TRANSPORT_ETH_WIZNET
+#include "../network_hlp.h"
+#ifdef NETWORK_ETH_WIZNET
 #include "EthernetServer.h"
 
 EthernetServer::EthernetServer(uint16_t port)
@@ -84,4 +84,4 @@ size_t EthernetServer::write(const uint8_t *buffer, size_t size)
   return n;
 }
 
-#endif // TRANSPORT_ETH_WIZNET
+#endif // NETWORK_ETH_WIZNET

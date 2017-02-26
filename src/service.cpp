@@ -13,9 +13,9 @@ void setConfigDefaults(netconfig_t *_configStruct)
   memcpy(_configStruct->macAddress, mac, arraySize(_configStruct->macAddress));
 
   _configStruct->useDHCP = constNetDefaultUseDHCP;
-  _configStruct->ipAddress = IPAddress(NET_DEFAULT_IP_ADDRESS);
-  _configStruct->ipNetmask = IPAddress(NET_DEFAULT_NETMASK);
-  _configStruct->ipGateway = IPAddress(NET_DEFAULT_GATEWAY);
+  _configStruct->ipAddress = NetworkAddress(NET_DEFAULT_IP_ADDRESS);
+  _configStruct->ipNetmask = NetworkAddress(NET_DEFAULT_NETMASK);
+  _configStruct->ipGateway = NetworkAddress(NET_DEFAULT_GATEWAY);
   _configStruct->password  = constSysDefaultPassword;
   _configStruct->useProtection = constSysDefaultProtection;
   
@@ -243,4 +243,155 @@ void blinkMore(const uint8_t _times, const uint16_t _onTime, const uint16_t _off
   }
 }
 
+uint8_t validateNetworkAddress(const NetworkAddress _address) {
+  return true;
+}
 
+uint8_t strToNetworkAddress(const char* _src, NetworkAddress* _dstAddress) {
+  if ('\0' == *_src) { return false; }
+  *_dstAddress = strtoul(_src, NULL, 0);
+  return true;
+}
+
+/* ****************************************************************************************************************************
+
+   Stream analyzing subroutine
+   Detect Zabbix packets, on-fly spit incoming stream to command & arguments
+
+**************************************************************************************************************************** */
+uint8_t analyzeStream(char _charFromClient, char* _dst, char* _optarg[], uint8_t doReInit) {
+  uint8_t static needSkipZabbix2Header = false,
+                 cmdSliceNumber        = 0,
+                 isEscapedChar         = 0,
+                 doubleQuotedString    = false;
+  uint16_t static bufferWritePosition  = 0;
+
+  // Jump into reInitStage procedure. This is a bad programming style, but the subroutine must be lightweight.
+  if (doReInit) {
+    // Temporary clean code stub
+    *_dst = '\0';
+    goto reInitStage;
+  }
+
+  // If there is not room in buffer - simulate EOL recieving
+  if (constBufferSize <= bufferWritePosition ) {
+    _charFromClient = '\n';
+  }
+
+  // Put next char to buffer
+  _dst[bufferWritePosition] = (doubleQuotedString) ? _charFromClient : tolower(_charFromClient);
+  // no SerialPrint_P(PSTR(...)) used to avoid slow perfomance on analyze loops
+  // Development mode only debug message level used
+  DTSD( Serial.print("anl: ");
+        Serial.print(_dst[bufferWritePosition], HEX);
+        Serial.print(" '");
+        Serial.print((char) _dst[bufferWritePosition]); Serial.println("' ");
+      )
+  // When ZBX_HEADER_PREFIX_LENGTH chars is saved to buffer - test its for Zabbix2 protocol header prefix ("ZBXD\01") presence
+  // (ZBX_HEADER_PREFIX_LENGTH-1) was used because bufferWritePosition is start count from 0, not from 1
+  if ((ZBX_HEADER_PREFIX_LENGTH - 1) == bufferWritePosition) {
+    if (0 == memcmp(_dst, (ZBX_HEADER_PREFIX), ZBX_HEADER_PREFIX_LENGTH)) {
+      // If packet have prefix - set 'skip whole header' flag
+      needSkipZabbix2Header = true;
+      DTSD( Serial.println("ZBX header detected"); )
+    }
+  }
+
+  // When ZBX_HEADER_LENGTH chars is saved to buffer - check 'skip whole header' flag and just begin write new data from begin of buffer.
+  // This operation 'drops' Zabbix2 header
+  if (ZBX_HEADER_LENGTH == bufferWritePosition && needSkipZabbix2Header) {
+    bufferWritePosition = 0;
+    needSkipZabbix2Header = false;
+    DTSD( Serial.println("ZBX header dropped"); )
+    // Return 'Need next char' and save a lot cpu time
+    return true;
+  }
+
+  // Process all chars if its not from header data
+  if (!needSkipZabbix2Header) {
+    // char is not escaped
+    switch (_charFromClient) {
+      // Doublequote sign is arrived
+      case '"':
+        if (!isEscapedChar) {
+          // Doublequote is not escaped - just drop it and toggle "string is doublequoted" mode (do not convert char case,
+          //  skip action on space, ']', '[', ',' detection). Then jump out from subroutine to get next char from client
+          doubleQuotedString = !doubleQuotedString;
+          return true;
+        }
+        // Doublequote is escaped. Move write position backward to one step and write doublequote sign to '\' position
+        bufferWritePosition--;
+        _dst[bufferWritePosition] = '"';
+        isEscapedChar = false;
+        break;
+
+      // Backslash sign is arrived. If next char will be doublequote - its consider as escaped. But backslash is still in buffer as non-escape char
+      case '\\':
+        if (!isEscapedChar) {
+          isEscapedChar = true;
+        }
+        break;
+
+      // Space found. Do nothing if its reached not in doublequoted string, and next char will be written to same position.
+      case 0x20:
+        // Return 'Need next char'
+        if (!doubleQuotedString) {
+          return true;
+        }
+        break;
+
+      // Delimiter or separator found.
+      case '[':
+      case ',':
+        // If its reached not in doublequoted string - process it as control char.
+        if (!doubleQuotedString) {
+          //  If '_argOffset' array is not exhausted - push begin of next argument (bufferWritePosition+1) on buffer to arguments offset array.
+          if (constArgC > cmdSliceNumber) {
+            _optarg[cmdSliceNumber] = &_dst[bufferWritePosition + 1];
+          }
+          cmdSliceNumber++;
+          // Make current buffer segment like C-string
+          _dst[bufferWritePosition] = '\0';
+        }
+        break;
+
+      // Final square bracket found. Do nothing and next char will be written to same position.
+      case ']':
+        // If its reached in doublequoted string - just leave its as regular character
+        //    ...otherwise - process as 'EOL sign'
+        if (doubleQuotedString) {
+          break;
+        }
+
+      // EOL detected
+      case '\n':
+        // Save last argIndex that pointed to <null> item. All unused _argOffset[] items must be pointed to this <null> item too.
+        _dst[bufferWritePosition] = '\0';
+        //while (constArgC > cmdSliceNumber) { _argOffset[cmdSliceNumber++] = bufferWritePosition;}
+        while (constArgC > cmdSliceNumber) {
+          _optarg[cmdSliceNumber++] = &_dst[bufferWritePosition];
+        }
+        // Change argIndex value to pass (constArgC < argIndex) condition
+        cmdSliceNumber = constArgC + 1;
+        break;
+
+      // All next chars is non-escaped
+      default:
+        isEscapedChar = false;
+    }
+
+    // EOL reached or there is not room to store args. Stop stream analyzing and do command executing
+    if (constArgC < cmdSliceNumber) {
+reInitStage:
+      DTSH( SerialPrintln_P(PSTR("Reinit analyzer")); )
+      // Clear vars for next round, and return false as 'Do not need next char'
+      bufferWritePosition = cmdSliceNumber = isEscapedChar = doubleQuotedString = 0;
+      needSkipZabbix2Header = doubleQuotedString = false;
+      return false;
+    }
+  }
+  //
+  bufferWritePosition++;
+  // Return 'Need next char' and save a lot cpu time
+  return true;
+}

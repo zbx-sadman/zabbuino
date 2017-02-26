@@ -25,7 +25,8 @@
 int8_t getDS18X20Metric(const uint8_t _pin, uint8_t _resolution, char* _id, char* _dst)
 {
   int8_t rc = DEVICE_ERROR_CONNECT;
-  uint8_t i, signBit, dsAddr[8], scratchPad[9], parasitePowerUsed, busReady;
+  uint8_t signBit, dsAddr[8], parasitePowerUsed, busReady;// scratchPad[9];
+  uint8_t* scratchPad;
   int16_t conversionTimeout;
   uint32_t tRaw;
   // Start mass conversion or read data if prev conversion has been finished no more that N sec is good idea, but need to store link busPin<->prevConversionTime
@@ -36,6 +37,8 @@ int8_t getDS18X20Metric(const uint8_t _pin, uint8_t _resolution, char* _id, char
 
   OneWire *owDevice;
   owDevice = new OneWire(_pin);
+
+  scratchPad = (uint8_t*) _dst;
   
 
   if ('\0' == _id[0]) {

@@ -45,8 +45,8 @@
  * $Id: timer.c,v 1.2 2006/06/12 08:00:30 adam Exp $
  */
 
-#include "../transport_hlp.h"
-#ifdef TRANSPORT_ETH_ENC28J60
+#include "../network_hlp.h"
+#ifdef NETWORK_ETH_ENC28J60
 
 #include "uip_timer.h"
 
@@ -127,4 +127,4 @@ uip_timer_expired(struct uip_timer *t)
 /*---------------------------------------------------------------------------*/
 
 /** @} */
-#endif // TRANSPORT_ETH_ENC28J60
+#endif // NETWORK_ETH_ENC28J60

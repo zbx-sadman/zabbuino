@@ -69,6 +69,15 @@ void printArray(uint8_t *_src, uint8_t _len, const uint8_t _type);
 
 void blinkMore(const uint8_t _times, const uint16_t _onTime, const uint16_t _offTime);
 
+/*****************************************************************************************************************************
+*
+*  
+*
+*****************************************************************************************************************************/
+uint8_t validateNetworkAddress(const NetworkAddress);
+uint8_t strToNetworkAddress(const char*, NetworkAddress*);
+uint8_t analyzeStream(char, char*, char**, uint8_t);
+
 /* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
                                                          INLINE AND "DEFINE" FUNCTIONS SECTION 
 */

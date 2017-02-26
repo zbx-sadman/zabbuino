@@ -69,7 +69,7 @@ const uint32_t constBlinkNetworkProblem                        = 500UL;
 
 // How often do ENC28J60 module reinit for more stable network
 // 10 sec
-const uint32_t constNetModuleCheckPeriod                       = 5000UL; 
+const uint32_t constPHYCheckInterval                           = 5000UL; 
 
 // Network activity timeout (for which no packets processed or no DHCP lease renews finished with success)
 // 60 sec

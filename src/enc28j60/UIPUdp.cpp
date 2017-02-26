@@ -16,8 +16,8 @@
  You should have received a copy of the GNU General Public License
  along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
-#include "../transport_hlp.h"
-#ifdef TRANSPORT_ETH_ENC28J60
+#include "../network_hlp.h"
+#ifdef NETWORK_ETH_ENC28J60
 
 #include "UIPUdp.h"
 #include "Dns.h"
@@ -377,4 +377,4 @@ UIPUDP::_send(uip_udp_userdata_t *data) {
     }
 }
 #endif
-#endif // TRANSPORT_ETH_ENC28J60
+#endif // NETWORK_ETH_ENC28J60

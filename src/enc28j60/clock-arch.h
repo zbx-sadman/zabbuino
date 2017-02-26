@@ -19,8 +19,8 @@
  */
 
 
-#include "../transport_hlp.h"
-#ifdef TRANSPORT_ETH_ENC28J60
+#include "../network_hlp.h"
+#ifdef NETWORK_ETH_ENC28J60
 
 #ifndef _UIP_CLOCK_ARCH_H_
 #define _UIP_CLOCK_ARCH_H_
@@ -31,4 +31,4 @@ typedef unsigned long clock_time_t;
 #define CLOCK_CONF_SECOND 1000
 
 #endif // _UIP_CLOCK-ARCH_H_
-#endif // TRANSPORT_ETH_ENC28J60
+#endif // NETWORK_ETH_ENC28J60

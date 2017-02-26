@@ -2,8 +2,8 @@
  modified 12 Aug 2013
  by Soohwan Kim (suhwan@wiznet.co.kr)
 */
-#include "../transport_hlp.h"
-#ifdef TRANSPORT_ETH_WIZNET
+#include "../network_hlp.h"
+#ifdef NETWORK_ETH_WIZNET
 
 #ifndef _WIZNET_ETHERNET_H_
 #define _WIZNET_ETHERNET_H_
@@ -70,4 +70,4 @@ public:
 extern EthernetClass Ethernet;
 
 #endif // _WIZNET_ETHERNET_H_
-#endif // TRANSPORT_ETH_WIZNET
+#endif // NETWORK_ETH_WIZNET

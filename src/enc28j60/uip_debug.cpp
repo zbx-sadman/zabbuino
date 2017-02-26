@@ -1,5 +1,5 @@
-#include "../transport_hlp.h"
-#ifdef TRANSPORT_ETH_ENC28J60
+#include "../network_hlp.h"
+#ifdef NETWORK_ETH_ENC28J60
 
 #include "uip_debug.h"
 
@@ -165,4 +165,4 @@ UIPDebug::uip_debug_printbytes(const uint8_t *data, uint8_t len)
         Serial.print(",");
     }
 }
-#endif // TRANSPORT_ETH_ENC28J60
+#endif // NETWORK_ETH_ENC28J60

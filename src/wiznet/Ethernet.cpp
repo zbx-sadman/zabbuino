@@ -3,8 +3,8 @@
  by Soohwan Kim (suhwan@wiznet.co.kr)
 */
 
-#include "../transport_hlp.h"
-#ifdef TRANSPORT_ETH_WIZNET
+#include "../network_hlp.h"
+#ifdef NETWORK_ETH_WIZNET
 
 #include "Ethernet.h"
 
@@ -198,4 +198,4 @@ uint8_t EthernetClass::getPHYCFG() {
 
 EthernetClass Ethernet;
 
-#endif // TRANSPORT_ETH_WIZNET
+#endif // NETWORK_ETH_WIZNET

@@ -15,8 +15,10 @@
 *     - RESULT_IS_FAIL of no devices found 
 *
 *****************************************************************************************************************************/
-int8_t scanI2C(EthernetClient *_ethClient)
+int8_t scanI2C(NetworkClass *_network)
 {
+#if !defined(NETWORK_RS485)
+
   int8_t i2cAddress, numDevices = 0;
 
   for(i2cAddress = 0x01; i2cAddress < 0x7F; i2cAddress++ ) {
@@ -31,12 +33,15 @@ int8_t scanI2C(EthernetClient *_ethClient)
     // 4:other error
     if (0 == Wire.endTransmission(true)) {
       numDevices++;
-      _ethClient->print("0x");
-      if (i2cAddress < 0x0F){ _ethClient->print("0"); }
-      _ethClient->println(i2cAddress, HEX);
+      _network->client.print("0x");
+      if (i2cAddress < 0x0F){ _network->client.print("0"); }
+      _network->client.println(i2cAddress, HEX);
     }
   } 
   return (numDevices ? RESULT_IS_PRINTED : RESULT_IS_FAIL);
+#else
+  return (RESULT_IS_FAIL);
+#endif
 }
 
 /*****************************************************************************************************************************
