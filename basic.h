@@ -57,6 +57,7 @@
 
 /*/ 
 /=/      Enable show report screens on I2C connected LCD screen. 
+/=/      You must build it manually by example virtual screen #1 in reportToScreen() (zabbuino.ino) subroutine 
 /*/
 //#define FEATURE_REPORT_SCREEN_ENABLE
 
