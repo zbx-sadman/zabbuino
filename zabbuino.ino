@@ -2,7 +2,8 @@
                                                                   PROGRAMM FEATURES SECTION
 
     Please refer to the "basic.h" file for enabling or disabling Zabbuino's features and refer to the "src/tune.h" to deep tuning.
-    if connected sensors seems not work - first check setting in port_protect[], port_mode[], port_pullup[] arrays in I/O PORTS SETTING SECTION of "src/tune.h" file
+    if connected sensors seems not work - first check setting in port_protect[], port_mode[], port_pullup[] arrays in I/O PORTS 
+    SETTING SECTION of "src/tune.h" file
 */
 #include "src/dispatcher.h"
 #include "src/network.h"
@@ -10,13 +11,13 @@
 /*-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
                                                                   GLOBAL VARIABLES SECTION
 */
-
-netconfig_t netConfig;
-
 // some array items used into timer's interrupt
 // too hard to calculate "enough to non-hung work" ram size if *sysMetrics & sysMetrics = new int32_t[IDX_METRICS_LAST+1] is used
 volatile int32_t sysMetrics[IDX_METRICS_LAST + 1];
 NetworkClass Network;
+
+// global netConfig struct make sketch slimest (~60b)
+netconfig_t netConfig;
 
 #ifdef INTERRUPT_USE
 // Init external interrupts info structure
@@ -30,13 +31,11 @@ volatile extInterrupt_t extInterrupt[EXTERNAL_NUM_INTERRUPTS];
 */
 
 void setup() {
-  uint8_t i;
-
 #ifdef SERIAL_USE
   Serial.begin(constSerialMonitorSpeed);
 #endif // SERIAL_USE
 
-  DTSL( SerialPrint_P(PSTR(ZBX_AGENT_VERISON)); SerialPrintln_P(PSTR(" waked up")); )
+  DTSL( SerialPrint_P(constZbxAgentVersion); SerialPrintln_P(PSTR(" waked up")); )
 
   sysMetrics[IDX_METRIC_SYS_VCCMIN] = sysMetrics[IDX_METRIC_SYS_VCCMAX] = getADCVoltage(ANALOG_CHAN_VBG);
   sysMetrics[IDX_METRIC_SYS_RAM_FREE] = sysMetrics[IDX_METRIC_SYS_RAM_FREEMIN] = (int32_t) getRamFree();
@@ -45,7 +44,7 @@ void setup() {
 
   //  uint32_t startSerial = millis();
   /*
-    On ATMega32u4 (may be breadboard and dupont wires is bad)
+    On ATMega32u4 with closed Arduino IDE monitor (may be breadboard and dupont wires is bad)
 
     >>> wait for serial with timeout:
 
@@ -74,10 +73,28 @@ void setup() {
   // blink on start
   blinkMore(6, 50, 500);
 #endif
+}
 
+
+/* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
+                                                                       GENERAL SECTION
+*/
+void loop() {
+  uint8_t i, result, reportVirtualScreenNum,
+          errorCode = ERROR_NONE;
+  char incomingData;
+  uint16_t blinkType = constBlinkNope;
+  uint32_t nowTime, processStartTime, processEndTime, prevPHYCheckTime, prevNetProblemTime, prevSysMetricGatherTime, clientConnectTime, netDebugPrintTime, prevScreenReportTime;
+  char cBuffer[constBufferSize + 1]; // +1 for trailing \0
+  // Last idx is not the same that array size
+  char* optarg[constArgC];
+
+
+// System load procedure
+
+// 1. Factory reset block  
+//  
 #ifdef FEATURE_EEPROM_ENABLE
-
-  /* -=-=-=-=-=-=-=-=-=-=-=-   FACTORY RESET BLOCK   -=-=-=-=-=-=-=-=-=-=-=- */
   // Set mode of constFactoryResetButtonPin and turn on internal pull resistor
   digitalWrite(constStateLedPin, LOW);
   // Check for constFactoryResetButtonPin shorting to ground?
@@ -100,11 +117,12 @@ void setup() {
       }
     }
     digitalWrite(constStateLedPin, LOW);
-
   } // if (LOW == digitalRead(constFactoryResetButtonPin))
+#endif // FEATURE_EEPROM_ENABLE
 
-  /* -=-=-=-=-=-=-=-=-=-=-=-   CONFIGURATION LOAD BLOCK  -=-=-=-=-=-=-=-=-=-=-=- */
-  // Try to load configuration from EEPROM
+// 2. Load configuration from EEPROM
+//
+#ifdef FEATURE_EEPROM_ENABLE
   if (false == loadConfigFromEEPROM(&netConfig)) {
     DTSM( SerialPrintln_P(PSTR("Load error")); )
     // bad CRC detected, use default values for this run
@@ -119,31 +137,34 @@ void setup() {
   setConfigDefaults(&netConfig);
 #endif // FEATURE_EEPROM_ENABLE
 
+// 3. Forcing the system parameters in accordance with the user's compilation options & hardware set
+//
 #ifdef FEATURE_NET_DHCP_FORCE
   netConfig.useDHCP = true;
 #endif
-
+#ifdef FEATURE_PASSWORD_PROTECTION_FORCE
+  netConfig.useProtection = true;
+#endif
 #if defined(NETWORK_RS485)
   netConfig.useDHCP = false;
 #endif
 
-  /* -=-=-=-=-=-=-=-=-=-=-=-   NETWORK START BLOCK  -=-=-=-=-=-=-=-=-=-=-=- */
+// 4. Network initialization and starting
+//
   Network.init(&netConfig);
   Network.restart();
-
   DTSL( SerialPrintln_P(PSTR("Serving on:"));
         Network.showNetworkState(); 
         SerialPrint_P(PSTR("Password: ")); Serial.println(netConfig.password, DEC); 
       )
-
-  // Start listen sockets
 #if !defined(NETWORK_RS485)
+  // Start listen sockets
   Network.server.begin();
 #endif
 
-  /* -=-=-=-=-=-=-=-=-=-=-=-   OTHER STUFF INIT BLOCK    -=-=-=-=-=-=-=-=-=-=-=- */
-
-  // I/O ports initialization. Refer to "I/O PORTS SETTING SECTION" in zabbuino.h
+// 5. Other system parts initialization
+//
+  // I/O ports initialization. Refer to "I/O PORTS SETTING SECTION" in src\tune.h
   for (i = PORTS_NUM; 0 != i;) {
     // experimental: variable decrement that place outside for() save a little progspace.
     i--;
@@ -160,11 +181,6 @@ void setup() {
     extInterrupt[i].owner = OWNER_IS_NOBODY;
     extInterrupt[i].value = 0;
   }
-#endif
-
-  // Uncomment to force protect (enable even useProtection is false) your system from illegal access for change runtime settings and reboots
-#ifdef FEATURE_PASSWORD_PROTECTION_FORCE
-  netConfig.useProtection = true;
 #endif
 
 #ifdef LIBWIRE_USE
@@ -185,25 +201,13 @@ void setup() {
   // blink on init end
   blinkMore(2, 1000, 1000);
 #endif
-}
-
-
-/* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
-                                                                       RUN SECTION
-*/
-void loop() {
-  uint8_t result,
-          errorCode = ERROR_NONE;
-  char incomingData;
-  uint16_t blinkType = constBlinkNope;
-  // Last idx is not the same that array size
-  char* optarg[constArgC];
-  uint32_t nowTime, processStartTime, processEndTime, prevPHYCheckTime, prevNetProblemTime, prevSysMetricGatherTime, clientConnectTime, netDebugPrintTime;
-  char cBuffer[constBufferSize + 1]; // +1 for trailing \0
 
   // Correcting timestamps
-  prevPHYCheckTime = prevNetProblemTime = prevSysMetricGatherTime = netDebugPrintTime = clientConnectTime = millis();
+  prevPHYCheckTime = prevNetProblemTime = prevSysMetricGatherTime = prevScreenReportTime = netDebugPrintTime = clientConnectTime = millis();
 
+  reportVirtualScreenNum = 0;
+// 6. Enter to infinitive loop to serve incoming requests
+//
   // if no exist while() here - netProblemTime must be global or static - its will be 0 every loop() and time-related cases will be processeed abnormally
   // ...and while save some cpu ticks because do not call everytime from "hidden main()" subroutine, and do not init var, and so.
   while (true) {
@@ -211,11 +215,12 @@ void loop() {
     // reset watchdog every loop
     wdt_reset();
 #endif
+    
     nowTime = millis();
     // Gather internal metrics periodically
     if (constSysMetricGatherPeriod <= (uint32_t) (nowTime - prevSysMetricGatherTime)) {
-
       // When FEATURE_DEBUG_COMMANDS_ENABLE is disabled, compiler can be omit gatherSystemMetrics() sub (due find no operators inside) and trow exception
+      
 #ifndef GATHER_METRIC_USING_TIMER_INTERRUPT
       gatherSystemMetrics();
 #endif
@@ -284,6 +289,15 @@ void loop() {
 #endif
     } // if (ERROR_NONE == errorCode) ... else
 
+#ifdef FEATURE_REPORT_SCREEN_ENABLE
+    // Change content on physiscal report screen every constScreenReportInterval
+    if (constScreenReportInterval <= (uint32_t) (nowTime - prevScreenReportTime)) {
+       reportToScreen(cBuffer, reportVirtualScreenNum);
+       reportVirtualScreenNum++;
+       if (constVirtualScreensNum < reportVirtualScreenNum) { reportVirtualScreenNum = 0; }       
+       prevScreenReportTime = nowTime;
+    }
+#endif
 
 #ifdef FEATURE_SERIAL_LISTEN_TOO
     // Network connections will processed if no data in Serial buffer exist
@@ -339,7 +353,7 @@ void loop() {
     processStartTime = millis();
     DTSM( uint32_t ramBefore = getRamFree(); )
     DTSL( Serial.print(cBuffer); SerialPrint_P(PSTR(" => ")); )
-    sysMetrics[IDX_METRIC_SYS_CMD_LAST] = executeCommand(cBuffer, optarg);
+    sysMetrics[IDX_METRIC_SYS_CMD_LAST] = executeCommand(cBuffer, optarg, &netConfig);
     // When system.run[] command is recieved, need to run another command, which taken from option #0 by cmdIdx() sub
     if (RESULT_IS_NEW_COMMAND == sysMetrics[IDX_METRIC_SYS_CMD_LAST]) {
       int16_t k = 0;
@@ -348,7 +362,7 @@ void loop() {
         k++;
       }
       DTSL( Serial.print(cBuffer); SerialPrint_P(PSTR(" => ")); )
-      sysMetrics[IDX_METRIC_SYS_CMD_LAST] = executeCommand(cBuffer, optarg);
+      sysMetrics[IDX_METRIC_SYS_CMD_LAST] = executeCommand(cBuffer, optarg, &netConfig);
     }
     processEndTime = millis();
     // use processEndTime as processDurationTime
@@ -380,11 +394,68 @@ void loop() {
   } // while(true)
 }
 
+
+/*****************************************************************************************************************************
+Write report to physical screen (LCD1602, etc)
+
+*****************************************************************************************************************************/
+static void reportToScreen(char* _src, uint8_t _virtualScreenNum) {
+  uint8_t dataLength;
+  //        LCD1602
+  //   0    ....      F
+  //  |XXX.XXX.XXX.XXX |  << IP Address
+  //  |4294967295 ms   |  << uptime
+  //
+  //  |Zabbuino 1.2.3  |  << 
+  //  |   ALL OK       |  << 
+  
+  // Serial.print(cBuffer); 
+  DTSH( SerialPrint_P(PSTR("Show screen #")); Serial.println(_virtualScreenNum); )
+  // _virtualScreenNum eq 0xFF mean that _src already contan ready to print data
+  if (0xFF != _virtualScreenNum) {
+     // Write to _src commands for output direction (0x06) and clear screen (0x01)
+     strcpy_P(_src, PSTR("\x6\x1"));
+     // Note: "\x6\x1" placed to _src as bytes with values 6 and 1 (_src[0]=6, _src[1]=1), not as C-string '\x6\x1'
+     //dataLength = strlen(_src);
+     dataLength = 2;
+
+     // change constVirtualScreensNum in tune.h if you need more or less virtual screens
+     switch (_virtualScreenNum){
+       case 0x01:
+         // copy constZbxAgentVersion variable (see "AGENT CONFIGURATION SECTION" in basic.h) content to src, starting from [dataLength] cell
+         strcpy_P(&_src[dataLength], constZbxAgentVersion);
+         // _src is C-string ('\0' terminated) and we can get it length with strlen() for correcting dataLength.
+         dataLength = strlen(_src);
+         // replace to '\0' by '\n' at the end position of string to have newline on physical screen
+         _src[dataLength++] = '\n';
+         // copy "Uptime: " string to src, following '\n'
+         strcpy_P(&_src[dataLength], PSTR("Up: "));
+         dataLength = strlen(_src);
+         // write millis() value to the _src starting from 'dataLength' cell (take address of (_src[0] + dataLength) and give ltoa() as buffer);
+         ltoa(millis(), &_src[dataLength], 10);
+         dataLength = strlen(_src);
+         strcpy_P(&_src[dataLength], PSTR(" ms"));
+         break;
+
+       case 0x02:
+         // build your own screen and increase constVirtualScreensNum's value in tune.h  
+         break;
+    
+     default:
+         // write empty string
+         _src[0] = '\0';      
+         break;
+   }
+   }   
+   // push data to LCD via I2C (refer to "ALARM & REPORT SECTION" in tune.h)
+   printToPCF8574LCD(constReportScreenSDAPin, constReportScreenSCLPin, constReportScreenI2CAddress, constReportScreenBackLight, constReportScreenType, _src);
+}
+
 /* ****************************************************************************************************************************
 
 
 **************************************************************************************************************************** */
-static int16_t executeCommand(char* _dst, char* _optarg[]) {
+static int16_t executeCommand(char* _dst, char* _optarg[], netconfig_t* _netConfig) {
   int8_t result;
   uint8_t i, i2CAddress, i2COption, i2CValue[4], accessGranted = false;
   int16_t i2CRegister, cmdIdx;
@@ -440,7 +511,7 @@ static int16_t executeCommand(char* _dst, char* _optarg[]) {
     //DTSM( Serial.print("[2] "); Serial.println(millis()); )
 
     // Check rights for password protected action
-    accessGranted = (!netConfig.useProtection || argv[0] == netConfig.password);
+    accessGranted = (!_netConfig->useProtection || argv[0] == _netConfig->password);
 
     i2CAddress = (uint8_t) argv[2];
     i2CRegister = ('\0' != *_optarg[3]) ? (int16_t) argv[3] : I2C_NO_REG_SPECIFIED;
@@ -464,7 +535,7 @@ static int16_t executeCommand(char* _dst, char* _optarg[]) {
       //
       //   agent.hostname
       //
-      strcpy(_dst, netConfig.hostname);
+      strcpy(_dst, _netConfig->hostname);
       result = RESULT_IN_BUFFER;
       break;
 
@@ -472,7 +543,7 @@ static int16_t executeCommand(char* _dst, char* _optarg[]) {
       //
       //  agent.version
       //
-      strcpy_P(_dst, PSTR(ZBX_AGENT_VERISON));
+      strcpy_P(_dst, constZbxAgentVersion);
       result = RESULT_IN_BUFFER;
       break;
 
@@ -662,10 +733,10 @@ static int16_t executeCommand(char* _dst, char* _optarg[]) {
         i = constAgentHostnameMaxLength;
       }
       //copy 0 .. (constAgentHostnameMaxLength-1) chars from buffer to hostname
-      memcpy(netConfig.hostname, _optarg[1], i);
+      memcpy(_netConfig->hostname, _optarg[1], i);
       // Terminate string
-      netConfig.hostname[constAgentHostnameMaxLength] = '\0';
-      saveConfigToEEPROM(&netConfig);
+      _netConfig->hostname[constAgentHostnameMaxLength] = '\0';
+      saveConfigToEEPROM(_netConfig);
       result = RESULT_IS_OK;
       break;
 
@@ -680,8 +751,8 @@ static int16_t executeCommand(char* _dst, char* _optarg[]) {
         break;
       }
       // take new password from argument #2
-      netConfig.password = argv[1];
-      saveConfigToEEPROM(&netConfig);
+      _netConfig->password = argv[1];
+      saveConfigToEEPROM(_netConfig);
       result = RESULT_IS_OK;
       break;
 
@@ -695,8 +766,8 @@ static int16_t executeCommand(char* _dst, char* _optarg[]) {
       if ('\0' == *_optarg[1]) {
         break;
       }
-      netConfig.useProtection = (1 == argv[1]) ? true : false;
-      saveConfigToEEPROM(&netConfig);
+      _netConfig->useProtection = (1 == argv[1]) ? true : false;
+      saveConfigToEEPROM(_netConfig);
       result = RESULT_IS_OK;
       break;
 
@@ -711,21 +782,21 @@ static int16_t executeCommand(char* _dst, char* _optarg[]) {
       success = true;
       // useDHCP flag coming from first argument and must be numeric (boolean) - 1 or 0,
       // argv[0] data contain in _dst[_argOffset[1]] placed from _argOffset[0]
-      netConfig.useDHCP = (uint8_t) argv[1];
+      _netConfig->useDHCP = (uint8_t) argv[1];
       // ip, netmask and gateway have one structure - 4 byte
       // take 6 bytes from second argument of command and use as new MAC-address
       // if convertation is failed (return false) succes variable must be falsed too via logic & operator
-      success &= hstoba((uint8_t*) mac, (char*) _optarg[2], arraySize(netConfig.macAddress));
-      memcpy(netConfig.macAddress, &mac, arraySize(netConfig.macAddress));
+      success &= hstoba((uint8_t*) mac, (char*) _optarg[2], arraySize(_netConfig->macAddress));
+      memcpy(_netConfig->macAddress, &mac, arraySize(_netConfig->macAddress));
       // If string to which point _optarg[3] can be converted to valid NetworkAddress - just do it. 
-      // Otherwize (string can not be converted) netConfig.ipAddress will stay untouched;
-      success = (success) ? (strToNetworkAddress((char*) _optarg[3], &netConfig.ipAddress)) : false;
-      success = (success) ? (strToNetworkAddress((char*) _optarg[4], &netConfig.ipNetmask)) : false;
-      success = (success) ? (strToNetworkAddress((char*) _optarg[5], &netConfig.ipGateway)) : false;
+      // Otherwize (string can not be converted) _netConfig->ipAddress will stay untouched;
+      success = (success) ? (strToNetworkAddress((char*) _optarg[3], &_netConfig->ipAddress)) : false;
+      success = (success) ? (strToNetworkAddress((char*) _optarg[4], &_netConfig->ipNetmask)) : false;
+      success = (success) ? (strToNetworkAddress((char*) _optarg[5], &_netConfig->ipGateway)) : false;
       // if any convert operation failed - stop store process      
       if (!success) { break; }
-      // Save config to EEProm on success
-      result = saveConfigToEEPROM(&netConfig) ? RESULT_IS_OK : DEVICE_ERROR_EEPROM_CORRUPTED;
+      // Save config to EEPROM on success
+      result = saveConfigToEEPROM(_netConfig) ? RESULT_IS_OK : DEVICE_ERROR_EEPROM_CORRUPTED;
       break;
 #endif // FEATURE_EEPROM_ENABLE
 

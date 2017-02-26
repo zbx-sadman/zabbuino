@@ -26,8 +26,8 @@
                 >>> NOTE that network drivers (UIPEthernet & WIZNet libs) are integrated to Zabbuino source code <<<
 */
 
-//#define W5100_ETHERNET_SHIELD       // Arduino Ethernet Shield and Compatibles ...
-#define ENC28J60_ETHERNET_SHIELD      // Microchip __ENC28J60__ network modules
+#define W5100_ETHERNET_SHIELD       // Arduino Ethernet Shield and Compatibles ...
+//#define ENC28J60_ETHERNET_SHIELD      // Microchip __ENC28J60__ network modules
 //#define W5200_ETHERNET_SHIELD       // WIZ820io, W5200 Ethernet Shield , not tested yet
 //#define W5500_ETHERNET_SHIELD       // WIZ550io, ioShield series of WIZnet , tested but not satisfied with the performance on intensive traffic
 
@@ -45,7 +45,7 @@
 
 */
 
-/* NEW */
+/**** NEW ****/
 /*/ 
 /=/      Enable INA219 Zer0-Drift, Bidirectional Current/Power Monitor With I2C Interface support and commands:
 /=/        - INA219.BusVoltage[]
@@ -54,6 +54,11 @@
 /*/
 //#define FEATURE_EXTERNAL_INTERRUPT_ENABLE
 //#define FEATURE_INA219_ENABLE
+
+/*/ 
+/=/      Enable show report screens on I2C connected LCD screen. 
+/*/
+//#define FEATURE_REPORT_SCREEN_ENABLE
 
 /****       Network              ****/
 /*/ 

@@ -8,6 +8,11 @@
                                                             DISPATCH SECTION 
 
 */
+// Enable LCD support if report screen required
+#if defined(FEATURE_REPORT_SCREEN_ENABLE)
+   #define FEATURE_PCF8574_LCD_ENABLE
+#endif
+
 // Need to use Wire lib if any I2C related feature enabled
 #if defined(FEATURE_I2C_ENABLE) || defined(FEATURE_BMP_ENABLE) || defined(FEATURE_BH1750_ENABLE) || defined (FEATURE_PCF8574_LCD_ENABLE) || defined (FEATURE_SHT2X_ENABLE)
    #define LIBWIRE_USE
@@ -27,7 +32,7 @@
    #define INTERRUPT_USE
 #endif
 
-// Enable BMP280 support if need to support BME280, because BME280 is BMP280+Humidity sensor.
+// Enable BMP280 support if need to use BME280, because BME280 is BMP280+Humidity sensor.
 #if defined(SUPPORT_BME280_INCLUDE)
    #define SUPPORT_BMP280_INCLUDE
 #endif
@@ -46,7 +51,7 @@
 #endif
 
 /* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
-                                                               ALARM SECTION 
+                                                        ALARM & REPORT SECTION 
 */
 // Turn off state LED blink (no errors found)
 const uint32_t constBlinkNope                                  = 000UL;
@@ -57,7 +62,14 @@ const uint32_t constBlinkDhcpProblem         	               = 150UL;
 // ~500ms on, ~500ms off
 const uint32_t constBlinkNetworkProblem                        = 500UL;
 
-
+// Report screen settings
+const uint8_t constReportScreenSDAPin                          = 18;   // SDA - A4
+const uint8_t constReportScreenSCLPin                          = 19;   // SCL - A5
+const uint8_t constReportScreenI2CAddress                      = 0x20; // I2C interface board address
+const uint8_t constReportScreenBackLight                       = 0x00; // backlight off
+const uint16_t constReportScreenType                           = 1602; // 16x2 screen, refer to source of printToPCF8574LCD() subroutine
+const uint16_t constScreenReportInterval                       = 5000UL; // 5sec
+const uint8_t constVirtualScreensNum                           = 1;      // One virtual screen only
 /* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
                                                             NETWORK MODULE SECTION 
 
@@ -68,7 +80,7 @@ const uint32_t constBlinkNetworkProblem                        = 500UL;
 */
 
 // How often do ENC28J60 module reinit for more stable network
-// 10 sec
+// 5 sec
 const uint32_t constPHYCheckInterval                           = 5000UL; 
 
 // Network activity timeout (for which no packets processed or no DHCP lease renews finished with success)
