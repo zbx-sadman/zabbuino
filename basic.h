@@ -57,7 +57,7 @@
 
 /*/ 
 /=/      Enable show report screens on I2C connected LCD screen. 
-/=/      You must build it manually by example virtual screen #1 in reportToScreen() (zabbuino.ino) subroutine 
+/=/      You must build it manually by example virtual screen #1 in plugin.ino->reportToScreen() subroutine 
 /*/
 //#define FEATURE_REPORT_SCREEN_ENABLE
 
@@ -433,6 +433,6 @@ const uint8_t constFactoryResetButtonPin                       = 0x08;
 #define ZBX_AGENT_DEFAULT_DOMAIN                               ".local.net"
 
 
-#define ZBX_AGENT_VERISON                                      "Zabbuino 1.2.0"
+const char constZbxAgentVersion[] PROGMEM =                   "Zabbuino 1.2.0";
 #endif // #ifndef _ZABBUINO_BASIC_CONFIG_H_
 
