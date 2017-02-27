@@ -33,7 +33,7 @@ Implemented:
 ####26 Feb 2016
 
 New feature:
- - With _FEATURE\_REPORT\_SCREEN\_ENABLE_ you can build your own virtual report screen and send it to I2C connected LCD screen. Refer to "ALARM & REPORT SECTION" in _tune.h_ to get more info about LCD connection settings.
+ - With _FEATURE\_REPORT\_SCREEN\_ENABLE_ you can build your own virtual report screen and send it to I2C connected LCD screen. Refer to "ALARM & REPORT SECTION" in _tune.h_ to get more info about LCD connection settings. _reportToScreen()_ function source code can be found in _plugin.ino_
  
 ####31 Jan 2016
 
