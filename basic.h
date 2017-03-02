@@ -52,14 +52,30 @@
 /=/        - INA219.Current[]
 /=/        - INA219.Power[]
 /*/
-//#define FEATURE_EXTERNAL_INTERRUPT_ENABLE
 //#define FEATURE_INA219_ENABLE
 
 /*/ 
-/=/      Enable show report screens on I2C connected LCD screen. 
+/=/      Enable support the system display (LCD which connected via I2C interface) 
+/=/      Refer to SYSTEM HARDWARE SECTION in src\tune.h
 /=/      You must build it manually by example virtual screen #1 in plugin.ino->reportToScreen() subroutine 
 /*/
-//#define FEATURE_REPORT_SCREEN_ENABLE
+//#define FEATURE_SYSTEM_DISPLAY_ENABLE
+
+/*/ 
+/=/      Enable support the system RTC (DS3231 RTC chip which connected via I2C interface) and commands:
+/=/        - set.localtime[]
+/=/        - system.localtime[]
+/=/      
+/=/      Refer to SYSTEM HARDWARE SECTION in src\tune.h
+/*/
+//#define FEATURE_SYSTEM_RTC_ENABLE
+
+/*/ 
+/=/      Enable command: 
+/=/        - system.run[]
+/*/
+//#define FEATURE_REMOTE_COMMANDS_ENABLE
+
 
 /****       Network              ****/
 /*/ 
@@ -320,16 +336,17 @@
 //#define FEATURE_PASSWORD_PROTECTION_FORCE
 
 /*/
-/=/     Enable system's command which can be used in system debug process:
-/=/       - Sys.MCU.Name[];
+/=/     Enable commands which returns system information and can be used in system debug process:
+/=/       - System.HW.CPU[];
+/=/       - System.HW.Chassis[];
 /=/       - Sys.MCU.ID[];
-/=/       - Sys.Net.Module[];
+/=/       - Sys.PHY.Module[];
 /=/       - Sys.Cmd.Count[];
 /=/       - Sys.Cmd.TimeMax[];
 /=/       - Sys.RAM.Free[];
 /=/       - Sys.RAM.FreeMin[]
 /*/
-#define FEATURE_DEBUG_COMMANDS_ENABLE
+#define FEATURE_SYSINFO_ENABLE
 
 /*/
 /=/     View the more or less debug messages on the Serial Monitor. Choose one.
@@ -342,7 +359,7 @@
 /*/
 /=/     View the additional debug messages on the Serial Monitor when network errors probaly occurs
 /*/
-//#define FEATURE_NET_DEBUG_TO_SERIAL
+//#define FEATURE_NETWORK_MONITORING
 
 /*/
 /=/     Recieve command from Serial Monitor too. Do not forget to enable one of FEATURE_DEBUG_TO_SERIAL_* macro 

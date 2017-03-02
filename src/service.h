@@ -118,9 +118,12 @@ inline __attribute__((always_inline)) uint32_t getRamFree(void) {
 // __attribute__((always_inline)) 
 inline void correctVCCMetrics(uint32_t _currVCC) {
   // Global variable from outside
-  extern volatile int32_t sysMetrics[];
-  if ((uint32_t) sysMetrics[IDX_METRIC_SYS_VCCMIN] > _currVCC) { sysMetrics[IDX_METRIC_SYS_VCCMIN] = _currVCC; }
-  if ((uint32_t) sysMetrics[IDX_METRIC_SYS_VCCMAX] < _currVCC) { sysMetrics[IDX_METRIC_SYS_VCCMAX] = _currVCC; }
+  //extern volatile int32_t sysMetrics[];
+  //if ((uint32_t) sysMetrics[IDX_METRIC_SYS_VCCMIN] > _currVCC) { sysMetrics[IDX_METRIC_SYS_VCCMIN] = _currVCC; }
+  //if ((uint32_t) sysMetrics[IDX_METRIC_SYS_VCCMAX] < _currVCC) { sysMetrics[IDX_METRIC_SYS_VCCMAX] = _currVCC; }
+  extern volatile sysmetrics_t sysMetrics1;
+  if (sysMetrics1.sysVCCMin > _currVCC) { sysMetrics1.sysVCCMin = _currVCC; }
+  if (sysMetrics1.sysVCCMax < _currVCC) { sysMetrics1.sysVCCMax = _currVCC; }
 }
 
 #ifdef FEATURE_DEBUG_TO_SERIAL_HIGH

@@ -9,12 +9,16 @@
 
 */
 // Enable LCD support if report screen required
-#if defined(FEATURE_REPORT_SCREEN_ENABLE)
+#if defined(FEATURE_SYSTEM_DISPLAY_ENABLE)
    #define FEATURE_PCF8574_LCD_ENABLE
 #endif
 
+#if defined(FEATURE_SYSTEM_RTC_ENABLE)
+   #define FEATURE_I2C_RTC_ENABLE
+#endif
+
 // Need to use Wire lib if any I2C related feature enabled
-#if defined(FEATURE_I2C_ENABLE) || defined(FEATURE_BMP_ENABLE) || defined(FEATURE_BH1750_ENABLE) || defined (FEATURE_PCF8574_LCD_ENABLE) || defined (FEATURE_SHT2X_ENABLE)
+#if defined(FEATURE_I2C_ENABLE) || defined(FEATURE_BMP_ENABLE) || defined(FEATURE_BH1750_ENABLE) || defined (FEATURE_PCF8574_LCD_ENABLE) || defined (FEATURE_SHT2X_ENABLE) || defined (FEATURE_I2C_RTC_ENABLE)
    #define LIBWIRE_USE
 #endif
 
@@ -51,7 +55,7 @@
 #endif
 
 /* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
-                                                        ALARM & REPORT SECTION 
+                                                            ALARM SECTION 
 */
 // Turn off state LED blink (no errors found)
 const uint32_t constBlinkNope                                  = 000UL;
@@ -62,14 +66,24 @@ const uint32_t constBlinkDhcpProblem         	               = 150UL;
 // ~500ms on, ~500ms off
 const uint32_t constBlinkNetworkProblem                        = 500UL;
 
-// Report screen settings
-const uint8_t constReportScreenSDAPin                          = 18;   // SDA - A4
-const uint8_t constReportScreenSCLPin                          = 19;   // SCL - A5
-const uint8_t constReportScreenI2CAddress                      = 0x20; // I2C interface board address
-const uint8_t constReportScreenBackLight                       = 0x00; // backlight off
-const uint16_t constReportScreenType                           = 1602; // 16x2 screen, refer to source of printToPCF8574LCD() subroutine
-const uint16_t constScreenReportInterval                       = 5000UL; // 5sec
-const uint8_t constVirtualScreensNum                           = 1;      // One virtual screen only
+
+/* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
+                                                          SYSTEM HARDWARE SECTION 
+*/
+// System display settings
+const uint8_t  constSystemDisplaySDAPin                         = 18;     // SDA - A4
+const uint8_t  constSystemDisplaySCLPin                         = 19;     // SCL - A5
+const uint8_t  constSystemDisplayI2CAddress                     = 0x20;   // I2C interface board address
+const uint8_t  constSystemDisplayBackLight                      = 0x00;   // backlight off
+const uint16_t constSystemDisplayType                           = 1602;   // 16x2 screen, refer to source of printToPCF8574LCD() subroutine
+const uint16_t constSystemDisplayRenewInterval                  = 5000UL; // 5sec
+const uint8_t  constVirtualScreensNum                           = 3;      // Number of report virtual screens
+
+// System RTC module settings (only DS3231 is supported at this time)
+const uint8_t  constSystemRtcSDAPin                             = 18;     // SDA - A4
+const uint8_t  constSystemRtcSCLPin                             = 19;     // SCL - A5
+const uint8_t  constSystemRtcI2CAddress                         = 0x68;   // DS3231 RTC I2C address 
+
 /* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
                                                             NETWORK MODULE SECTION 
 

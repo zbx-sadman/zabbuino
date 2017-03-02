@@ -8,6 +8,8 @@
 #include <Arduino.h>
 #include <IPAddress.h>
 
+#include <time.h>
+
 #include <util/atomic.h>
 #include <avr/interrupt.h>
 
@@ -37,10 +39,12 @@
 
 /* I2C devices */
 #include "i2c_bus.h"
+#include "i2c_bh1750.h"
 #include "i2c_bmp.h"
+#include "i2c_ds3231.h"
+#include "i2c_ina2xx.h"
 #include "i2c_lcd.h"
 #include "i2c_sht.h"
-#include "i2c_ina2xx.h"
 
 /* 1-Wire devices */
 #include "ow_bus.h"

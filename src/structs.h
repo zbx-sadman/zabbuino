@@ -32,15 +32,28 @@
                                                          PROGRAMM STRUCTURES SECTION 
 */
 
+/*
 typedef struct {
   char * const name;
   uint8_t const idx;
 } command_t;
 
+#define IDX_METRIC_SYS_CMD_COUNT                                0
+#define IDX_METRIC_SYS_CMD_LAST                                 1
+#define IDX_METRIC_SYS_CMD_TIMEMAX                              2
+#define IDX_METRIC_SYS_CMD_TIMEMAX_N                            3
+
+#define IDX_METRIC_SYS_VCC                                      4
+#define IDX_METRIC_SYS_VCCMIN                                   5
+#define IDX_METRIC_SYS_VCCMAX                                   6
+#define IDX_METRIC_SYS_RAM_FREE                                 7
+#define IDX_METRIC_SYS_RAM_FREEMIN                              8
+#define IDX_METRIC_SYS_PHY_REINITS                              9
+*/
 
 // Note: netconfig_t size must be no more ___uint8_t___ bytes, because readConfig()'s read cycle use uint8_t counter. 
 // Change the index's variable type if bigger size need
-//#pragma pack(push,1)
+#pragma pack(push,1)
 typedef struct {
   uint8_t CRC;                                    // 1 byte, CRC stores first, due it's EEPROM cell rewrites everytime on config saving if it changed. 
                                                   //         When the cell was broken, we just shift start config store address to next cell.
@@ -60,6 +73,21 @@ typedef struct {
 } netconfig_t ;
 
 
+typedef struct {
+  uint32_t sysCmdCount;                           // Number of executed commands 
+  uint8_t  sysCmdLast;                            // Index of last executed command
+  uint32_t sysCmdLastExecTime;                    // End time of last executed command
+  uint32_t sysCmdTimeMax;                         // Maximum spend time for command execution
+  uint8_t  sysCmdTimeMaxN;                        // Index of the slowest command
+//  uint16_t sysVCC;
+  uint16_t sysVCCMin;                             // Maximum VCC (in mV) from MCU powering on
+  uint16_t sysVCCMax;                             // Minimum VCC (in mV) from MCU powering on
+  uint32_t sysRamFree;                            // "Current" free memory (in bytes).
+  uint32_t sysRamFreeMin;                         // Minimum free memory (in bytes) from MCU powering on
+  uint32_t netPHYReinits;                      // PHY reinits number (restarts of network module)
+} sysmetrics_t;
+
+
 typedef struct {                                  // 9 bytes: 
   uint32_t value;        			  
   uint8_t owner;                                  // 1 byte 
@@ -70,9 +98,7 @@ typedef struct {                                  // 9 bytes:
   uint8_t encTerminalAPinBit;                     // 1 byte
   uint8_t encTerminalBPinBit;                     // 1 byte
 } extInterrupt_t ;
-
-
-//#pragma pack(pop) 
+#pragma pack(pop) 
 /* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
                                                             COMMAND NAMES SECTION 
 */
@@ -82,7 +108,7 @@ typedef struct {                                  // 9 bytes:
 #define CMD_ZBX_AGENT_PING                                      0x01
 #define CMD_ZBX_AGENT_HOSTNAME                                  0x02
 #define CMD_ZBX_AGENT_VERSION                                   0x03
-#define CMD_SYS_UPTIME                                          0x04
+#define CMD_SYSTEM_UPTIME                                       0x04
                                                                 
 #define CMD_ARDUINO_ANALOGWRITE                                 0x05
 #define CMD_ARDUINO_ANALOGREAD                                  0x06
@@ -104,62 +130,61 @@ typedef struct {                                  // 9 bytes:
 #define CMD_SYS_SHIFTOUT                                        0x14
 #define CMD_SYS_REBOOT                                          0x15
 
-#define CMD_SYS_MCU_NAME                                        0x16
-#define CMD_SYS_NET_MODULE                                      0x17
+#define CMD_SYSTEM_HW_CHASSIS                                   0x16
+#define CMD_SYSTEM_HW_CPU                                       0x17
+#define CMD_NET_PHY_NAME                                        0x18
+#define CMD_NET_PHY_REINITS                                     0x19
 
-#define CMD_SYS_CMD_COUNT                                       0x18
-#define CMD_SYS_CMD_TIMEMAX                                     0x19
-#define CMD_SYS_CMD_TIMEMAX_N                                   0x1A
+#define CMD_SYS_CMD_COUNT                                       0x1A
+#define CMD_SYS_CMD_TIMEMAX                                     0x1B
+#define CMD_SYS_CMD_TIMEMAX_N                                   0x1C
 
-#define CMD_SYS_RAM_FREE                                        0x1B
-#define CMD_SYS_RAM_FREEMIN                                     0x1C
+#define CMD_SYS_RAM_FREE                                        0x1D
+#define CMD_SYS_RAM_FREEMIN                                     0x1E
 
-#define CMD_SYS_VCC                                             0x1D
-#define CMD_SYS_VCCMIN                                          0x1E
-#define CMD_SYS_VCCMAX                                          0x1F
+#define CMD_SYS_VCC                                             0x1F
+#define CMD_SYS_VCCMIN                                          0x20
+#define CMD_SYS_VCCMAX                                          0x21
 
-#define CMD_EXTINT_COUNT                                        0x20
-#define CMD_INCENC_VALUE                                        0x21
+#define CMD_EXTINT_COUNT                                        0x22
+#define CMD_INCENC_VALUE                                        0x23
 
-#define CMD_OW_SCAN                                             0x22
+#define CMD_OW_SCAN                                             0x24
 
-#define CMD_I2C_SCAN                                            0x23
-#define CMD_I2C_WRITE                                           0x24
-#define CMD_I2C_READ                                            0x25
-#define CMD_I2C_BITWRITE                                        0x26
-#define CMD_I2C_BITREAD                                         0x27
+#define CMD_I2C_SCAN                                            0x25
+#define CMD_I2C_WRITE                                           0x26
+#define CMD_I2C_READ                                            0x27
+#define CMD_I2C_BITWRITE                                        0x28
+#define CMD_I2C_BITREAD                                         0x29
 
-#define CMD_DS18X20_TEMPERATURE                                 0x28
+#define CMD_DS18X20_TEMPERATURE                                 0x2A
 
-#define CMD_DHT_HUMIDITY                                        0x29
-#define CMD_DHT_TEMPERATURE                                     0x2A
+#define CMD_DHT_HUMIDITY                                        0x2B
+#define CMD_DHT_TEMPERATURE                                     0x2C
 
-#define CMD_BMP_PRESSURE                                        0x2B 
-#define CMD_BMP_TEMPERATURE                                     0x2C
-#define CMD_BME_HUMIDITY                                        0x2D
+#define CMD_BMP_PRESSURE                                        0x2D 
+#define CMD_BMP_TEMPERATURE                                     0x2E
+#define CMD_BME_HUMIDITY                                        0x2F
 
-#define CMD_BH1750_LIGHT                                        0x2E
+#define CMD_BH1750_LIGHT                                        0x30
 
-#define CMD_MAX7219_WRITE                                       0x2F
+#define CMD_MAX7219_WRITE                                       0x31
 
-#define CMD_PCF8574_LCDPRINT                                    0x30
+#define CMD_PCF8574_LCDPRINT                                    0x32
 
-#define CMD_SHT2X_HUMIDITY                                      0x31
-#define CMD_SHT2X_TEMPERATURE                                   0x32
+#define CMD_SHT2X_HUMIDITY                                      0x33
+#define CMD_SHT2X_TEMPERATURE                                   0x34
 
-#define CMD_ACS7XX_ZC                                           0x33
-#define CMD_ACS7XX_AC                                           0x34
-#define CMD_ACS7XX_DC                                           0x35
+#define CMD_ACS7XX_ZC                                           0x35
+#define CMD_ACS7XX_AC                                           0x36
+#define CMD_ACS7XX_DC                                           0x37
 
-#define CMD_ULTRASONIC_DISTANCE                                 0x36
+#define CMD_ULTRASONIC_DISTANCE                                 0x38
 
-#define CMD_IR_SEND                                             0x37
-#define CMD_IR_SENDRAW                                          0x38
+#define CMD_IR_SEND                                             0x39
+#define CMD_IR_SENDRAW                                          0x3A
 
-#define CMD_WS2812_SENDRAW                                      0x39
-
-#define CMD_SYS_MCU_ID                                          0x3A
-#define CMD_SYS_MCU_SIGN                                        0x3B
+#define CMD_WS2812_SENDRAW                                      0x3B
 
 #define CMD_PZEM004_CURRENT                                     0x3C 
 #define CMD_PZEM004_VOLTAGE                                     0x3D 
@@ -168,13 +193,15 @@ typedef struct {                                  // 9 bytes:
  
 #define CMD_UPS_APCSMART                                        0x40
 #define CMD_UPS_MEGATEC                                         0x41
-#define CMD_SYSTEM_RUN                                          0x42
+
+#define CMD_SYSTEM_RUN                                          0x42   // relocate in future
 
 #define CMD_INA219_BUSVOLTAGE                                   0x43
 #define CMD_INA219_CURRENT                                      0x44
 #define CMD_INA219_POWER                                        0x45
 
-#define CMD_SYS_NET_REINITS                                     0x46
+#define CMD_SET_LOCALTIME                                       0x46
+#define CMD_SYSTEM_LOCALTIME                                    0x47
 
 
 // add new command as "const char command_<COMMAND_MACRO> PROGMEM". Only 'const' push string to PROGMEM. Tanx, Arduino.
@@ -183,7 +210,7 @@ const char command_CMD_ZBX_NOPE[]                               PROGMEM = "\1";
 const char command_CMD_ZBX_AGENT_PING[]                         PROGMEM = "agent.ping";
 const char command_CMD_ZBX_AGENT_HOSTNAME[]                     PROGMEM = "agent.hostname";
 const char command_CMD_ZBX_AGENT_VERSION[]                      PROGMEM = "agent.version";
-const char command_CMD_SYS_UPTIME[]                             PROGMEM = "sys.uptime";
+const char command_CMD_SYSTEM_UPTIME[]                          PROGMEM = "system.uptime";
 
 const char command_CMD_ARDUINO_ANALOGWRITE[]                    PROGMEM = "analogwrite";         
 const char command_CMD_ARDUINO_ANALOGREAD[]                     PROGMEM = "analogread";
@@ -202,6 +229,7 @@ const char command_CMD_SET_HOSTNAME[]                           PROGMEM = "set.h
 const char command_CMD_SET_PASSWORD[]                           PROGMEM = "set.password";
 const char command_CMD_SET_SYSPROTECT[]                         PROGMEM = "set.sysprotect";
 const char command_CMD_SET_NETWORK[]                            PROGMEM = "set.network";
+const char command_CMD_SET_LOCALTIME[]                          PROGMEM = "set.localtime";
 
 const char command_CMD_SYS_PORTWRITE[]                          PROGMEM = "portwrite";
 
@@ -209,10 +237,14 @@ const char command_CMD_SYS_SHIFTOUT[]                           PROGMEM = "shift
 
 const char command_CMD_SYS_REBOOT[]                             PROGMEM = "reboot";              
 
-const char command_CMD_SYS_MCU_NAME[]                           PROGMEM = "sys.mcu.name";
-const char command_CMD_SYS_MCU_ID[]                             PROGMEM = "sys.mcu.id";
-const char command_CMD_SYS_MCU_SIGN[]                           PROGMEM = "sys.mcu.sign";
-const char command_CMD_SYS_NET_MODULE[]                         PROGMEM = "sys.net.module";
+const char command_CMD_SYSTEM_HW_CHASSIS[]                      PROGMEM = "system.hw.chassis";
+const char command_CMD_SYSTEM_HW_CPU[]                          PROGMEM = "system.hw.cpu";
+const char command_CMD_SYSTEM_LOCALTIME[]                       PROGMEM = "system.localtime";
+
+const char command_CMD_SYSTEM_RUN[]                             PROGMEM = "system.run";
+
+const char command_CMD_NET_PHY_NAME[]                           PROGMEM = "net.phy.name";
+const char command_CMD_NET_PHY_REINITS[]                        PROGMEM = "net.phy.reinits";
 
 const char command_CMD_SYS_CMD_COUNT[]                          PROGMEM = "sys.cmd.count";
 const char command_CMD_SYS_CMD_TIMEMAX[]                        PROGMEM = "sys.cmd.timemax";
@@ -272,13 +304,9 @@ const char command_CMD_PZEM004_ENERGY[]                         PROGMEM = "pzem0
 const char command_CMD_UPS_APCSMART[]                           PROGMEM = "ups.apcsmart";
 const char command_CMD_UPS_MEGATEC[]                            PROGMEM = "ups.megatec";
 
-const char command_CMD_SYSTEM_RUN[]                             PROGMEM = "system.run";
-
 const char command_CMD_INA219_BUSVOLTAGE[]                      PROGMEM = "ina219.busvoltage";
 const char command_CMD_INA219_CURRENT[]                         PROGMEM = "ina219.current";
 const char command_CMD_INA219_POWER[]                           PROGMEM = "ina219.power";
-
-const char command_CMD_SYS_NET_REINITS[]                        PROGMEM = "sys.net.reinits";
 
 // do not insert new command to any position without syncing indexes. Tanx, Arduino and AVR, for this method of string array pushing to PROGMEM
 // ~300 bytes of PROGMEM space can be saved with crazy "#ifdef-#else-#endif" dance
@@ -288,7 +316,7 @@ const char* const commands[] PROGMEM = {
   command_CMD_ZBX_AGENT_PING,
   command_CMD_ZBX_AGENT_HOSTNAME,
   command_CMD_ZBX_AGENT_VERSION,
-  command_CMD_SYS_UPTIME,
+  command_CMD_SYSTEM_UPTIME,
 
   command_CMD_ARDUINO_ANALOGWRITE,
   command_CMD_ARDUINO_ANALOGREAD,
@@ -341,16 +369,19 @@ const char* const commands[] PROGMEM = {
 
   command_CMD_SYS_REBOOT,
 
-#ifdef FEATURE_DEBUG_COMMANDS_ENABLE
-  command_CMD_SYS_MCU_NAME,
-  command_CMD_SYS_NET_MODULE,
+#ifdef FEATURE_SYSINFO_ENABLE
+  command_CMD_SYSTEM_HW_CHASSIS,
+  command_CMD_SYSTEM_HW_CPU,
+  command_CMD_NET_PHY_NAME,
+  command_CMD_NET_PHY_REINITS,
   command_CMD_SYS_CMD_COUNT,
   command_CMD_SYS_CMD_TIMEMAX,
   command_CMD_SYS_CMD_TIMEMAX_N,
-  
   command_CMD_SYS_RAM_FREE,
   command_CMD_SYS_RAM_FREEMIN,
 #else 
+  command_CMD_ZBX_NOPE,
+  command_CMD_ZBX_NOPE,
   command_CMD_ZBX_NOPE,
   command_CMD_ZBX_NOPE,
   command_CMD_ZBX_NOPE,
@@ -480,14 +511,6 @@ const char* const commands[] PROGMEM = {
   command_CMD_ZBX_NOPE,
 #endif
 
-#ifdef FEATURE_DEBUG_COMMANDS_ENABLE
-  command_CMD_SYS_MCU_ID,
-  command_CMD_SYS_MCU_SIGN,
-#else
-  command_CMD_ZBX_NOPE,
-  command_CMD_ZBX_NOPE,
-#endif
-
 #ifdef FEATURE_PZEM004_ENABLE
   command_CMD_PZEM004_CURRENT,
   command_CMD_PZEM004_VOLTAGE,
@@ -512,7 +535,11 @@ const char* const commands[] PROGMEM = {
   command_CMD_ZBX_NOPE,
 #endif
 
+#ifdef FEATURE_REMOTE_COMMANDS_ENABLE
 command_CMD_SYSTEM_RUN,
+#else
+  command_CMD_ZBX_NOPE,
+#endif
 
 #ifdef FEATURE_INA219_ENABLE
   command_CMD_INA219_BUSVOLTAGE,
@@ -524,8 +551,13 @@ command_CMD_SYSTEM_RUN,
   command_CMD_ZBX_NOPE,
 #endif
 
-command_CMD_SYS_NET_REINITS,
-
+#ifdef FEATURE_SYSTEM_RTC_ENABLE
+  command_CMD_SET_LOCALTIME,
+  command_CMD_SYSTEM_LOCALTIME,
+#else
+  command_CMD_ZBX_NOPE,
+  command_CMD_ZBX_NOPE,
+#endif
 };
 
 /*
@@ -572,9 +604,9 @@ command_t const commands[] PROGMEM = {
 
   { command_CMD_SYS_REBOOT, CMD_SYS_REBOOT },
 
-#ifdef FEATURE_DEBUG_COMMANDS_ENABLE
-  { command_CMD_SYS_MCU_NAME,      CMD_SYS_MCU_NAME },      
-  { command_CMD_SYS_NET_MODULE,    CMD_SYS_NET_MODULE },    
+#ifdef FEATURE_SYSINFO_ENABLE
+  { command_CMD_SYSTEM_HW_CPU,      CMD_SYSTEM_HW_CPU },      
+  { command_CMD_NET_PHY_MODULE,    CMD_SYS_NET_MODULE },    
   { command_CMD_SYS_CMD_COUNT,     CMD_SYS_CMD_COUNT },     
   { command_CMD_SYS_CMD_TIMEMAX,   CMD_SYS_CMD_TIMEMAX },   
   { command_CMD_SYS_CMD_TIMEMAX_N, CMD_SYS_CMD_TIMEMAX_N }, 
@@ -661,7 +693,7 @@ command_t const commands[] PROGMEM = {
   { command_CMD_WS2812_SENDRAW, CMD_WS2812_SENDRAW },
 #endif
 
-#ifdef FEATURE_DEBUG_COMMANDS_ENABLE
+#ifdef FEATURE_SYSINFO_ENABLE
   { command_CMD_SYS_MCU_ID,   CMD_SYS_MCU_ID },   
   { command_CMD_SYS_MCU_SIGN, CMD_SYS_MCU_SIGN }, 
 #endif
@@ -698,6 +730,7 @@ command_t const commands[] PROGMEM = {
                                                            VARIOUS DEFINES SECTION 
 */
 
+/*
 #define IDX_METRICS_LAST                                        9
 #define IDX_METRICS_FIRST_CRONNED                               3
 
@@ -711,8 +744,8 @@ command_t const commands[] PROGMEM = {
 #define IDX_METRIC_SYS_VCCMAX                                   6
 #define IDX_METRIC_SYS_RAM_FREE                                 7
 #define IDX_METRIC_SYS_RAM_FREEMIN                              8
-#define IDX_METRIC_SYS_NET_REINITS                              9
-
+#define IDX_METRIC_NET_PHY_REINITS                              9
+*/
 // Zabbix v2.x header prefix ('ZBXD\x01')
 #define ZBX_HEADER_PREFIX                                       "zbxd\1"
 // sizeof() returns wrong result -> 6

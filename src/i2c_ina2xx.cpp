@@ -51,7 +51,7 @@ uint8_t getINA219Metric(const uint8_t _sdaPin, const uint8_t _sclPin, const uint
 */
  
   // I use this switches to avoid calculation with float numbers using
-  // But i think that need to rewrite code or append more variants
+  // But i think that need to rewrite code or add more variants
   switch (_maxVoltage) {
     case 16: //16V 
       switch (_maxCurrent) {

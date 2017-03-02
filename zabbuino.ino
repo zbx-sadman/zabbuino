@@ -12,7 +12,9 @@
 */
 // some array items used into timer's interrupt
 // too hard to calculate "enough to non-hung work" ram size if *sysMetrics & sysMetrics = new int32_t[IDX_METRICS_LAST+1] is used
-volatile int32_t sysMetrics[IDX_METRICS_LAST + 1];
+//volatile int32_t sysMetrics[IDX_METRICS_LAST + 1];
+volatile sysmetrics_t sysMetrics1;
+
 NetworkClass Network;
 
 // global netConfig struct make sketch slimest (~60b)
@@ -34,12 +36,23 @@ void setup() {
   Serial.begin(constSerialMonitorSpeed);
 #endif // SERIAL_USE
 
-  DTSL( SerialPrint_P(constZbxAgentVersion); SerialPrintln_P(PSTR(" waked up")); )
+  DTSL( SerialPrint_P(constZbxAgentVersion); SerialPrintln_P(PSTR(" wakes up")); )
+  // memset take less progspace?                                     
+  memset((void*) &sysMetrics1,0x00,sizeof(sysmetrics_t));
+//  sysMetrics1.sysCmdCount = sysMetrics1.sysCmdLast = sysMetrics1.sysCmdTimeMax = sysMetrics1.sysCmdTimeMaxN = sysMetrics1.netPHYReinits = 0;
 
-  sysMetrics[IDX_METRIC_SYS_VCCMIN] = sysMetrics[IDX_METRIC_SYS_VCCMAX] = getADCVoltage(ANALOG_CHAN_VBG);
-  sysMetrics[IDX_METRIC_SYS_RAM_FREE] = sysMetrics[IDX_METRIC_SYS_RAM_FREEMIN] = (int32_t) getRamFree();
-  sysMetrics[IDX_METRIC_SYS_CMD_LAST] = sysMetrics[IDX_METRIC_SYS_CMD_COUNT] = sysMetrics[IDX_METRIC_SYS_CMD_TIMEMAX] = sysMetrics[IDX_METRIC_SYS_CMD_TIMEMAX_N] = 0;
-  sysMetrics[IDX_METRIC_SYS_NET_REINITS] = 0;
+  sysMetrics1.sysVCCMin = sysMetrics1.sysVCCMax = getADCVoltage(ANALOG_CHAN_VBG);
+  sysMetrics1.sysRamFree = sysMetrics1.sysRamFreeMin = getRamFree();
+  /*
+  Sketch uses 20,482 bytes (63%) of program storage space. Maximum is 32,256 bytes.
+Global variables use 1,085 bytes (52%) of dynamic memory, leaving 963 bytes for local variables. Maximum is 2,048 bytes.
+
+  */
+  
+  //[IDX_METRIC_SYS_VCCMIN] = sysMetrics[IDX_METRIC_SYS_VCCMAX] = getADCVoltage(ANALOG_CHAN_VBG);
+  //sysMetrics[IDX_METRIC_SYS_RAM_FREE] = sysMetrics[IDX_METRIC_SYS_RAM_FREEMIN] = (int32_t) getRamFree();
+  //sysMetrics[IDX_METRIC_SYS_CMD_LAST] = sysMetrics[IDX_METRIC_SYS_CMD_COUNT] = sysMetrics[IDX_METRIC_SYS_CMD_TIMEMAX] = sysMetrics[IDX_METRIC_SYS_CMD_TIMEMAX_N] = 0;
+  //sysMetrics[IDX_METRIC_NET_PHY_REINITS] = 0;
 
   //  uint32_t startSerial = millis();
   /*
@@ -83,7 +96,7 @@ void loop() {
           errorCode = ERROR_NONE;
   char incomingData;
   uint16_t blinkType = constBlinkNope;
-  uint32_t nowTime, processStartTime, processEndTime, prevPHYCheckTime, prevNetProblemTime, prevSysMetricGatherTime, clientConnectTime, netDebugPrintTime, prevScreenReportTime;
+  uint32_t nowTime, processStartTime, processEndTime, prevPHYCheckTime, prevNetProblemTime, prevSysMetricGatherTime, clientConnectTime, netDebugPrintTime, prevSystemDisplayRenewTime;
   char cBuffer[constBufferSize + 1]; // +1 for trailing \0
   // Last idx is not the same that array size
   char* optarg[constArgC];
@@ -123,7 +136,7 @@ void loop() {
 //
 #ifdef FEATURE_EEPROM_ENABLE
   if (false == loadConfigFromEEPROM(&netConfig)) {
-    DTSM( SerialPrintln_P(PSTR("Load error")); )
+    DTSM( SerialPrintln_P(PSTR("Config load error")); )
     // bad CRC detected, use default values for this run
     setConfigDefaults(&netConfig);
     if (!saveConfigToEEPROM(&netConfig)) {
@@ -131,7 +144,7 @@ void loop() {
     }
   }
 #else // FEATURE_EEPROM_ENABLE
-  DTSM( SerialPrintln_P(PSTR("Use default network settings")); )
+  DTSM( SerialPrintln_P(PSTR("Use default settings")); )
   // Use hardcoded values if EEPROM feature disabled
   setConfigDefaults(&netConfig);
 #endif // FEATURE_EEPROM_ENABLE
@@ -202,7 +215,7 @@ void loop() {
 #endif
 
   // Correcting timestamps
-  prevPHYCheckTime = prevNetProblemTime = prevSysMetricGatherTime = prevScreenReportTime = netDebugPrintTime = clientConnectTime = millis();
+  prevPHYCheckTime = prevNetProblemTime = prevSysMetricGatherTime = prevSystemDisplayRenewTime = netDebugPrintTime = clientConnectTime = millis();
 
   reportVirtualScreenNum = 0;
 // 6. Enter to infinitive loop to serve incoming requests
@@ -218,14 +231,16 @@ void loop() {
     nowTime = millis();
     // Gather internal metrics periodically
     if (constSysMetricGatherPeriod <= (uint32_t) (nowTime - prevSysMetricGatherTime)) {
-      // When FEATURE_DEBUG_COMMANDS_ENABLE is disabled, compiler can be omit gatherSystemMetrics() sub (due find no operators inside) and trow exception
+      // When FEATURE_SYSINFO_ENABLE is disabled, compiler can be omit gatherSystemMetrics() sub (due find no operators inside) and trow exception
+
       
 #ifndef GATHER_METRIC_USING_TIMER_INTERRUPT
       gatherSystemMetrics();
 #endif
-      sysMetrics[IDX_METRIC_SYS_VCC] = getADCVoltage(ANALOG_CHAN_VBG);
+      //sysMetrics1.sysVCC = getADCVoltage(ANALOG_CHAN_VBG);
       // correctVCCMetrics() must be always inline compiled
-      correctVCCMetrics(sysMetrics[IDX_METRIC_SYS_VCC]);
+      //correctVCCMetrics(sysMetrics1.sysVCC);
+      correctVCCMetrics(getADCVoltage(ANALOG_CHAN_VBG));
       prevSysMetricGatherTime = millis();
     }
 
@@ -269,8 +284,8 @@ void loop() {
         netDebugPrintTime = nowTime;
       }
       if (Network.checkPHY()) {
-        sysMetrics[IDX_METRIC_SYS_NET_REINITS]++;
-        DTSL( SerialPrint_P(PSTR("Network module reinit #")); Serial.println(sysMetrics[IDX_METRIC_SYS_NET_REINITS]); )
+        sysMetrics1.netPHYReinits++;
+        DTSL( SerialPrint_P(PSTR("Network module reinit #")); Serial.println(sysMetrics1.netPHYReinits); )
       }
       prevPHYCheckTime = millis();
     }
@@ -295,16 +310,16 @@ void loop() {
       if (!Network.client) {
         Network.client = Network.server.available();
         if (!Network.client) {
-#ifdef FEATURE_REPORT_SCREEN_ENABLE
-           // Change content on physiscal report screen every constScreenReportInterval only if no connection exist, because reportToScreen modify cBuffer variable
+#ifdef FEATURE_SYSTEM_DISPLAY_ENABLE
+           // Change content on physiscal report screen every constRenewSystemDisplayInterval only if no connection exist, because reportToScreen modify cBuffer variable
            // and recieved data will be corrupted
-           if (constScreenReportInterval <= (uint32_t) (nowTime - prevScreenReportTime)) {
+           if (constSystemDisplayRenewInterval <= (uint32_t) (nowTime - prevSystemDisplayRenewTime)) {
               reportToScreen(cBuffer, reportVirtualScreenNum);
               reportVirtualScreenNum++;
               if (constVirtualScreensNum < reportVirtualScreenNum) { reportVirtualScreenNum = 0; }       
-              prevScreenReportTime = nowTime;
+              prevSystemDisplayRenewTime= nowTime;
            }
-#endif
+#endif // FEATURE_SYSTEM_DISPLAY_ENABLE
           continue;
         }
         // reinit analyzer because previous session can be dropped or losted
@@ -352,17 +367,20 @@ void loop() {
     processStartTime = millis();
     DTSM( uint32_t ramBefore = getRamFree(); )
     DTSL( Serial.print(cBuffer); SerialPrint_P(PSTR(" => ")); )
-    sysMetrics[IDX_METRIC_SYS_CMD_LAST] = executeCommand(cBuffer, optarg, &netConfig);
+    //sysMetrics[IDX_METRIC_SYS_CMD_LAST] = executeCommand(cBuffer, optarg, &netConfig);
+    sysMetrics1.sysCmdLast = executeCommand(cBuffer, optarg, &netConfig);
+#ifdef FEATURE_REMOTE_COMMANDS_ENABLE
     // When system.run[] command is recieved, need to run another command, which taken from option #0 by cmdIdx() sub
-    if (RESULT_IS_NEW_COMMAND == sysMetrics[IDX_METRIC_SYS_CMD_LAST]) {
+    if (RESULT_IS_NEW_COMMAND == sysMetrics1.sysCmdLast) {
       int16_t k = 0;
       // simulate command recieving to properly string parsing
       while (analyzeStream(cBuffer[k], cBuffer, optarg, false)) {
         k++;
       }
       DTSL( Serial.print(cBuffer); SerialPrint_P(PSTR(" => ")); )
-      sysMetrics[IDX_METRIC_SYS_CMD_LAST] = executeCommand(cBuffer, optarg, &netConfig);
+      sysMetrics1.sysCmdLast = executeCommand(cBuffer, optarg, &netConfig);
     }
+#endif
     processEndTime = millis();
     // use processEndTime as processDurationTime
     processEndTime = processEndTime - processStartTime ;
@@ -371,9 +389,13 @@ void loop() {
           SerialPrintln_P(PSTR(" memory bytes")); 
         )
     // Change internal runtime metrics if need
-    if ((uint32_t) sysMetrics[IDX_METRIC_SYS_CMD_TIMEMAX] < processEndTime) {
-      sysMetrics[IDX_METRIC_SYS_CMD_TIMEMAX] = processEndTime;
-      sysMetrics[IDX_METRIC_SYS_CMD_TIMEMAX_N] = sysMetrics[IDX_METRIC_SYS_CMD_LAST];
+//    if ((uint32_t) sysMetrics[IDX_METRIC_SYS_CMD_TIMEMAX] < processEndTime) {
+//      sysMetrics[IDX_METRIC_SYS_CMD_TIMEMAX] = processEndTime;
+//      sysMetrics[IDX_METRIC_SYS_CMD_TIMEMAX_N] = sysMetrics[IDX_METRIC_SYS_CMD_LAST];
+//    }
+    if (sysMetrics1.sysCmdTimeMax < processEndTime) {
+      sysMetrics1.sysCmdTimeMax = processEndTime;
+      sysMetrics1.sysCmdTimeMaxN = sysMetrics1.sysCmdLast;
     }
 
     // Wait some time to finishing answer send, close connection, and restart network activity control cycle
@@ -387,7 +409,7 @@ void loop() {
       Serial.read();
     }
 #endif
-    prevPHYCheckTime = prevNetProblemTime = millis();
+    sysMetrics1.sysCmdLastExecTime = prevPHYCheckTime = prevNetProblemTime = millis();
     blinkType = constBlinkNope;
     errorCode = ERROR_NONE;
   } // while(true)
@@ -412,7 +434,8 @@ static int16_t executeCommand(char* _dst, char* _optarg[], netconfig_t* _netConf
   
   result = RESULT_IS_FAIL;
   cmdIdx = -1;
-  sysMetrics[IDX_METRIC_SYS_CMD_COUNT]++;
+  //sysMetrics[IDX_METRIC_SYS_CMD_COUNT]++;
+  sysMetrics1.sysCmdCount++;
   i = arraySize(commands);
   // Search specified command index in the list of implemented functions
   for (; 0 != i;) {
@@ -490,6 +513,7 @@ static int16_t executeCommand(char* _dst, char* _optarg[], netconfig_t* _netConf
       result = RESULT_IN_BUFFER;
       break;
 
+#ifdef FEATURE_REMOTE_COMMANDS_ENABLE
     case CMD_SYSTEM_RUN:
       //
       //  system.run[newCommand]
@@ -508,8 +532,9 @@ static int16_t executeCommand(char* _dst, char* _optarg[], netconfig_t* _netConf
       // immediately return RESULT_IS_NEW_COMMAND to re-run executeCommand() with new command 
       return RESULT_IS_NEW_COMMAND;
       break;
+#endif
 
-    case CMD_SYS_UPTIME:
+    case CMD_SYSTEM_UPTIME:
       //
       //  sys.uptime
       //
@@ -517,11 +542,12 @@ static int16_t executeCommand(char* _dst, char* _optarg[], netconfig_t* _netConf
       result = RESULT_IN_ULONGVAR;
       break;
 
-    case CMD_SYS_NET_REINITS:
+    case CMD_NET_PHY_REINITS:
       //
       //  sys.net.reinits
       //
-      value = sysMetrics[IDX_METRIC_SYS_NET_REINITS];
+//      value = sysMetrics[IDX_METRIC_NET_PHY_REINITS];
+      value = sysMetrics1.netPHYReinits;
       result = RESULT_IN_ULONGVAR;
       break;
 
@@ -808,15 +834,36 @@ static int16_t executeCommand(char* _dst, char* _optarg[], netconfig_t* _netConf
       asm volatile ("jmp 0");
       break;
 
-#ifdef FEATURE_DEBUG_COMMANDS_ENABLE
-    case CMD_SYS_MCU_NAME:
+#ifdef FEATURE_SYSINFO_ENABLE
+    case CMD_SYSTEM_HW_CPU:
       //
-      //  sys.mcu.name
+      //  system.hw.cpu[metric]
       //
-      strcpy_P(_dst, PSTR(_AVR_CPU_NAME_));
+      if (0 == strcmp_P(_optarg[0], PSTR("id"))) {
+         // Read 10 bytes with step 1 (0x0E..0x17) of the signature row <= http://www.avrfreaks.net/forum/unique-id-atmega328pb
+         getBootSignatureBytes(_dst, 0x0E, 10, 1);
+      //if (0 == strcmp_P(_optarg[0], "freq")) {
+          // Return back CPU frequency
+          // strcpy_P(_dst, PSTR(????));
+      } else if (0 == strcmp_P(_optarg[0], PSTR("model"))) {
+         // Read 3 bytes with step 2 (0x00, 0x02, 0x04) of the signature row <= http://www.avrfreaks.net/forum/device-signatures
+         getBootSignatureBytes(_dst, 0x00, 3, 2);
+      } else {
+        // Return back CPU name
+        strcpy_P(_dst, PSTR(_AVR_CPU_NAME_));
+      }    
       result = RESULT_IN_BUFFER;
       break;
 
+    case CMD_SYSTEM_HW_CHASSIS:
+      //
+      //  system.hw.chassis
+      //
+      strcpy_P(_dst, PSTR(BOARD));
+      result = RESULT_IN_BUFFER;
+      break;
+
+/*
     case CMD_SYS_MCU_ID:
       //
       //  sys.mcu.id
@@ -834,12 +881,12 @@ static int16_t executeCommand(char* _dst, char* _optarg[], netconfig_t* _netConf
       getBootSignatureBytes(_dst, 0x00, 3, 2);
       result = RESULT_IN_BUFFER;
       break;
-
-    case CMD_SYS_NET_MODULE:
+*/
+    case CMD_NET_PHY_NAME:
       //
       //  sys.net.module
       //
-      strcpy_P(_dst, PSTR(NET_MODULE_NAME));
+      strcpy_P(_dst, PSTR(PHY_MODULE_NAME));
       result = RESULT_IN_BUFFER;
       break;
 
@@ -848,9 +895,11 @@ static int16_t executeCommand(char* _dst, char* _optarg[], netconfig_t* _netConf
       //  sys.cmd.count
       //
       if (argv[0]) {
-        sysMetrics[IDX_METRIC_SYS_CMD_COUNT] = 0;
+        //sysMetrics[IDX_METRIC_SYS_CMD_COUNT] = 0;
+        sysMetrics1.sysCmdCount = 0;
       }
-      value = sysMetrics[IDX_METRIC_SYS_CMD_COUNT];
+      //value = sysMetrics[IDX_METRIC_SYS_CMD_COUNT];
+      value = sysMetrics1.sysCmdCount;
       result = RESULT_IN_ULONGVAR;
       break;
 
@@ -859,10 +908,12 @@ static int16_t executeCommand(char* _dst, char* _optarg[], netconfig_t* _netConf
       //  sys.cmd.timemax[resetCounter]
       //
       if (*_optarg[0]) {
-        sysMetrics[IDX_METRIC_SYS_CMD_TIMEMAX] = 0;
-        sysMetrics[IDX_METRIC_SYS_CMD_TIMEMAX_N] = 0;
+        sysMetrics1.sysCmdTimeMax = sysMetrics1.sysCmdTimeMaxN = 0;
+        //sysMetrics[IDX_METRIC_SYS_CMD_TIMEMAX] = 0;
+        //sysMetrics[IDX_METRIC_SYS_CMD_TIMEMAX_N] = 0;
       }
-      value = sysMetrics[IDX_METRIC_SYS_CMD_TIMEMAX];
+      //value = sysMetrics[IDX_METRIC_SYS_CMD_TIMEMAX];
+      value = sysMetrics1.sysCmdTimeMax;
       result = RESULT_IN_ULONGVAR;
       break;
 
@@ -870,9 +921,13 @@ static int16_t executeCommand(char* _dst, char* _optarg[], netconfig_t* _netConf
       //
       //  sys.cmd.timemax.n
       //
-      value = sysMetrics[IDX_METRIC_SYS_CMD_TIMEMAX_N];
-      Network.client.println(value, HEX);
-      result = RESULT_IS_PRINTED;
+      //value = sysMetrics[IDX_METRIC_SYS_CMD_TIMEMAX_N];
+      //value = sysMetrics1.sysCmdTimeMaxN;
+      //Network.client.println(value, HEX);
+      //result = RESULT_IS_PRINTED;
+      ultoa(sysMetrics1.sysCmdTimeMaxN, _dst, 16);
+      result = RESULT_IN_BUFFER;
+      
       break;
 
     case CMD_SYS_RAM_FREE:
@@ -880,7 +935,8 @@ static int16_t executeCommand(char* _dst, char* _optarg[], netconfig_t* _netConf
       //  sys.ram.free
       //
       //  That metric must be collected periodically to avoid returns always same data
-      value = sysMetrics[IDX_METRIC_SYS_RAM_FREE];
+      //value = sysMetrics[IDX_METRIC_SYS_RAM_FREE];
+      value = sysMetrics1.sysRamFree;
       result = RESULT_IN_ULONGVAR;
       break;
 
@@ -890,7 +946,8 @@ static int16_t executeCommand(char* _dst, char* _optarg[], netconfig_t* _netConf
       //
       // Without ATOMIC_BLOCK block using sysMetrics[IDX_METRIC_SYS_RAM_FREEMIN] variable can be changed in interrupt on reading
       ATOMIC_BLOCK(ATOMIC_RESTORESTATE) {
-        value = sysMetrics[IDX_METRIC_SYS_RAM_FREEMIN];
+        //value = sysMetrics[IDX_METRIC_SYS_RAM_FREEMIN];
+        value = sysMetrics1.sysRamFreeMin;
       }
       result = RESULT_IN_ULONGVAR;
       break;
@@ -912,7 +969,8 @@ static int16_t executeCommand(char* _dst, char* _optarg[], netconfig_t* _netConf
       //
       // sys.vccMin
       //
-      value = sysMetrics[IDX_METRIC_SYS_VCCMIN];
+      //value = sysMetrics[IDX_METRIC_SYS_VCCMIN];
+      value = sysMetrics1.sysVCCMin;
       result = RESULT_IN_ULONGVAR;
       break;
 
@@ -920,7 +978,8 @@ static int16_t executeCommand(char* _dst, char* _optarg[], netconfig_t* _netConf
       //
         // sys.vccMax
         //
-      value = sysMetrics[IDX_METRIC_SYS_VCCMAX];
+      //value = sysMetrics[IDX_METRIC_SYS_VCCMAX];
+      value = sysMetrics1.sysVCCMax;
       result = RESULT_IN_ULONGVAR;
       break;
 
@@ -1426,10 +1485,30 @@ static int16_t executeCommand(char* _dst, char* _optarg[], netconfig_t* _netConf
 
 #endif // FEATURE_INA219_ENABLE
 
+#ifdef FEATURE_SYSTEM_RTC_ENABLE
+    case CMD_SET_LOCALTIME:
+      //
+      //  set.localtime[unixTimestamp]
+      //
+      // if (!isSafePin(argv[0]) || !isSafePin(argv[1])) { break; }
+      result = setLocalTime(constSystemRtcSDAPin, constSystemRtcSCLPin, constSystemRtcI2CAddress, argv[0]);
+      break;
+      
+    case CMD_SYSTEM_LOCALTIME:
+      //
+      //  system.localtime
+      //  UTC only at this time
+      //
+      // if (!isSafePin(argv[0]) || !isSafePin(argv[1])) { break; }
+      result = getLocalTime(constSystemRtcSDAPin, constSystemRtcSCLPin, constSystemRtcI2CAddress, &value);      
+      break;
+
+#endif // FEATURE_SYSTEM_RTC_ENABLE
 
     default:
       // Early increased command counter is decremented
-      sysMetrics[IDX_METRIC_SYS_CMD_COUNT]--;
+      //sysMetrics[IDX_METRIC_SYS_CMD_COUNT]--;
+      sysMetrics1.sysCmdCount--;
       // In default case command  is considered unknown.
       strcpy_P(_dst, PSTR((MSG_ZBX_NOTSUPPORTED)));
       result = RESULT_IN_BUFFER;

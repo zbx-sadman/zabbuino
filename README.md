@@ -9,12 +9,13 @@ Implemented:
 - Storing system setting in EEPROM;
 - AVR WatchDog feature support;
 - MCU and runtime metrics (current/min/max VCC, current/min RAM, uptime, MCU name) obtaining;
-- Support W5100 and ENC28J60 network modules;
+- Support W5100 and ENC28J60 network modules, drivers is implemented to source code;
 - Support one or more DS18X20 thermometer;
 - Support DHT11/21/22/33/44 or AM2301/2302 humidity and temperature sensors;
 - Support SHT2X humidity and temperature sensors serie;
 - Support BMP180/085, BMP280/BME280 pressure and temperature sensors;
 - Support BH1750 light sensor;
+- Support DS3231 RTC I2C module;
 - Support incremental encoder (on interrupt's pin);
 - Support any devices that can be used with hardware interrupt - tilt switches, dry contacts, water flow sensor, and so;
 - Support ACS7xx sensors;
@@ -30,10 +31,29 @@ Implemented:
 - Support APC Smart UPS (with RS232 interface);
 - Simulate varuious vendor's IR transmitters.
 
+####02 March 2016
+
+Changes: 
+ - _sys.uptime_ renamed to _system.uptime_ to get more compability with Zabbix;
+ - _sys.mcu.name_, sys.mcu.id_, sys.mcu.sign_ now called:  _system.hw.cpu_, _system.hw.cpu[id]_ ,  and _system.hw.cpu[model]_ ;
+ - _sys.net.reinits_ renamed to _net.phy.reinits_ , and _sys.phy.module_ renamed to _net.phy.name_ ;
+ - _FEATURE\_REPORT\_SCREEN\_ENABLE_ renamed to _FEATURE\_SYSTEM\_DISPLAY\_ENABLE_ ;
+ - _FEATURE\_DEBUG\_COMMANDS\_ENABLE_ renamed to _FEATURE\_SYSINFO\_ENABLE_ ;
+ - BH1750 subroutine refactored but not tested yet;
+
+New features:
+ - _FEATURE\_SYSTEM\_RTC\_ENABLE_ - enable system RTC (I2C DS3231 module supported only);
+ - _FEATURE\_REMOTE\_COMMANDS\_ENABLE_  works like Zabbix's EnableRemoteCommands directive and enable _system.run[]_ command;
+
+New commands:
+ - _system.hw.chassis_ - returns board/platform name;
+ - _set.localtime[unixTimestamp]_ - set time on system RTC if it used;
+ - _system.localtime_ - returns time as unixTimestamp from system RTC if it used;
+
 ####26 Feb 2016
 
 New feature:
- - With _FEATURE\_REPORT\_SCREEN\_ENABLE_ you can build your own virtual report screen and send it to I2C connected LCD screen. Refer to "ALARM & REPORT SECTION" in _tune.h_ to get more info about LCD connection settings. _reportToScreen()_ function source code can be found in _plugin.ino_
+ - With _FEATURE\_REPORT\_SCREEN\_ENABLE_ you can build your own virtual report screen and send it to I2C connected LCD screen. Refer to "SYSTEM HARDWARE SECTION" in _tune.h_ to get more info about LCD connection settings. _reportToScreen()_ function source code can be found in _plugin.ino_
  
 ####31 Jan 2016
 
