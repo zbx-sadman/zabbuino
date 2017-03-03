@@ -167,4 +167,28 @@ uint8_t IsDateTimeValid(const uint8_t _i2cAddress);
 uint8_t GetIsRunning(const uint8_t _i2cAddress);
 void SetIsRunning(const uint8_t _i2cAddress, uint8_t _isRunning);
 
+/*****************************************************************************************************************************
+*
+*   Set TimeZone offset (in seconds). Actually - just store it in DS3231 module's onboard EEPROM (AT24C32).
+*
+*   Returns: 
+*     - RESULT_IN_OK on success
+*     - RESULT_IS_FAIL on write error
+*     - DEVICE_ERROR_CONNECT on connection error
+*
+*****************************************************************************************************************************/
+int8_t setTZ(const uint8_t, const uint8_t, uint8_t, int16_t);
+
+/*****************************************************************************************************************************
+*
+*   Get TimeZone offset (in seconds). Actually - just read it from DS3231 module's onboard EEPROM (AT24C32).
+*
+*   Returns: 
+*     - RESULT_IN_OK on success
+*     - RESULT_IS_FAIL on read error
+*     - DEVICE_ERROR_CONNECT on connection error
+*
+*****************************************************************************************************************************/
+int8_t getTZ(const uint8_t, const uint8_t, uint8_t, int16_t*);
+
 #endif // #ifndef _ZABBUINO_I2C_DS3231_H_

@@ -31,6 +31,14 @@ Implemented:
 - Support APC Smart UPS (with RS232 interface);
 - Simulate varuious vendor's IR transmitters.
 
+####03 March 2016
+
+Changes: 
+ - _set.localtime[unixTimestamp, timeZoneOffset]_ have new options timeZoneOffset (in sec) to be able use TZ inside Zabbuino code. timeZoneOffset can be used with AT24C32 EEPROM;
+
+New features:
+ - _FEATURE\_SYSTEM\_RTC\_ONBOARD\_EEPROM\_ENABLE_ - allow to save timezone into RTC module's onboard AT24C32 EEPROM;
+
 ####02 March 2016
 
 Changes: 

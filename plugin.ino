@@ -62,6 +62,7 @@ void reportToScreen(char* _src, uint8_t _virtualScreenNum) {
          // timestamp must be in seconds, not ms
          timestamp = (millis()/1000);
          gmtime_r(&timestamp, &dateTime);
+         dateTime.tm_yday--;
          // need to add tm::tm_yday directly to _src to avoid 'Up: 001D ...' at the start
          strftime(&_src[dataLength], 30, "%jD %T", &dateTime);
          //timestampToDataTimeStr(timestamp, &_src[dataLength]);
@@ -97,6 +98,7 @@ void reportToScreen(char* _src, uint8_t _virtualScreenNum) {
          //dataLength += 3;
          timestamp = ((millis()-sysMetrics1.sysCmdLastExecTime)/1000);
          gmtime_r(&timestamp, &dateTime);
+         dateTime.tm_yday--;
          strftime(&_src[dataLength], 30, "%jD %T", &dateTime);
          //timestampToDataTimeStr(timestamp, &_src[dataLength]);
          dataLength = strlen(_src);
@@ -105,6 +107,18 @@ void reportToScreen(char* _src, uint8_t _virtualScreenNum) {
 
        case 0x03:
          if (RESULT_IS_OK == getDateTime(constSystemRtcSDAPin, constSystemRtcSCLPin, constSystemRtcI2CAddress, &dateTime)) {
+            uint32_t y2kts; 
+            int16_t tzOffset; 
+            int8_t rc;
+            rc = getTZ(constSystemRtcSDAPin, constSystemRtcSCLPin, constSystemRtcEEPROMI2CAddress, &tzOffset);
+            if (RESULT_IN_LONGVAR != rc) {
+              tzOffset = 0;
+            }
+            // 76 bytes for TZ correction
+            y2kts = mk_gmtime(&dateTime);;
+            y2kts += tzOffset;
+            gmtime_r(&y2kts, &dateTime);
+            
             //dateTime.tm_mon++;   // tm_mon  - months since January [0 to 11], but human wants [1 to 12]
             //dateTime.tm_wday--;  // tm_wday - days since Sunday [0 to 6], but human wants [1 to 7]
             //dateTime.tm_year += 1900; // tm_year - years since 1900
@@ -117,9 +131,9 @@ void reportToScreen(char* _src, uint8_t _virtualScreenNum) {
   Serial.print("Month: "); Serial.println(dateTime.tm_mon);
   Serial.print("Year: "); Serial.println(dateTime.tm_year);
   Serial.println();
-  */
-          strcpy_P(&_src[dataLength], PSTR("\t\tUTC\n"));
-          dataLength += 6;
+  */     
+          strcpy_P(&_src[dataLength], PSTR("\t\tTIME\n"));
+          dataLength += 7;
           strftime(&_src[dataLength], 30, "%d/%m/%Y %T", &dateTime);
           dataLength = strlen(_src);
          }

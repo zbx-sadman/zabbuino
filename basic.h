@@ -71,6 +71,12 @@
 //#define FEATURE_SYSTEM_RTC_ENABLE
 
 /*/ 
+/=/      Use RTC onboard AT24C32 EEPROM to save timezone
+/=/      Refer to SYSTEM HARDWARE SECTION in src\tune.h
+/*/
+//#define FEATURE_SYSTEM_RTC_ONBOARD_EEPROM_ENABLE
+
+/*/ 
 /=/      Enable command: 
 /=/        - system.run[]
 /*/

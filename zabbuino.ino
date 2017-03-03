@@ -316,7 +316,7 @@ void loop() {
            if (constSystemDisplayRenewInterval <= (uint32_t) (nowTime - prevSystemDisplayRenewTime)) {
               reportToScreen(cBuffer, reportVirtualScreenNum);
               reportVirtualScreenNum++;
-              if (constVirtualScreensNum < reportVirtualScreenNum) { reportVirtualScreenNum = 0; }       
+              if (constVirtualScreensNum < reportVirtualScreenNum) { reportVirtualScreenNum = 1; }       
               prevSystemDisplayRenewTime= nowTime;
            }
 #endif // FEATURE_SYSTEM_DISPLAY_ENABLE
@@ -422,12 +422,13 @@ void loop() {
 **************************************************************************************************************************** */
 static int16_t executeCommand(char* _dst, char* _optarg[], netconfig_t* _netConfig) {
   int8_t result;
-  uint8_t i, i2CAddress, i2COption, i2CValue[4], accessGranted = false;
-  int16_t i2CRegister, cmdIdx;
+  uint8_t i, i2CAddress = 0, i2COption = 0, i2CValue[4], accessGranted = false;
+  int16_t i2CRegister = 0, cmdIdx;
   // duration option in the tone[] command is ulong
-  uint32_t argv[constArgC];
+  //uint32_t argv[constArgC];
+  int32_t argv[constArgC];
   // Zabbix use 64-bit numbers, but we can use only -uint32_t...+uint32_t range. Error can be occurs on ltoa() call with value > long_int_max
-  int32_t value;
+  int32_t value = 0;
   NetworkAddress tmpAddress;
 
   //DTSM( Serial.print("[0] "); Serial.println(millis()); )
@@ -461,7 +462,8 @@ static int16_t executeCommand(char* _dst, char* _optarg[], netconfig_t* _netConf
       i--; 
       //argv[i] = ('\0' == *_optarg[i]) ? 0 : strtoul((char*) _optarg[i], NULL, 0);
       // strtoul return 0 if _optarg[i] eq '\0'
-      argv[i] = strtoul((char*) _optarg[i], NULL, 0);
+      //argv[i] = strtoul((char*) _optarg[i], NULL, 0);
+      argv[i] = strtol((char*) _optarg[i], NULL, 0);
       DTSH(
             SerialPrint_P(PSTR("argv[")); Serial.print(i); SerialPrint_P(PSTR("] => \""));
             if ('\0' == *_optarg[i]) {
@@ -477,7 +479,7 @@ static int16_t executeCommand(char* _dst, char* _optarg[], netconfig_t* _netConf
     //DTSM( Serial.print("[2] "); Serial.println(millis()); )
 
     // Check rights for password protected action
-    accessGranted = (!_netConfig->useProtection || argv[0] == _netConfig->password);
+    accessGranted = (!_netConfig->useProtection || (uint32_t) argv[0] == _netConfig->password);
 
     i2CAddress = (uint8_t) argv[2];
     i2CRegister = ('\0' != *_optarg[3]) ? (int16_t) argv[3] : I2C_NO_REG_SPECIFIED;
@@ -620,7 +622,7 @@ static int16_t executeCommand(char* _dst, char* _optarg[], netconfig_t* _netConf
       // if readed value not equal testValue - return FAIL
       pinMode(argv[2], INPUT_PULLUP);
       delay(10);
-      if ((uint32_t) digitalRead(argv[2]) != argv[3]) {
+      if ((uint32_t) digitalRead(argv[2]) != (uint32_t) argv[3]) {
         result = RESULT_IS_FAIL;
       }
       break;
@@ -1488,10 +1490,20 @@ static int16_t executeCommand(char* _dst, char* _optarg[], netconfig_t* _netConf
 #ifdef FEATURE_SYSTEM_RTC_ENABLE
     case CMD_SET_LOCALTIME:
       //
-      //  set.localtime[unixTimestamp]
+      //  set.localtime[unixTimestamp, tzOffsetSec]
       //
       // if (!isSafePin(argv[0]) || !isSafePin(argv[1])) { break; }
-      result = setLocalTime(constSystemRtcSDAPin, constSystemRtcSCLPin, constSystemRtcI2CAddress, argv[0]);
+#ifdef FEATURE_SYSTEM_RTC_ONBOARD_EEPROM_ENABLE
+      // tzOffsetSec is defined?
+      if ('\0' != *_optarg[1]) {
+         result = setTZ(constSystemRtcSDAPin, constSystemRtcSCLPin, constSystemRtcEEPROMI2CAddress, argv[1]);
+      }
+#endif // FEATURE_SYSTEM_RTC_ONBOARD_EEPROM_ENABLE
+
+      // unixTimestamp is given?
+         // tzOffsetSec is present and stored sucesfully or just not present
+         result = setLocalTime(constSystemRtcSDAPin, constSystemRtcSCLPin, constSystemRtcI2CAddress, argv[0]);
+      }
       break;
       
     case CMD_SYSTEM_LOCALTIME:

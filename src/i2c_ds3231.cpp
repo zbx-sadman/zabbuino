@@ -92,8 +92,8 @@ int8_t setDateTime(const uint8_t _sdaPin, const uint8_t _sclPin, uint8_t _i2cAdd
   _dateTime->tm_mon++; // tm_mon - months since January [0 to 11], but DS3231 wants [1 to 12]
   _dateTime->tm_wday++; // tm_wday - days since Sunday [0 to 6], but DS3231 wants [1 to 7]
   _dateTime->tm_year += 1900; // tm_year - years since 1900
-/*
 
+  /*
   Serial.println("Broken down for RTC: ");
 
   Serial.print("Sec: "); Serial.println(_dateTime->tm_sec);
@@ -104,7 +104,7 @@ int8_t setDateTime(const uint8_t _sdaPin, const uint8_t _sclPin, uint8_t _i2cAdd
   Serial.print("Month: "); Serial.println(_dateTime->tm_mon);
   Serial.print("Year: "); Serial.println(_dateTime->tm_year);
   Serial.println();
-*/
+  */
 
 
   year = _dateTime->tm_year - 2000;
@@ -209,7 +209,9 @@ int8_t getLocalTime(const uint8_t _sdaPin, const uint8_t _sclPin, uint8_t _i2cAd
 
   if (RESULT_IS_OK == rc) { 
      // Make Y2K timestamp from _tm_ structure and convert it to UNIX timestamp
-     *_unixTimestamp = mktime(&dateTime);
+     // mk_gmtime() - This function 'compiles' the elements of a broken-down time structure, returning a binary time stamp. 
+     // The elements of timeptr are interpreted as representing UTC.
+     *_unixTimestamp = mk_gmtime(&dateTime);
      *_unixTimestamp += UNIX_OFFSET; 
      rc = RESULT_IN_LONGVAR;
   }
@@ -232,4 +234,61 @@ int8_t setLocalTime(const uint8_t _sdaPin, const uint8_t _sclPin, uint8_t _i2cAd
   time_t y2kts = _unixTimestamp - UNIX_OFFSET;
   gmtime_r(&y2kts, &dateTime);
   return setDateTime(_sdaPin, _sclPin, _i2cAddress, &dateTime);
+}
+
+/*****************************************************************************************************************************
+*
+*   Set TimeZone offset (in seconds). Actually - just store it in DS3231 module's onboard EEPROM (AT24C32).
+*
+*   Returns: 
+*     - RESULT_IN_OK on success
+*     - RESULT_IS_FAIL on write error
+*     - DEVICE_ERROR_CONNECT on connection error
+*
+*****************************************************************************************************************************/
+int8_t setTZ(const uint8_t _sdaPin, const uint8_t _sclPin, uint8_t _i2cAddress, int16_t _tzOffsetSec) {
+  uint8_t rc = RESULT_IS_FAIL, 
+          value[3] = {0, 0, 0};  // first two byte - EEPROM address 
+
+  // write first byte to addr: 0000
+  value[2] = _tzOffsetSec >> 8;
+  if (0x00 != writeBytesToI2C(_i2cAddress, I2C_NO_REG_SPECIFIED, value, sizeof(value))) { goto finish; } 
+
+  // write second byte to addr: 0001
+  value[1]++;
+  value[2] = _tzOffsetSec & 0x00FF;
+  if (0x00 != writeBytesToI2C(_i2cAddress, I2C_NO_REG_SPECIFIED, value, sizeof(value))) { goto finish; } 
+
+  rc = RESULT_IS_OK; 
+
+  finish:
+  return rc;
+}
+
+/*****************************************************************************************************************************
+*
+*   Get TimeZone offset (in seconds). Actually - just read it from DS3231 module's onboard EEPROM (AT24C32).
+*
+*   Returns: 
+*     - RESULT_IN_OK on success
+*     - RESULT_IS_FAIL on read error
+*     - DEVICE_ERROR_CONNECT on connection error
+*
+*****************************************************************************************************************************/
+int8_t getTZ(const uint8_t _sdaPin, const uint8_t _sclPin, uint8_t _i2cAddress, int16_t* _tzOffsetSec) {
+  uint8_t rc = RESULT_IS_FAIL, 
+          value[2] = {0, 0}; // first two byte - EEPROM address 
+
+  // write to controller address from which will be readed data
+  if (0x00 != writeBytesToI2C(_i2cAddress, I2C_NO_REG_SPECIFIED, value, sizeof(value))) { goto finish; } 
+
+  // read two byte (uint16_t)
+  if (0x00 != readBytesFromi2C(_i2cAddress, I2C_NO_REG_SPECIFIED, value, 2) ) { goto finish; } 
+
+  *_tzOffsetSec = (value[0] << 8) | value[1];
+
+  rc = RESULT_IN_LONGVAR;
+
+  finish:
+  return rc;
 }
