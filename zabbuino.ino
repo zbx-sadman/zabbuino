@@ -1493,14 +1493,18 @@ static int16_t executeCommand(char* _dst, char* _optarg[], netconfig_t* _netConf
       //  set.localtime[unixTimestamp, tzOffsetSec]
       //
       // if (!isSafePin(argv[0]) || !isSafePin(argv[1])) { break; }
+      // i used as succes bool variable
+      i = true;
 #ifdef FEATURE_SYSTEM_RTC_ONBOARD_EEPROM_ENABLE
       // tzOffsetSec is defined?
       if ('\0' != *_optarg[1]) {
          result = setTZ(constSystemRtcSDAPin, constSystemRtcSCLPin, constSystemRtcEEPROMI2CAddress, argv[1]);
+         if (RESULT_IS_OK != result) { i = false; }
       }
 #endif // FEATURE_SYSTEM_RTC_ONBOARD_EEPROM_ENABLE
 
       // unixTimestamp is given?
+      if ('\0' != *_optarg[0] && i) {
          // tzOffsetSec is present and stored sucesfully or just not present
          result = setLocalTime(constSystemRtcSDAPin, constSystemRtcSCLPin, constSystemRtcI2CAddress, argv[0]);
       }
