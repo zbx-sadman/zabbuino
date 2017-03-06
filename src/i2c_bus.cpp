@@ -119,7 +119,7 @@ uint8_t readBytesFromi2C(const uint8_t _i2cAddress, const int16_t _registerAddre
          Wire.endTransmission(true);
          return false;
       }
-      *_dst = Wire.read();
+      *_dst = (uint8_t) Wire.read();
       _dst++;
       _len--;
     }

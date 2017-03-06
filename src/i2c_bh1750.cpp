@@ -13,50 +13,63 @@
 *****************************************************************************************************************************/
 int8_t getBH1750Metric(const uint8_t _sdaPin, const uint8_t _sclPin, uint8_t _i2cAddress, uint8_t _mode, const uint8_t _metric, char *_dst)
 {
-  uint8_t readingNum;
-  int16_t result, convertTime;
+  int8_t rc = RESULT_IS_FAIL;
+  uint8_t readingNum, 
+          value[2];   // do not use _dst array instead value array, due strange behavior detected - sometime _dst[n] is not uint8_t
+                      // println(_dst[n], BIN) can show 1111111111101010 for example. Need to make some cast experiments
+  int16_t convertTime;
+  // result variable must be 32bit because readed from sensor 16bit value will be scaled to avoid float calculation
+  uint32_t result;
 
-  if (!isI2CDeviceReady(_i2cAddress)) {return DEVICE_ERROR_CONNECT; }
+  //  int32_t ;
+  if (!isI2CDeviceReady(_i2cAddress)) { rc = DEVICE_ERROR_CONNECT; goto finish; }
 
 
   switch (_mode) {
     case BH1750_ONETIME_HIGHRES: 
     case BH1750_ONETIME_HIGHRES_2:
-      readingNum = 3;
+      readingNum = 2;
       convertTime = 180; // 180ms - max time to complete High-resolution measurement
       break;
     case BH1750_ONETIME_LOWRES:
-       readingNum = 3;
+       readingNum = 2;
        convertTime = 24; // 24ms - max time to complete Low-resolution measurement
        break;
     case BH1750_CONTINUOUS_HIGHRES:
     case BH1750_CONTINUOUS_HIGHRES_2:
       readingNum = 1;
-      convertTime = 180*3; // 3 round of 180ms convertation (180ms - max time to complete High-resolution measurement)
+      convertTime = 180; // 2 round of 180ms convertation (180ms - max time to complete High-resolution measurement)
       break;
     case BH1750_CONTINUOUS_LOWRES:
     default:  
       _mode = BH1750_CONTINUOUS_LOWRES;
       readingNum = 1;
-      convertTime = 24*3; // 3 round of 24ms convertation (24ms - max time to complete Low-resolution measurement)
+      convertTime = 24; // 2 round of 24ms convertation (24ms - max time to complete Low-resolution measurement)
   }
 
   // Make some readings - 1 or 3 and get latest result
   while (readingNum) {
     readingNum--;
     // Wake up, sensor!
-    writeByteToI2C(_i2cAddress, I2C_NO_REG_SPECIFIED, BH1750_CMD_POWERON);
-    delay(10);
+    // It going sleep after One-Time measurement 
+    if (0x00 != writeByteToI2C(_i2cAddress, I2C_NO_REG_SPECIFIED, BH1750_CMD_POWERON)) { goto finish; }
+    //delay(10);
     // Start convertation
-    writeByteToI2C(_i2cAddress, I2C_NO_REG_SPECIFIED, _mode);
+    if (0x00 != writeByteToI2C(_i2cAddress, I2C_NO_REG_SPECIFIED, _mode)) { goto finish; }
     // Wait to complete covertation round
     delay(convertTime);
     // Read data
-    readBytesFromi2C(_i2cAddress, I2C_NO_REG_SPECIFIED, (uint8_t*) _dst, 2);
+    if (0x00 != readBytesFromi2C(_i2cAddress, I2C_NO_REG_SPECIFIED, (uint8_t*) _dst, 2)) { goto finish; }
+//    if (0x00 != readBytesFromi2C(_i2cAddress, I2C_NO_REG_SPECIFIED, value, 2)) { goto finish; }
   }
-
-  result = WireToU16(_dst);
-
+/*
+   Serial.print("_dst[0]: ");
+   Serial.println((uint8_t) _dst[0], BIN);
+   Serial.print("_dst[1]");
+   Serial.println((uint8_t) _dst[1], BIN);
+*/
+   result = WireToU16(_dst);
+   //result = WireToU16(value);
 
   if (SENS_READ_RAW == _metric) {
     ltoa(result, _dst, 10);
@@ -70,6 +83,8 @@ int8_t getBH1750Metric(const uint8_t _sdaPin, const uint8_t _sclPin, uint8_t _i2
     ltoaf(result, _dst, 2);
   }
 
-  return RESULT_IN_BUFFER;
+  rc = RESULT_IN_BUFFER;
+  finish:
+  return rc;
 }
 

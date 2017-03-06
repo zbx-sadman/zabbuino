@@ -34,6 +34,7 @@
 #include "adc.h"
 #include "eeprom.h"
 #include "io_regs.h"
+#include "rtc.h"
 #include "system.h"
 #include "service.h"
 

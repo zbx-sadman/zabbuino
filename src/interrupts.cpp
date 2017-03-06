@@ -126,8 +126,6 @@ int8_t manageExtInt(uint32_t *_dst, uint8_t _pin, uint8_t _mode) {
       // ATOMIC_BLOCK(ATOMIC_RESTORESTATE) { extInterrupt[interruptNumber].value = 0; }
    }
 
-   Serial.print("p1: ");
-   Serial.println((uint32_t) extInterrupt[interruptNumber].value);
    ATOMIC_BLOCK(ATOMIC_RESTORESTATE) { *_dst = (uint32_t) extInterrupt[interruptNumber].value; }
 
    rc = RESULT_IN_ULONGVAR;

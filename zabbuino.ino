@@ -2,7 +2,7 @@
                                                                   PROGRAMM FEATURES SECTION
 
     Please refer to the "basic.h" file for enabling or disabling Zabbuino's features and refer to the "src/tune.h" to deep tuning.
-    if connected sensors seems not work - first check setting in port_protect[], port_mode[], port_pullup[] arrays in I/O PORTS 
+    if connected sensors seems not work - first check setting in port_protect[], port_mode[], port_pullup[] arrays in I/O PORTS
     SETTING SECTION of "src/tune.h" file
 */
 #include "src/dispatcher.h"
@@ -37,18 +37,18 @@ void setup() {
 #endif // SERIAL_USE
 
   DTSL( SerialPrint_P(constZbxAgentVersion); SerialPrintln_P(PSTR(" wakes up")); )
-  // memset take less progspace?                                     
-  memset((void*) &sysMetrics1,0x00,sizeof(sysmetrics_t));
-//  sysMetrics1.sysCmdCount = sysMetrics1.sysCmdLast = sysMetrics1.sysCmdTimeMax = sysMetrics1.sysCmdTimeMaxN = sysMetrics1.netPHYReinits = 0;
+  // memset take less progspace?
+  memset((void*) &sysMetrics1, 0x00, sizeof(sysmetrics_t));
+  //  sysMetrics1.sysCmdCount = sysMetrics1.sysCmdLast = sysMetrics1.sysCmdTimeMax = sysMetrics1.sysCmdTimeMaxN = sysMetrics1.netPHYReinits = 0;
 
   sysMetrics1.sysVCCMin = sysMetrics1.sysVCCMax = getADCVoltage(ANALOG_CHAN_VBG);
   sysMetrics1.sysRamFree = sysMetrics1.sysRamFreeMin = getRamFree();
   /*
-  Sketch uses 20,482 bytes (63%) of program storage space. Maximum is 32,256 bytes.
-Global variables use 1,085 bytes (52%) of dynamic memory, leaving 963 bytes for local variables. Maximum is 2,048 bytes.
+    Sketch uses 20,482 bytes (63%) of program storage space. Maximum is 32,256 bytes.
+    Global variables use 1,085 bytes (52%) of dynamic memory, leaving 963 bytes for local variables. Maximum is 2,048 bytes.
 
   */
-  
+
   //[IDX_METRIC_SYS_VCCMIN] = sysMetrics[IDX_METRIC_SYS_VCCMAX] = getADCVoltage(ANALOG_CHAN_VBG);
   //sysMetrics[IDX_METRIC_SYS_RAM_FREE] = sysMetrics[IDX_METRIC_SYS_RAM_FREEMIN] = (int32_t) getRamFree();
   //sysMetrics[IDX_METRIC_SYS_CMD_LAST] = sysMetrics[IDX_METRIC_SYS_CMD_COUNT] = sysMetrics[IDX_METRIC_SYS_CMD_TIMEMAX] = sysMetrics[IDX_METRIC_SYS_CMD_TIMEMAX_N] = 0;
@@ -101,11 +101,21 @@ void loop() {
   // Last idx is not the same that array size
   char* optarg[constArgC];
 
+  // 0. Init some libs to make system screen works if it enabled
+#ifdef LIBWIRE_USE
+  Wire.begin();
+#endif
+#ifdef FEATURE_SYSTEM_RTC_ENABLE
+  initRTC(constSystemRtcSDAPin, constSystemRtcSCLPin, constSystemRtcI2CAddress, constSystemRtcEEPROMI2CAddress);
+#endif
+#ifdef FEATURE_SYSTEM_DISPLAY_ENABLE
+  initStageReportScreen(cBuffer);
+#endif
 
-// System load procedure
+  // System load procedure
 
-// 1. Factory reset block  
-//  
+  // 1. Factory reset block
+  //
 #ifdef FEATURE_EEPROM_ENABLE
   // Set mode of constFactoryResetButtonPin and turn on internal pull resistor
   digitalWrite(constStateLedPin, LOW);
@@ -132,8 +142,8 @@ void loop() {
   } // if (LOW == digitalRead(constFactoryResetButtonPin))
 #endif // FEATURE_EEPROM_ENABLE
 
-// 2. Load configuration from EEPROM
-//
+  // 2. Load configuration from EEPROM
+  //
 #ifdef FEATURE_EEPROM_ENABLE
   if (false == loadConfigFromEEPROM(&netConfig)) {
     DTSM( SerialPrintln_P(PSTR("Config load error")); )
@@ -149,8 +159,8 @@ void loop() {
   setConfigDefaults(&netConfig);
 #endif // FEATURE_EEPROM_ENABLE
 
-// 3. Forcing the system parameters in accordance with the user's compilation options & hardware set
-//
+  // 3. Forcing the system parameters in accordance with the user's compilation options & hardware set
+  //
 #ifdef FEATURE_NET_DHCP_FORCE
   netConfig.useDHCP = true;
 #endif
@@ -161,21 +171,21 @@ void loop() {
   netConfig.useDHCP = false;
 #endif
 
-// 4. Network initialization and starting
-//
+  // 4. Network initialization and starting
+  //
   Network.init(&netConfig);
   Network.restart();
   DTSL( SerialPrintln_P(PSTR("Serving on:"));
-        Network.showNetworkState(); 
-        SerialPrint_P(PSTR("Password: ")); Serial.println(netConfig.password, DEC); 
+        Network.showNetworkState();
+        SerialPrint_P(PSTR("Password: ")); Serial.println(netConfig.password, DEC);
       )
 #if !defined(NETWORK_RS485)
   // Start listen sockets
   Network.server.begin();
 #endif
 
-// 5. Other system parts initialization
-//
+  // 5. Other system parts initialization
+  //
   // I/O ports initialization. Refer to "I/O PORTS SETTING SECTION" in src\tune.h
   for (i = PORTS_NUM; 0 != i;) {
     // experimental: variable decrement that place outside for() save a little progspace.
@@ -193,10 +203,6 @@ void loop() {
     extInterrupt[i].owner = OWNER_IS_NOBODY;
     extInterrupt[i].value = 0;
   }
-#endif
-
-#ifdef LIBWIRE_USE
-  Wire.begin();
 #endif
 
 #ifdef FEATURE_WATCHDOG_ENABLE
@@ -218,8 +224,8 @@ void loop() {
   prevPHYCheckTime = prevNetProblemTime = prevSysMetricGatherTime = prevSystemDisplayRenewTime = netDebugPrintTime = clientConnectTime = millis();
 
   reportVirtualScreenNum = 0;
-// 6. Enter to infinitive loop to serve incoming requests
-//
+  // 6. Enter to infinitive loop to serve incoming requests
+  //
   // if no exist while() here - netProblemTime must be global or static - its will be 0 every loop() and time-related cases will be processeed abnormally
   // ...and while save some cpu ticks because do not call everytime from "hidden main()" subroutine, and do not init var, and so.
   while (true) {
@@ -227,13 +233,13 @@ void loop() {
     // reset watchdog every loop
     wdt_reset();
 #endif
-    
+
     nowTime = millis();
     // Gather internal metrics periodically
     if (constSysMetricGatherPeriod <= (uint32_t) (nowTime - prevSysMetricGatherTime)) {
       // When FEATURE_SYSINFO_ENABLE is disabled, compiler can be omit gatherSystemMetrics() sub (due find no operators inside) and trow exception
 
-      
+
 #ifndef GATHER_METRIC_USING_TIMER_INTERRUPT
       gatherSystemMetrics();
 #endif
@@ -311,14 +317,16 @@ void loop() {
         Network.client = Network.server.available();
         if (!Network.client) {
 #ifdef FEATURE_SYSTEM_DISPLAY_ENABLE
-           // Change content on physiscal report screen every constRenewSystemDisplayInterval only if no connection exist, because reportToScreen modify cBuffer variable
-           // and recieved data will be corrupted
-           if (constSystemDisplayRenewInterval <= (uint32_t) (nowTime - prevSystemDisplayRenewTime)) {
-              reportToScreen(cBuffer, reportVirtualScreenNum);
-              reportVirtualScreenNum++;
-              if (constVirtualScreensNum < reportVirtualScreenNum) { reportVirtualScreenNum = 1; }       
-              prevSystemDisplayRenewTime= nowTime;
-           }
+          // Change content on physiscal report screen every constRenewSystemDisplayInterval only if no connection exist, because reportToScreen modify cBuffer variable
+          // and recieved data will be corrupted
+          if (constSystemDisplayRenewInterval <= (uint32_t) (nowTime - prevSystemDisplayRenewTime)) {
+            showReportScreen(cBuffer, reportVirtualScreenNum);
+            reportVirtualScreenNum++;
+            if (constVirtualScreensNum <= reportVirtualScreenNum) {
+              reportVirtualScreenNum = 0;
+            }
+            prevSystemDisplayRenewTime = nowTime;
+          }
 #endif // FEATURE_SYSTEM_DISPLAY_ENABLE
           continue;
         }
@@ -386,13 +394,13 @@ void loop() {
     processEndTime = processEndTime - processStartTime ;
     DTSM( SerialPrint_P(PSTR("Spended: ")); Serial.print(processEndTime);
           SerialPrint_P(PSTR(" ms, ")); Serial.print((ramBefore - getRamFree()));
-          SerialPrintln_P(PSTR(" memory bytes")); 
+          SerialPrintln_P(PSTR(" memory bytes"));
         )
     // Change internal runtime metrics if need
-//    if ((uint32_t) sysMetrics[IDX_METRIC_SYS_CMD_TIMEMAX] < processEndTime) {
-//      sysMetrics[IDX_METRIC_SYS_CMD_TIMEMAX] = processEndTime;
-//      sysMetrics[IDX_METRIC_SYS_CMD_TIMEMAX_N] = sysMetrics[IDX_METRIC_SYS_CMD_LAST];
-//    }
+    //    if ((uint32_t) sysMetrics[IDX_METRIC_SYS_CMD_TIMEMAX] < processEndTime) {
+    //      sysMetrics[IDX_METRIC_SYS_CMD_TIMEMAX] = processEndTime;
+    //      sysMetrics[IDX_METRIC_SYS_CMD_TIMEMAX_N] = sysMetrics[IDX_METRIC_SYS_CMD_LAST];
+    //    }
     if (sysMetrics1.sysCmdTimeMax < processEndTime) {
       sysMetrics1.sysCmdTimeMax = processEndTime;
       sysMetrics1.sysCmdTimeMaxN = sysMetrics1.sysCmdLast;
@@ -432,7 +440,7 @@ static int16_t executeCommand(char* _dst, char* _optarg[], netconfig_t* _netConf
   NetworkAddress tmpAddress;
 
   //DTSM( Serial.print("[0] "); Serial.println(millis()); )
-  
+
   result = RESULT_IS_FAIL;
   cmdIdx = -1;
   //sysMetrics[IDX_METRIC_SYS_CMD_COUNT]++;
@@ -459,20 +467,20 @@ static int16_t executeCommand(char* _dst, char* _optarg[], netconfig_t* _netConf
 
     // batch convert args to number values
     for (i = constArgC; 0 != i;) {
-      i--; 
+      i--;
       //argv[i] = ('\0' == *_optarg[i]) ? 0 : strtoul((char*) _optarg[i], NULL, 0);
       // strtoul return 0 if _optarg[i] eq '\0'
       //argv[i] = strtoul((char*) _optarg[i], NULL, 0);
       argv[i] = strtol((char*) _optarg[i], NULL, 0);
       DTSH(
-            SerialPrint_P(PSTR("argv[")); Serial.print(i); SerialPrint_P(PSTR("] => \""));
-            if ('\0' == *_optarg[i]) {
-               SerialPrint_P(PSTR("<null>"));
-            } else {
-               Serial.print((char*) _optarg[i]);
-            }
-            SerialPrint_P(PSTR("\" => ")); Serial.println(argv[i]);
-            //SerialPrint_P(PSTR(", offset =")); Serial.println(_optarg[i], HEX);
+        SerialPrint_P(PSTR("argv[")); Serial.print(i); SerialPrint_P(PSTR("] => \""));
+      if ('\0' == *_optarg[i]) {
+      SerialPrint_P(PSTR("<null>"));
+      } else {
+        Serial.print((char*) _optarg[i]);
+      }
+      SerialPrint_P(PSTR("\" => ")); Serial.println(argv[i]);
+      //SerialPrint_P(PSTR(", offset =")); Serial.println(_optarg[i], HEX);
       )
     }
 
@@ -531,7 +539,7 @@ static int16_t executeCommand(char* _dst, char* _optarg[], netconfig_t* _netConf
       // Note: ~8bytes can be saved with copying bytes in while() cycle. But source code will not beauty
       memmove(_dst, _optarg[0], i);
       _dst[i] = '\n';
-      // immediately return RESULT_IS_NEW_COMMAND to re-run executeCommand() with new command 
+      // immediately return RESULT_IS_NEW_COMMAND to re-run executeCommand() with new command
       return RESULT_IS_NEW_COMMAND;
       break;
 #endif
@@ -546,9 +554,9 @@ static int16_t executeCommand(char* _dst, char* _optarg[], netconfig_t* _netConf
 
     case CMD_NET_PHY_REINITS:
       //
-      //  sys.net.reinits
+      //  net.phy.reinits
       //
-//      value = sysMetrics[IDX_METRIC_NET_PHY_REINITS];
+      //      value = sysMetrics[IDX_METRIC_NET_PHY_REINITS];
       value = sysMetrics1.netPHYReinits;
       result = RESULT_IN_ULONGVAR;
       break;
@@ -759,13 +767,15 @@ static int16_t executeCommand(char* _dst, char* _optarg[], netconfig_t* _netConf
       // if convertation is failed (return false) succes variable must be falsed too via logic & operator
       success &= hstoba((uint8_t*) mac, (char*) _optarg[2], arraySize(_netConfig->macAddress));
       memcpy(_netConfig->macAddress, &mac, arraySize(_netConfig->macAddress));
-      // If string to which point _optarg[3] can be converted to valid NetworkAddress - just do it. 
+      // If string to which point _optarg[3] can be converted to valid NetworkAddress - just do it.
       // Otherwize (string can not be converted) _netConfig->ipAddress will stay untouched;
       success = (success) ? (strToNetworkAddress((char*) _optarg[3], &_netConfig->ipAddress)) : false;
       success = (success) ? (strToNetworkAddress((char*) _optarg[4], &_netConfig->ipNetmask)) : false;
       success = (success) ? (strToNetworkAddress((char*) _optarg[5], &_netConfig->ipGateway)) : false;
-      // if any convert operation failed - stop store process      
-      if (!success) { break; }
+      // if any convert operation failed - stop store process
+      if (!success) {
+        break;
+      }
       // Save config to EEPROM on success
       result = saveConfigToEEPROM(_netConfig) ? RESULT_IS_OK : DEVICE_ERROR_EEPROM_CORRUPTED;
       break;
@@ -842,18 +852,18 @@ static int16_t executeCommand(char* _dst, char* _optarg[], netconfig_t* _netConf
       //  system.hw.cpu[metric]
       //
       if (0 == strcmp_P(_optarg[0], PSTR("id"))) {
-         // Read 10 bytes with step 1 (0x0E..0x17) of the signature row <= http://www.avrfreaks.net/forum/unique-id-atmega328pb
-         getBootSignatureBytes(_dst, 0x0E, 10, 1);
-      //if (0 == strcmp_P(_optarg[0], "freq")) {
-          // Return back CPU frequency
-          // strcpy_P(_dst, PSTR(????));
+        // Read 10 bytes with step 1 (0x0E..0x17) of the signature row <= http://www.avrfreaks.net/forum/unique-id-atmega328pb
+        getBootSignatureBytes(_dst, 0x0E, 10, 1);
+        //if (0 == strcmp_P(_optarg[0], "freq")) {
+        // Return back CPU frequency
+        // strcpy_P(_dst, PSTR(????));
       } else if (0 == strcmp_P(_optarg[0], PSTR("model"))) {
-         // Read 3 bytes with step 2 (0x00, 0x02, 0x04) of the signature row <= http://www.avrfreaks.net/forum/device-signatures
-         getBootSignatureBytes(_dst, 0x00, 3, 2);
+        // Read 3 bytes with step 2 (0x00, 0x02, 0x04) of the signature row <= http://www.avrfreaks.net/forum/device-signatures
+        getBootSignatureBytes(_dst, 0x00, 3, 2);
       } else {
         // Return back CPU name
         strcpy_P(_dst, PSTR(_AVR_CPU_NAME_));
-      }    
+      }
       result = RESULT_IN_BUFFER;
       break;
 
@@ -865,25 +875,25 @@ static int16_t executeCommand(char* _dst, char* _optarg[], netconfig_t* _netConf
       result = RESULT_IN_BUFFER;
       break;
 
-/*
-    case CMD_SYS_MCU_ID:
-      //
-      //  sys.mcu.id
-      //
-      // Read 10 bytes with step 1 (0x0E..0x17) of the signature row <= http://www.avrfreaks.net/forum/unique-id-atmega328pb
-      getBootSignatureBytes(_dst, 0x0E, 10, 1);
-      result = RESULT_IN_BUFFER;
-      break;
+    /*
+        case CMD_SYS_MCU_ID:
+          //
+          //  sys.mcu.id
+          //
+          // Read 10 bytes with step 1 (0x0E..0x17) of the signature row <= http://www.avrfreaks.net/forum/unique-id-atmega328pb
+          getBootSignatureBytes(_dst, 0x0E, 10, 1);
+          result = RESULT_IN_BUFFER;
+          break;
 
-    case CMD_SYS_MCU_SIGN:
-      //
-      //  sys.mcu.sign
-      //
-      // Read 3 bytes with step 2 (0x00, 0x02, 0x04) of the signature row <= http://www.avrfreaks.net/forum/device-signatures
-      getBootSignatureBytes(_dst, 0x00, 3, 2);
-      result = RESULT_IN_BUFFER;
-      break;
-*/
+        case CMD_SYS_MCU_SIGN:
+          //
+          //  sys.mcu.sign
+          //
+          // Read 3 bytes with step 2 (0x00, 0x02, 0x04) of the signature row <= http://www.avrfreaks.net/forum/device-signatures
+          getBootSignatureBytes(_dst, 0x00, 3, 2);
+          result = RESULT_IN_BUFFER;
+          break;
+    */
     case CMD_NET_PHY_NAME:
       //
       //  sys.net.module
@@ -929,7 +939,7 @@ static int16_t executeCommand(char* _dst, char* _optarg[], netconfig_t* _netConf
       //result = RESULT_IS_PRINTED;
       ultoa(sysMetrics1.sysCmdTimeMaxN, _dst, 16);
       result = RESULT_IN_BUFFER;
-      
+
       break;
 
     case CMD_SYS_RAM_FREE:
@@ -978,8 +988,8 @@ static int16_t executeCommand(char* _dst, char* _optarg[], netconfig_t* _netConf
 
     case CMD_SYS_VCCMAX:
       //
-        // sys.vccMax
-        //
+      // sys.vccMax
+      //
       //value = sysMetrics[IDX_METRIC_SYS_VCCMAX];
       value = sysMetrics1.sysVCCMax;
       result = RESULT_IN_ULONGVAR;
@@ -996,7 +1006,6 @@ static int16_t executeCommand(char* _dst, char* _optarg[], netconfig_t* _netConf
         break;
       }
       result = manageExtInt((uint32_t*) &value, argv[0], argv[1]);
-      Serial.println(result);
       break;
 
 #endif // FEATURE_EXTERNAL_INTERRUPT_ENABLE
@@ -1327,8 +1336,8 @@ static int16_t executeCommand(char* _dst, char* _optarg[], netconfig_t* _netConf
 
     case CMD_ACS7XX_DC:
       //
-        //  acs7xx.dc[sensorPin, refVoltage, sensitivity, zeroPoint]
-        //
+      //  acs7xx.dc[sensorPin, refVoltage, sensitivity, zeroPoint]
+      //
       if (!isSafePin(argv[0])) {
         break;
       }
@@ -1490,7 +1499,8 @@ static int16_t executeCommand(char* _dst, char* _optarg[], netconfig_t* _netConf
 #ifdef FEATURE_SYSTEM_RTC_ENABLE
     case CMD_SET_LOCALTIME:
       //
-      //  set.localtime[unixTimestamp, tzOffsetSec]
+      //  set.localtime[unixTimestamp, tzOffset]
+      //  set.localtime must take unixTimestamp as UTC, because system.localtime command returns UTC too
       //
       // if (!isSafePin(argv[0]) || !isSafePin(argv[1])) { break; }
       // i used as succes bool variable
@@ -1498,25 +1508,25 @@ static int16_t executeCommand(char* _dst, char* _optarg[], netconfig_t* _netConf
 #ifdef FEATURE_SYSTEM_RTC_ONBOARD_EEPROM_ENABLE
       // tzOffsetSec is defined?
       if ('\0' != *_optarg[1]) {
-         result = setTZ(constSystemRtcSDAPin, constSystemRtcSCLPin, constSystemRtcEEPROMI2CAddress, argv[1]);
-         if (RESULT_IS_OK != result) { i = false; }
+        i = setTZOffset(constSystemRtcSDAPin, constSystemRtcSCLPin, constSystemRtcEEPROMI2CAddress, argv[1]);
       }
 #endif // FEATURE_SYSTEM_RTC_ONBOARD_EEPROM_ENABLE
 
       // unixTimestamp is given?
       if ('\0' != *_optarg[0] && i) {
-         // tzOffsetSec is present and stored sucesfully or just not present
-         result = setLocalTime(constSystemRtcSDAPin, constSystemRtcSCLPin, constSystemRtcI2CAddress, argv[0]);
+        // tzOffsetSec is present and stored sucesfully or just not present
+        if (setUnixTime(constSystemRtcSDAPin, constSystemRtcSCLPin, constSystemRtcI2CAddress, argv[0])) { result = RESULT_IS_OK; } ;
+        //result = sysRTC.setUnixTime(argv[0]);
       }
       break;
-      
+
     case CMD_SYSTEM_LOCALTIME:
       //
       //  system.localtime
-      //  UTC only at this time
+      //  Zabbix wants UTC as localtime
       //
       // if (!isSafePin(argv[0]) || !isSafePin(argv[1])) { break; }
-      result = getLocalTime(constSystemRtcSDAPin, constSystemRtcSCLPin, constSystemRtcI2CAddress, &value);      
+      if (getUnixTime(constSystemRtcSDAPin, constSystemRtcSCLPin, constSystemRtcI2CAddress, (uint32_t*) &value)) {result = RESULT_IN_ULONGVAR; } ;
       break;
 
 #endif // FEATURE_SYSTEM_RTC_ENABLE

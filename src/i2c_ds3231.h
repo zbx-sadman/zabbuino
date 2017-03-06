@@ -9,41 +9,6 @@ Based on https://github.com/Makuna/Rtc/
 
 #include <time.h>
 
-#pragma pack(push,1)
-// First 7 bytes of DS3231 address map (datasheet, pg.11)
-typedef struct {
-// 00h
-  uint8_t seconds:   4;  // seconds bits [0..3]
-  uint8_t seconds10: 3;  // tens of seconds bits [4..6]
-  uint8_t secondsU:  1;  // unused bit [7]
-// 01h
-  uint8_t minutes:   4;  // minutes bits
-  uint8_t minutes10: 3;  // minutes of seconds bits
-  uint8_t minutesU:  1;  // unused bit
-// 02h
-  uint8_t hour:      4;  // hour bits
-  uint8_t hour10:    1;  // tens hour bit
-  uint8_t hour20:    1;  // 20-23 hour bit for 24H mode or AM/PM bit for 12H mode
-  uint8_t hour1224:  1;  // 24H/12H mode bit
-  uint8_t hourU:     1;  // unused bit
-// 03h
-  uint8_t day:       3;  // day of week bits, 1 equals Sunday
-  uint8_t dayU:      5;  // unused bits
-// 04h
-  uint8_t date:      4;  // day of month bits
-  uint8_t date10:    2;  // tens of day of month bits
-  uint8_t dateU:     2;  // unused bits
-// 05h
-  uint8_t month:     4;  // month bits
-  uint8_t month10:   1;  // tens of month bits
-  uint8_t monthU:    2;  // unused bits
-  uint8_t century:   1;  // century bit. Is toggled when the years register overflows from 99 to 00. 
-// 06h
-  uint8_t year:      4;  // year bits
-  uint8_t year10:    4;  // tens of year bits
-} DS3231DateTime_t;
-#pragma pack(pop) 
-
 
 //DS3231 Register Addresses
 #define DS3231_REG_TIMEDATE        0x00
@@ -83,10 +48,53 @@ typedef struct {
 #define DS3231_OSF                 7
 #define DS3231_AIFMASK             (_BV(DS3231_A1F) | _BV(DS3231_A2F))
 
+/*****************************************************************************************************************************
+*
+*   Init DS3231 RTC 
+*
+*   Returns: 
+*     - RESULT_IS_OK on success
+*     - DEVICE_ERROR_CONNECT on connection error
+*
+*****************************************************************************************************************************/
+int8_t initDS3231(const uint8_t, const uint8_t, const uint8_t);
 
 /*****************************************************************************************************************************
 *
-*   Put date & time to RTC
+*   Test oscillator's enable flag
+*
+*   Returns: 
+*     - True if oscillator is enabled
+*     - False otherwise
+*
+*****************************************************************************************************************************/
+static uint8_t isDS3231Running(const uint8_t);
+
+/*****************************************************************************************************************************
+*
+*   Start or stop oscillator
+*
+*   Returns: 
+*     - 
+*
+*****************************************************************************************************************************/
+static void setDS3231RunningState(const uint8_t, uint8_t);
+
+
+/*****************************************************************************************************************************
+*
+*   "Validate" stored date&time by detect oscillator status
+*
+*   Returns: 
+*     - True if oscillator is running
+*     - False otherwise
+*
+*****************************************************************************************************************************/
+static uint8_t isDS3231DateTimeValid(const uint8_t);
+
+/*****************************************************************************************************************************
+*
+*   Save date & time to DS3231
 *
 *   Returns: 
 *     - RESULT_IS_OK on success
@@ -94,43 +102,20 @@ typedef struct {
 *     - DEVICE_ERROR_CONNECT on connection error
 *
 *****************************************************************************************************************************/
-int8_t setDateTime(const uint8_t, const uint8_t, uint8_t, uint32_t);
+int8_t saveDS3231Time(const uint8_t, const uint8_t, uint8_t, time_t);
 
 /*****************************************************************************************************************************
 *
-*   Get date & time from RTC
+*   Read date & time from DS3231
 *
 *   Returns: 
 *     - RESULT_IS_OK on success
 *     - RESULT_IS_FAIL on read error
 *     - DEVICE_ERROR_CONNECT on connection error
+*     - actual timestamp returns in _timestamp 
 *
 *****************************************************************************************************************************/
-int8_t getDateTime(const uint8_t, const uint8_t, uint8_t, tm*);
-
-/*****************************************************************************************************************************
-*
-*   Get local time as Unix timestamp
-*
-*   Returns: 
-*     - RESULT_IN_LONGVAR on success
-*     - RESULT_IS_FAIL on read error
-*     - DEVICE_ERROR_CONNECT on connection error
-*
-*****************************************************************************************************************************/
-int8_t getLocalTime(const uint8_t, const uint8_t, uint8_t, int32_t*);
-
-/*****************************************************************************************************************************
-*
-*   Set local time from Unix timestamp
-*
-*   Returns: 
-*     - RESULT_IN_OK on success
-*     - RESULT_IS_FAIL on write error
-*     - DEVICE_ERROR_CONNECT on connection error
-*
-*****************************************************************************************************************************/
-int8_t setLocalTime(const uint8_t, const uint8_t, uint8_t, int32_t);
+int8_t readDS3231Time(const uint8_t, const uint8_t, uint8_t, time_t*);
 
 /*****************************************************************************************************************************
 *
@@ -140,7 +125,7 @@ int8_t setLocalTime(const uint8_t, const uint8_t, uint8_t, int32_t);
 *     - BCD value
 *
 *****************************************************************************************************************************/
-uint8_t Uint8ToBcd(uint8_t val);
+static uint8_t Uint8ToBcd(uint8_t);
 
 /*****************************************************************************************************************************
 *
@@ -150,7 +135,7 @@ uint8_t Uint8ToBcd(uint8_t val);
 *     - unit8_t value
 *
 *****************************************************************************************************************************/
-uint8_t BcdToUint8(uint8_t val);
+static uint8_t BcdToUint8(uint8_t);
 
 /*****************************************************************************************************************************
 *
@@ -160,35 +145,6 @@ uint8_t BcdToUint8(uint8_t val);
 *     - 24H format value
 *
 *****************************************************************************************************************************/
-uint8_t BcdToBin24Hour(uint8_t bcdHour);
-
-
-uint8_t IsDateTimeValid(const uint8_t _i2cAddress);
-uint8_t GetIsRunning(const uint8_t _i2cAddress);
-void SetIsRunning(const uint8_t _i2cAddress, uint8_t _isRunning);
-
-/*****************************************************************************************************************************
-*
-*   Set TimeZone offset (in seconds). Actually - just store it in DS3231 module's onboard EEPROM (AT24C32).
-*
-*   Returns: 
-*     - RESULT_IN_OK on success
-*     - RESULT_IS_FAIL on write error
-*     - DEVICE_ERROR_CONNECT on connection error
-*
-*****************************************************************************************************************************/
-int8_t setTZ(const uint8_t, const uint8_t, uint8_t, int16_t);
-
-/*****************************************************************************************************************************
-*
-*   Get TimeZone offset (in seconds). Actually - just read it from DS3231 module's onboard EEPROM (AT24C32).
-*
-*   Returns: 
-*     - RESULT_IN_OK on success
-*     - RESULT_IS_FAIL on read error
-*     - DEVICE_ERROR_CONNECT on connection error
-*
-*****************************************************************************************************************************/
-int8_t getTZ(const uint8_t, const uint8_t, uint8_t, int16_t*);
+static uint8_t BcdToBin24Hour(uint8_t);
 
 #endif // #ifndef _ZABBUINO_I2C_DS3231_H_

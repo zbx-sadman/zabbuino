@@ -77,7 +77,7 @@ const uint8_t  constSystemDisplayI2CAddress                     = 0x20;   // I2C
 const uint8_t  constSystemDisplayBackLight                      = 0x00;   // backlight off
 const uint16_t constSystemDisplayType                           = 1602;   // 16x2 screen, refer to source of printToPCF8574LCD() subroutine
 const uint16_t constSystemDisplayRenewInterval                  = 5000UL; // 5sec
-const uint8_t  constVirtualScreensNum                           = 3;      // Number of report virtual screens
+const uint8_t  constVirtualScreensNum                           = 2;      // Number of report virtual screens
 
 // System RTC module settings (only DS3231 is supported at this time)
 const uint8_t  constSystemRtcSDAPin                             = 18;     // SDA - A4

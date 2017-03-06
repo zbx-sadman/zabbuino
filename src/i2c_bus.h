@@ -18,8 +18,9 @@
 #define WireToU8(_source)  ((uint8_t) _source[0])
 #define WireToS8(_source)  ((int8_t) _source[0])
 
-#define WireToU16(_source)  ((uint16_t) ( ((uint16_t) _source[0] << 8)| (uint16_t) _source[1]))
-#define WireToS16(_source)  ((int16_t) ( ((uint16_t) _source[0] << 8)| (uint16_t) _source[1]))
+//#define WireToU16(_source)  ((uint16_t) ( ((uint16_t) _source[0] << 8)| (uint16_t) _source[1]))
+#define WireToU16(_source)  ((uint16_t) ( ((uint8_t) _source[0] << 8)| (uint8_t) _source[1]))
+#define WireToS16(_source)  ((int16_t)  ( ((uint8_t) _source[0] << 8)| (uint8_t) _source[1]))
 
 #define WireToU16LE(_source)  ((uint16_t) ( ((uint16_t) _source[1] << 8)| _source[0]))
 #define WireToS16LE(_source)  ((int16_t) ( ((uint16_t) _source[1] << 8)| _source[0]))

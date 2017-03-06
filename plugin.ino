@@ -1,76 +1,102 @@
-#include <time.h>
+/*        
+          LCD1602
+      +- C0 .... CF-+
+      v             v
+  R1 |XXX.XXX.XXX.XXX |  << IP Address
+  R2 |4294967295 ms   |  << uptime
+ 
+     |Zabbuino 1.2.3  |  << 
+     |     ALL OK     |  << 
+ 
+  R1, R2 - row #0x1, row #0x2 
+  C0..RF - col #0x0 .. col #0xF 
+
+         0                                                         N
+   _src |--Zabbuino 1.2.3--ALL OK                                   |
+         ^^              ^^
+    0x01 -++- 0x06  '\n' -++-'\t' 
+   
+   N - constBufferSize (tune.h)
+
+  !!! Resulted string must be shorter that constBufferSize to avoid mailfunction !!!
+
+ / Note: "\x6\x1" placed to _src as bytes with values 6 and 1 (_src[0]=6, _src[1]=1), not as C-string '\x6\x1'
+
+*/
+ 
 
 /*****************************************************************************************************************************
-Write report to system display (LCD1602, etc)
+  Called on init stage
 
 *****************************************************************************************************************************/
-void reportToScreen(char* _src, uint8_t _virtualScreenNum) {
+void initStageReportScreen(char* _src) {
+ uint8_t dataLength;
+ // Write to _src commands for output direction (0x06) and clear screen (0x01), then append Agent version
+ _src[0] = 0x06;
+ _src[1] = 0x01;
+ //dataLength +=2;
+ //strcpy_P(&_src[dataLength], constZbxAgentVersion);
+ strcpy_P(&_src[2], constZbxAgentVersion);
+ // Print ready string
+ showReportScreen(_src, 0xFF);
+ //dataLength = strlen(_src);
+ //_src[dataLength] = '\0';      
+ }
+
+/*****************************************************************************************************************************
+  Called on every loop with constSystemDisplayRenewInterval (ms)
+  _virtualScreenNum take value [0 ... constVirtualScreensNum]
+  
+  (constSystemDisplayRenewInterval & constVirtualScreensNum defined in src/tune.h)
+*****************************************************************************************************************************/
+void showReportScreen(char* _src, uint8_t _virtualScreenNum) {
   uint8_t dataLength;
   uint32_t timestamp;
   tm dateTime;
-  //        LCD1602
-  //     +- C0 .... CF-+
-  //     v             v
-  // R1 |XXX.XXX.XXX.XXX |  << IP Address
-  // R2 |4294967295 ms   |  << uptime
-  //
-  //    |Zabbuino 1.2.3  |  << 
-  //    |     ALL OK     |  << 
-  //
-  // R1, R2 - row #0x1, row #0x2 
-  // C0..RF - col #0x0 .. col #0xF 
-  //
-  //        0                                                         N
-  //  _src |--Zabbuino 1.2.3--ALL OK                                   |
-  //        ^^              ^^
-  //  0x01 -++- 0x06  '\n' -++-'\t' 
-  // 
-  //  N - constBufferSize (tune.h)
-  //
-  //  !!! Resulted string must be shorter that constBufferSize to avoid mailfunction !!!
-  //
   
   //DTSH( SerialPrint_P(PSTR("Show screen #")); Serial.println(_virtualScreenNum); )
   // _virtualScreenNum eq 0xFF mean that _src already contan ready to print data
   if (0xFF != _virtualScreenNum) {
-     //memset((void*) _src, 0x20, 50);
-
      // Write to _src commands for output direction (0x06) and clear screen (0x01)
-     //strcpy_P(_src, PSTR("\x6\x1"));
-     // Note: "\x6\x1" placed to _src as bytes with values 6 and 1 (_src[0]=6, _src[1]=1), not as C-string '\x6\x1'
-     //dataLength = strlen(_src);
      _src[0] = 0x06;
      _src[1] = 0x01;
      dataLength = 2;
+/*
 
+Sketch uses 29,956 bytes (92%) of program storage space. Maximum is 32,256 bytes.
+Global variables use 1,327 bytes (64%) of dynamic memory, leaving 721 bytes for local variables. Maximum is 2,048 bytes.
+
+*/
      // change constVirtualScreensNum in tune.h if you need more or less virtual screens
-     switch (_virtualScreenNum){
-       case 0x01:
-         // copy constZbxAgentVersion variable (see "AGENT CONFIGURATION SECTION" in basic.h) content to src, starting from [dataLength] cell
-         strcpy_P(&_src[dataLength], constZbxAgentVersion);
-         // _src is C-string ('\0' terminated) and we can get it length with strlen() for correcting dataLength.
+     switch (_virtualScreenNum) {
+       case 0x00:
+         // **** This screen eat ~4,2kB of progspace ****
+         // copy "Uptime: " string to src, following '\n'
+         strcpy_P(&_src[dataLength], PSTR("Up  : "));
+         dataLength += 6;
+         timestamp = (millis()/1000);
+         // break down timestamp to tm struct
+         gmtime_r(&timestamp, &dateTime);
+         // elapsed days less that current year day by 1d
+         dateTime.tm_yday--;
+         // strftime take so much progspace
+         strftime(&_src[dataLength], 30, "%jD %T", &dateTime);
          dataLength = strlen(_src);
          // replace to '\0' by '\n' at the end position of string to have newline on physical screen
          _src[dataLength++] = '\n';
-         // copy "Uptime: " string to src, following '\n'
-         strcpy_P(&_src[dataLength], PSTR("Up: "));
-         dataLength += 4;
-         // write millis() value to the _src starting from [dataLength] cell (take address of (_src[0] + dataLength) and give ltoa() as buffer);
-         //ultoa(millis(), &_src[dataLength], 10);
-         //dataLength = strlen(_src);
-         //strcpy_P(&_src[dataLength], PSTR(" ms"));
-         // timestamp must be in seconds, not ms
-         timestamp = (millis()/1000);
+         // Copy "Idle: " to show it on second line
+         strcpy_P(&_src[dataLength], PSTR("Idle: "));
+         dataLength += 6;
+         timestamp = ((millis()-sysMetrics1.sysCmdLastExecTime)/1000);
+         // again break down timestamp to tm struct and correct year day
          gmtime_r(&timestamp, &dateTime);
          dateTime.tm_yday--;
-         // need to add tm::tm_yday directly to _src to avoid 'Up: 001D ...' at the start
          strftime(&_src[dataLength], 30, "%jD %T", &dateTime);
-         //timestampToDataTimeStr(timestamp, &_src[dataLength]);
-
          dataLength = strlen(_src);
          break;
 
-       case 0x02:
+       case 0x01:
+         // **** This screen eat ~4.6kB of progspace ****
          strcpy_P(&_src[dataLength], PSTR("VCC:"));
          // Move write position to 4 char ('VCC:')
          dataLength += 4;
@@ -89,68 +115,30 @@ void reportToScreen(char* _src, uint8_t _virtualScreenNum) {
          _src[dataLength++] = 'b';
          // Go to new line
          _src[dataLength++] = '\n';
-         strcpy_P(&_src[dataLength], PSTR("Idle: "));
-         dataLength += 6;
-         //ultoa((millis()-sysMetrics1.sysCmdLastExecTime), &_src[dataLength], 10);
-         // len of string unknown again 
-         //dataLength = strlen(_src);
-         //strcpy_P(&_src[dataLength], PSTR(" ms"));        
-         //dataLength += 3;
-         timestamp = ((millis()-sysMetrics1.sysCmdLastExecTime)/1000);
-         gmtime_r(&timestamp, &dateTime);
-         dateTime.tm_yday--;
-         strftime(&_src[dataLength], 30, "%jD %T", &dateTime);
-         //timestampToDataTimeStr(timestamp, &_src[dataLength]);
-         dataLength = strlen(_src);
-
-         break;
-
-       case 0x03:
-         if (RESULT_IS_OK == getDateTime(constSystemRtcSDAPin, constSystemRtcSCLPin, constSystemRtcI2CAddress, &dateTime)) {
-            uint32_t y2kts; 
-            int16_t tzOffset; 
-            int8_t rc;
-            rc = getTZ(constSystemRtcSDAPin, constSystemRtcSCLPin, constSystemRtcEEPROMI2CAddress, &tzOffset);
-            if (RESULT_IN_LONGVAR != rc) {
-              tzOffset = 0;
-            }
-            // 76 bytes for TZ correction
-            y2kts = mk_gmtime(&dateTime);;
-            y2kts += tzOffset;
-            gmtime_r(&y2kts, &dateTime);
-            
-            //dateTime.tm_mon++;   // tm_mon  - months since January [0 to 11], but human wants [1 to 12]
-            //dateTime.tm_wday--;  // tm_wday - days since Sunday [0 to 6], but human wants [1 to 7]
-            //dateTime.tm_year += 1900; // tm_year - years since 1900
-/*
-  Serial.print("Sec: "); Serial.println(dateTime.tm_sec);
-  Serial.print("Min: "); Serial.println(dateTime.tm_min);
-  Serial.print("Hour: "); Serial.println(dateTime.tm_hour);
-  Serial.print("Wday: "); Serial.println(dateTime.tm_wday);
-  Serial.print("Mday: "); Serial.println(dateTime.tm_mday);
-  Serial.print("Month: "); Serial.println(dateTime.tm_mon);
-  Serial.print("Year: "); Serial.println(dateTime.tm_year);
-  Serial.println();
-  */     
-          strcpy_P(&_src[dataLength], PSTR("\t\tTIME\n"));
-          dataLength += 7;
-          strftime(&_src[dataLength], 30, "%d/%m/%Y %T", &dateTime);
-          dataLength = strlen(_src);
+         // "print" current date & time on second line
+         time_t y2kts; 
+         if (getY2KTime(constSystemRtcSDAPin, constSystemRtcSCLPin, constSystemRtcI2CAddress, &y2kts)) {
+            localtime_r(&y2kts, &dateTime);
+            strcpy_P(&_src[dataLength], PSTR("\t\tTIME\n"));
+            dataLength += 7;
+            // strftime take so much progspace
+            strftime(&_src[dataLength], 30, "%d/%m/%Y %T", &dateTime);
+            dataLength = strlen(_src);
          }
-         
-       case 0x04:
          break;
-         // build your own screen and increase constVirtualScreensNum's value in tune.h  
+
+       case 0x02:
+         // build your own screen and increase constVirtualScreensNum's value in src/tune.h  
+         break;
          
        default:
          // write empty string
          break;
-   }
-         _src[dataLength] = '\0';      
-   
-   }   
-   //Serial.println(_src);
-   // push data to LCD via I2C (refer to "ALARM & REPORT SECTION" in tune.h)
-   printToPCF8574LCD(constSystemDisplaySDAPin, constSystemDisplaySCLPin, constSystemDisplayI2CAddress, constSystemDisplayBackLight, constSystemDisplayType, _src);
+     } // switch (_virtualScreenNum)
+     _src[dataLength] = '\0';      
+  } // if (0xFF != _virtualScreenNum)  
+  //Serial.println(_src);
+  // push data to LCD via I2C (refer to "SYSTEM HARDWARE SECTION" in src/tune.h)
+  printToPCF8574LCD(constSystemDisplaySDAPin, constSystemDisplaySCLPin, constSystemDisplayI2CAddress, constSystemDisplayBackLight, constSystemDisplayType, _src);
 }
 
