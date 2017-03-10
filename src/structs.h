@@ -70,6 +70,7 @@ typedef struct {
   char hostname[constAgentHostnameMaxLength+1];     // +1 for '\0', 255 - (1 + 1 + 1 + 6 + 4*4 + 1) = 229 bytes max
   // #ifdef ... #elif ... #endif does not work with struct operator
   uint32_t password;                              // 4 byte
+  int16_t tzOffset;                               // 2 byte
 } netconfig_t ;
 
 
@@ -84,7 +85,7 @@ typedef struct {
   uint16_t sysVCCMax;                             // Minimum VCC (in mV) from MCU powering on
   uint32_t sysRamFree;                            // "Current" free memory (in bytes).
   uint32_t sysRamFreeMin;                         // Minimum free memory (in bytes) from MCU powering on
-  uint32_t netPHYReinits;                      // PHY reinits number (restarts of network module)
+  uint32_t netPHYReinits;                         // PHY reinits number (restarts of network module)
 } sysmetrics_t;
 
 

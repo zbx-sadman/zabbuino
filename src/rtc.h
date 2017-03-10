@@ -13,7 +13,7 @@
 *     - 
 *
 *****************************************************************************************************************************/
-void initRTC(const uint8_t, const uint8_t, const uint8_t, const uint8_t);
+void initRTC(const uint8_t, const uint8_t, const uint8_t);
 
 /*****************************************************************************************************************************
 *
@@ -75,7 +75,7 @@ int8_t setY2KTime(const uint8_t, const uint8_t, uint8_t, time_t);
 *     - DEVICE_ERROR_CONNECT on connection error
 *
 *****************************************************************************************************************************/
-int8_t setTZOffset(const uint8_t, const uint8_t, uint8_t, int16_t);
+//int8_t setTZOffset(const uint8_t, const uint8_t, uint8_t, int16_t);
 
 /*****************************************************************************************************************************
 *
@@ -88,6 +88,6 @@ int8_t setTZOffset(const uint8_t, const uint8_t, uint8_t, int16_t);
 *     - actual timezone offset returns in _tzOffset
 *
 *****************************************************************************************************************************/
-int8_t getTZOffset(const uint8_t, const uint8_t, uint8_t, int16_t*);
+//int8_t getTZOffset(const uint8_t, const uint8_t, uint8_t, int16_t*);
 
 #endif // _ZABBUINO_I2C_RTC_H_

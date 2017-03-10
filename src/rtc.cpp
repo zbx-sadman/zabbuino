@@ -11,10 +11,11 @@
 *     - 
 *
 *****************************************************************************************************************************/
-void initRTC(const uint8_t _sdaPin, const uint8_t _sclPin, const uint8_t _rtcI2CAddress, const uint8_t _eepromI2CAddress) {
+//void initRTC(const uint8_t _sdaPin, const uint8_t _sclPin, const uint8_t _rtcI2CAddress, const uint8_t _eepromI2CAddress) {
+void initRTC(const uint8_t _sdaPin, const uint8_t _sclPin, const uint8_t _rtcI2CAddress) {
   // Init RTC chip
   initDS3231(_sdaPin, _sclPin, _rtcI2CAddress);
-
+/*
 #ifdef FEATURE_SYSTEM_RTC_ONBOARD_EEPROM_ENABLE
   int16_t tzOffset;
   //initAT24C32(_sdaPin, _sclPin, _eepromI2CAddress);
@@ -22,7 +23,7 @@ void initRTC(const uint8_t _sdaPin, const uint8_t _sclPin, const uint8_t _rtcI2C
      set_zone(tzOffset); 
   }
 #endif 
-
+*/
 }
    
 /*****************************************************************************************************************************
@@ -96,6 +97,7 @@ int8_t setY2KTime(const uint8_t _sdaPin, const uint8_t _sclPin, uint8_t _i2cAddr
 *     - DEVICE_ERROR_CONNECT on connection error
 *
 *****************************************************************************************************************************/
+/*
 int8_t setTZOffset(const uint8_t _sdaPin, const uint8_t _sclPin, uint8_t _i2cAddress, int16_t _tzOffset) {
 #ifdef FEATURE_SYSTEM_RTC_ONBOARD_EEPROM_ENABLE
   int8_t rc = false;
@@ -106,7 +108,7 @@ int8_t setTZOffset(const uint8_t _sdaPin, const uint8_t _sclPin, uint8_t _i2cAdd
   return true;
 #endif
 }
-
+*/
 /*****************************************************************************************************************************
 *
 *   Get TimeZone offset (in seconds). Actually - just read it from DS3231 module's onboard EEPROM (AT24C32).
@@ -118,11 +120,12 @@ int8_t setTZOffset(const uint8_t _sdaPin, const uint8_t _sclPin, uint8_t _i2cAdd
 *     - actual timezone offset returns in _tzOffset
 *
 *****************************************************************************************************************************/
+/*
 int8_t getTZOffset(const uint8_t _sdaPin, const uint8_t _sclPin, uint8_t _i2cAddress, int16_t* _tzOffset) {
 #ifdef FEATURE_SYSTEM_RTC_ONBOARD_EEPROM_ENABLE
   return readAT24C32TZOffset(_sdaPin, _sclPin, _i2cAddress, _tzOffset);
 #else
   return true;
 #endif
-//  return true;
 }
+*/

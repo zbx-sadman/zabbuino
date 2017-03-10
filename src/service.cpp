@@ -18,6 +18,7 @@ void setConfigDefaults(netconfig_t *_configStruct)
   _configStruct->ipGateway = NetworkAddress(NET_DEFAULT_GATEWAY);
   _configStruct->password  = constSysDefaultPassword;
   _configStruct->useProtection = constSysDefaultProtection;
+  _configStruct->tzOffset = constTZOffset;
   
 #ifdef FEATURE_NET_USE_MCUID
   // if FEATURE_NET_USE_MCUID is defined:

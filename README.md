@@ -31,6 +31,13 @@ Implemented:
 - Support APC Smart UPS (with RS232 interface);
 - Simulate varuious vendor's IR transmitters.
 
+
+####10 March 2016
+
+Changes: 
+ - RTC timezone now saved on MCU EEPROM, because small DS3231 modules does not have onboard AT24C32 and timezony only read/write is expensive operation (300bytes of flash space for two byte handling).
+   \_SYSTEM\_RTC\_ONBOARD\_EEPROM\_ENABLE_ is not used and _FEATURE\_EEPROM\_ENABLE_ must be used to allow remotely timezone set.
+
 ####03 March 2016
 
 Changes: 

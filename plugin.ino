@@ -27,7 +27,9 @@
 
 /*****************************************************************************************************************************
   Called on init stage
-
+  
+  Note: system config may not loaded when initStageReportScreen is called and some settings (IP address, timezone offset, etc) stay on default values.
+  
 *****************************************************************************************************************************/
 void initStageReportScreen(char* _src) {
  uint8_t dataLength;

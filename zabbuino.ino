@@ -26,7 +26,16 @@ netconfig_t netConfig;
 volatile extInterrupt_t extInterrupt[EXTERNAL_NUM_INTERRUPTS];
 #endif
 
+/*
+  With ATC EEPROM
+  Sketch uses 30,374 bytes (94%) of program storage space. Maximum is 32,256 bytes.
+  Global variables use 1,341 bytes (65%) of dynamic memory, leaving 707 bytes for local variables. Maximum is 2,048 bytes.
 
+W/o ATC EEPROM but with MCU's eeprom
+  
+Sketch uses 31,368 bytes (97%) of program storage space. Maximum is 32,256 bytes.
+Global variables use 1,343 bytes (65%) of dynamic memory, leaving 705 bytes for local variables. Maximum is 2,048 bytes.
+*/
 /*-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
                                                                        STARTUP SECTION
 */
@@ -43,11 +52,6 @@ void setup() {
 
   sysMetrics1.sysVCCMin = sysMetrics1.sysVCCMax = getADCVoltage(ANALOG_CHAN_VBG);
   sysMetrics1.sysRamFree = sysMetrics1.sysRamFreeMin = getRamFree();
-  /*
-    Sketch uses 20,482 bytes (63%) of program storage space. Maximum is 32,256 bytes.
-    Global variables use 1,085 bytes (52%) of dynamic memory, leaving 963 bytes for local variables. Maximum is 2,048 bytes.
-
-  */
 
   //[IDX_METRIC_SYS_VCCMIN] = sysMetrics[IDX_METRIC_SYS_VCCMAX] = getADCVoltage(ANALOG_CHAN_VBG);
   //sysMetrics[IDX_METRIC_SYS_RAM_FREE] = sysMetrics[IDX_METRIC_SYS_RAM_FREEMIN] = (int32_t) getRamFree();
@@ -106,7 +110,7 @@ void loop() {
   Wire.begin();
 #endif
 #ifdef FEATURE_SYSTEM_RTC_ENABLE
-  initRTC(constSystemRtcSDAPin, constSystemRtcSCLPin, constSystemRtcI2CAddress, constSystemRtcEEPROMI2CAddress);
+  initRTC(constSystemRtcSDAPin, constSystemRtcSCLPin, constSystemRtcI2CAddress);
 #endif
 #ifdef FEATURE_SYSTEM_DISPLAY_ENABLE
   initStageReportScreen(cBuffer);
@@ -171,6 +175,10 @@ void loop() {
   netConfig.useDHCP = false;
 #endif
 
+#if defined(FEATURE_SYSTEM_RTC_ENABLE) && defined(FEATURE_EEPROM_ENABLE)
+  set_zone(netConfig.tzOffset);
+#endif
+
   // 4. Network initialization and starting
   //
   Network.init(&netConfig);
@@ -178,6 +186,10 @@ void loop() {
   DTSL( SerialPrintln_P(PSTR("Serving on:"));
         Network.showNetworkState();
         SerialPrint_P(PSTR("Password: ")); Serial.println(netConfig.password, DEC);
+#if defined(FEATURE_SYSTEM_RTC_ENABLE) && defined(FEATURE_EEPROM_ENABLE)
+        SerialPrint_P(PSTR("Timezone: ")); Serial.println(netConfig.tzOffset, DEC);
+#endif
+
       )
 #if !defined(NETWORK_RS485)
   // Start listen sockets
@@ -769,11 +781,12 @@ static int16_t executeCommand(char* _dst, char* _optarg[], netconfig_t* _netConf
       memcpy(_netConfig->macAddress, &mac, arraySize(_netConfig->macAddress));
       // If string to which point _optarg[3] can be converted to valid NetworkAddress - just do it.
       // Otherwize (string can not be converted) _netConfig->ipAddress will stay untouched;
-      success = (success) ? (strToNetworkAddress((char*) _optarg[3], &_netConfig->ipAddress)) : false;
-      success = (success) ? (strToNetworkAddress((char*) _optarg[4], &_netConfig->ipNetmask)) : false;
-      success = (success) ? (strToNetworkAddress((char*) _optarg[5], &_netConfig->ipGateway)) : false;
-      // if any convert operation failed - stop store process
+      success = (success) ? (strToNetworkAddress((char*) _optarg[3], &(_netConfig->ipAddress))) : false;
+      success = (success) ? (strToNetworkAddress((char*) _optarg[4], &(_netConfig->ipNetmask))) : false;
+      success = (success) ? (strToNetworkAddress((char*) _optarg[5], &(_netConfig->ipGateway))) : false;
+      // if any convert operation failed - read config back to netConfig & stop store process
       if (!success) {
+        result = loadConfigFromEEPROM(_netConfig);
         break;
       }
       // Save config to EEPROM on success
@@ -1505,17 +1518,22 @@ static int16_t executeCommand(char* _dst, char* _optarg[], netconfig_t* _netConf
       // if (!isSafePin(argv[0]) || !isSafePin(argv[1])) { break; }
       // i used as succes bool variable
       i = true;
-#ifdef FEATURE_SYSTEM_RTC_ONBOARD_EEPROM_ENABLE
-      // tzOffsetSec is defined?
+#ifdef FEATURE_EEPROM_ENABLE
+      // tzOffset is defined?
       if ('\0' != *_optarg[1]) {
-        i = setTZOffset(constSystemRtcSDAPin, constSystemRtcSCLPin, constSystemRtcEEPROMI2CAddress, argv[1]);
+         _netConfig->tzOffset = (int16_t) argv[1];
+         // Save config to EEPROM
+         i = saveConfigToEEPROM(_netConfig);
+         if (i) { 
+            set_zone(_netConfig->tzOffset); 
+            result = RESULT_IS_OK;
+          }        
       }
-#endif // FEATURE_SYSTEM_RTC_ONBOARD_EEPROM_ENABLE
+#endif // FEATURE_EEPROM_ENABLE
 
-      // unixTimestamp is given?
       if ('\0' != *_optarg[0] && i) {
-        // tzOffsetSec is present and stored sucesfully or just not present
-        if (setUnixTime(constSystemRtcSDAPin, constSystemRtcSCLPin, constSystemRtcI2CAddress, argv[0])) { result = RESULT_IS_OK; } ;
+        // tzOffset is present and stored sucesfully or just not present
+        result = (setUnixTime(constSystemRtcSDAPin, constSystemRtcSCLPin, constSystemRtcI2CAddress, argv[0])) ? RESULT_IS_OK : RESULT_IS_FAIL;
         //result = sysRTC.setUnixTime(argv[0]);
       }
       break;
@@ -1526,7 +1544,9 @@ static int16_t executeCommand(char* _dst, char* _optarg[], netconfig_t* _netConf
       //  Zabbix wants UTC as localtime
       //
       // if (!isSafePin(argv[0]) || !isSafePin(argv[1])) { break; }
-      if (getUnixTime(constSystemRtcSDAPin, constSystemRtcSCLPin, constSystemRtcI2CAddress, (uint32_t*) &value)) {result = RESULT_IN_ULONGVAR; } ;
+      if (getUnixTime(constSystemRtcSDAPin, constSystemRtcSCLPin, constSystemRtcI2CAddress, (uint32_t*) &value)) {
+        result = RESULT_IN_ULONGVAR;
+      } ;
       break;
 
 #endif // FEATURE_SYSTEM_RTC_ENABLE

@@ -83,7 +83,8 @@ const uint8_t  constVirtualScreensNum                           = 2;      // Num
 const uint8_t  constSystemRtcSDAPin                             = 18;     // SDA - A4
 const uint8_t  constSystemRtcSCLPin                             = 19;     // SCL - A5
 const uint8_t  constSystemRtcI2CAddress                         = 0x68;   // DS3231 RTC I2C address 
-const uint8_t  constSystemRtcEEPROMI2CAddress                   = 0x56;   // DS3231 RTC module may have AT24C32 EEPROM onboard. Use its to save TimeZone
+// Unused at this time
+// const uint8_t  constSystemRtcEEPROMI2CAddress                   = 0x56;   // DS3231 RTC module may have AT24C32 EEPROM onboard. Use its to save TimeZone
 
 
 /* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
