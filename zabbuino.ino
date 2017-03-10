@@ -1531,6 +1531,7 @@ static int16_t executeCommand(char* _dst, char* _optarg[], netconfig_t* _netConf
       }
 #endif // FEATURE_EEPROM_ENABLE
 
+      // unixTimestamp option is given?
       if ('\0' != *_optarg[0] && i) {
         // tzOffset is present and stored sucesfully or just not present
         result = (setUnixTime(constSystemRtcSDAPin, constSystemRtcSCLPin, constSystemRtcI2CAddress, argv[0])) ? RESULT_IS_OK : RESULT_IS_FAIL;
