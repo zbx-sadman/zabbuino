@@ -192,7 +192,6 @@ int8_t getDS18X20Metric(const uint8_t _pin, uint8_t _resolution, char* _id, char
   }
 
   ltoaf(tRaw, _dst, 4);
-
   rc = RESULT_IN_BUFFER;
 
   finish:

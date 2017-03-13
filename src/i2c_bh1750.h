@@ -41,6 +41,6 @@
 *     - DEVICE_ERROR_CONNECT on connection error
 *
 *****************************************************************************************************************************/
-int8_t getBH1750Metric(const uint8_t, const uint8_t, uint8_t, uint8_t, const uint8_t, char*);
+int8_t getBH1750Metric(SoftwareWire*, uint8_t, uint8_t, const uint8_t, char*);
 
 #endif // #ifndef _ZABBUINO_I2C_BH1750_H_

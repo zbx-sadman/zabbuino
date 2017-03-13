@@ -9,7 +9,7 @@
 *     - DEVICE_ERROR_TIMEOUT if sensor do not ready to work
 *
 *****************************************************************************************************************************/
-uint8_t getINA219Metric(const uint8_t _sdaPin, const uint8_t _sclPin, const uint8_t _i2cAddress, const uint8_t _metric, uint8_t _maxVoltage, uint16_t _maxCurrent, char* _dst)
+uint8_t getINA219Metric(SoftwareWire* _softTWI, const uint8_t _i2cAddress, const uint8_t _metric, uint8_t _maxVoltage, uint16_t _maxCurrent, char* _dst)
 {
   int16_t result, calValue, configValue;
   uint8_t value[2];
@@ -125,13 +125,13 @@ uint8_t getINA219Metric(const uint8_t _sdaPin, const uint8_t _sclPin, const uint
       break;
    }
 
-  writeByteToI2C(INA219_I2C_ADDRESS, INA219_REG_CONFIGURATION, configValue);
-  writeByteToI2C(INA219_I2C_ADDRESS, INA219_REG_CALIBRATION, calValue);
+  writeByteToI2C(_softTWI, INA219_I2C_ADDRESS, INA219_REG_CONFIGURATION, configValue);
+  writeByteToI2C(_softTWI, INA219_I2C_ADDRESS, INA219_REG_CALIBRATION, calValue);
  
   // Wait ready bit - CNVR == 1 in Bus Voltage Register
   do {
      delay(10);
-     readBytesFromi2C(INA219_I2C_ADDRESS, INA219_REG_BUS_VOLTAGE, value, 2);
+     readBytesFromi2C(_softTWI, INA219_I2C_ADDRESS, INA219_REG_BUS_VOLTAGE, value, 2);
   } while (!(value[1] & B00000010)); 
 
 
@@ -150,7 +150,7 @@ uint8_t getINA219Metric(const uint8_t _sdaPin, const uint8_t _sclPin, const uint
       break;
    }
 
-  readBytesFromi2C(INA219_I2C_ADDRESS, i2cReg, value, 2);
+  readBytesFromi2C(_softTWI, INA219_I2C_ADDRESS, i2cReg, value, 2);
   result = WireToU16(value);
 
   switch (_metric) {
@@ -169,7 +169,7 @@ uint8_t getINA219Metric(const uint8_t _sdaPin, const uint8_t _sclPin, const uint
       break;
    }
 
-   ltoa(result, _dst, 10);
+  ltoa(result, _dst, 10);
   gatherSystemMetrics(); // Measure memory consumption
   return RESULT_IN_BUFFER;  
 

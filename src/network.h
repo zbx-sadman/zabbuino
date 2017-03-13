@@ -9,15 +9,15 @@
 #include "../basic.h"
 #include "NetworkAddress.h"
 #include "network_hlp.h"
-//#include "tune.h"
+#include "tune.h"
 #include "service.h"
 
 // Include headers for an network module
 #if defined(NETWORK_ETH_WIZNET)
+#include <SPI.h> 
 #include "wiznet/Ethernet.h" 
 #include "wiznet/EthernetServer.h" 
 #include "wiznet/EthernetClient.h" 
-#include <SPI.h> 
 class NetworkClass: public EthernetClass
 {
   private:

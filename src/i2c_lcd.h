@@ -93,7 +93,7 @@
 *     - none
 *
 *****************************************************************************************************************************/
-void sendToLCD(const uint8_t _i2cAddress, const uint8_t _data, const uint8_t _mode);
+void sendToLCD(SoftwareWire* _softTWI, const uint8_t _i2cAddress, const uint8_t _data, const uint8_t _mode);
 
 
 /*****************************************************************************************************************************
@@ -104,7 +104,7 @@ void sendToLCD(const uint8_t _i2cAddress, const uint8_t _data, const uint8_t _mo
 *     - none
 *
 *****************************************************************************************************************************/
-void write4bitsToLCD(const uint8_t _i2cAddress, uint8_t _data);
+void write4bitsToLCD(SoftwareWire* _softTWI, const uint8_t _i2cAddress, uint8_t _data);
 
 /*****************************************************************************************************************************
 *
@@ -114,7 +114,7 @@ void write4bitsToLCD(const uint8_t _i2cAddress, uint8_t _data);
 *     - none
 *
 *****************************************************************************************************************************/
-void pulseEnableOnLCD(const uint8_t _i2cAddress, const uint8_t _data);
+void pulseEnableOnLCD(SoftwareWire* _softTWI, const uint8_t _i2cAddress, const uint8_t _data);
 
 /*****************************************************************************************************************************
 *
@@ -125,6 +125,6 @@ void pulseEnableOnLCD(const uint8_t _i2cAddress, const uint8_t _data);
 *     - DEVICE_ERROR_CONNECT on connection error
 *
 *****************************************************************************************************************************/
-int8_t printToPCF8574LCD(const uint8_t _sdaPin, const uint8_t _sclPin, uint8_t _i2cAddress, uint8_t _lcdBacklight, const uint16_t _lcdType, const char *_src);
+int8_t printToPCF8574LCD(SoftwareWire* _softTWI, uint8_t _i2cAddress, uint8_t _lcdBacklight, const uint16_t _lcdType, const char *_src);
 
 #endif // #ifndef _ZABBUINO_I2C_LCD_H_

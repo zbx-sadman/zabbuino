@@ -1,7 +1,4 @@
 #include "rtc.h"
-#include "i2c_bus.h"
-
-
 
 /*****************************************************************************************************************************
 *
@@ -12,18 +9,10 @@
 *
 *****************************************************************************************************************************/
 //void initRTC(const uint8_t _sdaPin, const uint8_t _sclPin, const uint8_t _rtcI2CAddress, const uint8_t _eepromI2CAddress) {
-void initRTC(const uint8_t _sdaPin, const uint8_t _sclPin, const uint8_t _rtcI2CAddress) {
+void initRTC(SoftwareWire* _softTWI) {
   // Init RTC chip
-  initDS3231(_sdaPin, _sclPin, _rtcI2CAddress);
-/*
-#ifdef FEATURE_SYSTEM_RTC_ONBOARD_EEPROM_ENABLE
-  int16_t tzOffset;
-  //initAT24C32(_sdaPin, _sclPin, _eepromI2CAddress);
-  if (getTZOffset(_sdaPin, _sclPin, _eepromI2CAddress, &tzOffset)) {
-     set_zone(tzOffset); 
-  }
-#endif 
-*/
+  _softTWI->reconfigure(constSystemRtcSDAPin, constSystemRtcSCLPin);
+  initDS3231(_softTWI, constSystemRtcI2CAddress);
 }
    
 /*****************************************************************************************************************************
@@ -37,9 +26,9 @@ void initRTC(const uint8_t _sdaPin, const uint8_t _sclPin, const uint8_t _rtcI2C
 *     - actual timestamp returns in _unixTimestamp
 *
 *****************************************************************************************************************************/
-int8_t getUnixTime(const uint8_t _sdaPin, const uint8_t _sclPin, uint8_t _i2cAddress, uint32_t* _unixTimestamp) {
+int8_t getUnixTime(SoftwareWire* _softTWI, uint32_t* _unixTimestamp) {
   int8_t rc;
-  rc = getY2KTime(_sdaPin, _sclPin, _i2cAddress, (time_t*) _unixTimestamp);
+  rc = getY2KTime(_softTWI, (time_t*) _unixTimestamp);
   *_unixTimestamp += UNIX_OFFSET;
   return rc;
 }
@@ -55,8 +44,9 @@ int8_t getUnixTime(const uint8_t _sdaPin, const uint8_t _sclPin, uint8_t _i2cAdd
 *     - actual timestamp returns in _Y2KTimestamp
 *
 *****************************************************************************************************************************/
-int8_t getY2KTime(const uint8_t _sdaPin, const uint8_t _sclPin, uint8_t _i2cAddress, time_t* _Y2KTimestamp) {
-  return readDS3231Time(_sdaPin, _sclPin, _i2cAddress, (time_t*) _Y2KTimestamp);
+int8_t getY2KTime(SoftwareWire* _softTWI, time_t* _Y2KTimestamp) {
+  _softTWI->reconfigure(constSystemRtcSDAPin, constSystemRtcSCLPin);
+  return readDS3231Time(_softTWI, constSystemRtcI2CAddress, (time_t*) _Y2KTimestamp);
 }
 
 /*****************************************************************************************************************************
@@ -69,8 +59,9 @@ int8_t getY2KTime(const uint8_t _sdaPin, const uint8_t _sclPin, uint8_t _i2cAddr
 *     - DEVICE_ERROR_CONNECT on connection error
 *
 *****************************************************************************************************************************/
-int8_t setUnixTime(const uint8_t _sdaPin, const uint8_t _sclPin, uint8_t _i2cAddress, uint32_t _unixTimestamp) {
-  return saveDS3231Time(_sdaPin, _sclPin, _i2cAddress, (time_t) (_unixTimestamp - UNIX_OFFSET));
+int8_t setUnixTime(SoftwareWire* _softTWI, uint32_t _unixTimestamp) {
+  _softTWI->reconfigure(constSystemRtcSDAPin, constSystemRtcSCLPin);
+  return saveDS3231Time(_softTWI, constSystemRtcI2CAddress, (time_t) (_unixTimestamp - UNIX_OFFSET));
 }
 
 /*****************************************************************************************************************************
@@ -83,8 +74,9 @@ int8_t setUnixTime(const uint8_t _sdaPin, const uint8_t _sclPin, uint8_t _i2cAdd
 *     - DEVICE_ERROR_CONNECT on connection error
 *
 *****************************************************************************************************************************/
-int8_t setY2KTime(const uint8_t _sdaPin, const uint8_t _sclPin, uint8_t _i2cAddress, time_t _Y2KTimestamp) {
-  return saveDS3231Time(_sdaPin, _sclPin, _i2cAddress, _Y2KTimestamp);
+int8_t setY2KTime(SoftwareWire* _softTWI, time_t _Y2KTimestamp) {
+  _softTWI->reconfigure(constSystemRtcSDAPin, constSystemRtcSCLPin);
+  return saveDS3231Time(_softTWI, constSystemRtcI2CAddress, _Y2KTimestamp);
 }
 
 /*****************************************************************************************************************************

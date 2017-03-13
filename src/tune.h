@@ -17,9 +17,27 @@
    #define FEATURE_I2C_RTC_ENABLE
 #endif
 
+#if defined(FEATURE_BMP180_ENABLE)
+   #define FEATURE_BMP_ENABLE
+   #define SUPPORT_BMP180_INCLUDE
+#endif
+
+#if defined(FEATURE_BMP280_ENABLE)
+   #define FEATURE_BMP_ENABLE
+   #define SUPPORT_BMP280_INCLUDE
+#endif
+
+// Enable BMP280 support if need to use BME280, because BME280 is BMP280+Humidity sensor.
+#if defined(FEATURE_BME280_ENABLE)
+   #define FEATURE_BMP_ENABLE
+   #define SUPPORT_BMP280_INCLUDE
+   #define SUPPORT_BME280_INCLUDE
+#endif
+
+
 // Need to use Wire lib if any I2C related feature enabled
 #if defined(FEATURE_I2C_ENABLE) || defined(FEATURE_BMP_ENABLE) || defined(FEATURE_BH1750_ENABLE) || defined (FEATURE_PCF8574_LCD_ENABLE) || defined (FEATURE_SHT2X_ENABLE) || defined (FEATURE_I2C_RTC_ENABLE)
-   #define LIBWIRE_USE
+   #define TWI_USE
 #endif
 
 #if defined(FEATURE_SERIAL_LISTEN_TOO) && !(defined(FEATURE_DEBUG_TO_SERIAL_LOW) || defined(FEATURE_DEBUG_TO_SERIAL_MIDDLE) || defined(FEATURE_DEBUG_TO_SERIAL_HIGH))
@@ -36,10 +54,6 @@
    #define INTERRUPT_USE
 #endif
 
-// Enable BMP280 support if need to use BME280, because BME280 is BMP280+Humidity sensor.
-#if defined(SUPPORT_BME280_INCLUDE)
-   #define SUPPORT_BMP280_INCLUDE
-#endif
 
 // Define I/O ports number to reserve port_protect, port_pullup and other arrays size 
 // see below: const uint8_t port_protect[PORTS_NUM] = {...}
@@ -71,20 +85,21 @@ const uint32_t constBlinkNetworkProblem                        = 500UL;
                                                           SYSTEM HARDWARE SECTION 
 */
 // System display settings
-const uint8_t  constSystemDisplaySDAPin                         = 18;     // SDA - A4
-const uint8_t  constSystemDisplaySCLPin                         = 19;     // SCL - A5
+const uint8_t  constSystemDisplaySDAPin                         = A4;     // SDA - A4
+const uint8_t  constSystemDisplaySCLPin                         = A5;     // SCL - A5
 const uint8_t  constSystemDisplayI2CAddress                     = 0x20;   // I2C interface board address
 const uint8_t  constSystemDisplayBackLight                      = 0x00;   // backlight off
 const uint16_t constSystemDisplayType                           = 1602;   // 16x2 screen, refer to source of printToPCF8574LCD() subroutine
 const uint16_t constSystemDisplayRenewInterval                  = 5000UL; // 5sec
-const uint8_t  constVirtualScreensNum                           = 2;      // Number of report virtual screens
 
 // System RTC module settings (only DS3231 is supported at this time)
-const uint8_t  constSystemRtcSDAPin                             = 18;     // SDA - A4
-const uint8_t  constSystemRtcSCLPin                             = 19;     // SCL - A5
+const uint8_t  constSystemRtcSDAPin                             = A4;     // SDA - A4
+const uint8_t  constSystemRtcSCLPin                             = A5;     // SCL - A5
 const uint8_t  constSystemRtcI2CAddress                         = 0x68;   // DS3231 RTC I2C address 
 // Unused at this time
 // const uint8_t  constSystemRtcEEPROMI2CAddress                   = 0x56;   // DS3231 RTC module may have AT24C32 EEPROM onboard. Use its to save TimeZone
+
+const uint16_t constUserFunctionRunInterval                     = 3000UL; // 3sec
 
 
 /* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-

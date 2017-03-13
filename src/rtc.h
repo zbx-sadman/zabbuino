@@ -2,6 +2,7 @@
 #define _ZABBUINO_I2C_RTC_H_
 
 #include <time.h>
+#include "i2c_bus.h"
 #include "i2c_ds3231.h"
 #include "i2c_at24c32.h"
 
@@ -13,7 +14,7 @@
 *     - 
 *
 *****************************************************************************************************************************/
-void initRTC(const uint8_t, const uint8_t, const uint8_t);
+void initRTC(SoftwareWire*);
 
 /*****************************************************************************************************************************
 *
@@ -26,7 +27,7 @@ void initRTC(const uint8_t, const uint8_t, const uint8_t);
 *     - actual timestamp returns in _unixTimestamp
 *
 *****************************************************************************************************************************/
-int8_t getUnixTime(const uint8_t, const uint8_t, uint8_t, uint32_t*);
+int8_t getUnixTime(SoftwareWire*, uint32_t*);
 
 /*****************************************************************************************************************************
 *
@@ -39,7 +40,7 @@ int8_t getUnixTime(const uint8_t, const uint8_t, uint8_t, uint32_t*);
 *     - actual timestamp returns in _Y2KTimestamp
 *
 *****************************************************************************************************************************/
-int8_t getY2KTime(const uint8_t, const uint8_t, uint8_t, time_t*);
+int8_t getY2KTime(SoftwareWire*, time_t*);
 
 /*****************************************************************************************************************************
 *
@@ -51,7 +52,7 @@ int8_t getY2KTime(const uint8_t, const uint8_t, uint8_t, time_t*);
 *     - DEVICE_ERROR_CONNECT on connection error
 *
 *****************************************************************************************************************************/
-int8_t setUnixTime(const uint8_t, const uint8_t, uint8_t, uint32_t);
+int8_t setUnixTime(SoftwareWire*, uint32_t);
 
 /*****************************************************************************************************************************
 *
@@ -63,7 +64,7 @@ int8_t setUnixTime(const uint8_t, const uint8_t, uint8_t, uint32_t);
 *     - DEVICE_ERROR_CONNECT on connection error
 *
 *****************************************************************************************************************************/
-int8_t setY2KTime(const uint8_t, const uint8_t, uint8_t, time_t);
+int8_t setY2KTime(SoftwareWire*, time_t);
 
 /*****************************************************************************************************************************
 *

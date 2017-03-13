@@ -2,7 +2,10 @@
 #define _ZABBUINO_I2C_BUS_H_
 
 // Wire lib for I2C sensors
-#include <Wire.h>
+//#include <Wire.h>
+//#include "SoftI2CMaster/SoftWire.h"
+#include "SoftwareWire/SoftwareWire.h"
+
 #include "../basic.h"
 #include "tune.h"
 #include "service.h"
@@ -37,7 +40,7 @@
 *     - RESULT_IS_FAIL of no devices found 
 *
 *****************************************************************************************************************************/
-int8_t scanI2C(NetworkClass*);
+int8_t scanI2C(SoftwareWire*, NetworkClass*);
 
 /*****************************************************************************************************************************
 *
@@ -47,7 +50,7 @@ int8_t scanI2C(NetworkClass*);
 *     - writeBytesToI2C()'s result code
 *
 *****************************************************************************************************************************/
-uint8_t writeByteToI2C(const uint8_t _i2cAddress, const int16_t _registerAddress, const uint8_t _src);
+uint8_t writeByteToI2C(SoftwareWire* _softTWI, const uint8_t _i2cAddress, const int16_t _registerAddress, const uint8_t _src);
 
 /*****************************************************************************************************************************
 *
@@ -62,7 +65,7 @@ uint8_t writeByteToI2C(const uint8_t _i2cAddress, const int16_t _registerAddress
 *       4 - other error
 *
 *****************************************************************************************************************************/
-uint8_t writeBytesToI2C(const uint8_t _i2cAddress, const int16_t _registerAddress, const uint8_t *_src, uint8_t _len);
+uint8_t writeBytesToI2C(SoftwareWire* _softTWI, const uint8_t _i2cAddress, const int16_t _registerAddress, const uint8_t *_src, uint8_t _len);
 
 /*****************************************************************************************************************************
 *
@@ -78,7 +81,7 @@ uint8_t writeBytesToI2C(const uint8_t _i2cAddress, const int16_t _registerAddres
 *
 *
 *****************************************************************************************************************************/
-uint8_t readBytesFromi2C(const uint8_t _i2cAddress, const int16_t _registerAddress, uint8_t *_dst, const uint8_t _len);
+uint8_t readBytesFromi2C(SoftwareWire* _softTWI, const uint8_t _i2cAddress, const int16_t _registerAddress, uint8_t *_dst, const uint8_t _len);
 
 /*****************************************************************************************************************************
 *
@@ -94,11 +97,10 @@ uint8_t readBytesFromi2C(const uint8_t _i2cAddress, const int16_t _registerAddre
 *
 *
 *****************************************************************************************************************************/
-uint8_t inline isI2CDeviceReady(uint8_t _i2cAddress)
+uint8_t inline isI2CDeviceReady(SoftwareWire* _softTWI, uint8_t _i2cAddress)
 {
-  //
-  Wire.beginTransmission(_i2cAddress);
-  return (0 == Wire.endTransmission(true));
+  _softTWI->beginTransmission(_i2cAddress);
+  return (0 == _softTWI->endTransmission(true));
 }
 
 #endif // #ifndef _ZABBUINO_I2C_BUS_H_

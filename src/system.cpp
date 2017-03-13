@@ -106,11 +106,11 @@ extern void gatherSystemMetrics(){
   // Correct sys.ram.freemin metric when FreeMem just taken
   //if (sysMetrics[IDX_METRIC_SYS_RAM_FREEMIN] > sysMetrics[IDX_METRIC_SYS_RAM_FREE]) {
   //   sysMetrics[IDX_METRIC_SYS_RAM_FREEMIN] = sysMetrics[IDX_METRIC_SYS_RAM_FREE]; 
-  extern volatile sysmetrics_t sysMetrics1;
-  sysMetrics1.sysRamFree = getRamFree(); 
+  extern volatile sysmetrics_t sysMetrics;
+  sysMetrics.sysRamFree = getRamFree(); 
   // Correct sys.ram.freemin metric when FreeMem just taken
-  if (sysMetrics1.sysRamFreeMin > sysMetrics1.sysRamFree) {
-     sysMetrics1.sysRamFreeMin = sysMetrics1.sysRamFree; 
+  if (sysMetrics.sysRamFreeMin > sysMetrics.sysRamFree) {
+     sysMetrics.sysRamFreeMin = sysMetrics.sysRamFree; 
   }
 
 }

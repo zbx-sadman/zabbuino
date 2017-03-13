@@ -15,7 +15,7 @@
 *     - RESULT_IS_FAIL of no devices found 
 *
 *****************************************************************************************************************************/
-int8_t scanI2C(NetworkClass *_network)
+int8_t scanI2C(SoftwareWire* _softTWI, NetworkClass *_network)
 {
 #if !defined(NETWORK_RS485)
 
@@ -25,13 +25,13 @@ int8_t scanI2C(NetworkClass *_network)
     // The i2c_scanner uses the return value of
     // the Write.endTransmisstion to see if
     // a device did acknowledge to the address.
-    Wire.beginTransmission(i2cAddress);
+    _softTWI->beginTransmission(i2cAddress);
     // 0:success
     // 1:data too long to fit in transmit buffer
     // 2:received NACK on transmit of address
     // 3:received NACK on transmit of data
     // 4:other error
-    if (0 == Wire.endTransmission(true)) {
+    if (0 == _softTWI->endTransmission(true)) {
       numDevices++;
       _network->client.print("0x");
       if (i2cAddress < 0x0F){ _network->client.print("0"); }
@@ -53,9 +53,9 @@ int8_t scanI2C(NetworkClass *_network)
 *
 *****************************************************************************************************************************/
 //#define writeByteToI2C((_i2cAddress), (_registerAddress), (_data)) 
-uint8_t writeByteToI2C(const uint8_t _i2cAddress, const int16_t _registerAddress, const uint8_t _src)
+uint8_t writeByteToI2C(SoftwareWire* _softTWI, const uint8_t _i2cAddress, const int16_t _registerAddress, const uint8_t _src)
 {
-  return writeBytesToI2C(_i2cAddress, _registerAddress, &_src, 1);
+  return writeBytesToI2C(_softTWI, _i2cAddress, _registerAddress, &_src, 1);
 }
 
 
@@ -72,19 +72,21 @@ uint8_t writeByteToI2C(const uint8_t _i2cAddress, const int16_t _registerAddress
 *       4 - other error
 *
 *****************************************************************************************************************************/
-uint8_t writeBytesToI2C(const uint8_t _i2cAddress, const int16_t _registerAddress, const uint8_t *_src, uint8_t _len) 
+uint8_t writeBytesToI2C(SoftwareWire* _softTWI, const uint8_t _i2cAddress, const int16_t _registerAddress, const uint8_t *_src, uint8_t _len) 
 {
-  Wire.beginTransmission(_i2cAddress); // start transmission to device 
+
+  _softTWI->beginTransmission(_i2cAddress); // start transmission to device 
   // registerAddress is 0x00 and above ?
   if (I2C_NO_REG_SPECIFIED < _registerAddress) {
-     Wire.write((uint8_t) _registerAddress); // sends register address to be written
+     _softTWI->write((uint8_t) _registerAddress); // sends register address to be written
   }
   while (_len) {
-    Wire.write(*_src);  // write data
+    _softTWI->write(*_src);  // write data
     _src++;
     _len--;
   }
-  return Wire.endTransmission(true); // end transmission
+  return _softTWI->endTransmission(true); // end transmission
+
 }
 
 /*****************************************************************************************************************************
@@ -101,28 +103,29 @@ uint8_t writeBytesToI2C(const uint8_t _i2cAddress, const int16_t _registerAddres
 *
 *
 *****************************************************************************************************************************/
-uint8_t readBytesFromi2C(const uint8_t _i2cAddress, const int16_t _registerAddress, uint8_t *_dst, uint8_t _len)
+uint8_t readBytesFromi2C(SoftwareWire* _softTWI, const uint8_t _i2cAddress, const int16_t _registerAddress, uint8_t *_dst, uint8_t _len)
 {
     if (!_len) return false;
-    Wire.beginTransmission(_i2cAddress); 	
+    _softTWI->beginTransmission(_i2cAddress);   
     if (I2C_NO_REG_SPECIFIED < _registerAddress) {
-       Wire.write((uint8_t) _registerAddress);
+       _softTWI->write((uint8_t) _registerAddress);
        // No Stop Condition, for repeated Talk
-       Wire.endTransmission(false); 		
+       _softTWI->endTransmission(false);     
     }
 
     uint32_t lastTimeCheck = millis();         
-    Wire.requestFrom(_i2cAddress, _len); 	
-    while(_len && (Wire.available() > 0)) {
+    _softTWI->requestFrom(_i2cAddress, _len);  
+    while(_len && (_softTWI->available() > 0)) {
       // 100 => 0.1 sec timeout
+      // SoftwareWire have protection timeout for 1sec, but error sign is not returned :(
       if ((millis() - lastTimeCheck) > 300UL) {
-         Wire.endTransmission(true);
+         _softTWI->endTransmission(true);
          return false;
       }
-      *_dst = (uint8_t) Wire.read();
+      *_dst = (uint8_t) _softTWI->read();
       _dst++;
       _len--;
     }
     // Stop Condition
-    return Wire.endTransmission(true); 		
+    return _softTWI->endTransmission(true);    
 }

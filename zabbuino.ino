@@ -1,4 +1,4 @@
-/*-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
+  /*-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
                                                                   PROGRAMM FEATURES SECTION
 
     Please refer to the "basic.h" file for enabling or disabling Zabbuino's features and refer to the "src/tune.h" to deep tuning.
@@ -10,14 +10,18 @@
 /*-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
                                                                   GLOBAL VARIABLES SECTION
 */
-// some array items used into timer's interrupt
-// too hard to calculate "enough to non-hung work" ram size if *sysMetrics & sysMetrics = new int32_t[IDX_METRICS_LAST+1] is used
-//volatile int32_t sysMetrics[IDX_METRICS_LAST + 1];
-volatile sysmetrics_t sysMetrics1;
+// some members of struct used in timer's interrupt
+//  1,852 - 1,881 bytes = 29
+volatile sysmetrics_t sysMetrics;
+
+#ifdef TWI_USE
+SoftwareWire SoftTWI(A4, A5);
+#endif
 
 NetworkClass Network;
-
+//
 // global netConfig struct make sketch slimest (~60b)
+// 1,846 - 1,788 = 58
 netconfig_t netConfig;
 
 #ifdef INTERRUPT_USE
@@ -25,21 +29,11 @@ netconfig_t netConfig;
 // EXTERNAL_NUM_INTERRUPTS its a macro from <wiring_private.h>
 volatile extInterrupt_t extInterrupt[EXTERNAL_NUM_INTERRUPTS];
 #endif
+// i2c: 1,985 - 1,846
 
-/*
-  With ATC EEPROM
-  Sketch uses 30,374 bytes (94%) of program storage space. Maximum is 32,256 bytes.
-  Global variables use 1,341 bytes (65%) of dynamic memory, leaving 707 bytes for local variables. Maximum is 2,048 bytes.
-
-W/o ATC EEPROM but with MCU's eeprom
-  
-Sketch uses 31,368 bytes (97%) of program storage space. Maximum is 32,256 bytes.
-Global variables use 1,343 bytes (65%) of dynamic memory, leaving 705 bytes for local variables. Maximum is 2,048 bytes.
-*/
 /*-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
                                                                        STARTUP SECTION
 */
-
 void setup() {
 #ifdef SERIAL_USE
   Serial.begin(constSerialMonitorSpeed);
@@ -47,16 +41,11 @@ void setup() {
 
   DTSL( SerialPrint_P(constZbxAgentVersion); SerialPrintln_P(PSTR(" wakes up")); )
   // memset take less progspace?
-  memset((void*) &sysMetrics1, 0x00, sizeof(sysmetrics_t));
-  //  sysMetrics1.sysCmdCount = sysMetrics1.sysCmdLast = sysMetrics1.sysCmdTimeMax = sysMetrics1.sysCmdTimeMaxN = sysMetrics1.netPHYReinits = 0;
+  memset((void*) &sysMetrics, 0x00, sizeof(sysmetrics_t));
+  //  sysMetrics.sysCmdCount = sysMetrics.sysCmdLast = sysMetrics.sysCmdTimeMax = sysMetrics.sysCmdTimeMaxN = sysMetrics.netPHYReinits = 0;
 
-  sysMetrics1.sysVCCMin = sysMetrics1.sysVCCMax = getADCVoltage(ANALOG_CHAN_VBG);
-  sysMetrics1.sysRamFree = sysMetrics1.sysRamFreeMin = getRamFree();
-
-  //[IDX_METRIC_SYS_VCCMIN] = sysMetrics[IDX_METRIC_SYS_VCCMAX] = getADCVoltage(ANALOG_CHAN_VBG);
-  //sysMetrics[IDX_METRIC_SYS_RAM_FREE] = sysMetrics[IDX_METRIC_SYS_RAM_FREEMIN] = (int32_t) getRamFree();
-  //sysMetrics[IDX_METRIC_SYS_CMD_LAST] = sysMetrics[IDX_METRIC_SYS_CMD_COUNT] = sysMetrics[IDX_METRIC_SYS_CMD_TIMEMAX] = sysMetrics[IDX_METRIC_SYS_CMD_TIMEMAX_N] = 0;
-  //sysMetrics[IDX_METRIC_NET_PHY_REINITS] = 0;
+  sysMetrics.sysVCCMin = sysMetrics.sysVCCMax = getADCVoltage(ANALOG_CHAN_VBG);
+  sysMetrics.sysRamFree = sysMetrics.sysRamFreeMin = getRamFree();
 
   //  uint32_t startSerial = millis();
   /*
@@ -96,7 +85,7 @@ void setup() {
                                                                        GENERAL SECTION
 */
 void loop() {
-  uint8_t i, result, reportVirtualScreenNum,
+  uint8_t i, result, 
           errorCode = ERROR_NONE;
   char incomingData;
   uint16_t blinkType = constBlinkNope;
@@ -106,14 +95,14 @@ void loop() {
   char* optarg[constArgC];
 
   // 0. Init some libs to make system screen works if it enabled
-#ifdef LIBWIRE_USE
-  Wire.begin();
+#ifdef TWI_USE
+  SoftTWI.begin();
 #endif
 #ifdef FEATURE_SYSTEM_RTC_ENABLE
-  initRTC(constSystemRtcSDAPin, constSystemRtcSCLPin, constSystemRtcI2CAddress);
+  initRTC(&SoftTWI);
 #endif
 #ifdef FEATURE_SYSTEM_DISPLAY_ENABLE
-  initStageReportScreen(cBuffer);
+  initStageUserFunction(cBuffer);
 #endif
 
   // System load procedure
@@ -235,7 +224,6 @@ void loop() {
   // Correcting timestamps
   prevPHYCheckTime = prevNetProblemTime = prevSysMetricGatherTime = prevSystemDisplayRenewTime = netDebugPrintTime = clientConnectTime = millis();
 
-  reportVirtualScreenNum = 0;
   // 6. Enter to infinitive loop to serve incoming requests
   //
   // if no exist while() here - netProblemTime must be global or static - its will be 0 every loop() and time-related cases will be processeed abnormally
@@ -255,9 +243,9 @@ void loop() {
 #ifndef GATHER_METRIC_USING_TIMER_INTERRUPT
       gatherSystemMetrics();
 #endif
-      //sysMetrics1.sysVCC = getADCVoltage(ANALOG_CHAN_VBG);
+      //sysMetrics.sysVCC = getADCVoltage(ANALOG_CHAN_VBG);
       // correctVCCMetrics() must be always inline compiled
-      //correctVCCMetrics(sysMetrics1.sysVCC);
+      //correctVCCMetrics(sysMetrics.sysVCC);
       correctVCCMetrics(getADCVoltage(ANALOG_CHAN_VBG));
       prevSysMetricGatherTime = millis();
     }
@@ -302,8 +290,8 @@ void loop() {
         netDebugPrintTime = nowTime;
       }
       if (Network.checkPHY()) {
-        sysMetrics1.netPHYReinits++;
-        DTSL( SerialPrint_P(PSTR("Network module reinit #")); Serial.println(sysMetrics1.netPHYReinits); )
+        sysMetrics.netPHYReinits++;
+        DTSL( SerialPrint_P(PSTR("Network module reinit #")); Serial.println(sysMetrics.netPHYReinits); )
       }
       prevPHYCheckTime = millis();
     }
@@ -332,11 +320,7 @@ void loop() {
           // Change content on physiscal report screen every constRenewSystemDisplayInterval only if no connection exist, because reportToScreen modify cBuffer variable
           // and recieved data will be corrupted
           if (constSystemDisplayRenewInterval <= (uint32_t) (nowTime - prevSystemDisplayRenewTime)) {
-            showReportScreen(cBuffer, reportVirtualScreenNum);
-            reportVirtualScreenNum++;
-            if (constVirtualScreensNum <= reportVirtualScreenNum) {
-              reportVirtualScreenNum = 0;
-            }
+            showReportScreen(cBuffer, REPORT_SCREEN_SHOW_NEXT);
             prevSystemDisplayRenewTime = nowTime;
           }
 #endif // FEATURE_SYSTEM_DISPLAY_ENABLE
@@ -388,17 +372,17 @@ void loop() {
     DTSM( uint32_t ramBefore = getRamFree(); )
     DTSL( Serial.print(cBuffer); SerialPrint_P(PSTR(" => ")); )
     //sysMetrics[IDX_METRIC_SYS_CMD_LAST] = executeCommand(cBuffer, optarg, &netConfig);
-    sysMetrics1.sysCmdLast = executeCommand(cBuffer, optarg, &netConfig);
+    sysMetrics.sysCmdLast = executeCommand(cBuffer, optarg, &netConfig);
 #ifdef FEATURE_REMOTE_COMMANDS_ENABLE
     // When system.run[] command is recieved, need to run another command, which taken from option #0 by cmdIdx() sub
-    if (RESULT_IS_NEW_COMMAND == sysMetrics1.sysCmdLast) {
+    if (RESULT_IS_NEW_COMMAND == sysMetrics.sysCmdLast) {
       int16_t k = 0;
       // simulate command recieving to properly string parsing
       while (analyzeStream(cBuffer[k], cBuffer, optarg, false)) {
         k++;
       }
       DTSL( Serial.print(cBuffer); SerialPrint_P(PSTR(" => ")); )
-      sysMetrics1.sysCmdLast = executeCommand(cBuffer, optarg, &netConfig);
+      sysMetrics.sysCmdLast = executeCommand(cBuffer, optarg, &netConfig);
     }
 #endif
     processEndTime = millis();
@@ -413,9 +397,9 @@ void loop() {
     //      sysMetrics[IDX_METRIC_SYS_CMD_TIMEMAX] = processEndTime;
     //      sysMetrics[IDX_METRIC_SYS_CMD_TIMEMAX_N] = sysMetrics[IDX_METRIC_SYS_CMD_LAST];
     //    }
-    if (sysMetrics1.sysCmdTimeMax < processEndTime) {
-      sysMetrics1.sysCmdTimeMax = processEndTime;
-      sysMetrics1.sysCmdTimeMaxN = sysMetrics1.sysCmdLast;
+    if (sysMetrics.sysCmdTimeMax < processEndTime) {
+      sysMetrics.sysCmdTimeMax = processEndTime;
+      sysMetrics.sysCmdTimeMaxN = sysMetrics.sysCmdLast;
     }
 
     // Wait some time to finishing answer send, close connection, and restart network activity control cycle
@@ -429,7 +413,7 @@ void loop() {
       Serial.read();
     }
 #endif
-    sysMetrics1.sysCmdLastExecTime = prevPHYCheckTime = prevNetProblemTime = millis();
+    sysMetrics.sysCmdLastExecTime = prevPHYCheckTime = prevNetProblemTime = millis();
     blinkType = constBlinkNope;
     errorCode = ERROR_NONE;
   } // while(true)
@@ -441,9 +425,10 @@ void loop() {
 
 **************************************************************************************************************************** */
 static int16_t executeCommand(char* _dst, char* _optarg[], netconfig_t* _netConfig) {
+
   int8_t result;
-  uint8_t i, i2CAddress = 0, i2COption = 0, i2CValue[4], accessGranted = false;
-  int16_t i2CRegister = 0, cmdIdx;
+  uint8_t i, accessGranted = false;
+  int16_t cmdIdx;
   // duration option in the tone[] command is ulong
   //uint32_t argv[constArgC];
   int32_t argv[constArgC];
@@ -456,7 +441,7 @@ static int16_t executeCommand(char* _dst, char* _optarg[], netconfig_t* _netConf
   result = RESULT_IS_FAIL;
   cmdIdx = -1;
   //sysMetrics[IDX_METRIC_SYS_CMD_COUNT]++;
-  sysMetrics1.sysCmdCount++;
+  sysMetrics.sysCmdCount++;
   i = arraySize(commands);
   // Search specified command index in the list of implemented functions
   for (; 0 != i;) {
@@ -466,49 +451,20 @@ static int16_t executeCommand(char* _dst, char* _optarg[], netconfig_t* _netConf
       cmdIdx = i;
       break;
     }
-    /*
-        DTSD( Serial.print(">> # ");  Serial.print(i, HEX); Serial.print(" => "); SerialPrint_P((char*)pgm_read_word(&(commands[i].name))); )
-        DTSD( Serial.print(" >> "); Serial.println(pgm_read_byte(&(commands[i].idx))); )
-        if (0 == strcmp_P(_dst, (char*)pgm_read_word(&(commands[i].name)))) {cmdIdx = pgm_read_byte(&(commands[i].idx)); break;}
-    */
   }
-  // Do nothing if command not found and function not implemented
-  if (0 < cmdIdx) {
-    //DTSM( Serial.print("[1] "); Serial.println(millis()); )
-    DTSM( SerialPrint_P(PSTR("Execute command #")); Serial.print(cmdIdx, HEX); SerialPrint_P(PSTR(" => `")); Serial.print(_dst); Serial.println("`"); )
-
-    // batch convert args to number values
-    for (i = constArgC; 0 != i;) {
-      i--;
-      //argv[i] = ('\0' == *_optarg[i]) ? 0 : strtoul((char*) _optarg[i], NULL, 0);
-      // strtoul return 0 if _optarg[i] eq '\0'
-      //argv[i] = strtoul((char*) _optarg[i], NULL, 0);
-      argv[i] = strtol((char*) _optarg[i], NULL, 0);
-      DTSH(
-        SerialPrint_P(PSTR("argv[")); Serial.print(i); SerialPrint_P(PSTR("] => \""));
-      if ('\0' == *_optarg[i]) {
-      SerialPrint_P(PSTR("<null>"));
-      } else {
-        Serial.print((char*) _optarg[i]);
-      }
-      SerialPrint_P(PSTR("\" => ")); Serial.println(argv[i]);
-      //SerialPrint_P(PSTR(", offset =")); Serial.println(_optarg[i], HEX);
-      )
-    }
-
-    //DTSM( Serial.print("[2] "); Serial.println(millis()); )
-
-    // Check rights for password protected action
-    accessGranted = (!_netConfig->useProtection || (uint32_t) argv[0] == _netConfig->password);
-
-    i2CAddress = (uint8_t) argv[2];
-    i2CRegister = ('\0' != *_optarg[3]) ? (int16_t) argv[3] : I2C_NO_REG_SPECIFIED;
-    // i2COption can be used as 'length', 'bitNumber' or 'data' variable
-    i2COption = (uint8_t) argv[4];
-
-    //DTSM( Serial.print("[3] "); Serial.println(millis()); )
+  
+  // Decremented early increased command counter and got to show result ZBX_NOTSUPPORTED if no suitable command found
+  if (0 > cmdIdx) {
+     sysMetrics.sysCmdCount--;
+     result = ZBX_NOTSUPPORTED;
+     goto finish;
   }
 
+  //DTSM( Serial.print("[1] "); Serial.println(millis()); )
+  DTSM( SerialPrint_P(PSTR("Execute command #")); Serial.print(cmdIdx, HEX); SerialPrint_P(PSTR(" => `")); Serial.print(_dst); Serial.println("`"); )
+
+  // ***************************************************************************************************************
+  // If command have no options - it must be run immedately
   switch (cmdIdx) {
     //  case  CMD_ZBX_NOPE:
     //        break;
@@ -535,6 +491,141 @@ static int16_t executeCommand(char* _dst, char* _optarg[], netconfig_t* _netConf
       result = RESULT_IN_BUFFER;
       break;
 
+    case CMD_SYSTEM_UPTIME:
+      //
+      //  sys.uptime
+      //
+      value = millis() / 1000;
+      result = RESULT_IN_ULONGVAR;
+      break;
+
+#ifdef FEATURE_SYSINFO_ENABLE
+    case CMD_SYSTEM_HW_CHASSIS:
+      //
+      //  system.hw.chassis
+      //
+      strcpy_P(_dst, PSTR(BOARD));
+      result = RESULT_IN_BUFFER;
+      break;
+
+    case CMD_NET_PHY_NAME:
+      //
+      //  sys.net.module
+      //
+      strcpy_P(_dst, PSTR(PHY_MODULE_NAME));
+      result = RESULT_IN_BUFFER;
+      break;
+
+    case CMD_NET_PHY_REINITS:
+      //
+      //  net.phy.reinits
+      //
+      value = sysMetrics.netPHYReinits;
+      result = RESULT_IN_ULONGVAR;
+      break;
+
+    case CMD_SYS_CMD_TIMEMAX_N:
+      //
+      //  sys.cmd.timemax.n
+      //
+      ultoa(sysMetrics.sysCmdTimeMaxN, _dst, 16);
+      result = RESULT_IN_BUFFER;
+
+      break;
+
+    case CMD_SYS_RAM_FREE:
+      //
+      //  sys.ram.free
+      //
+      //  That metric must be collected periodically to avoid returns always same data
+      value = sysMetrics.sysRamFree;
+      result = RESULT_IN_ULONGVAR;
+      break;
+
+    case CMD_SYS_RAM_FREEMIN:
+      //
+      //  sys.ram.freemin
+      //
+      // Without ATOMIC_BLOCK block using sysMetrics[IDX_METRIC_SYS_RAM_FREEMIN] variable can be changed in interrupt on reading
+      ATOMIC_BLOCK(ATOMIC_RESTORESTATE) {
+        value = sysMetrics.sysRamFreeMin;
+      }
+      result = RESULT_IN_ULONGVAR;
+      break;
+#endif
+
+    case CMD_SYS_VCC:
+      //
+      // sys.vcc
+      //
+      // Take VCC
+      value = getADCVoltage(ANALOG_CHAN_VBG);
+      // VCC may be bigger than max or smaller than min.
+      // To avoid wrong results and graphs in monitoring system - correct min/max metrics
+      correctVCCMetrics(value);
+      result = RESULT_IN_ULONGVAR;
+      break;
+
+    case CMD_SYS_VCCMIN:
+      //
+      // sys.vccMin
+      //
+      //value = sysMetrics[IDX_METRIC_SYS_VCCMIN];
+      value = sysMetrics.sysVCCMin;
+      result = RESULT_IN_ULONGVAR;
+      break;
+
+    case CMD_SYS_VCCMAX:
+      //
+      // sys.vccMax
+      //
+      value = sysMetrics.sysVCCMax;
+      result = RESULT_IN_ULONGVAR;
+      break;
+
+#ifdef FEATURE_SYSTEM_RTC_ENABLE
+
+    case CMD_SYSTEM_LOCALTIME:
+      //
+      //  system.localtime
+      //  Zabbix wants UTC as localtime
+      //
+      if (getUnixTime(&SoftTWI, (uint32_t*) &value)) {
+         result = RESULT_IN_ULONGVAR;
+      }
+      break;
+#endif // FEATURE_SYSTEM_RTC_ENABLE
+  }
+
+  // ***************************************************************************************************************
+  // Command with options take more time 
+  // batch convert args to number values
+  for (i = constArgC; 0 != i;) {
+    i--;
+    //argv[i] = ('\0' == *_optarg[i]) ? 0 : strtoul((char*) _optarg[i], NULL, 0);
+    // strtoul return 0 if _optarg[i] eq '\0'
+    //argv[i] = strtoul((char*) _optarg[i], NULL, 0);
+    argv[i] = strtol((char*) _optarg[i], NULL, 0);
+    DTSH(
+      SerialPrint_P(PSTR("argv[")); Serial.print(i); SerialPrint_P(PSTR("] => \""));
+      if ('\0' == *_optarg[i]) {
+         SerialPrint_P(PSTR("<null>"));
+      } else {
+         Serial.print((char*) _optarg[i]);
+      }
+      SerialPrint_P(PSTR("\" => ")); Serial.println(argv[i]);
+    //SerialPrint_P(PSTR(", offset =")); Serial.println(_optarg[i], HEX);
+    )
+  }
+
+  //DTSM( Serial.print("[2] "); Serial.println(millis()); )
+
+  // Check rights for password protected action
+  accessGranted = (!_netConfig->useProtection || (uint32_t) argv[0] == _netConfig->password);
+
+  //DTSM( Serial.print("[3] "); Serial.println(millis()); )
+
+  switch (cmdIdx) {
 #ifdef FEATURE_REMOTE_COMMANDS_ENABLE
     case CMD_SYSTEM_RUN:
       //
@@ -555,23 +646,6 @@ static int16_t executeCommand(char* _dst, char* _optarg[], netconfig_t* _netConf
       return RESULT_IS_NEW_COMMAND;
       break;
 #endif
-
-    case CMD_SYSTEM_UPTIME:
-      //
-      //  sys.uptime
-      //
-      value = millis() / 1000;
-      result = RESULT_IN_ULONGVAR;
-      break;
-
-    case CMD_NET_PHY_REINITS:
-      //
-      //  net.phy.reinits
-      //
-      //      value = sysMetrics[IDX_METRIC_NET_PHY_REINITS];
-      value = sysMetrics1.netPHYReinits;
-      result = RESULT_IN_ULONGVAR;
-      break;
 
     case CMD_ARDUINO_ANALOGWRITE:
       //
@@ -678,8 +752,8 @@ static int16_t executeCommand(char* _dst, char* _optarg[], netconfig_t* _netConf
       if (! isSafePin(argv[0])) {
         break;
       }
-      result = RESULT_IS_OK;
       noTone(argv[0]);
+      result = RESULT_IS_OK;
       break;
 
 #endif
@@ -781,12 +855,11 @@ static int16_t executeCommand(char* _dst, char* _optarg[], netconfig_t* _netConf
       memcpy(_netConfig->macAddress, &mac, arraySize(_netConfig->macAddress));
       // If string to which point _optarg[3] can be converted to valid NetworkAddress - just do it.
       // Otherwize (string can not be converted) _netConfig->ipAddress will stay untouched;
-      success = (success) ? (strToNetworkAddress((char*) _optarg[3], &(_netConfig->ipAddress))) : false;
-      success = (success) ? (strToNetworkAddress((char*) _optarg[4], &(_netConfig->ipNetmask))) : false;
-      success = (success) ? (strToNetworkAddress((char*) _optarg[5], &(_netConfig->ipGateway))) : false;
-      // if any convert operation failed - read config back to netConfig & stop store process
+      success = (success) ? (strToNetworkAddress((char*) _optarg[3], &_netConfig->ipAddress)) : false;
+      success = (success) ? (strToNetworkAddress((char*) _optarg[4], &_netConfig->ipNetmask)) : false;
+      success = (success) ? (strToNetworkAddress((char*) _optarg[5], &_netConfig->ipGateway)) : false;
+      // if any convert operation failed - stop store process
       if (!success) {
-        result = loadConfigFromEEPROM(_netConfig);
         break;
       }
       // Save config to EEPROM on success
@@ -880,51 +953,14 @@ static int16_t executeCommand(char* _dst, char* _optarg[], netconfig_t* _netConf
       result = RESULT_IN_BUFFER;
       break;
 
-    case CMD_SYSTEM_HW_CHASSIS:
-      //
-      //  system.hw.chassis
-      //
-      strcpy_P(_dst, PSTR(BOARD));
-      result = RESULT_IN_BUFFER;
-      break;
-
-    /*
-        case CMD_SYS_MCU_ID:
-          //
-          //  sys.mcu.id
-          //
-          // Read 10 bytes with step 1 (0x0E..0x17) of the signature row <= http://www.avrfreaks.net/forum/unique-id-atmega328pb
-          getBootSignatureBytes(_dst, 0x0E, 10, 1);
-          result = RESULT_IN_BUFFER;
-          break;
-
-        case CMD_SYS_MCU_SIGN:
-          //
-          //  sys.mcu.sign
-          //
-          // Read 3 bytes with step 2 (0x00, 0x02, 0x04) of the signature row <= http://www.avrfreaks.net/forum/device-signatures
-          getBootSignatureBytes(_dst, 0x00, 3, 2);
-          result = RESULT_IN_BUFFER;
-          break;
-    */
-    case CMD_NET_PHY_NAME:
-      //
-      //  sys.net.module
-      //
-      strcpy_P(_dst, PSTR(PHY_MODULE_NAME));
-      result = RESULT_IN_BUFFER;
-      break;
-
     case CMD_SYS_CMD_COUNT:
       //
       //  sys.cmd.count
       //
       if (argv[0]) {
-        //sysMetrics[IDX_METRIC_SYS_CMD_COUNT] = 0;
-        sysMetrics1.sysCmdCount = 0;
+        sysMetrics.sysCmdCount = 0;
       }
-      //value = sysMetrics[IDX_METRIC_SYS_CMD_COUNT];
-      value = sysMetrics1.sysCmdCount;
+      value = sysMetrics.sysCmdCount;
       result = RESULT_IN_ULONGVAR;
       break;
 
@@ -933,80 +969,16 @@ static int16_t executeCommand(char* _dst, char* _optarg[], netconfig_t* _netConf
       //  sys.cmd.timemax[resetCounter]
       //
       if (*_optarg[0]) {
-        sysMetrics1.sysCmdTimeMax = sysMetrics1.sysCmdTimeMaxN = 0;
+        sysMetrics.sysCmdTimeMax = sysMetrics.sysCmdTimeMaxN = 0;
         //sysMetrics[IDX_METRIC_SYS_CMD_TIMEMAX] = 0;
         //sysMetrics[IDX_METRIC_SYS_CMD_TIMEMAX_N] = 0;
       }
       //value = sysMetrics[IDX_METRIC_SYS_CMD_TIMEMAX];
-      value = sysMetrics1.sysCmdTimeMax;
+      value = sysMetrics.sysCmdTimeMax;
       result = RESULT_IN_ULONGVAR;
       break;
 
-    case CMD_SYS_CMD_TIMEMAX_N:
-      //
-      //  sys.cmd.timemax.n
-      //
-      //value = sysMetrics[IDX_METRIC_SYS_CMD_TIMEMAX_N];
-      //value = sysMetrics1.sysCmdTimeMaxN;
-      //Network.client.println(value, HEX);
-      //result = RESULT_IS_PRINTED;
-      ultoa(sysMetrics1.sysCmdTimeMaxN, _dst, 16);
-      result = RESULT_IN_BUFFER;
-
-      break;
-
-    case CMD_SYS_RAM_FREE:
-      //
-      //  sys.ram.free
-      //
-      //  That metric must be collected periodically to avoid returns always same data
-      //value = sysMetrics[IDX_METRIC_SYS_RAM_FREE];
-      value = sysMetrics1.sysRamFree;
-      result = RESULT_IN_ULONGVAR;
-      break;
-
-    case CMD_SYS_RAM_FREEMIN:
-      //
-      //  sys.ram.freemin
-      //
-      // Without ATOMIC_BLOCK block using sysMetrics[IDX_METRIC_SYS_RAM_FREEMIN] variable can be changed in interrupt on reading
-      ATOMIC_BLOCK(ATOMIC_RESTORESTATE) {
-        //value = sysMetrics[IDX_METRIC_SYS_RAM_FREEMIN];
-        value = sysMetrics1.sysRamFreeMin;
-      }
-      result = RESULT_IN_ULONGVAR;
-      break;
-#endif
-
-    case CMD_SYS_VCC:
-      //
-      // sys.vcc
-      //
-      // Take VCC
-      value = getADCVoltage(ANALOG_CHAN_VBG);
-      // VCC may be bigger than max or smaller than min.
-      // To avoid wrong results and graphs in monitoring system - correct min/max metrics
-      correctVCCMetrics(value);
-      result = RESULT_IN_ULONGVAR;
-      break;
-
-    case CMD_SYS_VCCMIN:
-      //
-      // sys.vccMin
-      //
-      //value = sysMetrics[IDX_METRIC_SYS_VCCMIN];
-      value = sysMetrics1.sysVCCMin;
-      result = RESULT_IN_ULONGVAR;
-      break;
-
-    case CMD_SYS_VCCMAX:
-      //
-      // sys.vccMax
-      //
-      //value = sysMetrics[IDX_METRIC_SYS_VCCMAX];
-      value = sysMetrics1.sysVCCMax;
-      result = RESULT_IN_ULONGVAR;
-      break;
+#endif // FEATURE_SYSINFO_ENABLE
 
 #ifdef FEATURE_EXTERNAL_INTERRUPT_ENABLE
     case CMD_EXTINT_COUNT:
@@ -1023,19 +995,6 @@ static int16_t executeCommand(char* _dst, char* _optarg[], netconfig_t* _netConf
 
 #endif // FEATURE_EXTERNAL_INTERRUPT_ENABLE
 
-#ifdef FEATURE_INCREMENTAL_ENCODER_ENABLE
-    case CMD_INCENC_VALUE:
-      //
-      //  incEnc.value[terminalAPin, terminalBPin, initialValue]
-      //
-      if (! isSafePin(argv[0]) || ! isSafePin(argv[1])) {
-        break;
-      }
-      // argv[3] (intNumber) currently not used
-      result = manageIncEnc(&value, argv[0], argv[1], argv[2]);
-      break;
-#endif // FEATURE_INCREMENTAL_ENCODER_ENABLE
-
 #ifdef FEATURE_OW_ENABLE
     case CMD_OW_SCAN:
       //
@@ -1048,130 +1007,6 @@ static int16_t executeCommand(char* _dst, char* _optarg[], netconfig_t* _netConf
       break;
 #endif // FEATURE_ONEWIRE_ENABLE
 
-#ifdef FEATURE_I2C_ENABLE
-    case CMD_I2C_SCAN:
-      //
-      //  I2C.scan[sdaPin, sclPin]
-      //
-      if (! isSafePin(argv[0]) || ! isSafePin(argv[1])) {
-        break;
-      }
-      result = scanI2C(&Network);
-      break;
-
-    case CMD_I2C_WRITE:
-      //
-      // i2c.write(sdaPin, sclPin, i2cAddress, register, data, numBytes)
-      //
-      if (!isSafePin(argv[0]) || !isSafePin(argv[1])) {
-        break;
-      }
-      // i2COption used as 'data'
-      argv[5] = constrain(argv[5], 1, 4);
-      i = argv[5];
-      while (i) {
-        i--;
-        i2CValue[i] = argv[4] & 0xFF;
-        argv[4] = argv[4] >> 8;
-      }
-      result = writeBytesToI2C(i2CAddress, i2CRegister, i2CValue, argv[5]);
-      result = (0 == result) ? RESULT_IS_OK : RESULT_IS_FAIL;
-      break;
-
-    case CMD_I2C_READ:
-      //
-      // i2c.read(sdaPin, sclPin, i2cAddress, register, length, numberOfReadings)
-      //
-      if (!isSafePin(argv[0]) || !isSafePin(argv[1])) {
-        break;
-      }
-
-      // i2COption used as 'length' - how much bytes must be read: 0..4 byte
-      i2COption = constrain(i2COption, 1, 4);
-      // numberOfReadings parameter is not specified. Do once reading only
-      // Otherwise make ahead reading for re-run sensor conversion to flush old data
-      if ('\0' == *_optarg[5]) {
-        argv[5] = 1;
-      } else {
-        // Just discard result
-        readBytesFromi2C(i2CAddress, i2CRegister, i2CValue, i2COption);
-      }
-      // One reading at least must be done
-      if (1 > argv[5]) {
-        argv[5] = 1;
-      }
-
-      uint8_t readNumber;
-      int32_t accResult, tmpResult;
-
-      readNumber = argv[5]; accResult = 0;
-
-      // Will be RESULT_IS_FAIL if readBytesFromi2C() not returns 0
-      result = RESULT_IS_OK;
-      while (readNumber) {
-        readNumber--;
-        delayMicroseconds(constAdcStabilizationDelay);
-        if (0 != readBytesFromi2C(i2CAddress, i2CRegister, i2CValue, i2COption)) {
-          result = RESULT_IS_FAIL;
-          break;
-        }
-        // make int32 from i2C's bytes
-        tmpResult = 0;
-        for (i = 0; i < i2COption; i++) {
-          tmpResult <<= 8;
-          tmpResult |= i2CValue[i];
-        }
-        accResult += tmpResult;
-      }
-
-      if (RESULT_IS_FAIL != result) {
-        value = (accResult / argv[5]);
-        result = RESULT_IN_LONGVAR;
-      }
-      break;
-
-    case CMD_I2C_BITWRITE:
-      //
-      //  i2c.bitWrite(sdaPin, sclPin, i2cAddress, register, bitNumber, value)
-      //
-      if (!isSafePin(argv[0]) || !isSafePin(argv[1])) {
-        break;
-      }
-
-      // i2COption used as 'bit number'
-      if (0 > i2COption || 7 < i2COption) {
-        result = RESULT_IS_FAIL;
-        break;
-      }
-      // Use device's register if specified, read 1 byte
-      result = readBytesFromi2C(i2CAddress, i2CRegister, i2CValue, 1);
-      // "!!" convert value 0100 to 1.
-      bitWrite (i2CValue[0], i2COption, (!!argv[5]));
-      // Use device's register if specified, write 1 byte, returns Wire lib state
-      result = writeByteToI2C(i2CAddress, i2CRegister, i2CValue[0]);
-      result = (0 == result) ? RESULT_IS_OK : RESULT_IS_FAIL;
-      break;
-
-    case CMD_I2C_BITREAD:
-      //
-      //  i2c.bitRead(sdaPin, sclPin, i2cAddress, register, bit)
-      //
-      if (!isSafePin(argv[0]) || !isSafePin(argv[1])) {
-        break;
-      }
-      // i2COption used as 'bit number'
-      if (0 > i2COption || 7 < i2COption) {
-        break;
-      }
-      // Use device's register if specified, read 1 byte
-      result = readBytesFromi2C(i2CAddress, i2CRegister, i2CValue, 1);
-      if (0 == result) {
-        break ;
-      }
-      value = bitRead(i2CValue[0], i2COption);
-      result = RESULT_IN_ULONGVAR;
-      break;
-#endif // FEATURE_I2C_ENABLE
 
 #ifdef FEATURE_DS18X20_ENABLE
     case CMD_DS18X20_TEMPERATURE:
@@ -1179,6 +1014,7 @@ static int16_t executeCommand(char* _dst, char* _optarg[], netconfig_t* _netConf
       //  DS18x20.temperature[pin, resolution, id]
       //
       if (! isSafePin(argv[0])) {
+        result = DEVICE_ERROR_CONNECT;
         break;
       }
       result = getDS18X20Metric(argv[0], argv[1], _optarg[2], _dst);
@@ -1191,6 +1027,7 @@ static int16_t executeCommand(char* _dst, char* _optarg[], netconfig_t* _netConf
       //  DHT.humidity[pin, model]
       //
       if (! isSafePin(argv[0])) {
+        result = DEVICE_ERROR_CONNECT;
         break;
       }
       result = getDHTMetric(argv[0], argv[1], SENS_READ_HUMD, _dst);
@@ -1201,62 +1038,13 @@ static int16_t executeCommand(char* _dst, char* _optarg[], netconfig_t* _netConf
       //  DHT.temperature[pin, model]
       //
       if (! isSafePin(argv[0])) {
+        result = DEVICE_ERROR_CONNECT;
         break;
       }
       result = getDHTMetric(argv[0], argv[1], SENS_READ_TEMP, _dst);
       break;
 
 #endif // FEATURE_DHT_ENABLE
-
-#ifdef FEATURE_BMP_ENABLE
-    case CMD_BMP_PRESSURE:
-      //
-      //  BMP.Pressure[sdaPin, sclPin, i2cAddress, overSampling, filterCoef]
-      //
-      if (!isSafePin(argv[0]) || !isSafePin(argv[1])) {
-        break;
-      }
-      // (uint8_t) argv[2] is i2c address, 7 bytes size
-      result = getBMPMetric(argv[0], argv[1], i2CAddress, argv[3], argv[4], SENS_READ_PRSS, _dst);
-      break;
-
-    case CMD_BMP_TEMPERATURE:
-      //
-      // BMP.Temperature[sdaPin, sclPin, i2cAddress, overSampling]
-      //
-      if (!isSafePin(argv[0]) || !isSafePin(argv[1])) {
-        break;
-      }
-      // (uint8_t) argv[2] is i2c address, 7 bytes size
-      result = getBMPMetric(argv[0], argv[1], i2CAddress, argv[3], argv[4], SENS_READ_TEMP, _dst);
-      break;
-
-#ifdef SUPPORT_BME280_INCLUDE
-    case CMD_BME_HUMIDITY:
-      //
-      //  BME.Humidity[sdaPin, sclPin, i2cAddress, overSampling, filterCoef]
-      //
-      if (!isSafePin(argv[0]) || !isSafePin(argv[1])) {
-        break;
-      }
-      // (uint8_t) argv[2] is i2c address, 7 bytes size
-      result = getBMPMetric(argv[0], argv[1], i2CAddress, argv[3], argv[4], SENS_READ_HUMD, _dst);
-      break;
-#endif // SUPPORT_BME280_INCLUDE 
-#endif // FEATURE_BMP_ENABLE  
-
-#ifdef FEATURE_BH1750_ENABLE
-    case CMD_BH1750_LIGHT:
-      //
-      //  BH1750.light[sdaPin, sclPin, i2cAddress, mode]
-      //
-      if (!isSafePin(argv[0]) || !isSafePin(argv[1])) {
-        break;
-      }
-      // (uint8_t) argv[2] is i2c address, 7 bytes size
-      result = getBH1750Metric(argv[0], argv[1], i2CAddress, argv[3], SENS_READ_LUX, _dst);
-      break;
-#endif // FEATURE_BH1750_ENABLE
 
 #ifdef FEATURE_MAX7219_ENABLE
     case CMD_MAX7219_WRITE:
@@ -1271,42 +1059,6 @@ static int16_t executeCommand(char* _dst, char* _optarg[], netconfig_t* _netConf
       break;
 #endif // FEATURE_MAX7219_ENABLE
 
-#ifdef FEATURE_PCF8574_LCD_ENABLE
-    case CMD_PCF8574_LCDPRINT:
-      //
-      //  PCF8574.LCDPrint[sdaPin, sclPin, i2cAddress, lcdBacklight, lcdType, data]
-      //
-      if (!isSafePin(argv[0]) || !isSafePin(argv[1])) {
-        break;
-      }
-      result = printToPCF8574LCD(argv[0], argv[1], i2CAddress, argv[3], argv[4], _optarg[5]);
-      break;
-
-#endif // FEATURE_PCF8574_LCD_ENABLE
-
-#ifdef FEATURE_SHT2X_ENABLE
-    case CMD_SHT2X_HUMIDITY:
-      //
-      //  SHT2X.Humidity[sdaPin, sclPin, i2cAddress]
-      //
-      if (!isSafePin(argv[0]) || !isSafePin(argv[1])) {
-        break;
-      }
-      // (uint8_t) argv[2] is i2c address, 7 bytes size
-      result = getSHT2XMetric(argv[0], argv[1], i2CAddress, SENS_READ_HUMD, _dst);
-      break;
-
-    case CMD_SHT2X_TEMPERATURE:
-      //
-      //  SHT2X.Temperature[sdaPin, sclPin, i2cAddress]
-      //
-      if (!isSafePin(argv[0]) || !isSafePin(argv[1])) {
-        break;
-      }
-      // (uint8_t) argv[2] is i2c address, 7 bytes size
-      result = getSHT2XMetric(argv[0], argv[1], i2CAddress, SENS_READ_TEMP, _dst);
-      break;
-#endif // FEATURE_SHT2X_ENABLE  
 
 #ifdef FEATURE_ACS7XX_ENABLE
     case CMD_ACS7XX_ZC:
@@ -1316,16 +1068,16 @@ static int16_t executeCommand(char* _dst, char* _optarg[], netconfig_t* _netConf
       if (!isSafePin(argv[0])) {
         break;
       }
-      /*
-         for ATmega1280, ATmega2560, ATmega1284, ATmega1284P, ATmega644, ATmega644A, ATmega644P, ATmega644PA
-            INTERNAL1V1   2  - 1,1V
-            INTERNAL2V56   3  - 2,56V
-         ATmega328 and so
-            INTERNAL   3  - 1,1V
-         Both
-            DEFAULT          1  - VCC
-            EXTERNAL   0  - AREF << mV on AREF, more than '3'
-      */
+      //
+      //   for ATmega1280, ATmega2560, ATmega1284, ATmega1284P, ATmega644, ATmega644A, ATmega644P, ATmega644PA
+      //      INTERNAL1V1   2  - 1,1V
+      //      INTERNAL2V56   3  - 2,56V
+      //   ATmega328 and so
+      //      INTERNAL   3  - 1,1V
+      //   Both
+      //      DEFAULT          1  - VCC
+      //      EXTERNAL   0  - AREF << mV on AREF, more than '3'
+
       // if refVoltage skipped - use DEFAULT source
       if ('\0' != *_optarg[1]) {
         argv[1] = DEFAULT;
@@ -1363,19 +1115,6 @@ static int16_t executeCommand(char* _dst, char* _optarg[], netconfig_t* _netConf
 
 #endif // FEATURE_ACS7XX_ENABLE
 
-#ifdef FEATURE_ULTRASONIC_ENABLE
-    case CMD_ULTRASONIC_DISTANCE:
-      //
-      //  ultrasonic.distance[triggerPin, echoPin]
-      //
-      if (!isSafePin(argv[0]) || !isSafePin(argv[1])) {
-        break;
-      }
-      value = getUltrasonicMetric(argv[0], argv[1]);
-      result = RESULT_IN_ULONGVAR;
-      break;
-#endif // FEATURE_ULTRASONIC_ENABLE
-
 #ifdef FEATURE_IR_ENABLE
     case CMD_IR_SEND:
       //
@@ -1404,173 +1143,354 @@ static int16_t executeCommand(char* _dst, char* _optarg[], netconfig_t* _netConf
       //     }
       break;
 #endif // FEATURE_IR_ENABLE
-
-#ifdef FEATURE_PZEM004_ENABLE
-    //
-    //  0x0101A8C0 - an IP address for PZEM (192.168.1.1)
-    //
-    case CMD_PZEM004_CURRENT:
-      //
-      //  pzem004.current[rxPin, txPin, ip]
-      //
-      if (!isSafePin(argv[0]) || !isSafePin(argv[1])) {
-        break;
-      }
-      // _dst cast to (uint8_t*) to use with subroutine math and SoftwareSerial subs, because used instead sub's internal buffer and save a little RAM size.
-      // Its will be casted to char* inside at moment when its need
-      result = getPZEM004Metric(argv[0], argv[1], SENS_READ_AC, _optarg[2], (uint8_t*) _dst);
-      break;
-    case CMD_PZEM004_VOLTAGE:
-      //
-      //  pzem004.voltage[rxPin, txPin, ip]
-      //
-      if (!isSafePin(argv[0]) || !isSafePin(argv[1])) {
-        break;
-      }
-      result = getPZEM004Metric(argv[0], argv[1], SENS_READ_VOLTAGE, _optarg[2], (uint8_t*) _dst);
-      break;
-    case CMD_PZEM004_POWER:
-      //
-      //  pzem004.power[rxPin, txPin, ip]
-      //
-      if (!isSafePin(argv[0]) || !isSafePin(argv[1])) {
-        break;
-      }
-      result = getPZEM004Metric(argv[0], argv[1], SENS_READ_POWER, _optarg[2], (uint8_t*) _dst);
-      break;
-    case CMD_PZEM004_ENERGY:
-      //
-      //  pzem004.energy[rxPin, txPin, ip]
-      //
-      if (!isSafePin(argv[0]) || !isSafePin(argv[1])) {
-        break;
-      }
-      result = getPZEM004Metric(argv[0], argv[1], SENS_READ_ENERGY, _optarg[2], (uint8_t*) _dst);
-      break;
-#endif // FEATURE_PZEM004_ENABLE
-
-#ifdef FEATURE_UPS_APCSMART_ENABLE
-
-    case CMD_UPS_APCSMART:
-      //
-      //  ups.apcsmart[rxPin, txPin, command]
-      //    command - HEX or ASCII
-      //
-      if (!isSafePin(argv[0]) || !isSafePin(argv[1])) {
-        break;
-      }
-      result = getAPCSmartUPSMetric(argv[0], argv[1], (uint8_t*) _optarg[2], (uint8_t*) _dst);
-      break;
-#endif // FEATURE_UPS_APCSMART_ENABLE
-
-#ifdef FEATURE_UPS_MEGATEC_ENABLE
-    case CMD_UPS_MEGATEC:
-      //
-      //  ups.megatec[rxPin, txPin, command, fieldNumber]
-      //    command - HEX or ASCII
-      //
-      if (!isSafePin(argv[0]) || !isSafePin(argv[1])) {
-        break;
-      }
-      result = getMegatecUPSMetric(argv[0], argv[1], (uint8_t*) _optarg[2], argv[3], (uint8_t*) _dst);
-      break;
-#endif // FEATURE_UPS_APCSMART_ENABLE
-
-#ifdef FEATURE_INA219_ENABLE
-    case CMD_INA219_BUSVOLTAGE:
-      //
-      //  INA219.BusVoltage[sdaPin, sclPin, i2cAddress, maxVoltage, maxCurrent]
-      //
-      if (!isSafePin(argv[0]) || !isSafePin(argv[1])) {
-        break;
-      }
-      result = getINA219Metric(argv[0], argv[1], i2CAddress, SENS_READ_BUS_VOLTAGE, argv[3], argv[4], _dst);
-      break;
-
-    case CMD_INA219_CURRENT:
-      //
-      //  INA219.Current[sdaPin, sclPin, i2cAddress, maxVoltage, maxCurrent]
-      //
-      if (!isSafePin(argv[0]) || !isSafePin(argv[1])) {
-        break;
-      }
-      result = getINA219Metric(argv[0], argv[1], i2CAddress, SENS_READ_DC, argv[3], argv[4], _dst);
-      break;
-
-    case CMD_INA219_POWER:
-      //
-      //  INA219.Power[sdaPin, sclPin, i2cAddress, maxVoltage, maxCurrent]
-      //
-      if (!isSafePin(argv[0]) || !isSafePin(argv[1])) {
-        break;
-      }
-      result = getINA219Metric(argv[0], argv[1], i2CAddress, SENS_READ_POWER, argv[3], argv[4], _dst);
-      break;
-
-#endif // FEATURE_INA219_ENABLE
-
-#ifdef FEATURE_SYSTEM_RTC_ENABLE
-    case CMD_SET_LOCALTIME:
-      //
-      //  set.localtime[unixTimestamp, tzOffset]
-      //  set.localtime must take unixTimestamp as UTC, because system.localtime command returns UTC too
-      //
-      // if (!isSafePin(argv[0]) || !isSafePin(argv[1])) { break; }
-      // i used as succes bool variable
-      i = true;
-#ifdef FEATURE_EEPROM_ENABLE
-      // tzOffset is defined?
-      if ('\0' != *_optarg[1]) {
-         _netConfig->tzOffset = (int16_t) argv[1];
-         // Save config to EEPROM
-         i = saveConfigToEEPROM(_netConfig);
-         if (i) { 
-            set_zone(_netConfig->tzOffset); 
-            result = RESULT_IS_OK;
-          }        
-      }
-#endif // FEATURE_EEPROM_ENABLE
-
-      // unixTimestamp option is given?
-      if ('\0' != *_optarg[0] && i) {
-        // tzOffset is present and stored sucesfully or just not present
-        result = (setUnixTime(constSystemRtcSDAPin, constSystemRtcSCLPin, constSystemRtcI2CAddress, argv[0])) ? RESULT_IS_OK : RESULT_IS_FAIL;
-        //result = sysRTC.setUnixTime(argv[0]);
-      }
-      break;
-
-    case CMD_SYSTEM_LOCALTIME:
-      //
-      //  system.localtime
-      //  Zabbix wants UTC as localtime
-      //
-      // if (!isSafePin(argv[0]) || !isSafePin(argv[1])) { break; }
-      if (getUnixTime(constSystemRtcSDAPin, constSystemRtcSCLPin, constSystemRtcI2CAddress, (uint32_t*) &value)) {
-        result = RESULT_IN_ULONGVAR;
-      } ;
-      break;
-
-#endif // FEATURE_SYSTEM_RTC_ENABLE
-
     default:
-      // Early increased command counter is decremented
-      //sysMetrics[IDX_METRIC_SYS_CMD_COUNT]--;
-      sysMetrics1.sysCmdCount--;
-      // In default case command  is considered unknown.
-      strcpy_P(_dst, PSTR((MSG_ZBX_NOTSUPPORTED)));
-      result = RESULT_IN_BUFFER;
-      break;
-  }
 
+      // ************************************************************************************************************************************
+      // Following commands use <argv[0]> or <argv[1]> pins for sensor handling (UART, I2C, etc) and these pins can be disabled in port_protect[] array
+      //  Otherwise - processing is failed
+      if (! isSafePin(argv[0]) || ! isSafePin(argv[1])) {
+         result = RESULT_IS_FAIL;
+         goto finish;
+      }
+    
+      // ************************************************************************************************************************************
+      // Non-I2C related commands block
+      // 
+      switch (cmdIdx) {
+#ifdef FEATURE_INCREMENTAL_ENCODER_ENABLE
+        case CMD_INCENC_VALUE:
+          //
+          //  incEnc.value[terminalAPin, terminalBPin, initialValue]
+          //
+          // argv[3] (intNumber) currently not used
+          result = manageIncEnc(&value, argv[0], argv[1], argv[2]);
+          break;
+#endif // FEATURE_INCREMENTAL_ENCODER_ENABLE
+    
+#ifdef FEATURE_ULTRASONIC_ENABLE
+        case CMD_ULTRASONIC_DISTANCE:
+          //
+          //  ultrasonic.distance[triggerPin, echoPin]
+          //
+          value = getUltrasonicMetric(argv[0], argv[1]);
+          result = RESULT_IN_ULONGVAR;
+          break;
+#endif // FEATURE_ULTRASONIC_ENABLE
+    
+#ifdef FEATURE_PZEM004_ENABLE
+          //
+          //  0x0101A8C0 - an IP address for PZEM (192.168.1.1)
+          //
+        case CMD_PZEM004_CURRENT:
+          //
+          //  pzem004.current[rxPin, txPin, ip]
+          //
+          // _dst cast to (uint8_t*) to use with subroutine math and SoftwareSerial subs, because used instead sub's internal buffer and save a little RAM size.
+          // Its will be casted to char* inside at moment when its need
+          result = getPZEM004Metric(argv[0], argv[1], SENS_READ_AC, _optarg[2], (uint8_t*) _dst);
+          break;
+        case CMD_PZEM004_VOLTAGE:
+          //
+          //  pzem004.voltage[rxPin, txPin, ip]
+          //
+          result = getPZEM004Metric(argv[0], argv[1], SENS_READ_VOLTAGE, _optarg[2], (uint8_t*) _dst);
+          break;
+        case CMD_PZEM004_POWER:
+          //
+          //  pzem004.power[rxPin, txPin, ip]
+          //
+          result = getPZEM004Metric(argv[0], argv[1], SENS_READ_POWER, _optarg[2], (uint8_t*) _dst);
+          break;
+        case CMD_PZEM004_ENERGY:
+          //
+          //  pzem004.energy[rxPin, txPin, ip]
+          //
+          result = getPZEM004Metric(argv[0], argv[1], SENS_READ_ENERGY, _optarg[2], (uint8_t*) _dst);
+          break;
+#endif // FEATURE_PZEM004_ENABLE
+    
+#ifdef FEATURE_UPS_APCSMART_ENABLE
+    
+        case CMD_UPS_APCSMART:
+          //
+          //  ups.apcsmart[rxPin, txPin, command]
+          //    command - HEX or ASCII
+          //
+          result = getAPCSmartUPSMetric(argv[0], argv[1], (uint8_t*) _optarg[2], (uint8_t*) _dst);
+          break;
+#endif // FEATURE_UPS_APCSMART_ENABLE
+    
+#ifdef FEATURE_UPS_MEGATEC_ENABLE
+        case CMD_UPS_MEGATEC:
+          //
+          //  ups.megatec[rxPin, txPin, command, fieldNumber]
+          //    command - HEX or ASCII
+          //
+          result = getMegatecUPSMetric(argv[0], argv[1], (uint8_t*) _optarg[2], argv[3], (uint8_t*) _dst);
+          break;
+#endif // FEATURE_UPS_APCSMART_ENABLE
+        default:
+          break;   
+      } // switch (cmdIdx) Non-I2C related commands block
+       
+      // ************************************************************************************************************************************
+      //  I2C-related commands have additional processing
+#ifdef TWI_USE
+      // Otherwise - TWI interface can be reconfigured with new pins
+      SoftTWI.reconfigure(argv[0], argv[1]);
+    
+      uint8_t i2CAddress, i2COption, i2CValue[4];
+      int16_t i2CRegister;
+      
+      i2CAddress = (uint8_t) argv[2];
+      // i2COption can be used as 'length', 'bitNumber' or 'data' variable
+      i2COption  = (uint8_t) argv[4], 
+      i2CRegister = ('\0' != *_optarg[3]) ? (int16_t) argv[3] : I2C_NO_REG_SPECIFIED;
+    
+      switch (cmdIdx) {
+#ifdef FEATURE_I2C_ENABLE
+        case CMD_I2C_SCAN:
+          //
+          //  I2C.scan[sdaPin, sclPin]
+          //
+          result = scanI2C(&SoftTWI, &Network);
+          break;
+    
+        case CMD_I2C_WRITE:
+          //
+          // i2c.write(sdaPin, sclPin, i2cAddress, register, data, numBytes)
+          //
+          // i2COption used as 'data'
+          argv[5] = constrain(argv[5], 1, 4);
+          i = argv[5];
+          while (i) {
+            i--;
+            i2CValue[i] = argv[4] & 0xFF;
+            argv[4] = argv[4] >> 8;
+          }
+          result = writeBytesToI2C(&SoftTWI, i2CAddress, i2CRegister, i2CValue, argv[5]);
+          result = (0 == result) ? RESULT_IS_OK : RESULT_IS_FAIL;
+          break;
+    
+       case CMD_I2C_READ:
+         //
+         // i2c.read(sdaPin, sclPin, i2cAddress, register, length, numberOfReadings)
+         //
+         // i2COption used as 'length' - how much bytes must be read: 0..4 byte
+         i2COption = constrain(i2COption, 1, 4);
+         // numberOfReadings parameter is not specified. Do once reading only
+         // Otherwise make ahead reading for re-run sensor conversion to flush old data
+         if ('\0' == *_optarg[5]) {
+           argv[5] = 1;
+         } else {
+           // Just discard result
+           readBytesFromi2C(&SoftTWI, i2CAddress, i2CRegister, i2CValue, i2COption);
+         }
+         // One reading at least must be done
+         if (1 > argv[5]) {
+           argv[5] = 1;
+         }
+   
+         uint8_t readNumber;
+         int32_t accResult, tmpResult;
+   
+         readNumber = argv[5]; accResult = 0;
+   
+         // Will be RESULT_IS_FAIL if readBytesFromi2C() not returns 0
+         result = RESULT_IS_OK;
+         while (readNumber) {
+           readNumber--;
+           delayMicroseconds(constAdcStabilizationDelay);
+           if (0 != readBytesFromi2C(&SoftTWI, i2CAddress, i2CRegister, i2CValue, i2COption)) {
+             result = RESULT_IS_FAIL;
+             break;
+           }
+           // make int32 from i2C's bytes
+           tmpResult = 0;
+           for (i = 0; i < i2COption; i++) {
+             tmpResult <<= 8;
+             tmpResult |= i2CValue[i];
+           }
+           accResult += tmpResult;
+         }
+   
+         if (RESULT_IS_FAIL != result) {
+           value = (accResult / argv[5]);
+           result = RESULT_IN_LONGVAR;
+         }
+         break;
+   
+       case CMD_I2C_BITWRITE:
+         //
+         //  i2c.bitWrite(sdaPin, sclPin, i2cAddress, register, bitNumber, value)
+         //
+         // i2COption used as 'bit number'
+         if (0 > i2COption || 7 < i2COption) {
+           result = RESULT_IS_FAIL;
+           break;
+         }
+         // Use device's register if specified, read 1 byte
+         result = readBytesFromi2C(&SoftTWI, i2CAddress, i2CRegister, i2CValue, 1);
+         // "!!" convert value 0100 to 1.
+         bitWrite (i2CValue[0], i2COption, (!!argv[5]));
+         // Use device's register if specified, write 1 byte, returns Wire lib state
+         result = writeByteToI2C(&SoftTWI, i2CAddress, i2CRegister, i2CValue[0]);
+         result = (0 == result) ? RESULT_IS_OK : RESULT_IS_FAIL;
+         break;
+   
+       case CMD_I2C_BITREAD:
+         //
+         //  i2c.bitRead(sdaPin, sclPin, i2cAddress, register, bit)
+         //
+         // i2COption used as 'bit number'
+         if (0 > i2COption || 7 < i2COption) {
+           break;
+         }
+         // Use device's register if specified, read 1 byte
+         result = readBytesFromi2C(&SoftTWI, i2CAddress, i2CRegister, i2CValue, 1);
+         if (0 == result) {
+           break ;
+         }
+         value = bitRead(i2CValue[0], i2COption);
+         result = RESULT_IN_ULONGVAR;
+         break;
+#endif // FEATURE_I2C_ENABLE
 
-  // Form the output buffer routine
-  // DTS( Serial.print("[4] "); Serial.println(millis()); )
-  // The result is not printed or already placed in the buffer
-  if (RESULT_IS_PRINTED != result) {
-    switch (result) {
-      case RESULT_IN_BUFFER:
-        break;
-      case RESULT_IS_OK:
+#ifdef FEATURE_BMP_ENABLE
+        case CMD_BMP_PRESSURE:
+          //
+          //  BMP.Pressure[sdaPin, sclPin, i2cAddress, overSampling, filterCoef]
+          //
+          // (uint8_t) argv[2] is i2c address, 7 bytes size
+          result = getBMPMetric(&SoftTWI, i2CAddress, argv[3], argv[4], SENS_READ_PRSS, _dst);
+          break;
+    
+        case CMD_BMP_TEMPERATURE:
+          //
+          // BMP.Temperature[sdaPin, sclPin, i2cAddress, overSampling]
+          //
+          // (uint8_t) argv[2] is i2c address, 7 bytes size
+          result = getBMPMetric(&SoftTWI, i2CAddress, argv[3], argv[4], SENS_READ_TEMP, _dst);
+          break;
+    
+#ifdef SUPPORT_BME280_INCLUDE
+        case CMD_BME_HUMIDITY:
+          //
+          //  BME.Humidity[sdaPin, sclPin, i2cAddress, overSampling, filterCoef]
+          //
+          // (uint8_t) argv[2] is i2c address, 7 bytes size
+          result = getBMPMetric(&SoftTWI, i2CAddress, argv[3], argv[4], SENS_READ_HUMD, _dst);
+          break;
+#endif // SUPPORT_BME280_INCLUDE 
+#endif // FEATURE_BMP_ENABLE  
+    
+#ifdef FEATURE_BH1750_ENABLE
+        case CMD_BH1750_LIGHT:
+          //
+          //  BH1750.light[sdaPin, sclPin, i2cAddress, mode]
+          //
+          // (uint8_t) argv[2] is i2c address, 7 bytes size
+          result = getBH1750Metric(&SoftTWI, i2CAddress, argv[3], SENS_READ_LUX, _dst);
+          break;
+#endif // FEATURE_BH1750_ENABLE
+    
+#ifdef FEATURE_INA219_ENABLE
+        case CMD_INA219_BUSVOLTAGE:
+          //
+          //  INA219.BusVoltage[sdaPin, sclPin, i2cAddress, maxVoltage, maxCurrent]
+          //
+          result = getINA219Metric(&SoftTWI, i2CAddress, SENS_READ_BUS_VOLTAGE, argv[3], argv[4], _dst);
+          break;
+    
+        case CMD_INA219_CURRENT:
+          //
+          //  INA219.Current[sdaPin, sclPin, i2cAddress, maxVoltage, maxCurrent]
+          //
+          result = getINA219Metric(&SoftTWI, i2CAddress, SENS_READ_DC, argv[3], argv[4], _dst);
+          break;
+    
+        case CMD_INA219_POWER:
+          //
+          //  INA219.Power[sdaPin, sclPin, i2cAddress, maxVoltage, maxCurrent]
+          //
+          result = getINA219Metric(&SoftTWI, i2CAddress, SENS_READ_POWER, argv[3], argv[4], _dst);
+          break;
+    
+#endif // FEATURE_INA219_ENABLE
+    
+#ifdef FEATURE_PCF8574_LCD_ENABLE
+        case CMD_PCF8574_LCDPRINT:
+         //
+         //  PCF8574.LCDPrint[sdaPin, sclPin, i2cAddress, lcdBacklight, lcdType, data]
+         //
+         result = printToPCF8574LCD(&SoftTWI, i2CAddress, argv[3], argv[4], _optarg[5]);
+         break;
+   
+#endif // FEATURE_PCF8574_LCD_ENABLE
+    
+#ifdef FEATURE_SHT2X_ENABLE
+        case CMD_SHT2X_HUMIDITY:
+          //
+          //  SHT2X.Humidity[sdaPin, sclPin, i2cAddress]
+          //
+          // (uint8_t) argv[2] is i2c address, 7 bytes size
+          result = getSHT2XMetric(&SoftTWI, i2CAddress, SENS_READ_HUMD, _dst);
+          break;
+    
+        case CMD_SHT2X_TEMPERATURE:
+          //
+          //  SHT2X.Temperature[sdaPin, sclPin, i2cAddress]
+          //
+          // (uint8_t) argv[2] is i2c address, 7 bytes size
+          result = getSHT2XMetric(&SoftTWI, i2CAddress, SENS_READ_TEMP, _dst);
+          break;
+#endif // FEATURE_SHT2X_ENABLE  
+    
+#ifdef FEATURE_SYSTEM_RTC_ENABLE
+        case CMD_SET_LOCALTIME:
+          //
+          //  set.localtime[unixTimestamp, tzOffset]
+          //  set.localtime must take unixTimestamp as UTC, because system.localtime command returns UTC too
+          //
+          // if (!isSafePin(argv[0]) || !isSafePin(argv[1])) { break; }
+          // i used as succes bool variable
+          i = true;
+#ifdef FEATURE_EEPROM_ENABLE
+          // tzOffset is defined?
+          if ('\0' != *_optarg[1]) {
+             _netConfig->tzOffset = (int16_t) argv[1];
+             // Save config to EEPROM
+             i = saveConfigToEEPROM(_netConfig);
+             if (i) { 
+                set_zone(_netConfig->tzOffset); 
+                result = RESULT_IS_OK;
+              }        
+          }
+#endif // FEATURE_EEPROM_ENABLE
+    
+          // unixTimestamp option is given?
+          if ('\0' != *_optarg[0] && i) {
+            // tzOffset is present and stored sucesfully or just not present
+            result = setUnixTime(&SoftTWI, argv[0]) ? RESULT_IS_OK : RESULT_IS_FAIL;
+            //result = sysRTC.setUnixTime(argv[0]);
+          }
+          break;
+#endif // FEATURE_SYSTEM_RTC_ENABLE
+      }  // switch (cmdIdx), I2C block
+#endif // TWI_USE
+   } // switch (cmdIdx) .. default in "commands with options" block
+ 
+   finish:
+   // Form the output buffer routine
+   // DTS( Serial.print("[4] "); Serial.println(millis()); )
+   // The result is not printed or already placed in the buffer
+   //Serial.print("result: "); Serial.print(result, HEX); Serial.println();
+   
+   if (RESULT_IS_PRINTED != result) {
+     switch (result) {
+       case RESULT_IN_BUFFER:
+         break;
+       case RESULT_IS_OK:
         //  '1' must be returned
         _dst[0] = '1';
         _dst[1] = '\0';
@@ -1615,6 +1535,9 @@ static int16_t executeCommand(char* _dst, char* _optarg[], netconfig_t* _netConf
       case DEVICE_ERROR_EEPROM_CORRUPTED:
         strcpy_P(_dst, PSTR((MSG_DEVICE_ERROR_EEPROM)));
         break;
+      case ZBX_NOTSUPPORTED:
+        strcpy_P(_dst, PSTR((MSG_ZBX_NOTSUPPORTED)));
+        break;
       default:
         // otherwise subroutine return unexpected value, need to check its source code
         strcpy_P(_dst, PSTR("Unexpected retcode"));
@@ -1627,6 +1550,7 @@ static int16_t executeCommand(char* _dst, char* _optarg[], netconfig_t* _netConf
   }
   DTSL( Serial.println(_dst); )
   //   DTSM( Serial.print("[5] "); Serial.println(millis()); )
+
   return cmdIdx;
 }
 

@@ -70,11 +70,6 @@
 /*/
 //#define FEATURE_SYSTEM_RTC_ENABLE
 
-/*/ 
-/=/      Use RTC onboard AT24C32 EEPROM to save timezone
-/=/      Refer to SYSTEM HARDWARE SECTION in src\tune.h
-/*/
-//#define FEATURE_SYSTEM_RTC_ONBOARD_EEPROM_ENABLE
 
 /*/ 
 /=/      Enable command: 
@@ -174,32 +169,25 @@
 #define FEATURE_I2C_ENABLE
 
 /*/ 
-/=/     Enable BOSCH BMP sensors handling and commands:
+/=/     Enable BOSCH BMP180 sensors handling and commands:
 /=/       - BMP.Pressure[];
 /=/       - BMP.Temperature[]
 /=/ 
-/=/     Note: See below to specify BMP model
-/=/
 /*/
-#define FEATURE_BMP_ENABLE
+#define FEATURE_BMP180_ENABLE
 
 /*/ 
-/=/     BMP180 / BMP085
-/*/
-#define SUPPORT_BMP180_INCLUDE
+/=/     Enable BOSCH BMP280 sensors handling 
+/*/ 
+// #define FEATURE_BMP280_ENABLE
 
 /*/ 
-/=/     BMP280
-/*/
-//#define SUPPORT_BMP280_INCLUDE
-
-/*/ 
-/=/     BME280 and enable command:
+/=/     Enable BOSCH BME280 sensors handling and enable additional command
 /=/       - BME.Humidity[]
 /=/
 /=/     Note: BME280 is BMP280+Humidity sensor. Temperature and pressure is can be taken with BMP.Temperature[] / BMP.Pressure[] commands
 /*/
-//#define SUPPORT_BME280_INCLUDE
+//#define FEATURE_BME280_ENABLE
 
 /*/ 
 /=/     Enable ROHM BH1750 ambient light sensor handling and command:

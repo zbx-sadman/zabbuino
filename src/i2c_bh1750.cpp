@@ -11,7 +11,7 @@
 *     - DEVICE_ERROR_CONNECT on connection error
 *
 *****************************************************************************************************************************/
-int8_t getBH1750Metric(const uint8_t _sdaPin, const uint8_t _sclPin, uint8_t _i2cAddress, uint8_t _mode, const uint8_t _metric, char *_dst)
+int8_t getBH1750Metric(SoftwareWire* _softTWI, uint8_t _i2cAddress, uint8_t _mode, const uint8_t _metric, char *_dst)
 {
   int8_t rc = RESULT_IS_FAIL;
   uint8_t readingNum, 
@@ -22,7 +22,7 @@ int8_t getBH1750Metric(const uint8_t _sdaPin, const uint8_t _sclPin, uint8_t _i2
   uint32_t result;
 
   //  int32_t ;
-  if (!isI2CDeviceReady(_i2cAddress)) { rc = DEVICE_ERROR_CONNECT; goto finish; }
+  if (!isI2CDeviceReady(_softTWI, _i2cAddress)) { rc = DEVICE_ERROR_CONNECT; goto finish; }
 
 
   switch (_mode) {
@@ -52,14 +52,14 @@ int8_t getBH1750Metric(const uint8_t _sdaPin, const uint8_t _sclPin, uint8_t _i2
     readingNum--;
     // Wake up, sensor!
     // It going sleep after One-Time measurement 
-    if (0x00 != writeByteToI2C(_i2cAddress, I2C_NO_REG_SPECIFIED, BH1750_CMD_POWERON)) { goto finish; }
+    if (0x00 != writeByteToI2C(_softTWI, _i2cAddress, I2C_NO_REG_SPECIFIED, BH1750_CMD_POWERON)) { goto finish; }
     //delay(10);
     // Start convertation
-    if (0x00 != writeByteToI2C(_i2cAddress, I2C_NO_REG_SPECIFIED, _mode)) { goto finish; }
+    if (0x00 != writeByteToI2C(_softTWI, _i2cAddress, I2C_NO_REG_SPECIFIED, _mode)) { goto finish; }
     // Wait to complete covertation round
     delay(convertTime);
     // Read data
-    if (0x00 != readBytesFromi2C(_i2cAddress, I2C_NO_REG_SPECIFIED, (uint8_t*) _dst, 2)) { goto finish; }
+    if (0x00 != readBytesFromi2C(_softTWI, _i2cAddress, I2C_NO_REG_SPECIFIED, value, 2)) { goto finish; }
 //    if (0x00 != readBytesFromi2C(_i2cAddress, I2C_NO_REG_SPECIFIED, value, 2)) { goto finish; }
   }
 /*
@@ -68,7 +68,7 @@ int8_t getBH1750Metric(const uint8_t _sdaPin, const uint8_t _sclPin, uint8_t _i2
    Serial.print("_dst[1]");
    Serial.println((uint8_t) _dst[1], BIN);
 */
-   result = WireToU16(_dst);
+   result = WireToU16(value);
    //result = WireToU16(value);
 
   if (SENS_READ_RAW == _metric) {

@@ -802,16 +802,17 @@ typedef enum {
 
 // Error Codes
 //#define DEVICE_DISCONNECTED_C         	-127
-#define DEVICE_ERROR_CONNECT                                    -0x01
-#define DEVICE_ERROR_ACK_L                                      -0x02
-#define DEVICE_ERROR_ACK_H                                      -0x04
-#define DEVICE_ERROR_CHECKSUM                                   -0x08
-#define DEVICE_ERROR_TIMEOUT                                    -0x10
-#define DEVICE_ERROR_WRONG_ID                                   -0x20
-#define DEVICE_ERROR_NOT_SUPPORTED                              -0x30
-#define DEVICE_ERROR_WRONG_ANSWER                               -0x40
-#define DEVICE_ERROR_EEPROM_CORRUPTED                           -0x50
 
+#define ZBX_NOTSUPPORTED                                        -0x01
+#define DEVICE_ERROR_CONNECT                                    -0x02
+#define DEVICE_ERROR_ACK_L                                      -0x04
+#define DEVICE_ERROR_ACK_H                                      -0x08
+#define DEVICE_ERROR_CHECKSUM                                   -0x10
+#define DEVICE_ERROR_TIMEOUT                                    -0x20
+#define DEVICE_ERROR_WRONG_ID                                   -0x30
+#define DEVICE_ERROR_NOT_SUPPORTED                              -0x40
+#define DEVICE_ERROR_WRONG_ANSWER                               -0x50
+#define DEVICE_ERROR_EEPROM_CORRUPTED                           -0x60
 /*
 ADC channels 
 
@@ -848,6 +849,8 @@ ADC channels
 
 #define NO_REINIT_ANALYZER                                      false
 #define REINIT_ANALYZER                                         true
+
+#define REPORT_SCREEN_SHOW_NEXT                                 -0x01
 
 
 #endif // _ZABBUINO_STRUCTS_H_

@@ -104,7 +104,8 @@ inline uint8_t haveHexPrefix(const char *_src) { return (_src[0] == '0' && _src[
 *  Return "Free" memory size
 *
 **************************************************************************************************************************** */
-inline __attribute__((always_inline)) uint32_t getRamFree(void) {
+//inline __attribute__((always_inline)) uint32_t getRamFree(void) {
+inline uint32_t getRamFree(void) {
   extern uint16_t __heap_start, *__brkval;
   uint16_t v;
   return (uint32_t) &v - (__brkval == 0 ? (uint32_t) &__heap_start : (uint32_t) __brkval);
@@ -118,12 +119,9 @@ inline __attribute__((always_inline)) uint32_t getRamFree(void) {
 // __attribute__((always_inline)) 
 inline void correctVCCMetrics(uint32_t _currVCC) {
   // Global variable from outside
-  //extern volatile int32_t sysMetrics[];
-  //if ((uint32_t) sysMetrics[IDX_METRIC_SYS_VCCMIN] > _currVCC) { sysMetrics[IDX_METRIC_SYS_VCCMIN] = _currVCC; }
-  //if ((uint32_t) sysMetrics[IDX_METRIC_SYS_VCCMAX] < _currVCC) { sysMetrics[IDX_METRIC_SYS_VCCMAX] = _currVCC; }
-  extern volatile sysmetrics_t sysMetrics1;
-  if (sysMetrics1.sysVCCMin > _currVCC) { sysMetrics1.sysVCCMin = _currVCC; }
-  if (sysMetrics1.sysVCCMax < _currVCC) { sysMetrics1.sysVCCMax = _currVCC; }
+  extern volatile sysmetrics_t sysMetrics;
+  if (sysMetrics.sysVCCMin > _currVCC) { sysMetrics.sysVCCMin = _currVCC; }
+  if (sysMetrics.sysVCCMax < _currVCC) { sysMetrics.sysVCCMax = _currVCC; }
 }
 
 #ifdef FEATURE_DEBUG_TO_SERIAL_HIGH

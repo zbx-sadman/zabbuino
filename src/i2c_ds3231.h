@@ -57,7 +57,7 @@ Based on https://github.com/Makuna/Rtc/
 *     - DEVICE_ERROR_CONNECT on connection error
 *
 *****************************************************************************************************************************/
-int8_t initDS3231(const uint8_t, const uint8_t, const uint8_t);
+int8_t initDS3231(SoftwareWire*, const uint8_t);
 
 /*****************************************************************************************************************************
 *
@@ -68,7 +68,7 @@ int8_t initDS3231(const uint8_t, const uint8_t, const uint8_t);
 *     - False otherwise
 *
 *****************************************************************************************************************************/
-static uint8_t isDS3231Running(const uint8_t);
+static uint8_t isDS3231Running(SoftwareWire*, const uint8_t);
 
 /*****************************************************************************************************************************
 *
@@ -78,7 +78,7 @@ static uint8_t isDS3231Running(const uint8_t);
 *     - 
 *
 *****************************************************************************************************************************/
-static void setDS3231RunningState(const uint8_t, uint8_t);
+static void setDS3231RunningState(SoftwareWire*, const uint8_t, uint8_t);
 
 
 /*****************************************************************************************************************************
@@ -90,7 +90,7 @@ static void setDS3231RunningState(const uint8_t, uint8_t);
 *     - False otherwise
 *
 *****************************************************************************************************************************/
-static uint8_t isDS3231DateTimeValid(const uint8_t);
+static uint8_t isDS3231DateTimeValid(SoftwareWire*, const uint8_t);
 
 /*****************************************************************************************************************************
 *
@@ -102,7 +102,7 @@ static uint8_t isDS3231DateTimeValid(const uint8_t);
 *     - DEVICE_ERROR_CONNECT on connection error
 *
 *****************************************************************************************************************************/
-int8_t saveDS3231Time(const uint8_t, const uint8_t, uint8_t, time_t);
+int8_t saveDS3231Time(SoftwareWire*, uint8_t, time_t);
 
 /*****************************************************************************************************************************
 *
@@ -115,7 +115,7 @@ int8_t saveDS3231Time(const uint8_t, const uint8_t, uint8_t, time_t);
 *     - actual timestamp returns in _timestamp 
 *
 *****************************************************************************************************************************/
-int8_t readDS3231Time(const uint8_t, const uint8_t, uint8_t, time_t*);
+int8_t readDS3231Time(SoftwareWire*, uint8_t, time_t*);
 
 /*****************************************************************************************************************************
 *

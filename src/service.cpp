@@ -18,7 +18,6 @@ void setConfigDefaults(netconfig_t *_configStruct)
   _configStruct->ipGateway = NetworkAddress(NET_DEFAULT_GATEWAY);
   _configStruct->password  = constSysDefaultPassword;
   _configStruct->useProtection = constSysDefaultProtection;
-  _configStruct->tzOffset = constTZOffset;
   
 #ifdef FEATURE_NET_USE_MCUID
   // if FEATURE_NET_USE_MCUID is defined:
@@ -49,7 +48,6 @@ void setConfigDefaults(netconfig_t *_configStruct)
   _configStruct->hostname[sizeof(ZBX_AGENT_DEFAULT_HOSTNAME)+sizeof(ZBX_AGENT_DEFAULT_DOMAIN)+1]='\0';
 #endif
 }
-
 /*****************************************************************************************************************************
 *
 *   Convert _Qm.n_ float number (int64_t) to char[] 
@@ -73,7 +71,6 @@ void qtoaf(const int64_t _number, char *_dst, uint8_t _fracBits){
     ltoa(tmp, _dst, 10);
     return; 
 }
-
 
 /*****************************************************************************************************************************
 *
@@ -182,7 +179,6 @@ uint8_t dallas_crc8(const uint8_t *_src, uint8_t _len)
   }
   return crc;
 }
-
 /*****************************************************************************************************************************
 *
 *  Print string stored in PROGMEM to Serial 
@@ -193,7 +189,6 @@ void SerialPrint_P (const char *_src) {
   while ((currChar = pgm_read_byte(_src++)) != 0)
   Serial.print(currChar);
 }
-
 /*****************************************************************************************************************************
 *
 *  Print string stored in PROGMEM to Serial + Line Feed
@@ -204,12 +199,12 @@ void SerialPrintln_P (const char *_src) {
   Serial.println();
 }
 
-
 /*****************************************************************************************************************************
 *
 *  Print array to Serial as MAC or IP or other string with sign-separated parts
 *
 *****************************************************************************************************************************/
+
 void printArray(uint8_t *_src, uint8_t _len, const uint8_t _type)
 {
   char separator;
@@ -254,7 +249,7 @@ uint8_t strToNetworkAddress(const char* _src, NetworkAddress* _dstAddress) {
   return true;
 }
 
-/* ****************************************************************************************************************************
+/*****************************************************************************************************************************
 
    Stream analyzing subroutine
    Detect Zabbix packets, on-fly spit incoming stream to command & arguments
