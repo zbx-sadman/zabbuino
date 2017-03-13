@@ -32,25 +32,6 @@
                                                          PROGRAMM STRUCTURES SECTION 
 */
 
-/*
-typedef struct {
-  char * const name;
-  uint8_t const idx;
-} command_t;
-
-#define IDX_METRIC_SYS_CMD_COUNT                                0
-#define IDX_METRIC_SYS_CMD_LAST                                 1
-#define IDX_METRIC_SYS_CMD_TIMEMAX                              2
-#define IDX_METRIC_SYS_CMD_TIMEMAX_N                            3
-
-#define IDX_METRIC_SYS_VCC                                      4
-#define IDX_METRIC_SYS_VCCMIN                                   5
-#define IDX_METRIC_SYS_VCCMAX                                   6
-#define IDX_METRIC_SYS_RAM_FREE                                 7
-#define IDX_METRIC_SYS_RAM_FREEMIN                              8
-#define IDX_METRIC_SYS_PHY_REINITS                              9
-*/
-
 // Note: netconfig_t size must be no more ___uint8_t___ bytes, because readConfig()'s read cycle use uint8_t counter. 
 // Change the index's variable type if bigger size need
 #pragma pack(push,1)
@@ -204,8 +185,11 @@ typedef struct {                                  // 9 bytes:
 #define CMD_SET_LOCALTIME                                       0x46
 #define CMD_SYSTEM_LOCALTIME                                    0x47
 
+#define CMD_AT24CXX_WRITE                                       0x48
+#define CMD_AT24CXX_READ                                        0x49
 
-// add new command as "const char command_<COMMAND_MACRO> PROGMEM". Only 'const' push string to PROGMEM. Tanx, Arduino.
+
+// add new command as "const char command_<COMMAND_MACRO> PROGMEM". Only 'const' push string to PROGMEM. Tanx, Arduino & AVR.
 // command_* values must be in lower case due analyze sub convert all chars to lower
 const char command_CMD_ZBX_NOPE[]                               PROGMEM = "\1";
 const char command_CMD_ZBX_AGENT_PING[]                         PROGMEM = "agent.ping";
@@ -308,6 +292,10 @@ const char command_CMD_UPS_MEGATEC[]                            PROGMEM = "ups.m
 const char command_CMD_INA219_BUSVOLTAGE[]                      PROGMEM = "ina219.busvoltage";
 const char command_CMD_INA219_CURRENT[]                         PROGMEM = "ina219.current";
 const char command_CMD_INA219_POWER[]                           PROGMEM = "ina219.power";
+
+const char command_CMD_AT24CXX_WRITE[]                          PROGMEM = "at24cxx.write";
+const char command_CMD_AT24CXX_READ[]                           PROGMEM = "at24cxx.read";
+
 
 // do not insert new command to any position without syncing indexes. Tanx, Arduino and AVR, for this method of string array pushing to PROGMEM
 // ~300 bytes of PROGMEM space can be saved with crazy "#ifdef-#else-#endif" dance
@@ -559,6 +547,15 @@ command_CMD_SYSTEM_RUN,
   command_CMD_ZBX_NOPE,
   command_CMD_ZBX_NOPE,
 #endif
+
+#ifdef FEATURE_AT24CXX_ENABLE
+  command_CMD_AT24CXX_WRITE,
+  command_CMD_AT24CXX_READ,
+#else
+  command_CMD_ZBX_NOPE,
+  command_CMD_ZBX_NOPE,
+#endif
+
 };
 
 /*
@@ -731,22 +728,6 @@ command_t const commands[] PROGMEM = {
                                                            VARIOUS DEFINES SECTION 
 */
 
-/*
-#define IDX_METRICS_LAST                                        9
-#define IDX_METRICS_FIRST_CRONNED                               3
-
-#define IDX_METRIC_SYS_CMD_COUNT                                0
-#define IDX_METRIC_SYS_CMD_LAST                                 1
-#define IDX_METRIC_SYS_CMD_TIMEMAX                              2
-#define IDX_METRIC_SYS_CMD_TIMEMAX_N                            3
-
-#define IDX_METRIC_SYS_VCC                                      4
-#define IDX_METRIC_SYS_VCCMIN                                   5
-#define IDX_METRIC_SYS_VCCMAX                                   6
-#define IDX_METRIC_SYS_RAM_FREE                                 7
-#define IDX_METRIC_SYS_RAM_FREEMIN                              8
-#define IDX_METRIC_NET_PHY_REINITS                              9
-*/
 // Zabbix v2.x header prefix ('ZBXD\x01')
 #define ZBX_HEADER_PREFIX                                       "zbxd\1"
 // sizeof() returns wrong result -> 6
@@ -757,7 +738,7 @@ command_t const commands[] PROGMEM = {
 /*
 
 Enum take more progspace on compilation that macro :(
-Why? All sources tell me thah enum is preprocessor feature. May be its 16-bit width or so?
+Why? All sources tell me thah enum is preprocessor feature. May be it use 16-bit width of ptr's or so?
 
 typedef enum {
    SENS_READ_RAW,

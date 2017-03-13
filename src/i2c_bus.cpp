@@ -34,8 +34,13 @@ int8_t scanI2C(SoftwareWire* _softTWI, NetworkClass *_network)
     if (0 == _softTWI->endTransmission(true)) {
       numDevices++;
       _network->client.print("0x");
-      if (i2cAddress < 0x0F){ _network->client.print("0"); }
+      DTSL ( Serial.print("0x"); ) 
+      if (i2cAddress < 0x0F){ 
+          _network->client.print("0"); 
+          DTSL ( Serial.print("0"); ) 
+      }
       _network->client.println(i2cAddress, HEX);
+      DTSL ( Serial.println(i2cAddress, HEX); ) 
     }
   } 
   return (numDevices ? RESULT_IS_PRINTED : RESULT_IS_FAIL);

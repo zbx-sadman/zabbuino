@@ -55,11 +55,10 @@
 //#define FEATURE_INA219_ENABLE
 
 /*/ 
-/=/      Enable support the system display (LCD which connected via I2C interface) 
-/=/      Refer to SYSTEM HARDWARE SECTION in src\tune.h
-/=/      You must build it manually by example virtual screen #1 in plugin.ino->reportToScreen() subroutine 
+/=/      Enable support the user display (LCD which connected via I2C interface) 
+/=/      You must build it manually by example virtual screen #1 in plugin.ino subroutine 
 /*/
-//#define FEATURE_SYSTEM_DISPLAY_ENABLE
+//#define FEATURE_USER_DISPLAY_ENABLE
 
 /*/ 
 /=/      Enable support the system RTC (DS3231 RTC chip which connected via I2C interface) and commands:
@@ -76,6 +75,14 @@
 /=/        - system.run[]
 /*/
 //#define FEATURE_REMOTE_COMMANDS_ENABLE
+
+/*/ 
+/=/      Enable support I2C connected EEPROM chip (AT24C family) and commands:
+/=/        - AT24CXX.write[]
+/=/        - AT24CXX.read[]
+/=/      
+/*/
+//#define FEATURE_AT24CXX_ENABLE
 
 
 /****       Network              ****/

@@ -84,22 +84,13 @@ const uint32_t constBlinkNetworkProblem                        = 500UL;
 /* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
                                                           SYSTEM HARDWARE SECTION 
 */
-// System display settings
-const uint8_t  constSystemDisplaySDAPin                         = A4;     // SDA - A4
-const uint8_t  constSystemDisplaySCLPin                         = A5;     // SCL - A5
-const uint8_t  constSystemDisplayI2CAddress                     = 0x20;   // I2C interface board address
-const uint8_t  constSystemDisplayBackLight                      = 0x00;   // backlight off
-const uint16_t constSystemDisplayType                           = 1602;   // 16x2 screen, refer to source of printToPCF8574LCD() subroutine
-const uint16_t constSystemDisplayRenewInterval                  = 5000UL; // 5sec
 
 // System RTC module settings (only DS3231 is supported at this time)
 const uint8_t  constSystemRtcSDAPin                             = A4;     // SDA - A4
 const uint8_t  constSystemRtcSCLPin                             = A5;     // SCL - A5
 const uint8_t  constSystemRtcI2CAddress                         = 0x68;   // DS3231 RTC I2C address 
-// Unused at this time
-// const uint8_t  constSystemRtcEEPROMI2CAddress                   = 0x56;   // DS3231 RTC module may have AT24C32 EEPROM onboard. Use its to save TimeZone
 
-const uint16_t constUserFunctionRunInterval                     = 3000UL; // 3sec
+const uint16_t constUserFunctionCallInterval                    = 3000UL; // 3sec
 
 
 /* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-

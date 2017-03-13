@@ -42,7 +42,6 @@ void setup() {
   DTSL( SerialPrint_P(constZbxAgentVersion); SerialPrintln_P(PSTR(" wakes up")); )
   // memset take less progspace?
   memset((void*) &sysMetrics, 0x00, sizeof(sysmetrics_t));
-  //  sysMetrics.sysCmdCount = sysMetrics.sysCmdLast = sysMetrics.sysCmdTimeMax = sysMetrics.sysCmdTimeMaxN = sysMetrics.netPHYReinits = 0;
 
   sysMetrics.sysVCCMin = sysMetrics.sysVCCMax = getADCVoltage(ANALOG_CHAN_VBG);
   sysMetrics.sysRamFree = sysMetrics.sysRamFreeMin = getRamFree();
@@ -89,7 +88,7 @@ void loop() {
           errorCode = ERROR_NONE;
   char incomingData;
   uint16_t blinkType = constBlinkNope;
-  uint32_t nowTime, processStartTime, processEndTime, prevPHYCheckTime, prevNetProblemTime, prevSysMetricGatherTime, clientConnectTime, netDebugPrintTime, prevSystemDisplayRenewTime;
+  uint32_t nowTime, processStartTime, processEndTime, prevPHYCheckTime, prevNetProblemTime, prevSysMetricGatherTime, clientConnectTime, netDebugPrintTime, prevUserFuncCall;
   char cBuffer[constBufferSize + 1]; // +1 for trailing \0
   // Last idx is not the same that array size
   char* optarg[constArgC];
@@ -101,9 +100,9 @@ void loop() {
 #ifdef FEATURE_SYSTEM_RTC_ENABLE
   initRTC(&SoftTWI);
 #endif
-#ifdef FEATURE_SYSTEM_DISPLAY_ENABLE
+//#ifdef FEATURE_SYSTEM_DISPLAY_ENABLE
   initStageUserFunction(cBuffer);
-#endif
+//#endif
 
   // System load procedure
 
@@ -222,7 +221,7 @@ void loop() {
 #endif
 
   // Correcting timestamps
-  prevPHYCheckTime = prevNetProblemTime = prevSysMetricGatherTime = prevSystemDisplayRenewTime = netDebugPrintTime = clientConnectTime = millis();
+  prevPHYCheckTime = prevNetProblemTime = prevSysMetricGatherTime =  netDebugPrintTime = clientConnectTime = millis();
 
   // 6. Enter to infinitive loop to serve incoming requests
   //
@@ -316,14 +315,14 @@ void loop() {
       if (!Network.client) {
         Network.client = Network.server.available();
         if (!Network.client) {
-#ifdef FEATURE_SYSTEM_DISPLAY_ENABLE
+//#ifdef FEATURE_SYSTEM_DISPLAY_ENABLE
           // Change content on physiscal report screen every constRenewSystemDisplayInterval only if no connection exist, because reportToScreen modify cBuffer variable
           // and recieved data will be corrupted
-          if (constSystemDisplayRenewInterval <= (uint32_t) (nowTime - prevSystemDisplayRenewTime)) {
-            showReportScreen(cBuffer, REPORT_SCREEN_SHOW_NEXT);
-            prevSystemDisplayRenewTime = nowTime;
+          if (constUserFunctionCallInterval <= (uint32_t) (nowTime - prevUserFuncCall)) {
+            loopStageUserFunction(cBuffer);
+            prevUserFuncCall = nowTime;
           }
-#endif // FEATURE_SYSTEM_DISPLAY_ENABLE
+//#endif // FEATURE_SYSTEM_DISPLAY_ENABLE
           continue;
         }
         // reinit analyzer because previous session can be dropped or losted
@@ -428,6 +427,7 @@ static int16_t executeCommand(char* _dst, char* _optarg[], netconfig_t* _netConf
 
   int8_t result;
   uint8_t i, accessGranted = false;
+  uint16_t j;
   int16_t cmdIdx;
   // duration option in the tone[] command is ulong
   //uint32_t argv[constArgC];
@@ -1258,17 +1258,17 @@ static int16_t executeCommand(char* _dst, char* _optarg[], netconfig_t* _netConf
     
         case CMD_I2C_WRITE:
           //
-          // i2c.write(sdaPin, sclPin, i2cAddress, register, data, numBytes)
+          // i2c.write(sdaPin, sclPin, i2cAddress, register, length, data)
           //
-          // i2COption used as 'data'
-          argv[5] = constrain(argv[5], 1, 4);
-          i = argv[5];
+          // i2COption used as 'length'           
+          argv[4] = constrain(argv[4], 1, 4);
+          i = argv[4];
           while (i) {
             i--;
-            i2CValue[i] = argv[4] & 0xFF;
-            argv[4] = argv[4] >> 8;
+            i2CValue[i] = argv[5] & 0xFF;
+            argv[5] = argv[5] >> 8;
           }
-          result = writeBytesToI2C(&SoftTWI, i2CAddress, i2CRegister, i2CValue, argv[5]);
+          result = writeBytesToI2C(&SoftTWI, i2CAddress, i2CRegister, i2CValue, argv[4]);
           result = (0 == result) ? RESULT_IS_OK : RESULT_IS_FAIL;
           break;
     
@@ -1476,6 +1476,41 @@ static int16_t executeCommand(char* _dst, char* _optarg[], netconfig_t* _netConf
           }
           break;
 #endif // FEATURE_SYSTEM_RTC_ENABLE
+
+
+#ifdef FEATURE_AT24CXX_ENABLE
+        case CMD_AT24CXX_WRITE:
+          //
+          // AT24CXX.write[sdaPin, sclPin, i2cAddress, cellAddress, data]
+          // AT24CXX.write[18,19,0x56,0,0x12132310]
+          j = (strlen(_optarg[4]) - 2) / 2;
+          hstoba((uint8_t*) _dst, _optarg[4], j); 
+          result = (AT24CXXWrite(&SoftTWI, i2CAddress, argv[3], j, (uint8_t*) _dst)) ? RESULT_IS_OK : RESULT_IS_FAIL;
+          break;
+    
+       case CMD_AT24CXX_READ:
+         //
+         // AT24CXX.read[sdaPin, sclPin, i2cAddress, cellAddress, length]
+         // AT24CXX.read[18,19,0x56,0,5]
+         if (AT24CXXRead(&SoftTWI, i2CAddress, argv[3], argv[4], (uint8_t*) _dst)) {
+            Network.client.print("0x");
+            DTSL( Serial.print("0x"); )
+            for (j=0; j < argv[4]; j++) {
+              if (0x10 > _dst[j]) {
+                 Network.client.print("0");
+                 DTSL( Serial.print("0"); )
+              }
+              Network.client.print(_dst[j], HEX);
+              DTSL( Serial.print(_dst[j], HEX); )
+            }
+            result = RESULT_IS_PRINTED;
+            _dst[0] = 0x00;
+         } else { 
+            result = RESULT_IS_FAIL;
+         }
+         break;
+
+#endif // FEATURE_AT24CXX_ENABLE
       }  // switch (cmdIdx), I2C block
 #endif // TWI_USE
    } // switch (cmdIdx) .. default in "commands with options" block

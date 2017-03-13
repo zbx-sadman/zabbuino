@@ -38,6 +38,14 @@ Changes:
  - I2C-related subroutines now used modified SoftwareWire lib (integrated to sources). I2C Sensor can be connected to various MCU pins (not only A4/A5 for ATmega328);
  - Command execution procedure was optimized for add speed a little;
  - _FEATURE\_BMP\_ENABLE_ + _SUPPORT\_BMP180\_INCLUDE_ (or _SUPPORT\_BMP280\_INCLUDE_, _SUPPORT\_BME280\_INCLUDE_) replaced by _FEATURE\_BMP180\_ENABLE_, _FEATURE\_BMP280\_ENABLE_, and _FEATURE\_BME280\_ENABLE_ to make configuration file more simply.
+ - _FEATURE\_SYSTEM\_DISPLAY\_ENABLE_ renamed to _FEATURE\_USER\_DISPLAY\_ENABLE_ because some users want to see sensors metric values & various messages. All related constants moved to _plugin.ino_;
+
+New feature:
+ - _FEATURE\_AT24CXX\_ENABLE_ allow to use commands:
+   - AT24CXX.write[sdaPin, sclPin, i2cAddress, cellAddress, data] - to write user _data_ into AT24CXX EEPROM starting from _cellAddress_ . _Data_ must be HEX-string (0xABCDEF); 
+   - AT24CXX.read[sdaPin, sclPin, i2cAddress, cellAddress, length] - to read _length_ bytes from AT24CXX EEPROM starting from _cellAddress_ . Result is HEX-string (0xABCDEF); 
+ - Now users can write its own data from EEPROM to using it inside _plugin.ino_ subroutines. For example it allow to make autoswitched light sensor with remotely setted bounds.
+
 
 ####10 March 2016
 
