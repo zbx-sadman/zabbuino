@@ -1,6 +1,19 @@
 #include "i2c_bus.h"
 #include "i2c_bh1750.h"
 
+int8_t getBH1750Metric(SoftwareWire* _softTWI, uint8_t _i2cAddress, uint8_t _mode, const uint8_t _metric, uint32_t* _value)
+{
+  char dst;
+  return getBH1750Metric(_softTWI, _i2cAddress, _mode, _metric, &dst, _value, true);
+
+}
+
+int8_t getBH1750Metric(SoftwareWire* _softTWI, uint8_t _i2cAddress, uint8_t _mode, const uint8_t _metric, char *_dst)
+{
+  uint32_t value;
+  return getBH1750Metric(_softTWI, _i2cAddress, _mode, _metric, _dst, &value, false);
+
+}
 
 /*****************************************************************************************************************************
 *
@@ -11,7 +24,7 @@
 *     - DEVICE_ERROR_CONNECT on connection error
 *
 *****************************************************************************************************************************/
-int8_t getBH1750Metric(SoftwareWire* _softTWI, uint8_t _i2cAddress, uint8_t _mode, const uint8_t _metric, char *_dst)
+int8_t getBH1750Metric(SoftwareWire* _softTWI, uint8_t _i2cAddress, uint8_t _mode, const uint8_t _metric, char *_dst, uint32_t* _value, const uint8_t _wantsNumber)
 {
   int8_t rc = RESULT_IS_FAIL;
   uint8_t readingNum, 
@@ -19,7 +32,6 @@ int8_t getBH1750Metric(SoftwareWire* _softTWI, uint8_t _i2cAddress, uint8_t _mod
                       // println(_dst[n], BIN) can show 1111111111101010 for example. Need to make some cast experiments
   int16_t convertTime;
   // result variable must be 32bit because readed from sensor 16bit value will be scaled to avoid float calculation
-  uint32_t result;
 
   //  int32_t ;
   if (!isI2CDeviceReady(_softTWI, _i2cAddress)) { rc = DEVICE_ERROR_CONNECT; goto finish; }
@@ -60,29 +72,23 @@ int8_t getBH1750Metric(SoftwareWire* _softTWI, uint8_t _i2cAddress, uint8_t _mod
     delay(convertTime);
     // Read data
     if (0x00 != readBytesFromi2C(_softTWI, _i2cAddress, I2C_NO_REG_SPECIFIED, value, 2)) { goto finish; }
-//    if (0x00 != readBytesFromi2C(_i2cAddress, I2C_NO_REG_SPECIFIED, value, 2)) { goto finish; }
   }
-/*
-   Serial.print("_dst[0]: ");
-   Serial.println((uint8_t) _dst[0], BIN);
-   Serial.print("_dst[1]");
-   Serial.println((uint8_t) _dst[1], BIN);
-*/
-   result = WireToU16(value);
-   //result = WireToU16(value);
+   *_value = WireToU16(value);
 
   if (SENS_READ_RAW == _metric) {
-    ltoa(result, _dst, 10);
+    ltoa(*_value, _dst, 10);
   } else {
     // Prepare result's value to using in ltoaf() subroutine
     // level = level/1.2; // convert to lux
     // 5 / 1.2 => 4,16
     // (5 * 1000) / 12 => 416 ==> ltoaf (..., ..., 2) ==> 4.16
     // max raw level = 65535 => 65535 * 1000 => long int
-    result = (result * 1000) / 12;    
-    ltoaf(result, _dst, 2);
+    *_value = (*_value * 1000) / 12;    
+    // If required - put to variable '_value' scaled value or it whole part only.
+    if (!_wantsNumber) {
+       ltoaf(*_value, _dst, 2);
+    }
   }
-
   rc = RESULT_IN_BUFFER;
   finish:
   return rc;

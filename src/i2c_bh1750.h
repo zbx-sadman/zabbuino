@@ -42,5 +42,7 @@
 *
 *****************************************************************************************************************************/
 int8_t getBH1750Metric(SoftwareWire*, uint8_t, uint8_t, const uint8_t, char*);
+int8_t getBH1750Metric(SoftwareWire*, uint8_t, uint8_t, const uint8_t, uint32_t*);
+int8_t getBH1750Metric(SoftwareWire* _softTWI, uint8_t _i2cAddress, uint8_t _mode, const uint8_t _metric, char *_dst, uint32_t* _value, const uint8_t _wantsNumber = false);
 
 #endif // #ifndef _ZABBUINO_I2C_BH1750_H_

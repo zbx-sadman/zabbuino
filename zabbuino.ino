@@ -11,7 +11,6 @@
                                                                   GLOBAL VARIABLES SECTION
 */
 // some members of struct used in timer's interrupt
-//  1,852 - 1,881 bytes = 29
 volatile sysmetrics_t sysMetrics;
 
 #ifdef TWI_USE
@@ -19,9 +18,7 @@ SoftwareWire SoftTWI(A4, A5);
 #endif
 
 NetworkClass Network;
-//
-// global netConfig struct make sketch slimest (~60b)
-// 1,846 - 1,788 = 58
+
 netconfig_t netConfig;
 
 #ifdef INTERRUPT_USE
@@ -29,7 +26,6 @@ netconfig_t netConfig;
 // EXTERNAL_NUM_INTERRUPTS its a macro from <wiring_private.h>
 volatile extInterrupt_t extInterrupt[EXTERNAL_NUM_INTERRUPTS];
 #endif
-// i2c: 1,985 - 1,846
 
 /*-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
                                                                        STARTUP SECTION

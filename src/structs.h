@@ -831,7 +831,9 @@ ADC channels
 #define NO_REINIT_ANALYZER                                      false
 #define REINIT_ANALYZER                                         true
 
-#define REPORT_SCREEN_SHOW_NEXT                                 -0x01
+#define WANTS_VALUE_NONE                                        0x00
+#define WANTS_VALUE_WHOLE                                       0x01
+#define WANTS_VALUE_SCALED                                      0x0F
 
 
 #endif // _ZABBUINO_STRUCTS_H_

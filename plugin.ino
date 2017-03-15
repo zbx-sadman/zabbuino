@@ -27,6 +27,7 @@ void initStageUserFunction(char* _buffer) {
 void loopStageUserFunction(char* _buffer) {
   const uint8_t  constVirtualScreensNum                           = 4;      // Number of report virtual screens
   uint32_t nowTime;
+  uint32_t uservalue;
   static uint8_t reportVirtualScreenCnt = 0,
                  bh1750SDAPin     = 18, // A4 
                  bh1750SCLPin     = 19, // A5
@@ -52,13 +53,34 @@ void loopStageUserFunction(char* _buffer) {
         }
         bh1750I2CAddress = _buffer[2];
         bh1750Mode       = _buffer[3];
-/*
+
         Serial.println("BH1750 settings");
         Serial.println(bh1750SDAPin, HEX);
         Serial.println(bh1750SCLPin, HEX);
         Serial.println(bh1750I2CAddress, HEX);
         Serial.println(bh1750Mode, HEX);
+/*
+Sketch uses 30,618 bytes (94%) of program storage space. Maximum is 32,256 bytes.
+Global variables use 1,231 bytes (60%) of dynamic memory, leaving 817 bytes for local variables. Maximum is 2,048 bytes.
+
+ketch uses 30,722 bytes (95%) of program storage space. Maximum is 32,256 bytes.
+Global variables use 1,231 bytes (60%) of dynamic memory, leaving 817 bytes for local variables. Maximum is 2,048 bytes.
+
 */
+        //uservalue = WANTS_VALUE_WHOLE;
+        //uservalue = WANTS_VALUE_SCALED;
+        SoftTWI.reconfigure(bh1750SDAPin, bh1750SCLPin);
+        if (RESULT_IN_BUFFER == getBH1750Metric(&SoftTWI, bh1750I2CAddress, bh1750Mode, SENS_READ_LUX, &uservalue)) {
+           Serial.println("BH1750 metric");
+           Serial.print("\tscaled value: "); 
+           Serial.println(uservalue); 
+           ldiv_t tmpResult;
+           tmpResult = ldiv(uservalue, 100);
+           Serial.print("\tWhole part: "); 
+           Serial.println(tmpResult.quot); 
+           Serial.print("\tFrac part: "); 
+           Serial.println(tmpResult.rem); 
+        };
      }
      prevUserEEPROMReadTime = nowTime;
   }
@@ -164,8 +186,13 @@ void loopStageUserFunction(char* _buffer) {
       dataLength += 13;
       // I2C sensor is connected on D2 (SDA) & D3 (SCL). Reconfigure global Software I2C Interface and put light value to output buffer
       SoftTWI.reconfigure(bh1750SDAPin, bh1750SCLPin);
-      // mist be: if (RESULT_IS_PRINTED = getBH1750Metric())....
-      getBH1750Metric(&SoftTWI, bh1750I2CAddress, bh1750Mode, SENS_READ_LUX, &_buffer[dataLength]);
+      //uservalue = WANTS_VALUE_NONE;
+      // RESULT_IN_BUFFER mean that conversion is finished sucessfully
+      // uservalue must be used by reference (with "take address" operation - &) because getBH1750Metric put some data to it
+      if (RESULT_IN_BUFFER != getBH1750Metric(&SoftTWI, bh1750I2CAddress, bh1750Mode, SENS_READ_LUX, &_buffer[dataLength])) {
+         // Need to do something if conversion isn't success. May be put "error" word into _buffer?
+      };
+      
  
       break;
   
