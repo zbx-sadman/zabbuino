@@ -46,6 +46,8 @@
 #define DS18X20_BYTE_COUNT_PER_C                                0x07
 #define DS18X20_BYTE_SCRATCHPAD_CRC                             0x08
 
+int8_t getDS18X20Metric(const uint8_t, uint8_t, uint8_t*, int32_t*);
+int8_t getDS18X20Metric(const uint8_t, uint8_t, uint8_t*, char*);
 
 /*****************************************************************************************************************************
 *
@@ -60,7 +62,8 @@
 *     - DEVICE_ERROR_CHECKSUM on detect data corruption
 *
 *****************************************************************************************************************************/
-int8_t getDS18X20Metric(const uint8_t, uint8_t, char*, char*);
+int8_t getDS18X20Metric(const uint8_t, uint8_t, uint8_t*, char*, int32_t*, const uint8_t _wantsNumber = false);
+//int8_t getDS18X20Metric(const uint8_t, uint8_t, char*, char*);
 
 /*****************************************************************************************************************************
 *

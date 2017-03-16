@@ -163,19 +163,22 @@ uint8_t hstoba(uint8_t *_dst, const char *_src, uint8_t _len)
 *   This function placed here to aviod compilation error when OneWire library is not #included
 *
 *****************************************************************************************************************************/
-uint8_t dallas_crc8(const uint8_t *_src, uint8_t _len)
+uint8_t dallas_crc8(uint8_t *_src, uint8_t _len)
 {
   uint8_t crc = 0;
 
   while (_len) {
     _len--;
     uint8_t inbyte = *_src++;
+    crc = _crc_ibutton_update(crc, inbyte);
+/*    
     for (uint8_t i = 8; i; i--) {
  	uint8_t mix = (crc ^ inbyte) & 0x01;
 	crc >>= 1;
 	if (mix) crc ^= 0x8C;
 	inbyte >>= 1;
     }
+*/
   }
   return crc;
 }

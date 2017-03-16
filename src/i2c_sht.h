@@ -16,7 +16,7 @@
 *     - 16-bit raw data on success
 *
 *****************************************************************************************************************************/
-uint16_t getRawDataFromSHT2X(SoftwareWire* _softTWI, const uint8_t _i2cAddress, const uint8_t _command);
+uint16_t getRawDataFromSHT2X(SoftwareWire*, const uint8_t, const uint8_t);
 
 /*****************************************************************************************************************************
 *
@@ -27,6 +27,9 @@ uint16_t getRawDataFromSHT2X(SoftwareWire* _softTWI, const uint8_t _i2cAddress, 
 *     - DEVICE_ERROR_TIMEOUT if sensor do not ready to work
 *
 *****************************************************************************************************************************/
-int8_t getSHT2XMetric(SoftwareWire* _softTWI, uint8_t _i2cAddress, const uint8_t _metric, char *_dst);
+int8_t getSHT2XMetric(SoftwareWire*, uint8_t, const uint8_t, uint32_t*);
+int8_t getSHT2XMetric(SoftwareWire*, uint8_t, const uint8_t, char*);
+
+int8_t getSHT2XMetric(SoftwareWire*, uint8_t, const uint8_t, char*, uint32_t*, const uint8_t _wantsNumber = false);
 
 #endif // #ifndef _ZABBUINO_I2C_SHT_H_

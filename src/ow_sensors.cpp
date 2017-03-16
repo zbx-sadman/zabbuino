@@ -6,7 +6,21 @@
    Based on: Dallas Temperature Control Library
    Version 3.7.2  is used
 
- -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-*/
+-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-*/
+
+int8_t getDS18X20Metric(const uint8_t _pin, uint8_t _resolution, uint8_t* _id, int32_t* _value)
+{
+  char stubBuffer;
+  return getDS18X20Metric(_pin, _resolution, _id, &stubBuffer, _value, true);
+
+}
+
+int8_t getDS18X20Metric(const uint8_t _pin, uint8_t _resolution, uint8_t* _id, char* _dst)
+{
+  int32_t stubValue;
+  return getDS18X20Metric(_pin, _resolution, _id, _dst, &stubValue, false);
+}
+
 
 
 /*****************************************************************************************************************************
@@ -22,13 +36,14 @@
 *     - DEVICE_ERROR_CHECKSUM on detect data corruption
 *
 *****************************************************************************************************************************/
-int8_t getDS18X20Metric(const uint8_t _pin, uint8_t _resolution, char* _id, char* _dst)
+int8_t getDS18X20Metric(const uint8_t _pin, uint8_t _resolution, uint8_t* _id, char* _dst, int32_t* _value, const uint8_t _wantsNumber)
+//int8_t getDS18X20Metric(const uint8_t _pin, uint8_t _resolution, char* _id, char* _dst)
 {
   int8_t rc = DEVICE_ERROR_CONNECT;
-  uint8_t signBit, dsAddr[8], parasitePowerUsed, busReady;// scratchPad[9];
+  uint8_t signBit, parasitePowerUsed, busReady;// scratchPad[9];
   uint8_t* scratchPad;
   int16_t conversionTimeout;
-  uint32_t tRaw;
+  int32_t tRaw;
   // Start mass conversion or read data if prev conversion has been finished no more that N sec is good idea, but need to store link busPin<->prevConversionTime
   // static uint32_t prevConversionTime = 0;
 
@@ -47,21 +62,16 @@ int8_t getDS18X20Metric(const uint8_t _pin, uint8_t _resolution, char* _id, char
      // If search() function returns a '1' then it has enumerated the next device and you may retrieve the ROM from the
      // OneWire::address variable. If there are no devices, no further devices, or something horrible happens in the middle of the
      // enumeration then a 0 is returned. (R) OneWire.cpp
-     if (0 == owDevice->search(dsAddr)) { goto finish; } // rc already init with DEVICE_ERROR_CONNECT value
+     if (0 == owDevice->search(_id)) { goto finish; } // rc already init with DEVICE_ERROR_CONNECT value
   } else {
-     rc = DEVICE_ERROR_WRONG_ID; 
-     // Convert sensor ID (if its given) from HEX string to byte array (DeviceAddress structure) and validate it. 
-     // Sensor ID is equal DeviceAddress.
-     // if convertation not successfull or ID not valid - return DEVICE_ERROR_WRONG_ID
-     if (! hstoba((uint8_t*) dsAddr, _id, 8)) { goto finish; } 
-     if (dallas_crc8(dsAddr, 7) != dsAddr[7]) { goto finish; }
+     if (dallas_crc8(_id, 7) != _id[7]) { goto finish; }
      // Testing device presence. It "not connected" if no presence pulse on bus registred or CRC is wrong (bus interference exist)
      rc = DEVICE_ERROR_CONNECT; 
-     busReady = getScratchPadFromDevice(owDevice, dsAddr, scratchPad);
+     busReady = getScratchPadFromDevice(owDevice, _id, scratchPad);
      if (!(busReady && isCRCOK(scratchPad))) { goto finish; }
   }
 
-  switch (dsAddr[0]) {
+  switch (_id[0]) {
      case DS18S20_ID:
      case DS18B20_ID:
      case DS1822_ID:
@@ -75,7 +85,7 @@ int8_t getDS18X20Metric(const uint8_t _pin, uint8_t _resolution, char* _id, char
   // Detect power on sensor - parasite or not
   parasitePowerUsed = false;
   owDevice->reset();
-  owDevice->select(dsAddr);
+  owDevice->select(_id);
   owDevice->write(DS18X20_CMD_READPOWERSUPPLY);
   if (0 == owDevice->read_bit()) { parasitePowerUsed = true; }
 
@@ -97,13 +107,13 @@ int8_t getDS18X20Metric(const uint8_t _pin, uint8_t _resolution, char* _id, char
          break;
      }
      owDevice->reset();
-     owDevice->select(dsAddr);
+     owDevice->select(_id);
      owDevice->write(DS18X20_CMD_WRITESCRATCH);
      // Change only 3 byte. That is enough to sensor's resolution change
      owDevice->write(DS18X20_BYTE_HIGH_ALARM_TEMP);
      owDevice->write(DS18X20_BYTE_LOW_ALARM_TEMP);
      //  DS1820 and DS18S20 have no CONFIGURATION registry
-     if (DS18S20_ID != dsAddr[0]) { owDevice->write(DS18X20_BYTE_CONFIGURATION); }
+     if (DS18S20_ID != _id[0]) { owDevice->write(DS18X20_BYTE_CONFIGURATION); }
      // When sensor used 'parasite' power settings must be copied to DS's EEPROM.
      // Otherwise it will be lost on reset()
      // I do not think that need to make COPYSCRATCH everytime to prolong sensor lifetime, because often measurement on single sensor 
@@ -127,7 +137,7 @@ int8_t getDS18X20Metric(const uint8_t _pin, uint8_t _resolution, char* _id, char
   
   // Temperature read begin
   owDevice->reset();
-  owDevice->select(dsAddr);
+  owDevice->select(_id);
   // start conversion, with parasite power on at the end
   owDevice->write(DS18X20_CMD_STARTCONVO, 1); 
   // Wait to end conversion
@@ -135,13 +145,13 @@ int8_t getDS18X20Metric(const uint8_t _pin, uint8_t _resolution, char* _id, char
 
   // Read data from DS's ScratchPad or return 'Error' on failure
   // DEVICE_ERROR_CHECKSUM instead DEVICE_ERROR_CONNECT returned because sensor is probaly presented on 1-Wire bus (already tested early)
-  busReady = getScratchPadFromDevice(owDevice, dsAddr, scratchPad);
+  busReady = getScratchPadFromDevice(owDevice, _id, scratchPad);
   if (!(busReady && isCRCOK(scratchPad))) { rc = DEVICE_ERROR_CHECKSUM; goto finish; }
   // Temperature calculation
   tRaw = (((int16_t) scratchPad[DS18X20_BYTE_TEMP_MSB]) << 8) | scratchPad[DS18X20_BYTE_TEMP_LSB];
 
   // For some DS's models temperature value must be corrected additional 
-  if (DS18S20_ID == dsAddr[0])
+  if (DS18S20_ID == _id[0])
   {
     // DS18S20 & DS1820 have no more 9 bit resolution, higher bits can be dropped
     tRaw = tRaw << 3;
@@ -186,12 +196,16 @@ int8_t getDS18X20Metric(const uint8_t _pin, uint8_t _resolution, char* _id, char
   // Do 'unfloat' procedure for using number with my ltoaf() subroutine: multiply temp to 0.0625 (1/16 C)
   tRaw *= 100;
   tRaw = ((tRaw * 6) + (tRaw / 4));
-
   if (signBit) {
     tRaw = -tRaw;
   }
 
-  ltoaf(tRaw, _dst, 4);
+  *_value = tRaw; // TODO: need to replace tRaw -> *_value in all subroutine code
+
+  if (!_wantsNumber) {
+     ltoaf(tRaw, _dst, 4);
+  } 
+
   rc = RESULT_IN_BUFFER;
 
   finish:

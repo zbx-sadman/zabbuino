@@ -96,9 +96,9 @@ void loop() {
 #ifdef FEATURE_SYSTEM_RTC_ENABLE
   initRTC(&SoftTWI);
 #endif
-//#ifdef FEATURE_SYSTEM_DISPLAY_ENABLE
+#ifdef FEATURE_USER_FUNCTION_PROCESSING
   initStageUserFunction(cBuffer);
-//#endif
+#endif
 
   // System load procedure
 
@@ -311,14 +311,14 @@ void loop() {
       if (!Network.client) {
         Network.client = Network.server.available();
         if (!Network.client) {
-//#ifdef FEATURE_SYSTEM_DISPLAY_ENABLE
+#ifdef FEATURE_USER_FUNCTION_PROCESSING
           // Change content on physiscal report screen every constRenewSystemDisplayInterval only if no connection exist, because reportToScreen modify cBuffer variable
           // and recieved data will be corrupted
           if (constUserFunctionCallInterval <= (uint32_t) (nowTime - prevUserFuncCall)) {
             loopStageUserFunction(cBuffer);
             prevUserFuncCall = nowTime;
           }
-//#endif // FEATURE_SYSTEM_DISPLAY_ENABLE
+#endif // FEATURE_USER_FUNCTION_PROCESSING
           continue;
         }
         // reinit analyzer because previous session can be dropped or losted
@@ -1010,10 +1010,20 @@ static int16_t executeCommand(char* _dst, char* _optarg[], netconfig_t* _netConf
       //  DS18x20.temperature[pin, resolution, id]
       //
       if (! isSafePin(argv[0])) {
-        result = DEVICE_ERROR_CONNECT;
+//        result = DEVICE_ERROR_CONNECT;
         break;
       }
-      result = getDS18X20Metric(argv[0], argv[1], _optarg[2], _dst);
+
+     uint8_t dsAddr[8];
+     dsAddr[0] = 0;
+     // Convert sensor ID (if its given) from HEX string to byte array (DeviceAddress structure) and validate it. 
+     // Sensor ID is equal DeviceAddress.
+     // if convertation not successfull or ID not valid - return DEVICE_ERROR_WRONG_ID
+     if ((*_optarg[2]) && (!hstoba(dsAddr, _optarg[2], 8))) { 
+        result = DEVICE_ERROR_WRONG_ID; 
+        break;
+      } 
+      result = getDS18X20Metric(argv[0], argv[1], dsAddr, _dst);
       break;
 #endif // FEATURE_DS18X20_ENABLE
 

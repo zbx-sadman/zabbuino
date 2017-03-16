@@ -3,16 +3,18 @@
 
 int8_t getBH1750Metric(SoftwareWire* _softTWI, uint8_t _i2cAddress, uint8_t _mode, const uint8_t _metric, uint32_t* _value)
 {
-  char dst;
-  return getBH1750Metric(_softTWI, _i2cAddress, _mode, _metric, &dst, _value, true);
+  char stubBuffer;
+  return getBH1750Metric(_softTWI, _i2cAddress, _mode, _metric, &stubBuffer, _value, true);
+//  return getBH1750Metric(_softTWI, _i2cAddress, _mode, _metric, 0x00, _value, true);
 
 }
 
-int8_t getBH1750Metric(SoftwareWire* _softTWI, uint8_t _i2cAddress, uint8_t _mode, const uint8_t _metric, char *_dst)
+int8_t getBH1750Metric(SoftwareWire* _softTWI, uint8_t _i2cAddress, uint8_t _mode, const uint8_t _metric, char* _dst)
 {
-  uint32_t value;
-  return getBH1750Metric(_softTWI, _i2cAddress, _mode, _metric, _dst, &value, false);
-
+  uint32_t stubValue;
+  return getBH1750Metric(_softTWI, _i2cAddress, _mode, _metric, _dst, &stubValue, false);
+  //  pointer to fake 'value' variable can be used, because called subroutine never write by this pointer
+  //  return getBH1750Metric(_softTWI, _i2cAddress, _mode, _metric, _dst, (uint32_t*) _dst, false);
 }
 
 /*****************************************************************************************************************************

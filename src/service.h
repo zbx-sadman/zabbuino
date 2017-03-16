@@ -3,6 +3,7 @@
 
 #include <Arduino.h>
 #include <avr/boot.h>
+#include <util/crc16.h>
 #include "../basic.h"
 #include "tune.h"
 #include "structs.h"
@@ -44,7 +45,7 @@ uint8_t hstoba(uint8_t *_dst, const char* _src, uint8_t _len);
 *   This function placed here to aviod compilation error when OneWire library is not #included
 *
 *****************************************************************************************************************************/
-uint8_t dallas_crc8(const uint8_t *addr, uint8_t len);
+uint8_t dallas_crc8(uint8_t *addr, uint8_t len);
 
 /*****************************************************************************************************************************
 *

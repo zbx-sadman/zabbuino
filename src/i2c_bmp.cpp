@@ -26,6 +26,19 @@ uint8_t waitToBMPReady(SoftwareWire* _softTWI, const uint8_t _i2cAddress, const 
 }
 
 
+int8_t getBMPMetric(SoftwareWire* _softTWI, uint8_t _i2cAddress, const uint8_t _overSampling, const uint8_t _filterCoef, const uint8_t _metric, uint32_t* _value)
+{
+  char stubBuffer;
+  return getBMPMetric(_softTWI, _i2cAddress, _overSampling, _filterCoef, _metric, &stubBuffer, _value, true);
+}
+
+int8_t getBMPMetric(SoftwareWire* _softTWI, uint8_t _i2cAddress, const uint8_t _overSampling, const uint8_t _filterCoef, const uint8_t _metric, char* _dst)
+{
+  uint32_t stubValue;
+  return getBMPMetric(_softTWI, _i2cAddress, _overSampling, _filterCoef, _metric, _dst, &stubValue, false);
+}
+
+
 /*****************************************************************************************************************************
 *
 *   Call the subroutine (based on sensor ID) for obtaining a metric of sensor 
@@ -36,7 +49,8 @@ uint8_t waitToBMPReady(SoftwareWire* _softTWI, const uint8_t _i2cAddress, const 
 *     - RESULT_IS_FAIL if unknown chip ID found
 *
 *****************************************************************************************************************************/
-int8_t getBMPMetric(SoftwareWire* _softTWI, uint8_t _i2cAddress, const uint8_t _overSampling, const uint8_t _filterCoef, const uint8_t _metric, char *_dst)
+//int8_t getBMPMetric(SoftwareWire* _softTWI, uint8_t _i2cAddress, const uint8_t _overSampling, const uint8_t _filterCoef, const uint8_t _metric, char *_dst)
+int8_t getBMPMetric(SoftwareWire* _softTWI, uint8_t _i2cAddress, const uint8_t _overSampling, const uint8_t _filterCoef, const uint8_t _metric, char *_dst, uint32_t* _value, const uint8_t _wantsNumber)
 {
   int8_t rc = RESULT_IS_FAIL;
   uint8_t chipID; 
@@ -51,20 +65,20 @@ int8_t getBMPMetric(SoftwareWire* _softTWI, uint8_t _i2cAddress, const uint8_t _
     // BMP085 and BMP180 have the same ID  
 #ifdef SUPPORT_BMP180_INCLUDE
     case BMP180_CHIPID: 
-       rc =  getBMP180Metric(_softTWI, _i2cAddress, _overSampling, _metric, _dst);
+       rc =  getBMP180Metric(_softTWI, _i2cAddress, _overSampling, _metric, _dst, _value, _wantsNumber);
        break;
 #endif
 #ifdef SUPPORT_BMP280_INCLUDE
     case BMP280_CHIPID_1: 
     case BMP280_CHIPID_2: 
     case BMP280_CHIPID_3: 
-       rc = getBMP280Metric(_softTWI, _i2cAddress, _overSampling, _filterCoef, _metric, _dst);
+       rc = getBMP280Metric(_softTWI, _i2cAddress, _overSampling, _filterCoef, _metric, _dst, _value, _wantsNumber);
        break;
 #endif
 #ifdef SUPPORT_BME280_INCLUDE
     case BME280_CHIPID:
        // BME280 is BMP280 with additional humidity sensor
-       rc = getBMP280Metric(_softTWI, _i2cAddress, _overSampling, _filterCoef, _metric, _dst);
+       rc = getBMP280Metric(_softTWI, _i2cAddress, _overSampling, _filterCoef, _metric, _dst, _value, _wantsNumber);
        break;
 #endif
     default:  
@@ -85,7 +99,7 @@ int8_t getBMPMetric(SoftwareWire* _softTWI, uint8_t _i2cAddress, const uint8_t _
 *     - DEVICE_ERROR_TIMEOUT if sensor do not ready to work
 *
 *****************************************************************************************************************************/
-int8_t getBMP280Metric(SoftwareWire* _softTWI, uint8_t _i2cAddress, const uint8_t _overSampling, uint8_t _filterCoef, const uint8_t _metric, char* _dst)
+int8_t getBMP280Metric(SoftwareWire* _softTWI, uint8_t _i2cAddress, const uint8_t _overSampling, uint8_t _filterCoef, const uint8_t _metric, char* _dst, uint32_t* _value, const uint8_t _wantsNumber)
 {
   int8_t rc = DEVICE_ERROR_TIMEOUT;
   uint16_t dig_T1;
@@ -177,9 +191,11 @@ int8_t getBMP280Metric(SoftwareWire* _softTWI, uint8_t _i2cAddress, const uint8_
   switch (_metric) {
     case SENS_READ_TEMP:
       // real temperature caculation
-      result  = (t_fine * 5 + 128) >> 8;
+      *_value = (t_fine * 5 + 128) >> 8;
       //  return T/100;    
-      ltoaf(result, _dst, 2);
+      if (!_wantsNumber) {
+         ltoaf(*_value, _dst, 2);
+      }
       break;
 
     case SENS_READ_PRSS:
@@ -244,14 +260,16 @@ int8_t getBMP280Metric(SoftwareWire* _softTWI, uint8_t _i2cAddress, const uint8_
       var1 = (((int32_t) dig_P9) * ((int32_t)(((result >> 3) * (result >> 3)) >> 13))) >> 12;
       var2 = (((int32_t)(result >> 2)) * ((int32_t) dig_P8)) >> 13;
       result = (uint32_t)((int32_t) result + ((var1 + var2 + dig_P7) >> 4));
-
      // BOSCH on page 22 of datasheet say: "Returns pressure in Pa as unsigned 32 bit integer in Q24.8 format (24 integer bits and 8 fractional bits)." 
      // 24674867 in Q24.8 is 96386 in whole part (24674867 >> 8) , and 51 in frac part (24674867 & B11111111) => 96386.51
      // But in code example use calculation: 24674867/256 = 96386.19 => 96386.2
      //
      // What way is right, BOSCH? 
      //
-     ltoa(result, _dst, 10);
+      *_value = result;
+      if (!_wantsNumber) {
+         ltoa(*_value, _dst, 10);
+      }
      break;
      
 #ifdef SUPPORT_BME280_INCLUDE
@@ -298,8 +316,13 @@ int8_t getBMP280Metric(SoftwareWire* _softTWI, uint8_t _i2cAddress, const uint8_
       // Returns humidity in %RH as unsigned 32 bit integer in Q22.10 format (22 integer and 10 fractional bits).
       //	 Output value of “47445” represents 47445/1024 = 46.333 %RH
       //Serial.print("H: "); Serial.println(result);
-
       qtoaf(result, _dst, 10);
+      // How to return number?
+      //*_value = result;
+      //if (!_wantsNumber) {
+      //   ltoa(*_value, _dst, 10);
+      //}
+
 #endif        
   }  // switch (_metric)
 
@@ -319,7 +342,7 @@ int8_t getBMP280Metric(SoftwareWire* _softTWI, uint8_t _i2cAddress, const uint8_
 *     - DEVICE_ERROR_TIMEOUT if sensor do not ready to work
 *
 *****************************************************************************************************************************/
-int8_t getBMP180Metric(SoftwareWire* _softTWI, uint8_t _i2cAddress, uint8_t _overSampling, const uint8_t _metric, char *_dst)
+int8_t getBMP180Metric(SoftwareWire* _softTWI, uint8_t _i2cAddress, uint8_t _overSampling, const uint8_t _metric, char *_dst, uint32_t* _value, const uint8_t _wantsNumber)
 {
   int8_t rc = DEVICE_ERROR_TIMEOUT;
   //uint8_t msb, lsb, xlsb;
@@ -447,15 +470,20 @@ int8_t getBMP180Metric(SoftwareWire* _softTWI, uint8_t _i2cAddress, uint8_t _ove
     x1 = (x1 * 3038) >> 16;
     x2 = (-7357 * result) >> 16;
 
-    result += (x1 + x2 + (int32_t) 3791) >> 4;
+    *_value += (x1 + x2 + (int32_t) 3791) >> 4;
+    if (!_wantsNumber) {
+       ltoa(*_value, _dst, 10);
+    }
 
     // pressure /=100 for hPa
     // ltoaf(cBuffer, result, 2);
     // or pressure /=1 for Pa
-    ltoa(result, _dst, 10);
   } else {
     // temperature /=10
-    ltoaf(result, _dst, 1);
+    *_value = result;
+    if (!_wantsNumber) {
+       ltoaf(result, _dst, 1);
+    }
   }
 
   rc = RESULT_IN_BUFFER;

@@ -60,6 +60,8 @@
 /*/
 //#define FEATURE_USER_DISPLAY_ENABLE
 
+//#define FEATURE_USER_FUNCTION_PROCESSING
+
 /*/ 
 /=/      Enable support the system RTC (DS3231 RTC chip which connected via I2C interface) and commands:
 /=/        - set.localtime[]

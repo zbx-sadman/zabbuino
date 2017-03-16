@@ -50,6 +50,10 @@ version 0.1.13 is used
 *     - DEVICE_ERROR_TIMEOUT if sensor stops answer to the request
 *
 *****************************************************************************************************************************/
-int8_t getDHTMetric(const uint8_t _pin, const uint8_t _sensorModel, const uint8_t _metric, char *_dst);
+int8_t getDHTMetric(const uint8_t, const uint8_t, const uint8_t, int32_t*);
+int8_t getDHTMetric(const uint8_t, const uint8_t, const uint8_t, char*);
+
+//int8_t getDHTMetric(const uint8_t _pin, const uint8_t _sensorModel, const uint8_t _metric, char *_dst);
+int8_t getDHTMetric(const uint8_t, const uint8_t, const uint8_t, char*, int32_t*, const uint8_t _wantsNumber = false);
 
 #endif // #ifndef ZabbuinoDHT_h

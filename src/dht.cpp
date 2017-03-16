@@ -6,6 +6,19 @@ version 0.1.13 is used
 
 #include "dht.h"
 
+int8_t getDHTMetric(const uint8_t _pin, const uint8_t _sensorModel, const uint8_t _metric, int32_t* _value)
+{
+  char stubBuffer;
+  return getDHTMetric(_pin, _sensorModel, _metric, &stubBuffer, _value, true);
+
+}
+
+int8_t getDHTMetric(const uint8_t _pin, const uint8_t _sensorModel, const uint8_t _metric, char* _dst)
+{
+  int32_t stubValue;
+  return getDHTMetric(_pin, _sensorModel, _metric, _dst, &stubValue, false);
+}
+
 /*****************************************************************************************************************************
 *
 *  Read specified metric's value of the AM/DHT sensor, put it to output buffer on success. 
@@ -18,7 +31,8 @@ version 0.1.13 is used
 *     - DEVICE_ERROR_TIMEOUT if sensor stops answer to the request
 *
 *****************************************************************************************************************************/
-int8_t getDHTMetric(const uint8_t _pin, const uint8_t _sensorModel, const uint8_t _metric, char *_dst)
+//int8_t getDHTMetric(const uint8_t _pin, const uint8_t _sensorModel, const uint8_t _metric, char *_dst)
+int8_t getDHTMetric(const uint8_t _pin, const uint8_t _sensorModel, const uint8_t _metric, char *_dst, int32_t* _value, const uint8_t _wantsNumber)
 {
   int8_t rc = DEVICE_ERROR_TIMEOUT;
   // INIT BUFFERVAR TO RECEIVE DATA
@@ -28,8 +42,8 @@ int8_t getDHTMetric(const uint8_t _pin, const uint8_t _sensorModel, const uint8_
           wakeupDelay,
           bits[5];  // buffer to receive data
   uint16_t loopCount = 0;
-  uint32_t humidity, temperature, result,
-           waitTime = 0;
+  uint32_t humidity, waitTime = 0;
+  int32_t  temperature;
 
   static uint32_t lastReadTime = 0;
   
@@ -155,8 +169,11 @@ int8_t getDHTMetric(const uint8_t _pin, const uint8_t _sensorModel, const uint8_
   // TEST CHECKSUM
   if (bits[4] != sum) { rc = DEVICE_ERROR_CHECKSUM; goto finish; }
 
-  result = (SENS_READ_HUMD == _metric) ? humidity : temperature;
-  ltoaf(result, _dst, 1);
+  *_value = (SENS_READ_HUMD == _metric) ? humidity : temperature;
+  if (!_wantsNumber) {
+     ltoaf(*_value, _dst, 1);
+  }
+
   rc = RESULT_IN_BUFFER;
 
   finish:
