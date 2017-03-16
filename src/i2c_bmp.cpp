@@ -26,7 +26,7 @@ uint8_t waitToBMPReady(SoftwareWire* _softTWI, const uint8_t _i2cAddress, const 
 }
 
 
-int8_t getBMPMetric(SoftwareWire* _softTWI, uint8_t _i2cAddress, const uint8_t _overSampling, const uint8_t _filterCoef, const uint8_t _metric, uint32_t* _value)
+int8_t getBMPMetric(SoftwareWire* _softTWI, uint8_t _i2cAddress, const uint8_t _overSampling, const uint8_t _filterCoef, const uint8_t _metric, int32_t* _value)
 {
   char stubBuffer;
   return getBMPMetric(_softTWI, _i2cAddress, _overSampling, _filterCoef, _metric, &stubBuffer, _value, true);
@@ -34,7 +34,7 @@ int8_t getBMPMetric(SoftwareWire* _softTWI, uint8_t _i2cAddress, const uint8_t _
 
 int8_t getBMPMetric(SoftwareWire* _softTWI, uint8_t _i2cAddress, const uint8_t _overSampling, const uint8_t _filterCoef, const uint8_t _metric, char* _dst)
 {
-  uint32_t stubValue;
+  int32_t stubValue;
   return getBMPMetric(_softTWI, _i2cAddress, _overSampling, _filterCoef, _metric, _dst, &stubValue, false);
 }
 
@@ -50,7 +50,7 @@ int8_t getBMPMetric(SoftwareWire* _softTWI, uint8_t _i2cAddress, const uint8_t _
 *
 *****************************************************************************************************************************/
 //int8_t getBMPMetric(SoftwareWire* _softTWI, uint8_t _i2cAddress, const uint8_t _overSampling, const uint8_t _filterCoef, const uint8_t _metric, char *_dst)
-int8_t getBMPMetric(SoftwareWire* _softTWI, uint8_t _i2cAddress, const uint8_t _overSampling, const uint8_t _filterCoef, const uint8_t _metric, char *_dst, uint32_t* _value, const uint8_t _wantsNumber)
+int8_t getBMPMetric(SoftwareWire* _softTWI, uint8_t _i2cAddress, const uint8_t _overSampling, const uint8_t _filterCoef, const uint8_t _metric, char *_dst, int32_t* _value, const uint8_t _wantsNumber)
 {
   int8_t rc = RESULT_IS_FAIL;
   uint8_t chipID; 
@@ -99,7 +99,7 @@ int8_t getBMPMetric(SoftwareWire* _softTWI, uint8_t _i2cAddress, const uint8_t _
 *     - DEVICE_ERROR_TIMEOUT if sensor do not ready to work
 *
 *****************************************************************************************************************************/
-int8_t getBMP280Metric(SoftwareWire* _softTWI, uint8_t _i2cAddress, const uint8_t _overSampling, uint8_t _filterCoef, const uint8_t _metric, char* _dst, uint32_t* _value, const uint8_t _wantsNumber)
+int8_t getBMP280Metric(SoftwareWire* _softTWI, uint8_t _i2cAddress, const uint8_t _overSampling, uint8_t _filterCoef, const uint8_t _metric, char* _dst, int32_t* _value, const uint8_t _wantsNumber)
 {
   int8_t rc = DEVICE_ERROR_TIMEOUT;
   uint16_t dig_T1;
@@ -108,7 +108,7 @@ int8_t getBMP280Metric(SoftwareWire* _softTWI, uint8_t _i2cAddress, const uint8_
   uint16_t dig_P1;
   int16_t  dig_P2, dig_P3, dig_P4, dig_P5, dig_P6, dig_P7, dig_P8, dig_P9;
 
-  int32_t adc, result, var1, var2, t_fine;
+  int32_t adc, var1, var2, t_fine;
   uint8_t value[3];
   uint8_t i;
 
@@ -246,27 +246,27 @@ int8_t getBMP280Metric(SoftwareWire* _softTWI, uint8_t _i2cAddress, const uint8_
         return 0; 
       }
 
-      result = (((uint32_t)(((int32_t) 1048576) - adc)-(var2 >> 12))) * 3125;
+      *_value = (((uint32_t)(((int32_t) 1048576) - adc)-(var2 >> 12))) * 3125;
        
-      result = ((uint32_t) result < 0x80000000L) ? ((result << 1) / ((uint32_t) var1)) : ((result / (uint32_t) var1) * 2); 
+      *_value = ((uint32_t) *_value < 0x80000000L) ? ((*_value << 1) / ((uint32_t) var1)) : ((*_value / (uint32_t) var1) * 2); 
 
 /*
-      if (result < 0x80000000) {
-         result = (result << 1) / ((uint32_t) var1); 
+      if (*_value < 0x80000000) {
+         *_value = (*_value << 1) / ((uint32_t) var1); 
       } else {
-         result = (result / (uint32_t) var1) * 2; 
+         *_value = (*_value / (uint32_t) var1) * 2; 
       }
 */
-      var1 = (((int32_t) dig_P9) * ((int32_t)(((result >> 3) * (result >> 3)) >> 13))) >> 12;
-      var2 = (((int32_t)(result >> 2)) * ((int32_t) dig_P8)) >> 13;
-      result = (uint32_t)((int32_t) result + ((var1 + var2 + dig_P7) >> 4));
+      var1 = (((int32_t) dig_P9) * ((int32_t)(((*_value >> 3) * (*_value >> 3)) >> 13))) >> 12;
+      var2 = (((int32_t)(*_value >> 2)) * ((int32_t) dig_P8)) >> 13;
+      *_value = (uint32_t)((int32_t) *_value + ((var1 + var2 + dig_P7) >> 4));
      // BOSCH on page 22 of datasheet say: "Returns pressure in Pa as unsigned 32 bit integer in Q24.8 format (24 integer bits and 8 fractional bits)." 
      // 24674867 in Q24.8 is 96386 in whole part (24674867 >> 8) , and 51 in frac part (24674867 & B11111111) => 96386.51
      // But in code example use calculation: 24674867/256 = 96386.19 => 96386.2
      //
      // What way is right, BOSCH? 
      //
-      *_value = result;
+      *_value = *_value;
       if (!_wantsNumber) {
          ltoa(*_value, _dst, 10);
       }
@@ -312,13 +312,13 @@ int8_t getBMP280Metric(SoftwareWire* _softTWI, uint8_t _i2cAddress, const uint8_
       var1 = (var1 - (((((var1 >> 15) * (var1 >> 15)) >> 7) * ((int32_t)dig_H1)) >> 4));
       var1 = (var1 < 0 ? 0 : var1);
       var1 = (var1 > 419430400 ? 419430400 : var1);
-      result = (uint32_t)(var1 >> 12);
+      *_value = (uint32_t)(var1 >> 12);
       // Returns humidity in %RH as unsigned 32 bit integer in Q22.10 format (22 integer and 10 fractional bits).
       //	 Output value of “47445” represents 47445/1024 = 46.333 %RH
-      //Serial.print("H: "); Serial.println(result);
-      qtoaf(result, _dst, 10);
+      //Serial.print("H: "); Serial.println(*_value);
+      qtoaf(*_value, _dst, 10);
       // How to return number?
-      //*_value = result;
+      //*_value = *_value;
       //if (!_wantsNumber) {
       //   ltoa(*_value, _dst, 10);
       //}
@@ -342,7 +342,7 @@ int8_t getBMP280Metric(SoftwareWire* _softTWI, uint8_t _i2cAddress, const uint8_
 *     - DEVICE_ERROR_TIMEOUT if sensor do not ready to work
 *
 *****************************************************************************************************************************/
-int8_t getBMP180Metric(SoftwareWire* _softTWI, uint8_t _i2cAddress, uint8_t _overSampling, const uint8_t _metric, char *_dst, uint32_t* _value, const uint8_t _wantsNumber)
+int8_t getBMP180Metric(SoftwareWire* _softTWI, uint8_t _i2cAddress, uint8_t _overSampling, const uint8_t _metric, char *_dst, int32_t* _value, const uint8_t _wantsNumber)
 {
   int8_t rc = DEVICE_ERROR_TIMEOUT;
   //uint8_t msb, lsb, xlsb;
@@ -353,7 +353,7 @@ int8_t getBMP180Metric(SoftwareWire* _softTWI, uint8_t _i2cAddress, uint8_t _ove
   int16_t b1, b2, mc, md; // mb - not used 
   uint16_t ut;
   uint32_t up;
-  int32_t x1, x2, x3, b3, b5, b6, result;
+  int32_t x1, x2, x3, b3, b5, b6;//, result;
   uint32_t b4, b7;
 
   value = (uint8_t*) _dst;
@@ -422,7 +422,7 @@ int8_t getBMP180Metric(SoftwareWire* _softTWI, uint8_t _i2cAddress, uint8_t _ove
   x1 = (((int32_t) ut - (int32_t) ac6) * (int32_t) ac5) >> 15;
   x2 = ((int32_t) mc << 11) / (x1 + (int32_t) md);
   b5 = x1 + x2;
-  result = ((b5 + 8) >> 4);
+  *_value = ((b5 + 8) >> 4);
 
   if (SENS_READ_PRSS == _metric) {
     // ******** Get Pressure ********
@@ -459,18 +459,19 @@ int8_t getBMP180Metric(SoftwareWire* _softTWI, uint8_t _i2cAddress, uint8_t _ove
 
     b7 = ((uint32_t)(up - b3) * (uint32_t)(50000 >> _overSampling));
 
-    result = (b7 < 0x80000000L) ? ((b7 << 1) / b4) : ((b7 / b4) << 1);
+    *_value = (b7 < 0x80000000L) ? ((b7 << 1) / b4) : ((b7 / b4) << 1);
 /*
     if (b7 < 0x80000000)
-      result = (b7 << 1) / b4;
+      *_value = (b7 << 1) / b4;
     else
-      result = (b7 / b4) << 1;
+      *_value = (b7 / b4) << 1;
 */
-    x1 = (result >> 8) * (result >> 8);
+    x1 = (*_value >> 8) * (*_value >> 8);
     x1 = (x1 * 3038) >> 16;
-    x2 = (-7357 * result) >> 16;
+    x2 = (-7357 * *_value) >> 16;
 
     *_value += (x1 + x2 + (int32_t) 3791) >> 4;
+
     if (!_wantsNumber) {
        ltoa(*_value, _dst, 10);
     }
@@ -480,9 +481,9 @@ int8_t getBMP180Metric(SoftwareWire* _softTWI, uint8_t _i2cAddress, uint8_t _ove
     // or pressure /=1 for Pa
   } else {
     // temperature /=10
-    *_value = result;
+    //*_value = result;
     if (!_wantsNumber) {
-       ltoaf(result, _dst, 1);
+       ltoaf(*_value, _dst, 1);
     }
   }
 

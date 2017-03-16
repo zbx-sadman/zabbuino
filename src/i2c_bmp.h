@@ -154,7 +154,7 @@
 int8_t getBMPMetric(SoftwareWire* _softTWI, uint8_t _i2cAddress, const uint8_t _overSampling, const uint8_t _filterCoef, const uint8_t _metric, uint32_t* _value);
 int8_t getBMPMetric(SoftwareWire* _softTWI, uint8_t _i2cAddress, const uint8_t _overSampling, const uint8_t _filterCoef, const uint8_t _metric, char* _dst);
 
-int8_t getBMPMetric(SoftwareWire* _softTWI, uint8_t _i2cAddress, const uint8_t _overSampling, const uint8_t _filterCoef, const uint8_t _metric, char *_dst, uint32_t* _value, const uint8_t _wantsNumber);
+int8_t getBMPMetric(SoftwareWire* _softTWI, uint8_t _i2cAddress, const uint8_t _overSampling, const uint8_t _filterCoef, const uint8_t _metric, char *_dst, int32_t* _value, const uint8_t _wantsNumber);
 //int8_t getBMPMetric(SoftwareWire* _softTWI, uint8_t _i2cAddress, const uint8_t _overSampling, const uint8_t _filterCoef, const uint8_t _metric, char *_dst);
 
 /*****************************************************************************************************************************
@@ -177,7 +177,7 @@ uint8_t waitToBMPReady(SoftwareWire* _softTWI, const uint8_t _i2cAddress, const 
 *     - DEVICE_ERROR_TIMEOUT if sensor do not ready to work
 *
 *****************************************************************************************************************************/
-int8_t getBMP280Metric(SoftwareWire* _softTWI, uint8_t _i2cAddress, const uint8_t _overSampling, uint8_t _filterCoef, const uint8_t _metric, char *_dst, uint32_t* _value, const uint8_t _wantsNumber);
+int8_t getBMP280Metric(SoftwareWire* _softTWI, uint8_t _i2cAddress, const uint8_t _overSampling, uint8_t _filterCoef, const uint8_t _metric, char *_dst, int32_t* _value, const uint8_t _wantsNumber);
 
 /*****************************************************************************************************************************
 *
@@ -188,7 +188,7 @@ int8_t getBMP280Metric(SoftwareWire* _softTWI, uint8_t _i2cAddress, const uint8_
 *     - DEVICE_ERROR_TIMEOUT if sensor do not ready to work
 *
 *****************************************************************************************************************************/
-int8_t getBMP180Metric(SoftwareWire* _softTWI, uint8_t _i2cAddress, uint8_t _overSampling, const uint8_t _metric, char *_dst, uint32_t* _value, const uint8_t _wantsNumber);
+int8_t getBMP180Metric(SoftwareWire* _softTWI, uint8_t _i2cAddress, uint8_t _overSampling, const uint8_t _metric, char *_dst, int32_t* _value, const uint8_t _wantsNumber);
 
 
 #endif // #ifndef _ZABBUINO_I2C_BMP_H_
