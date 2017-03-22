@@ -131,7 +131,7 @@ uint8_t getINA219Metric(SoftwareWire* _softTWI, const uint8_t _i2cAddress, const
   // Wait ready bit - CNVR == 1 in Bus Voltage Register
   do {
      delay(10);
-     readBytesFromi2C(_softTWI, INA219_I2C_ADDRESS, INA219_REG_BUS_VOLTAGE, value, 2);
+     readBytesFromI2C(_softTWI, INA219_I2C_ADDRESS, INA219_REG_BUS_VOLTAGE, value, 2);
   } while (!(value[1] & B00000010)); 
 
 
@@ -150,7 +150,7 @@ uint8_t getINA219Metric(SoftwareWire* _softTWI, const uint8_t _i2cAddress, const
       break;
    }
 
-  readBytesFromi2C(_softTWI, INA219_I2C_ADDRESS, i2cReg, value, 2);
+  readBytesFromI2C(_softTWI, INA219_I2C_ADDRESS, i2cReg, value, 2);
   result = WireToU16(value);
 
   switch (_metric) {

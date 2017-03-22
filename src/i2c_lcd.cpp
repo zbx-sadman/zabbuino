@@ -8,6 +8,9 @@ version 1.1.2 is used
 
 */
 
+static void sendToLCD(SoftwareWire*, const uint8_t, const uint8_t, const uint8_t);
+static void write4bitsToLCD(SoftwareWire*, const uint8_t, uint8_t) ;
+static void pulseEnableOnLCD(SoftwareWire*, const uint8_t, const uint8_t);
 
 /*****************************************************************************************************************************
 *

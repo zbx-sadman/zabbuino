@@ -65,16 +65,4 @@ int8_t getDS18X20Metric(const uint8_t, uint8_t, uint8_t*, char*);
 int8_t getDS18X20Metric(const uint8_t, uint8_t, uint8_t*, char*, int32_t*, const uint8_t _wantsNumber = false);
 //int8_t getDS18X20Metric(const uint8_t, uint8_t, char*, char*);
 
-/*****************************************************************************************************************************
-*
-*  Read DS18x20's scratchpad
-*
-*   Returns: 
-*     - true on success
-*     - false on fail
-*
-*****************************************************************************************************************************/
-uint8_t getScratchPadFromDevice(OneWire*, const uint8_t*, uint8_t*);
-
-inline uint8_t isCRCOK(uint8_t*);
 #endif // #ifndef _ZABBUINO_OW_SENSORS_H_

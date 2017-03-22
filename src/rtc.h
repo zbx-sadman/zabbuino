@@ -20,7 +20,7 @@ void initRTC(SoftwareWire*);
 *   Get UTC time as Unix timestamp
 *
 *   Returns: 
-*     - RESULT_IN_LONGVAR on success
+*     - RESULT_IS_SIGNED_VALUE on success
 *     - RESULT_IS_FAIL on read error
 *     - DEVICE_ERROR_CONNECT on connection error
 *     - actual timestamp returns in _unixTimestamp
@@ -33,7 +33,7 @@ int8_t getUnixTime(SoftwareWire*, uint32_t*);
 *   Get UTC time as Y2K timestamp
 *
 *   Returns: 
-*     - RESULT_IN_LONGVAR on success
+*     - RESULT_IS_SIGNED_VALUE on success
 *     - RESULT_IS_FAIL on read error
 *     - DEVICE_ERROR_CONNECT on connection error
 *     - actual timestamp returns in _Y2KTimestamp

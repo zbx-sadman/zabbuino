@@ -1,3 +1,5 @@
+#ifdef FEATURE_USER_FUNCTION_PROCESSING
+
 // System display settings
 const uint8_t  constUserDisplaySDAPin                         = A4;     // SDA - A4
 const uint8_t  constUserDisplaySCLPin                         = A5;     // SCL - A5
@@ -14,7 +16,7 @@ const uint8_t  constUserEEPROMSCLPin                          = A5;     // SCL -
 const uint8_t  constUserEEPROMI2CAddress                      = 0x56;   // I2C EEPROM address
 
 
-    // AT24CXX EEPROM memory structure of atandalone mode example:
+    // AT24CXX EEPROM memory structure for atandalone mode example:
     //  Cell #0..7 - BH1750 data, SDA pin#, SCL pin#, I2C address, Mode - sensor's connection data, LightOn - how much lux need to turn room light on, 
     //               and LightOff how much need to turn light off.
     //               Note: if you will placed sensor near light bulb - it can be never turned off. 
@@ -332,4 +334,4 @@ uint8_t dataLength;
 
 }
 
-
+#endif // FEATURE_USER_FUNCTION_PROCESSING

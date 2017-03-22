@@ -1,5 +1,7 @@
 #include "i2c_sht.h"
 
+static uint16_t getRawDataFromSHT2X(SoftwareWire*, const uint8_t, const uint8_t);
+
 int8_t getSHT2XMetric(SoftwareWire* _softTWI, uint8_t _i2cAddress, const uint8_t _metric, uint32_t* _value)
 {
   char stubBuffer;
@@ -96,7 +98,7 @@ int8_t getSHT2XMetric(SoftwareWire* _softTWI, uint8_t _i2cAddress, const uint8_t
   }
 
   gatherSystemMetrics(); // Measure memory consumption
-  return RESULT_IN_BUFFER;  
+  return rc;
 
 }
 

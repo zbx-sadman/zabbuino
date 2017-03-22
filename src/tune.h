@@ -85,6 +85,9 @@ const uint32_t constBlinkNetworkProblem                        = 500UL;
                                                           SYSTEM HARDWARE SECTION 
 */
 
+const uint8_t  constDefaultSDAPin                               = A4;
+const uint8_t  constDefaultSCLPin                               = A5;
+
 // System RTC module settings (only DS3231 is supported at this time)
 const uint8_t  constSystemRtcSDAPin                             = A4;     // SDA - A4
 const uint8_t  constSystemRtcSCLPin                             = A5;     // SCL - A5

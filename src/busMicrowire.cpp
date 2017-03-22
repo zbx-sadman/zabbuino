@@ -14,6 +14,10 @@ Second modification is by:
 */
 #include "busMicrowire.h"
 
+static void writeByteToMAX7219(const uint8_t _dataPin, const uint8_t _clockPin, const uint8_t _data);
+static void pushDataToMAX7219(const uint8_t _dataPin, const uint8_t _clockPin, const uint8_t _loadPin, const uint8_t _register, const uint8_t _data);
+
+
 /*****************************************************************************************************************************
 *
 *  Send one byte to MAX7219 controller

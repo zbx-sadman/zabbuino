@@ -8,19 +8,8 @@
 
 -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-*/
 
-int8_t getDS18X20Metric(const uint8_t _pin, uint8_t _resolution, uint8_t* _id, int32_t* _value)
-{
-  char stubBuffer;
-  return getDS18X20Metric(_pin, _resolution, _id, &stubBuffer, _value, true);
-
-}
-
-int8_t getDS18X20Metric(const uint8_t _pin, uint8_t _resolution, uint8_t* _id, char* _dst)
-{
-  int32_t stubValue;
-  return getDS18X20Metric(_pin, _resolution, _id, _dst, &stubValue, false);
-}
-
+static uint8_t getScratchPadFromDevice(OneWire *_owDevice, const uint8_t *_addr, uint8_t *_scratchPad);
+static inline uint8_t isCRCOK(uint8_t *_scratchPad);
 
 
 /*****************************************************************************************************************************
@@ -213,6 +202,26 @@ int8_t getDS18X20Metric(const uint8_t _pin, uint8_t _resolution, uint8_t* _id, c
   delete owDevice; 
   return rc;
 }
+
+/*****************************************************************************************************************************
+*
+*  Overloaded getDS18X20Metric() functions. Refer to original subroutione to see return codes
+*
+*****************************************************************************************************************************/
+int8_t getDS18X20Metric(const uint8_t _pin, uint8_t _resolution, uint8_t* _id, int32_t* _value)
+{
+  char stubBuffer;
+  return getDS18X20Metric(_pin, _resolution, _id, &stubBuffer, _value, true);
+
+}
+
+int8_t getDS18X20Metric(const uint8_t _pin, uint8_t _resolution, uint8_t* _id, char* _dst)
+{
+  int32_t stubValue;
+  return getDS18X20Metric(_pin, _resolution, _id, _dst, &stubValue, false);
+}
+
+
 
 /*****************************************************************************************************************************
 *

@@ -1,38 +1,12 @@
 #include "i2c_bus.h"
 #include "i2c_ds3231.h"
 
-
-/*****************************************************************************************************************************
-*
-*   Init DS3231 RTC 
-*
-*   Returns: 
-*     - 
-*
-*****************************************************************************************************************************/
-int8_t initDS3231(SoftwareWire* _softTWI, const uint8_t _i2cAddress) {
-  int8_t rc = false;
-
-  // Kickstart oscillator of it stopped early
-  if (!isDS3231Running(_softTWI, _i2cAddress)) { setDS3231RunningState(_softTWI, _i2cAddress, true); }
-
-  uint8_t creg;
-
-  if (0x00 != readBytesFromi2C(_softTWI, _i2cAddress, DS3231_REG_CONTROL, &creg, 1)) { goto finish; }
-
-  // Set SquareWavePin mode 'None'
-  // clear all relevant bits to a known "off" state
-  creg &= ~(DS3231_AIEMASK | _BV(DS3231_BBSQW));
-  creg |= _BV(DS3231_INTCN);  // set INTCN to disables SQW
-  if (0x00 != writeByteToI2C(_softTWI, _i2cAddress, DS3231_REG_CONTROL, creg)) { goto finish; } 
-
-  rc = true;
-
-  finish:
-  return rc;
-
-}
-
+static uint8_t isDS3231Running(SoftwareWire*, const uint8_t);
+static void setDS3231RunningState(SoftwareWire*, const uint8_t, uint8_t);
+static uint8_t isDS3231DateTimeValid(SoftwareWire*, const uint8_t);
+static uint8_t Uint8ToBcd(uint8_t);
+static uint8_t BcdToUint8(uint8_t);
+static uint8_t BcdToBin24Hour(uint8_t);
 
 /*****************************************************************************************************************************
 *
@@ -43,12 +17,12 @@ int8_t initDS3231(SoftwareWire* _softTWI, const uint8_t _i2cAddress) {
 *     - False otherwise
 *
 *****************************************************************************************************************************/
-static uint8_t isDS3231Running(SoftwareWire* _softTWI, const uint8_t _i2cAddress) {
+uint8_t isDS3231Running(SoftwareWire* _softTWI, const uint8_t _i2cAddress) {
   uint8_t creg;
   // EOSC - enable Oscillator. When set to logic 0, the oscillator is started. When set to logic 1, the oscillator is stopped 
   // when the DS3231 switches to VBAT. This bit is clear (logic 0) when power is first applied. When the DS3231 is powered by 
   // VCC, the oscillator is always on regardless of the status of the EOSC bit. When EOSC is disabled, all register data is ***static***
-  readBytesFromi2C(_softTWI, _i2cAddress, DS3231_REG_CONTROL, &creg, 1);
+  readBytesFromI2C(_softTWI, _i2cAddress, DS3231_REG_CONTROL, &creg, 1);
   return !(creg & _BV(DS3231_EOSC));
 }
 
@@ -60,9 +34,9 @@ static uint8_t isDS3231Running(SoftwareWire* _softTWI, const uint8_t _i2cAddress
 *     - 
 *
 *****************************************************************************************************************************/
-static void setDS3231RunningState(SoftwareWire* _softTWI, const uint8_t _i2cAddress, uint8_t _isRunning) {
+void setDS3231RunningState(SoftwareWire* _softTWI, const uint8_t _i2cAddress, uint8_t _isRunning) {
   uint8_t creg;
-  readBytesFromi2C(_softTWI, _i2cAddress, DS3231_REG_CONTROL, &creg, 1);
+  readBytesFromI2C(_softTWI, _i2cAddress, DS3231_REG_CONTROL, &creg, 1);
   if (_isRunning) {
       creg &= ~_BV(DS3231_EOSC);
   } else {
@@ -80,7 +54,7 @@ static void setDS3231RunningState(SoftwareWire* _softTWI, const uint8_t _i2cAddr
 *     - False otherwise
 *
 *****************************************************************************************************************************/
-static uint8_t isDS3231DateTimeValid(SoftwareWire* _softTWI, const uint8_t _i2cAddress) {
+uint8_t isDS3231DateTimeValid(SoftwareWire* _softTWI, const uint8_t _i2cAddress) {
   // OSF - Oscillator Stop Flag ). A logic 1 in this bit indicates that the oscillator either is stopped or was stopped for 
   // some period and may be used to judge the validity of the timekeeping data. 
   // OSF bit is be set on:
@@ -88,8 +62,86 @@ static uint8_t isDS3231DateTimeValid(SoftwareWire* _softTWI, const uint8_t _i2cA
   //    2) The voltages present on both VCC and VBAT are insufficient to support oscillation.
   //    3) The EOSC bit is turned off in battery-backed mode.
   //    4) External influences on the crystal (i.e., noise, leakage,etc.).
-  uint8_t status = readBytesFromi2C(_softTWI, _i2cAddress, DS3231_REG_STATUS, &status, 1);
+  uint8_t status = readBytesFromI2C(_softTWI, _i2cAddress, DS3231_REG_STATUS, &status, 1);
   return !(status & _BV(DS3231_OSF));
+}
+
+/*****************************************************************************************************************************
+*
+*   Convert the number from uint8_t to BCD format
+*
+*   Returns: 
+*     - BCD value
+*
+*****************************************************************************************************************************/
+uint8_t Uint8ToBcd(uint8_t val) {
+  return val + 6 * (val / 10);
+}
+
+/*****************************************************************************************************************************
+*
+*   Convert the number from BCD format to uint8_t
+*
+*   Returns: 
+*     - unit8_t value
+*
+*****************************************************************************************************************************/
+uint8_t BcdToUint8(uint8_t val) {
+  return val - 6 * (val >> 4);
+}
+
+/*****************************************************************************************************************************
+*
+*   Convert the number from BCD format to 24H format
+*
+*   Returns: 
+*     - 24H format value
+*
+*****************************************************************************************************************************/
+uint8_t BcdToBin24Hour(uint8_t bcdHour) {
+  uint8_t hour;
+  if (bcdHour & 0x40) {
+     // 12 hour mode, convert to 24
+     bool isPm = ((bcdHour & 0x20) != 0);
+     hour = BcdToUint8(bcdHour & 0x1f);
+     if (isPm) {
+        hour += 12;
+     }
+  } else {
+     hour = BcdToUint8(bcdHour);
+  }
+  return hour;
+}
+
+/*****************************************************************************************************************************
+*
+*   Init DS3231 RTC 
+*
+*   Returns: 
+*     - 
+*
+*****************************************************************************************************************************/
+int8_t initDS3231(SoftwareWire* _softTWI, const uint8_t _i2cAddress) {
+  int8_t rc = false;
+
+  // Kickstart oscillator of it stopped early
+  if (!isDS3231Running(_softTWI, _i2cAddress)) { setDS3231RunningState(_softTWI, _i2cAddress, true); }
+
+  uint8_t creg;
+
+  if (0x00 != readBytesFromI2C(_softTWI, _i2cAddress, DS3231_REG_CONTROL, &creg, 1)) { goto finish; }
+
+  // Set SquareWavePin mode 'None'
+  // clear all relevant bits to a known "off" state
+  creg &= ~(DS3231_AIEMASK | _BV(DS3231_BBSQW));
+  creg |= _BV(DS3231_INTCN);  // set INTCN to disables SQW
+  if (0x00 != writeByteToI2C(_softTWI, _i2cAddress, DS3231_REG_CONTROL, creg)) { goto finish; } 
+
+  rc = true;
+
+  finish:
+  return rc;
+
 }
 
 /*****************************************************************************************************************************
@@ -133,7 +185,7 @@ int8_t saveDS3231Time(SoftwareWire* _softTWI, uint8_t _i2cAddress, time_t _y2Kti
   value[6]=Uint8ToBcd(year);
 
   // clear the invalid flag
-  readBytesFromi2C(_softTWI, _i2cAddress, DS3231_REG_STATUS, &status, 1);
+  readBytesFromI2C(_softTWI, _i2cAddress, DS3231_REG_STATUS, &status, 1);
   status &= ~_BV(DS3231_OSF); // clear the flag
   writeByteToI2C(_softTWI, _i2cAddress, DS3231_REG_STATUS, status);
   // set the date time and return OK if Wire.endTransmission called from writeBytesToI2C() returns 0
@@ -167,7 +219,7 @@ int8_t readDS3231Time(SoftwareWire* _softTWI, uint8_t _i2cAddress, time_t* _time
   // TODO: make new retcode (?)
   if (!isDS3231DateTimeValid(_softTWI, _i2cAddress)) { goto finish; } // rc already init as RESULT_IS_FAIL
 
-  rc = (0x00 == readBytesFromi2C(_softTWI, _i2cAddress, DS3231_REG_TIMEDATE, value, sizeof(value)));
+  rc = (0x00 == readBytesFromI2C(_softTWI, _i2cAddress, DS3231_REG_TIMEDATE, value, sizeof(value)));
 
   dateTime.tm_sec   = BcdToUint8(value[0] & 0x7F);
   dateTime.tm_min   = BcdToUint8(value[1]);
@@ -192,51 +244,3 @@ int8_t readDS3231Time(SoftwareWire* _softTWI, uint8_t _i2cAddress, time_t* _time
   return rc;
 }
   
-
-/*****************************************************************************************************************************
-*
-*   Convert the number from uint8_t to BCD format
-*
-*   Returns: 
-*     - BCD value
-*
-*****************************************************************************************************************************/
-static uint8_t Uint8ToBcd(uint8_t val) {
-  return val + 6 * (val / 10);
-}
-
-/*****************************************************************************************************************************
-*
-*   Convert the number from BCD format to uint8_t
-*
-*   Returns: 
-*     - unit8_t value
-*
-*****************************************************************************************************************************/
-static uint8_t BcdToUint8(uint8_t val) {
-  return val - 6 * (val >> 4);
-}
-
-/*****************************************************************************************************************************
-*
-*   Convert the number from BCD format to 24H format
-*
-*   Returns: 
-*     - 24H format value
-*
-*****************************************************************************************************************************/
-static uint8_t BcdToBin24Hour(uint8_t bcdHour) {
-  uint8_t hour;
-  if (bcdHour & 0x40) {
-     // 12 hour mode, convert to 24
-     bool isPm = ((bcdHour & 0x20) != 0);
-     hour = BcdToUint8(bcdHour & 0x1f);
-     if (isPm) {
-        hour += 12;
-     }
-  } else {
-     hour = BcdToUint8(bcdHour);
-  }
-  return hour;
-}
-

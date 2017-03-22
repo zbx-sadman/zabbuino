@@ -46,7 +46,7 @@ void NetworkClass::init(netconfig_t* _netConfig) {
 
 
 uint8_t NetworkClass::checkPHY() {
-  uint8_t rc, needRestart;
+  uint8_t rc;
   DTSL( SerialPrintln_P(PSTR("Checking PHY...")); )   
   rc = false;
 
@@ -102,9 +102,8 @@ void NetworkClass::showPHYState() {
 void NetworkClass::restart() {
   uint8_t useStaticIP;
 
-  start:
-
 #ifdef FEATURE_NET_DHCP_ENABLE
+  start:
   // User want to use DHCP with Zabbuino?
  //Serial.println("p3");
 

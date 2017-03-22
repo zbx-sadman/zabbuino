@@ -20,9 +20,8 @@ void initRTC(SoftwareWire* _softTWI) {
 *   Get UTC time as Unix timestamp
 *
 *   Returns: 
-*     - RESULT_IN_LONGVAR on success
-*     - RESULT_IS_FAIL on read error
-*     - DEVICE_ERROR_CONNECT on connection error
+*     - True on success
+*     - False on error
 *     - actual timestamp returns in _unixTimestamp
 *
 *****************************************************************************************************************************/
@@ -38,9 +37,8 @@ int8_t getUnixTime(SoftwareWire* _softTWI, uint32_t* _unixTimestamp) {
 *   Get UTC time as Y2K timestamp
 *
 *   Returns: 
-*     - RESULT_IN_LONGVAR on success
-*     - RESULT_IS_FAIL on read error
-*     - DEVICE_ERROR_CONNECT on connection error
+*     - True on success
+*     - False on error
 *     - actual timestamp returns in _Y2KTimestamp
 *
 *****************************************************************************************************************************/
@@ -54,9 +52,8 @@ int8_t getY2KTime(SoftwareWire* _softTWI, time_t* _Y2KTimestamp) {
 *   Set UTC time taking Unix timestamp
 *
 *   Returns: 
-*     - RESULT_IN_OK on success
-*     - RESULT_IS_FAIL on write error
-*     - DEVICE_ERROR_CONNECT on connection error
+*     - True on success
+*     - False on error
 *
 *****************************************************************************************************************************/
 int8_t setUnixTime(SoftwareWire* _softTWI, uint32_t _unixTimestamp) {
@@ -69,9 +66,8 @@ int8_t setUnixTime(SoftwareWire* _softTWI, uint32_t _unixTimestamp) {
 *   Set UTC time taking Y2K timestamp
 *
 *   Returns: 
-*     - RESULT_IN_OK on success
-*     - RESULT_IS_FAIL on write error
-*     - DEVICE_ERROR_CONNECT on connection error
+*     - True on success
+*     - False on error
 *
 *****************************************************************************************************************************/
 int8_t setY2KTime(SoftwareWire* _softTWI, time_t _Y2KTimestamp) {

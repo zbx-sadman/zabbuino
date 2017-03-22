@@ -128,7 +128,7 @@ int8_t manageExtInt(uint32_t *_dst, uint8_t _pin, uint8_t _mode) {
 
    ATOMIC_BLOCK(ATOMIC_RESTORESTATE) { *_dst = (uint32_t) extInterrupt[interruptNumber].value; }
 
-   rc = RESULT_IN_ULONGVAR;
+   rc = RESULT_IS_UNSIGNED_VALUE;
           
 #endif // #if (EXTERNAL_NUM_INTERRUPTS > 0
 
@@ -250,7 +250,7 @@ int8_t manageIncEnc(int32_t* _dst, uint8_t const _terminalAPin, uint8_t const _t
    } // (OWNER_IS_INCENC != extInterrupt[interruptNumber].owner)
 
    ATOMIC_BLOCK(ATOMIC_RESTORESTATE) { *_dst = (int32_t) extInterrupt[interruptNumber].value; }
-   rc = RESULT_IN_LONGVAR;
+   rc = RESULT_IS_SIGNED_VALUE;
 #endif
 
    finish:

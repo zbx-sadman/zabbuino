@@ -126,10 +126,10 @@ version 2.2.1 is used
 
 uint8_t sendCommandByIR(const uint8_t _irPacketType, const uint8_t _nbits, const uint32_t _data, const uint8_t _repeat, const uint32_t _address);
 uint8_t sendRawByIR(const uint16_t _frequency, unsigned int _nBits, const char* _data);
-static void mark (unsigned int time);
-static void space (unsigned int time);
+//static void mark (unsigned int time);
+//static void space (unsigned int time);
 void enableIROut (int khz);
-static void custom_delay_usec(unsigned long uSecs);
+//static void custom_delay_usec(unsigned long uSecs);
 #ifdef SUPPORT_IR_RC5
 #define MIN_RC5_SAMPLES     11
 

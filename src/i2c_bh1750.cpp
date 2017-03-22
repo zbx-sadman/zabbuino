@@ -73,7 +73,7 @@ int8_t getBH1750Metric(SoftwareWire* _softTWI, uint8_t _i2cAddress, uint8_t _mod
     // Wait to complete covertation round
     delay(convertTime);
     // Read data
-    if (0x00 != readBytesFromi2C(_softTWI, _i2cAddress, I2C_NO_REG_SPECIFIED, value, 2)) { goto finish; }
+    if (0x00 != readBytesFromI2C(_softTWI, _i2cAddress, I2C_NO_REG_SPECIFIED, value, 2)) { goto finish; }
   }
    *_value = WireToU16(value);
 

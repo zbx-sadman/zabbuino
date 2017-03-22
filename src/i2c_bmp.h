@@ -155,18 +155,6 @@ int8_t getBMPMetric(SoftwareWire* _softTWI, uint8_t _i2cAddress, const uint8_t _
 int8_t getBMPMetric(SoftwareWire* _softTWI, uint8_t _i2cAddress, const uint8_t _overSampling, const uint8_t _filterCoef, const uint8_t _metric, char* _dst);
 
 int8_t getBMPMetric(SoftwareWire* _softTWI, uint8_t _i2cAddress, const uint8_t _overSampling, const uint8_t _filterCoef, const uint8_t _metric, char *_dst, int32_t* _value, const uint8_t _wantsNumber);
-//int8_t getBMPMetric(SoftwareWire* _softTWI, uint8_t _i2cAddress, const uint8_t _overSampling, const uint8_t _filterCoef, const uint8_t _metric, char *_dst);
-
-/*****************************************************************************************************************************
-*
-*   Waiting for a timeout to detect the BMP sensor ready state
-*
-*   Returns: 
-*     - true on sensor ready
-*     - false on timeout
-*
-**************************************************************************************************************************** */
-uint8_t waitToBMPReady(SoftwareWire* _softTWI, const uint8_t _i2cAddress, const int16_t _registerAddress, const int16_t _mask, const uint16_t _timeout);
 
 /*****************************************************************************************************************************
 *

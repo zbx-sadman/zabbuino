@@ -776,8 +776,8 @@ typedef enum {
 #define RESULT_IS_OK                                            true
 #define RESULT_IN_BUFFER                                        0x02
 #define RESULT_IS_PRINTED                                       0x04
-#define RESULT_IN_LONGVAR                                       0x08
-#define RESULT_IN_ULONGVAR                                      0x10
+#define RESULT_IS_SIGNED_VALUE                                  0x08
+#define RESULT_IS_UNSIGNED_VALUE                                0x10
 // RESULT_IS_NEW_COMMAND's value must not equal any command index to avoid incorrect processing
 #define RESULT_IS_NEW_COMMAND                                   -0x02
 

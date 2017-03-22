@@ -1,5 +1,6 @@
 #include "i2c_bmp.h"
 
+static uint8_t waitToBMPReady(SoftwareWire*, const uint8_t, const int16_t, const int16_t, const uint16_t);
 
 /*****************************************************************************************************************************
 *
@@ -18,7 +19,7 @@ uint8_t waitToBMPReady(SoftwareWire* _softTWI, const uint8_t _i2cAddress, const 
   startTime = millis();
   
   while((millis() - startTime) < _timeout){
-     readBytesFromi2C(_softTWI, _i2cAddress, _registerAddress, &value, 1);
+     readBytesFromI2C(_softTWI, _i2cAddress, _registerAddress, &value, 1);
      if (0 == (value & _mask)) return true;
      delay(10);  
   }
@@ -59,7 +60,7 @@ int8_t getBMPMetric(SoftwareWire* _softTWI, uint8_t _i2cAddress, const uint8_t _
 
   // Taking Chip ID
   // false == 0 == succes transmission
-  if (false != readBytesFromi2C(_softTWI, _i2cAddress, BMP_REGISTER_CHIPID, &chipID, 1)) { rc = DEVICE_ERROR_TIMEOUT; goto finish; }
+  if (false != readBytesFromI2C(_softTWI, _i2cAddress, BMP_REGISTER_CHIPID, &chipID, 1)) { rc = DEVICE_ERROR_TIMEOUT; goto finish; }
   
   switch (chipID) {
     // BMP085 and BMP180 have the same ID  
@@ -168,18 +169,18 @@ int8_t getBMP280Metric(SoftwareWire* _softTWI, uint8_t _i2cAddress, const uint8_
   // Compensate temperature caculation
 
   // Read raw value  
-  readBytesFromi2C(_softTWI, _i2cAddress, BMP280_REGISTER_TEMPDATA, value, 3);
+  readBytesFromI2C(_softTWI, _i2cAddress, BMP280_REGISTER_TEMPDATA, value, 3);
   
   adc = ((int32_t) (((uint16_t) value[0] << 8) | (uint16_t) value[1]) << 4) | ((uint16_t) value[2] >> 4);
   
   // read calibration data 
-  readBytesFromi2C(_softTWI, _i2cAddress, BMP280_REGISTER_DIG_T1, value, 2);
+  readBytesFromI2C(_softTWI, _i2cAddress, BMP280_REGISTER_DIG_T1, value, 2);
   dig_T1 = WireToU16LE(value);
 
-  readBytesFromi2C(_softTWI, _i2cAddress, BMP280_REGISTER_DIG_T2, value, 2);
+  readBytesFromI2C(_softTWI, _i2cAddress, BMP280_REGISTER_DIG_T2, value, 2);
   dig_T2 = WireToS16LE(value);
                                                                   
-  readBytesFromi2C(_softTWI, _i2cAddress, BMP280_REGISTER_DIG_T3, value, 2);
+  readBytesFromI2C(_softTWI, _i2cAddress, BMP280_REGISTER_DIG_T3, value, 2);
   dig_T3 = WireToS16LE(value);;
 
 
@@ -200,37 +201,37 @@ int8_t getBMP280Metric(SoftwareWire* _softTWI, uint8_t _i2cAddress, const uint8_
 
     case SENS_READ_PRSS:
       // read calibration data 
-      readBytesFromi2C(_softTWI, _i2cAddress, BMP280_REGISTER_DIG_P1, value, 2);
+      readBytesFromI2C(_softTWI, _i2cAddress, BMP280_REGISTER_DIG_P1, value, 2);
       dig_P1 = WireToU16LE(value);
       
-      readBytesFromi2C(_softTWI, _i2cAddress, BMP280_REGISTER_DIG_P2, value, 2);
+      readBytesFromI2C(_softTWI, _i2cAddress, BMP280_REGISTER_DIG_P2, value, 2);
       dig_P2 = WireToS16LE(value);
       
-      readBytesFromi2C(_softTWI, _i2cAddress, BMP280_REGISTER_DIG_P3, value, 2);
+      readBytesFromI2C(_softTWI, _i2cAddress, BMP280_REGISTER_DIG_P3, value, 2);
       dig_P3 = WireToS16LE(value);
 
-      readBytesFromi2C(_softTWI, _i2cAddress, BMP280_REGISTER_DIG_P4, value, 2);
+      readBytesFromI2C(_softTWI, _i2cAddress, BMP280_REGISTER_DIG_P4, value, 2);
       dig_P4 = WireToS16LE(value);
       
-      readBytesFromi2C(_softTWI, _i2cAddress, BMP280_REGISTER_DIG_P5, value, 2);
+      readBytesFromI2C(_softTWI, _i2cAddress, BMP280_REGISTER_DIG_P5, value, 2);
       dig_P5 = WireToS16LE(value);
       
-      readBytesFromi2C(_softTWI, _i2cAddress, BMP280_REGISTER_DIG_P6, value, 2);
+      readBytesFromI2C(_softTWI, _i2cAddress, BMP280_REGISTER_DIG_P6, value, 2);
       dig_P6 = WireToS16LE(value);
       
-      readBytesFromi2C(_softTWI, _i2cAddress, BMP280_REGISTER_DIG_P7, value, 2);
+      readBytesFromI2C(_softTWI, _i2cAddress, BMP280_REGISTER_DIG_P7, value, 2);
       dig_P7 = WireToS16LE(value);
       
-      readBytesFromi2C(_softTWI, _i2cAddress, BMP280_REGISTER_DIG_P8, value, 2);
+      readBytesFromI2C(_softTWI, _i2cAddress, BMP280_REGISTER_DIG_P8, value, 2);
       dig_P8 = WireToS16LE(value);
       
-      readBytesFromi2C(_softTWI, _i2cAddress, BMP280_REGISTER_DIG_P9, value, 2);
+      readBytesFromI2C(_softTWI, _i2cAddress, BMP280_REGISTER_DIG_P9, value, 2);
       dig_P9 = WireToS16LE(value);
  
       // Test value
       // adc = 415148 ( from BOSCH datasheet)
       // Read raw value  
-      readBytesFromi2C(_softTWI, _i2cAddress, BMP280_REGISTER_PRESSUREDATA, value, 3);
+      readBytesFromI2C(_softTWI, _i2cAddress, BMP280_REGISTER_PRESSUREDATA, value, 3);
       adc = ((int32_t) (((uint16_t) value[0] << 8) | (uint16_t) value[1]) << 4) | ((uint16_t) value[2] >> 4);
    
       // Compensate pressure caculation
@@ -280,26 +281,26 @@ int8_t getBMP280Metric(SoftwareWire* _softTWI, uint8_t _i2cAddress, const uint8_
 
       //read calibration data
 
-      readBytesFromi2C(_softTWI, _i2cAddress, BME280_REGISTER_DIG_H1, value, 1);
+      readBytesFromI2C(_softTWI, _i2cAddress, BME280_REGISTER_DIG_H1, value, 1);
       dig_H1 = WireToU8(value);
   
-      readBytesFromi2C(_softTWI, _i2cAddress, BME280_REGISTER_DIG_H2, value, 2);
+      readBytesFromI2C(_softTWI, _i2cAddress, BME280_REGISTER_DIG_H2, value, 2);
       dig_H2 = WireToS16LE(value);
 
-      readBytesFromi2C(_softTWI, _i2cAddress, BME280_REGISTER_DIG_H3, value, 1);
+      readBytesFromI2C(_softTWI, _i2cAddress, BME280_REGISTER_DIG_H3, value, 1);
       dig_H3 = WireToU8(value);
 
-      readBytesFromi2C(_softTWI, _i2cAddress, BME280_REGISTER_DIG_H4, value, 2);
+      readBytesFromI2C(_softTWI, _i2cAddress, BME280_REGISTER_DIG_H4, value, 2);
       dig_H4 = (int16_t) (((uint16_t) value[0] << 4) | (value[1] & 0xF));
 
-      readBytesFromi2C(_softTWI, _i2cAddress, BME280_REGISTER_DIG_H5, value, 2);
+      readBytesFromI2C(_softTWI, _i2cAddress, BME280_REGISTER_DIG_H5, value, 2);
       dig_H5 = (int16_t) ((uint16_t) value[1] << 4) | (value[0] >> 4);
 
-      readBytesFromi2C(_softTWI, _i2cAddress, BME280_REGISTER_DIG_H6, value, 1);
+      readBytesFromI2C(_softTWI, _i2cAddress, BME280_REGISTER_DIG_H6, value, 1);
       dig_H6 = WireToS8(value);
 
       // Read raw value  
-      readBytesFromi2C(_softTWI, _i2cAddress, BME280_REGISTER_HUMIDDATA, value, 2);
+      readBytesFromI2C(_softTWI, _i2cAddress, BME280_REGISTER_HUMIDDATA, value, 2);
       // adc take wrong value due overflow if value[] no cast to (uint16_t) 
       adc = (int32_t) WireToU16(value);
 
@@ -359,38 +360,38 @@ int8_t getBMP180Metric(SoftwareWire* _softTWI, uint8_t _i2cAddress, uint8_t _ove
   value = (uint8_t*) _dst;
 
   /* read calibration data */
-  readBytesFromi2C(_softTWI, _i2cAddress, BMP180_REGISTER_CAL_AC1, value, 2);
+  readBytesFromI2C(_softTWI, _i2cAddress, BMP180_REGISTER_CAL_AC1, value, 2);
   ac1 = WireToS16(value);
   
-  readBytesFromi2C(_softTWI, _i2cAddress, BMP180_REGISTER_CAL_AC2, value, 2);
+  readBytesFromI2C(_softTWI, _i2cAddress, BMP180_REGISTER_CAL_AC2, value, 2);
   ac2 = WireToS16(value);
   
-  readBytesFromi2C(_softTWI, _i2cAddress, BMP180_REGISTER_CAL_AC3, value, 2);
+  readBytesFromI2C(_softTWI, _i2cAddress, BMP180_REGISTER_CAL_AC3, value, 2);
   ac3 = WireToS16(value);
   
-  readBytesFromi2C(_softTWI, _i2cAddress, BMP180_REGISTER_CAL_AC4, value, 2);
+  readBytesFromI2C(_softTWI, _i2cAddress, BMP180_REGISTER_CAL_AC4, value, 2);
   ac4 = WireToU16(value);
   
-  readBytesFromi2C(_softTWI, _i2cAddress, BMP180_REGISTER_CAL_AC5, value, 2);
+  readBytesFromI2C(_softTWI, _i2cAddress, BMP180_REGISTER_CAL_AC5, value, 2);
   ac5 = WireToU16(value);
   
-  readBytesFromi2C(_softTWI, _i2cAddress, BMP180_REGISTER_CAL_AC6, value, 2);
+  readBytesFromI2C(_softTWI, _i2cAddress, BMP180_REGISTER_CAL_AC6, value, 2);
   ac6 = WireToU16(value);
   
-  readBytesFromi2C(_softTWI, _i2cAddress, BMP180_REGISTER_CAL_B1, value, 2);
+  readBytesFromI2C(_softTWI, _i2cAddress, BMP180_REGISTER_CAL_B1, value, 2);
   b1 = WireToS16(value);
   
-  readBytesFromi2C(_softTWI, _i2cAddress, BMP180_REGISTER_CAL_B2, value, 2);
+  readBytesFromI2C(_softTWI, _i2cAddress, BMP180_REGISTER_CAL_B2, value, 2);
   b2 = WireToS16(value);
   
   // Not used in calculation (see datasheet)
-  //readBytesFromi2C(_i2cAddress, BMP180_REGISTER_CAL_MB, value, 2);
+  //readBytesFromI2C(_i2cAddress, BMP180_REGISTER_CAL_MB, value, 2);
   //mb = WireToS16(value);
 
-  readBytesFromi2C(_softTWI, _i2cAddress, BMP180_REGISTER_CAL_MC, value, 2);
+  readBytesFromI2C(_softTWI, _i2cAddress, BMP180_REGISTER_CAL_MC, value, 2);
   mc = WireToS16(value);
 
-  readBytesFromi2C(_softTWI, _i2cAddress, BMP180_REGISTER_CAL_MD, value, 2);
+  readBytesFromI2C(_softTWI, _i2cAddress, BMP180_REGISTER_CAL_MD, value, 2);
   md = WireToS16(value);
 
   switch ( _overSampling) {
@@ -416,7 +417,7 @@ int8_t getBMP180Metric(SoftwareWire* _softTWI, uint8_t _i2cAddress, uint8_t _ove
   // We must wait for 50ms to Bxx0xxxxx value in "Control" register to know about end of conversion
   if (!waitToBMPReady(_softTWI, _i2cAddress, BMP_REGISTER_CONTROL, BMP180_READY_MASK, BMP180_READY_TIMEOUT)) { goto finish; } // rc inited with DEVICE_ERROR_TIMEOUT value
   // Read two bytes from registers 0xF6 and 0xF7
-  readBytesFromi2C(_softTWI, _i2cAddress, BMP180_REGISTER_TEMPDATA, value, 2);
+  readBytesFromI2C(_softTWI, _i2cAddress, BMP180_REGISTER_TEMPDATA, value, 2);
   ut = WireToU16(value);
 
   x1 = (((int32_t) ut - (int32_t) ac6) * (int32_t) ac5) >> 15;
@@ -440,7 +441,7 @@ int8_t getBMP180Metric(SoftwareWire* _softTWI, uint8_t _i2cAddress, uint8_t _ove
     delay(2 + (3 << _overSampling));
 
     // Read register 0xF6 (MSB), 0xF7 (LSB), and 0xF8 (XLSB)
-    readBytesFromi2C(_softTWI, _i2cAddress, BMP180_REGISTER_PRESSUREDATA, value, 3);
+    readBytesFromI2C(_softTWI, _i2cAddress, BMP180_REGISTER_PRESSUREDATA, value, 3);
     up = (((uint32_t) value[0] << 16) | ((uint32_t) value[1] << 8) | (uint32_t) value[2]) >> (8 - _overSampling);
 
     b6 = b5 - 4000;

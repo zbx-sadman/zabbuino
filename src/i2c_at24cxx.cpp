@@ -32,7 +32,7 @@ int8_t AT24CXXRead(SoftwareWire* _softTWI, const uint8_t _i2cAddress, const uint
   value[1]=lowByte(_cellAddress);
   if (0x00 != writeBytesToI2C(_softTWI, _i2cAddress, I2C_NO_REG_SPECIFIED, value, sizeof(value))) { goto finish; } 
   // Sequentally read _lenght bytes to _dst
-  if (0x00 != readBytesFromi2C(_softTWI, _i2cAddress, I2C_NO_REG_SPECIFIED, _dst, _lenght) ) { goto finish; } 
+  if (0x00 != readBytesFromI2C(_softTWI, _i2cAddress, I2C_NO_REG_SPECIFIED, _dst, _lenght) ) { goto finish; } 
   rc = true;
 
   finish:

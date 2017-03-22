@@ -81,7 +81,12 @@ uint8_t writeBytesToI2C(SoftwareWire* _softTWI, const uint8_t _i2cAddress, const
 *
 *
 *****************************************************************************************************************************/
-uint8_t readBytesFromi2C(SoftwareWire* _softTWI, const uint8_t _i2cAddress, const int16_t _registerAddress, uint8_t *_dst, const uint8_t _len);
+uint8_t readBytesFromI2C(SoftwareWire* _softTWI, const uint8_t _i2cAddress, const int16_t _registerAddress, uint8_t *_dst, const uint8_t _len);
+
+int8_t readValueFromI2C(SoftwareWire*, const uint8_t, const int16_t, uint32_t*, uint8_t, uint8_t _numberOfReadings = 0x00);
+int8_t writeValueToI2C(SoftwareWire*, const uint8_t, const int16_t, uint32_t, uint8_t);
+int8_t bitWriteToI2C(SoftwareWire*, const uint8_t, const int16_t, const uint8_t, const uint8_t);
+int8_t bitReadFromI2C(SoftwareWire*, const uint8_t, const int16_t, const uint8_t, uint8_t*);
 
 /*****************************************************************************************************************************
 *
