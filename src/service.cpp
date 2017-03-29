@@ -1,5 +1,49 @@
 #include "service.h"
 
+/*****************************************************************************************************************************
+*
+*   Return number of millis() rollovers every UINT32_MAX ms (~50days)
+*   Must be called every (UINT32_MAX / 2) - 1 ms at least
+*
+*****************************************************************************************************************************/
+uint8_t millisRollover(void) {
+  // get the current millis() value for how long the microcontroller has been running
+  //
+  // To avoid any possiblity of missing the rollover, we use a boolean toggle that gets flipped
+  //   off any time during the first half of the total millis period and
+  //   then on during the second half of the total millis period.
+  // This would work even if the function were only run once every 4.5 hours, though typically,
+  //   the function should be called as frequently as possible to capture the actual moment of rollover.
+  // The rollover counter is good for over 35 years of runtime. --Rob Faludi http://rob.faludi.com
+  //
+  static uint8_t numRollovers = 0,               // variable that permanently holds the number of rollovers since startup
+                 readyToRoll = false;            // tracks whether we've made it halfway to rollover
+  const uint32_t halfwayMillis = UINT32_MAX / 2; // this is halfway to the max millis value (17179868 for earlier versions of Arduino)
+  uint32_t now = millis();                       // the time right now
+
+  // as long as the value is greater than halfway to the max
+  // you are ready to roll over
+  if (now > halfwayMillis) { readyToRoll = true; }
+
+  if (readyToRoll == true && now < halfwayMillis) {
+    // if we've previously made it to halfway
+    // and the current millis() value is now _less_ than the halfway mark
+    // then we have rolled over
+    numRollovers++; // add one to the count the number of rollovers
+    readyToRoll = false; // we're no longer past halfway
+  } 
+  return numRollovers;
+}
+
+/*****************************************************************************************************************************
+*
+*   Return uptime of device in sec
+*
+*****************************************************************************************************************************/
+uint32_t uptime(void) {
+  return ((uint32_t) millisRollover() * (UINT32_MAX / 1000) + millis() / 1000UL);
+}
+
 
 /*****************************************************************************************************************************
 *

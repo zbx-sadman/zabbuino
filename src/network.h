@@ -18,7 +18,7 @@
 #include "wiznet/Ethernet.h" 
 #include "wiznet/EthernetServer.h" 
 #include "wiznet/EthernetClient.h" 
-class NetworkClass: public EthernetClass
+class NetworkClass
 {
   private:
     uint8_t useDHCP;
@@ -32,19 +32,26 @@ class NetworkClass: public EthernetClass
     EthernetClient client;
     NetworkClass() {}
     ~NetworkClass() {}
+    IPAddress localIP() { return Ethernet.localIP(); }
     uint8_t checkPHY();
+    inline uint8_t getRCR() { return 0; }
+    inline uint16_t getRTR() { return 0; }
+    inline uint16_t getPHYCFG() { return 0; }
+    inline int maintain() {return Ethernet.maintain(); };
+    int begin(uint8_t *_mac) { return Ethernet.begin(_mac); }
+    void begin(uint8_t *_mac, NetworkAddress _ip, NetworkAddress _dns, NetworkAddress _gw, NetworkAddress _netmask) {
+         Ethernet.begin(_mac, IPAddress(_ip), IPAddress(_dns), IPAddress(_gw), IPAddress(_netmask));
+    }
     void showNetworkState();
     void showPHYState();
     void restart();
     void init(netconfig_t*);
-    int begin(uint8_t*);
-    void begin(uint8_t*, NetworkAddress, NetworkAddress, NetworkAddress, NetworkAddress);
 };
 
 #elif defined(NETWORK_ETH_ENC28J60) //NETWORK_ETH_WIZNET 
 #include "enc28j60/UIPEthernet.h"
 #include "enc28j60/enc28j60.h"
-class NetworkClass: public UIPEthernetClass 
+class NetworkClass
 {
   private:
     uint8_t useDHCP;
@@ -60,47 +67,20 @@ class NetworkClass: public UIPEthernetClass
     UIPClient client;
     NetworkClass() {}
     ~NetworkClass() {}
-    inline uint16_t getRTR() { return 0; }
-    inline uint8_t getRCR() { return 0; }
-    inline uint16_t getPHYCFG() { return 0; }
     uint8_t checkPHY();
+    inline IPAddress localIP() { return UIPEthernet.localIP(); }
+    inline uint8_t getRCR() { return 0; }
+    inline uint16_t getRTR() { return 0; }
+    inline uint16_t getPHYCFG() { return 0; }
+    inline int maintain() {return UIPEthernet.maintain(); };
+    inline int begin(uint8_t *_mac) { return UIPEthernet.begin(_mac); }
+    inline void begin(uint8_t *_mac, NetworkAddress _ip, NetworkAddress _dns, NetworkAddress _gw, NetworkAddress _netmask) {
+         UIPEthernet.begin(_mac, IPAddress(_ip), IPAddress(_dns), IPAddress(_gw), IPAddress(_netmask));
+    }
     void showNetworkState();
     void showPHYState();
     void restart();
     void init(netconfig_t*);
-    int begin(uint8_t*);
-    void begin(uint8_t*, NetworkAddress, NetworkAddress, NetworkAddress, NetworkAddress);
-};
-
-#elif defined(NETWORK_RS485) //NETWORK_ETH_ENC28J60
-#include "rs485/RS485.h"
-#include "rs485/RS485Server.h"
-#include "rs485/RS485Client.h"
-class NetworkClass: public RS485Class
-{
-  private:
-    uint8_t macAddress[6];
-    NetworkAddress localAddress;
-    NetworkAddress gwAddress;
-    NetworkAddress netmask;
-
-  public:
-//    RS485ClientClass client{this};
-  //  RS485ServerClass server{this};
-
-    // uint16_t phyReinits;
-    NetworkClass() {}
-    ~NetworkClass() {}
-    inline uint16_t getRTR() { return 0; }
-    inline uint8_t getRCR() { return 0; }
-    inline uint16_t getPHYCFG() { return 0; }
-    uint8_t checkPHY();
-    void showNetworkState();
-    void showPHYState();
-    void restart();
-    void init(netconfig_t*);
-    uint8_t begin(uint16_t, uint8_t, uint8_t, uint8_t);
-    uint8_t begin(uint16_t, uint8_t, uint8_t, uint8_t, uint8_t);
 };
 
 #endif // NETWORK_RS485

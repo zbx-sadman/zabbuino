@@ -8,6 +8,7 @@
 #include "system.h"
 
 
+extern volatile extInterrupt_t extInterrupt[];
 /*-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
 
                                                       EXTERNAL INTERRUPTS HANDLING SECTION
@@ -49,7 +50,7 @@
 */
 
 #define HANDLE_INT_N_FOR_EXTINT(_interrupt) \
-   void handleExt##_interrupt(void) { extern volatile extInterrupt_t extInterrupt[]; extInterrupt[_interrupt].value++; }
+   void handleExt##_interrupt(void) { extInterrupt[_interrupt].value++; }
 
  
 #if (EXTERNAL_NUM_INTERRUPTS > 7)
@@ -116,7 +117,7 @@
 // need use overflow test for "extInterrupt[_interrupt].value++" and "extInterrupt[_interrupt].value--" to avoid sign bit flapping  
 // { ((int32_t) extInterrupt[_interrupt].value)++; } else { ((int32_t) extInterrupt[_interrupt].value)--; }
 #define HANDLE_INT_N_FOR_INCENC(_interrupt) \
-   void handleIncEnc##_interrupt(void) { extern volatile extInterrupt_t extInterrupt[]; volatile static uint8_t stateTerminalA = 0, statePrevTerminalA = 0;\
+   void handleIncEnc##_interrupt(void) { volatile static uint8_t stateTerminalA = 0, statePrevTerminalA = 0;\
          delayMicroseconds(constEncoderStabilizationDelay);\
          stateTerminalA = *extInterrupt[_interrupt].encTerminalAPIR & extInterrupt[_interrupt].encTerminalAPinBit;\
          if ((!stateTerminalA) && (statePrevTerminalA)) { \

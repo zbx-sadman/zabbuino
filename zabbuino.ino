@@ -10,21 +10,20 @@
 /*-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
                                                                   GLOBAL VARIABLES SECTION
 */
-// some members of struct used in timer's interrupt
+  // some members of struct used in timer's interrupt
 volatile sysmetrics_t sysMetrics;
+
+netconfig_t netConfig;
+
+NetworkClass Network;
+
 
 #ifdef TWI_USE
 SoftwareWire SoftTWI(constDefaultSDAPin, constDefaultSCLPin);
 #endif
 
-NetworkClass Network;
-
-netconfig_t netConfig;
-
 #ifdef INTERRUPT_USE
-// Init external interrupts info structure
-// EXTERNAL_NUM_INTERRUPTS its a macro from <wiring_private.h>
-volatile extInterrupt_t extInterrupt[EXTERNAL_NUM_INTERRUPTS];
+extern volatile extInterrupt_t extInterrupt[];
 #endif
 
 /*-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
@@ -168,6 +167,7 @@ void loop() {
   //
   Network.init(&netConfig);
   Network.restart();
+
   DTSL( SerialPrintln_P(PSTR("Serving on:"));
         Network.showNetworkState();
         SerialPrint_P(PSTR("Password: ")); Serial.println(netConfig.password, DEC);
@@ -176,9 +176,11 @@ void loop() {
 #endif
 
       )
+
+
 #if !defined(NETWORK_RS485)
   // Start listen sockets
-  Network.server.begin();
+  //Network.server.begin();
 #endif
 
   // 5. Other system parts initialization
@@ -234,8 +236,6 @@ void loop() {
     // Gather internal metrics periodically
     if (constSysMetricGatherPeriod <= (uint32_t) (nowTime - prevSysMetricGatherTime)) {
       // When FEATURE_SYSINFO_ENABLE is disabled, compiler can be omit gatherSystemMetrics() sub (due find no operators inside) and trow exception
-
-
 #ifndef GATHER_METRIC_USING_TIMER_INTERRUPT
       gatherSystemMetrics();
 #endif
@@ -243,7 +243,9 @@ void loop() {
       // correctVCCMetrics() must be always inline compiled
       //correctVCCMetrics(sysMetrics.sysVCC);
       correctVCCMetrics(getADCVoltage(ANALOG_CHAN_VBG));
-      prevSysMetricGatherTime = millis();
+      prevSysMetricGatherTime = nowTime;
+      // update millis() rollovers to using it in uptime() function
+      millisRollover();
     }
 
 #if defined(FEATURE_NET_DHCP_ENABLE) || defined (NETWORK_ETH_ENC28J60) || defined (NETWORK_RS485)
@@ -492,7 +494,7 @@ static int16_t executeCommand(char* _dst, char* _optarg[], netconfig_t* _netConf
       //
       //  sys.uptime
       //
-      value = millis() / 1000;
+      value = uptime();
       rc = RESULT_IS_UNSIGNED_VALUE;
       break;
 
@@ -1446,6 +1448,18 @@ static int16_t executeCommand(char* _dst, char* _optarg[], netconfig_t* _netConf
           break;
 
 #endif // FEATURE_AT24CXX_ENABLE
+#ifdef FEATURE_MAX44009_ENABLE
+        case CMD_MAX44009_LIGHT:
+          //
+          //  MAX44009.light[sdaPin, sclPin, i2cAddress, mode, integrationTime]
+          // max44009.light[18,19,0x4A,0x80,0x03]
+          // max44009.light[18,19,0x4A,0x00]
+          // 0x08 == MAX44009_INTEGRATION_TIME_6MS+1 - put to integrationTime parameter wrong value if no arg#4 given to get auto time conversion inside getMAX44009Metric()
+          rc = getMAX44009Metric(&SoftTWI, i2CAddress, argv[3], (('\0' == *_optarg[4]) ? 0x08 : argv[4]), SENS_READ_LUX, _dst);
+          //rc = getMAX44009Metric(&SoftTWI, i2CAddress, argv[3], 0x08, SENS_READ_LUX, _dst);
+          break;
+#endif // FEATURE_MAX44009_ENABLE
+      
       }  // switch (cmdIdx), I2C block
 #endif // TWI_USE
   } // switch (cmdIdx) .. default in "commands with options" block

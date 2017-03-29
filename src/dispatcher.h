@@ -48,6 +48,7 @@
 #include "i2c_bmp.h"
 #include "i2c_ds3231.h"
 #include "i2c_at24cxx.h"
+#include "i2c_max44009.h"
 
 // 1-Wire devices 
 #include "ow_bus.h"

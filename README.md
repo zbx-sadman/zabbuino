@@ -14,10 +14,10 @@ Implemented:
 - Support DHT11/21/22/33/44 or AM2301/2302 humidity and temperature sensors;
 - Support SHT2X humidity and temperature sensors serie;
 - Support BMP180/085, BMP280/BME280 pressure and temperature sensors;
-- Support BH1750 light sensor;
+- Support BH1750, MAX44009 light sensors;
 - Support DS3231 RTC I2C module;
 - Support incremental encoder (on interrupt's pin);
-- Support any devices that can be used with hardware interrupt - tilt switches, dry contacts, water flow sensor, and so;
+- Support any devices that need to use hardware interrupt - tilt switches, dry contacts, water flow sensor, and so;
 - Support ACS7xx sensors;
 - Support HC-SR04 ultrasonic ranging module;
 - Support any other analog or digital sensor via `analogread` /`digitalread` commands;
@@ -30,6 +30,20 @@ Implemented:
 - Support PZEM-004 energy meter;
 - Support APC Smart UPS (with RS232 interface);
 - Simulate varuious vendor's IR transmitters.
+
+
+####29 March 2016
+
+Changes: 
+
+New feature:
+ - _FEATURE\_MAX44009\_ENABLE_ - enable support of I2C connected MAX44009 sensor and allow to use command:
+   - MAX44009.light[sdaPin, sclPin, i2cAddress, mode, integrationTime] - get Ambient light value from MAX44009 sensor. _mode_ is mode of reading (0x80 - continuous, and 0x00 - once on request); _integrationTime_ is optional parameter which set time of data collecting by sensor, all alowed values can be found on page #9 of datasheet. If _integrationTime_ is skipped - sensor will be switched to auto-measurement mode. Example: _max44009.light[18,19,0x4A,0x00]_ - make one reading in "auto" mode, _max44009.light[18,19,0x4A,0x80,0x03]_ - switch sensor to continuous measurement mode with 100ms interval and take current light value;
+
+Note#1: You can get wrong light level, if set unsuitable _integrationTime_ value.
+Note#2: 800ms delay used to avoid returns wrong light level on _mode_ / _integrationTime_ change. 
+Note#3: Automatic measurement always run for 800ms, because i see no way at this time to detect finish of operation;
+
 
 
 ####13 March 2016

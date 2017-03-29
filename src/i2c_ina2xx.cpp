@@ -9,7 +9,7 @@
 *     - DEVICE_ERROR_TIMEOUT if sensor do not ready to work
 *
 *****************************************************************************************************************************/
-uint8_t getINA219Metric(SoftwareWire* _softTWI, const uint8_t _i2cAddress, const uint8_t _metric, uint8_t _maxVoltage, uint16_t _maxCurrent, char* _dst)
+uint8_t getINA219Metric(SoftwareWire* _softTWI, const uint8_t _i2cAddress, uint8_t _maxVoltage, uint16_t _maxCurrent, const uint8_t _metric,  char* _dst)
 {
   int16_t result, calValue, configValue;
   uint8_t value[2];

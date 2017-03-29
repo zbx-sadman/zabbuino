@@ -188,6 +188,8 @@ typedef struct {                                  // 9 bytes:
 #define CMD_AT24CXX_WRITE                                       0x48
 #define CMD_AT24CXX_READ                                        0x49
 
+#define CMD_MAX44009_LIGHT                                      0x4A
+
 
 // add new command as "const char command_<COMMAND_MACRO> PROGMEM". Only 'const' push string to PROGMEM. Tanx, Arduino & AVR.
 // command_* values must be in lower case due analyze sub convert all chars to lower
@@ -295,6 +297,8 @@ const char command_CMD_INA219_POWER[]                           PROGMEM = "ina21
 
 const char command_CMD_AT24CXX_WRITE[]                          PROGMEM = "at24cxx.write";
 const char command_CMD_AT24CXX_READ[]                           PROGMEM = "at24cxx.read";
+
+const char command_CMD_MAX44009_LIGHT[]                         PROGMEM = "max44009.light";
 
 
 // do not insert new command to any position without syncing indexes. Tanx, Arduino and AVR, for this method of string array pushing to PROGMEM
@@ -553,6 +557,12 @@ command_CMD_SYSTEM_RUN,
   command_CMD_AT24CXX_READ,
 #else
   command_CMD_ZBX_NOPE,
+  command_CMD_ZBX_NOPE,
+#endif
+
+#ifdef FEATURE_MAX44009_ENABLE
+  command_CMD_MAX44009_LIGHT,
+#else
   command_CMD_ZBX_NOPE,
 #endif
 

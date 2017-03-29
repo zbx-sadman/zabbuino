@@ -2,7 +2,11 @@
 #define _ZABBUINO_TUNE_CONFIG_H_
 
 #include <Arduino.h>
+
 #include <avr/wdt.h>
+
+const char mySSID[] = "CheckMe";
+const char myPSK[] = "trumptrump";
 
 /* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
                                                             DISPATCH SECTION 
@@ -36,7 +40,7 @@
 
 
 // Need to use Wire lib if any I2C related feature enabled
-#if defined(FEATURE_I2C_ENABLE) || defined(FEATURE_BMP_ENABLE) || defined(FEATURE_BH1750_ENABLE) || defined (FEATURE_PCF8574_LCD_ENABLE) || defined (FEATURE_SHT2X_ENABLE) || defined (FEATURE_I2C_RTC_ENABLE)
+#if defined(FEATURE_I2C_ENABLE) || defined(FEATURE_BMP_ENABLE) || defined(FEATURE_BH1750_ENABLE) || defined (FEATURE_PCF8574_LCD_ENABLE) || defined (FEATURE_SHT2X_ENABLE) || defined (FEATURE_I2C_RTC_ENABLE) || defined (FEATURE_MAX44009_ENABLE)
    #define TWI_USE
 #endif
 

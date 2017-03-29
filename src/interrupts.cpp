@@ -1,7 +1,7 @@
 #include "interrupts.h"
 
-// extern extInterrupt_t extInterrupt[];
-extern volatile extInterrupt_t extInterrupt[];
+// EXTERNAL_NUM_INTERRUPTS its a macro from <wiring_private.h>
+volatile extInterrupt_t extInterrupt[EXTERNAL_NUM_INTERRUPTS];
 
 /*-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
 
@@ -60,7 +60,7 @@ int8_t manageExtInt(uint32_t *_dst, uint8_t _pin, uint8_t _mode) {
    // This condition placed here to avoid using defaut case (EXTERNAL_NUM_INTERRUPTS <= 0) in switch(interruptNumber) due its very strange but 
    // theoretically possible situation 
 #if (EXTERNAL_NUM_INTERRUPTS > 0)
-   extern volatile extInterrupt_t extInterrupt[];
+//   extern volatile extInterrupt_t extInterrupt[];
 //   extern extInterrupt_t *extInterrupt;
    // int32_t result;
    voidFuncPtr interruptHandler;
@@ -190,7 +190,7 @@ int8_t manageIncEnc(int32_t* _dst, uint8_t const _terminalAPin, uint8_t const _t
    // This condition placed here to avoid using defaut case (EXTERNAL_NUM_INTERRUPTS <= 0) in switch(interruptNumber) due its very strange but 
    // theoretically possible situation 
 #if (EXTERNAL_NUM_INTERRUPTS > 0)
-   extern volatile extInterrupt_t extInterrupt[];
+   //extern volatile extInterrupt_t extInterrupt[];
 //   extern extInterrupt_t *extInterrupt;
    voidFuncPtr interruptHandler;
    int8_t interruptNumber=digitalPinToInterrupt(_terminalAPin);

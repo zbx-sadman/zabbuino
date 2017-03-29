@@ -66,6 +66,6 @@ Based on: https://github.com/adafruit/Adafruit_INA219
 *     - DEVICE_ERROR_TIMEOUT if sensor do not ready to work
 *
 *****************************************************************************************************************************/
-uint8_t getINA219Metric(SoftwareWire*, const uint8_t, const uint8_t, uint8_t, uint16_t, char*);
+uint8_t getINA219Metric(SoftwareWire*, const uint8_t, const uint8_t, uint16_t, uint8_t, char*);
 
 #endif // #ifndef _ZABBUINO_I2C_INA2XX_H_

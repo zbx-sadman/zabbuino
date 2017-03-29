@@ -1,34 +1,5 @@
 #include "network.h"
 
-#if defined(NETWORK_ETH_WIZNET)
-
-int NetworkClass::begin(uint8_t *_mac) {
-   return EthernetClass::begin(_mac);
-}
-void NetworkClass::begin(uint8_t *_mac, NetworkAddress _ip, NetworkAddress _dns, NetworkAddress _gw, NetworkAddress _netmask) {
-   EthernetClass::begin(_mac, IPAddress(_ip), IPAddress(_dns), IPAddress(_gw), IPAddress(_netmask));
-}
-#elif defined(NETWORK_ETH_ENC28J60)
-
-int NetworkClass::begin(uint8_t *_mac) {
-   return UIPEthernetClass::begin(_mac);
-}
-void NetworkClass::begin(uint8_t *_mac, NetworkAddress _ip, NetworkAddress _dns, NetworkAddress _gw, NetworkAddress _netmask) {
-   UIPEthernetClass::begin(_mac, IPAddress(_ip), IPAddress(_dns), IPAddress(_gw), IPAddress(_netmask));
-}
-
-#elif defined(NETWORK_RS485)
-
-uint8_t NetworkClass::begin(uint16_t _baudRate, uint8_t _rxPin, uint8_t _txPin, uint8_t _busModePin) {
-   return RS485Class::begin(_baudRate, _rxPin, _txPin, _busModePin, false);
-}
-
-uint8_t NetworkClass::begin(uint16_t _baudRate, uint8_t _rxPin, uint8_t _txPin, uint8_t _busModePin, uint8_t _inverseLogic) {
-   //memcpy(macAddress, _mac, 6*sizeof(uint8_t));
-   return RS485Class::begin(_baudRate, _rxPin, _txPin, _busModePin, _inverseLogic);
-}
-#endif // if defined(NETWORK_ETH_WIZNET) ... elif ... elif ...
-
 void NetworkClass::init(netconfig_t* _netConfig) {
   memcpy(macAddress, _netConfig->macAddress, 6*sizeof(uint8_t));
   localAddress = _netConfig->ipAddress;
@@ -82,9 +53,9 @@ void NetworkClass::showNetworkState() {
   SerialPrint_P(PSTR("Address : ")); Serial.println(localIP()); 
 #else
   SerialPrint_P(PSTR("MAC     : ")); printArray(macAddress, sizeof(macAddress), DBG_PRINT_AS_MAC); 
-  SerialPrint_P(PSTR("IP      : ")); Serial.println(localIP()); 
-  SerialPrint_P(PSTR("Subnet  : ")); Serial.println(subnetMask()); 
-  SerialPrint_P(PSTR("Gateway : ")); Serial.println(gatewayIP()); 
+  SerialPrint_P(PSTR("IP      : ")); Serial.println(Ethernet.localIP()); 
+  SerialPrint_P(PSTR("Subnet  : ")); Serial.println(Ethernet.subnetMask()); 
+  SerialPrint_P(PSTR("Gateway : ")); Serial.println(Ethernet.gatewayIP()); 
 #endif
 #ifdef NETWORK_ETH_ENC28J60
   DTSL( SerialPrint_P(PSTR("ENC28J60: rev ")); Serial.println(Enc28J60.getrev()); )
@@ -137,11 +108,14 @@ void NetworkClass::restart() {
   // No DHCP offer recieved or no DHCP need - start with stored/default IP config
   if (useStaticIP) {
      DTSM( SerialPrintln_P(PSTR("Use static IP")); )
-#if !defined(NETWORK_RS485)
+
+#if defined(NETWORK_ETH_ENC28J60) || defined(NETWORK_ETH_WIZNET)
      // That overloaded .begin() function return nothing
      // Second netConfig.ipAddress used as dns-address
      begin(macAddress, localAddress, localAddress, gwAddress, netmask);
-#else
+     server.begin();
+
+#elif defined(NETWORK_RS485)
      begin(RS485_SPEED, RS485_RX_PIN, RS485_TX_PIN, RS485_BUSMODE_PIN);
      server.begin(localAddress);
 #endif
@@ -149,7 +123,7 @@ void NetworkClass::restart() {
 
   // Start listen sockets by ethernet modules only
 #if !defined(NETWORK_RS485)
-  server.begin();
+//  server.begin();
 #endif
 
 }

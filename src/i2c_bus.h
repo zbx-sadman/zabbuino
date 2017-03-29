@@ -1,9 +1,6 @@
 #ifndef _ZABBUINO_I2C_BUS_H_
 #define _ZABBUINO_I2C_BUS_H_
 
-// Wire lib for I2C sensors
-//#include <Wire.h>
-//#include "SoftI2CMaster/SoftWire.h"
 #include "SoftwareWire/SoftwareWire.h"
 
 #include "../basic.h"

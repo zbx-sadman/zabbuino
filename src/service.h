@@ -9,6 +9,10 @@
 #include "structs.h"
 #include "system.h"
 
+uint8_t millisRollover(void);
+
+uint32_t uptime(void);
+
 /*****************************************************************************************************************************
 *
 *   Set default values of network configuration

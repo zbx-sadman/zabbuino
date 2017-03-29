@@ -1,7 +1,7 @@
 #ifndef _ZABBUINO_BASIC_CONFIG_H_
 #define _ZABBUINO_BASIC_CONFIG_H_
 #include <Arduino.h>
-#include <IPAddress.h>
+//#include <IPAddress.h>
 #define USE_NETWORK_192_168_0_0
 
 /* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
@@ -46,6 +46,13 @@
 */
 
 /**** NEW ****/
+
+/*/ 
+/=/      Enable MAX44009 support and commands:
+/=/        - MAX44009.light[]
+/*/
+//#define FEATURE_MAX44009_ENABLE
+
 /*/ 
 /=/      Enable INA219 Zer0-Drift, Bidirectional Current/Power Monitor With I2C Interface support and commands:
 /=/        - INA219.BusVoltage[]
