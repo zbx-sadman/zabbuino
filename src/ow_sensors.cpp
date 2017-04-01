@@ -127,7 +127,7 @@ int8_t getDS18X20Metric(const uint8_t _pin, uint8_t _resolution, char* _id, char
  if (!getScratchPadFromDS18X20(owDevice, dsAddr, scratchPad)) { rc = DEVICE_ERROR_CHECKSUM; goto finish;} 
 
   // Temperature calculation
-  tRaw = (((int16_t) scratchPad[DS18X20_BYTE_TEMP_MSB]) << 8) | scratchPad[DS18X20_BYTE_TEMP_LSB];
+  tRaw = (((int32_t) scratchPad[DS18X20_BYTE_TEMP_MSB]) << 8) | scratchPad[DS18X20_BYTE_TEMP_LSB];
 
   // For some DS's models temperature value must be corrected additional 
   if (DS18S20_ID == dsAddr[0])
