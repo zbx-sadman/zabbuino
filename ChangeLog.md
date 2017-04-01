@@ -1,5 +1,9 @@
 ##Zabbuino change log 
 
+###v1.1.3 (01 Apr 2017)
+Fixed:
+- DS18B20 sensor: negative temperature wrong output fixed.
+
 ###v1.1.2 (25 Jan 2017)
 Fixed:
 - Wrong output of discovered OneWire device ID (some zeros not displayed).
