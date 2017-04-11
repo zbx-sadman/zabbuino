@@ -118,14 +118,14 @@
 /=/     Enable 1-Wire processing and command:
 /=/       - OW.Scan[]
 /*/
-//#define FEATURE_OW_ENABLE
+#define FEATURE_OW_ENABLE
 
 /*/ 
 /=/     Enable Dallas DS18x20 sensors handling and command:
 /=/       - DS18x20.Temperature[]
 /*/
 
-//#define FEATURE_DS18X20_ENABLE
+#define FEATURE_DS18X20_ENABLE
 
 /****       I2C bus        ****/
 
@@ -140,7 +140,7 @@
 /=/ Note #1: I2C library (Wire.h) takes at least 32bytes of memory for internal buffers
 /=/ Note #2: I2C library (Wire.h) activate internal pullups for SDA & SCL pins when Wire.begin() called
 /*/
-//#define FEATURE_I2C_ENABLE
+#define FEATURE_I2C_ENABLE
 
 /*/ 
 /=/     Enable BOSCH BMP sensors handling and commands:
@@ -208,8 +208,9 @@
 /=/       - pzem004.voltage[]
 /=/       - pzem004.power[]  
 /=/       - pzem004.energy[] 
+/=/       - pzem004.setAddr[] 
 /*/
-//#define FEATURE_PZEM004_ENABLE
+#define FEATURE_PZEM004_ENABLE
 
 /*/ 
 /=/     Enable APC SmartUPS protocol support and command:
@@ -325,8 +326,8 @@
 /*/
 /=/     View the more or less debug messages on the Serial Monitor. Choose one.
 /*/
-//#define FEATURE_DEBUG_TO_SERIAL_LOW
-#define FEATURE_DEBUG_TO_SERIAL_MIDDLE
+#define FEATURE_DEBUG_TO_SERIAL_LOW
+//#define FEATURE_DEBUG_TO_SERIAL_MIDDLE
 //#define FEATURE_DEBUG_TO_SERIAL_HIGH
 //#define FEATURE_DEBUG_TO_SERIAL_DEV
 
@@ -407,6 +408,6 @@ const uint8_t constFactoryResetButtonPin                       = 0x08;
 #define ZBX_AGENT_DEFAULT_DOMAIN                               ".local.net"
 
 
-#define ZBX_AGENT_VERISON                                      "Zabbuino 1.1.2"
+#define ZBX_AGENT_VERISON                                      "Zabbuino 1.1.4"
 #endif // #ifndef _ZABBUINO_BASIC_CONFIG_H_
 

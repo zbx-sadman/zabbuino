@@ -32,7 +32,7 @@ static uint8_t crcPZEM004(uint8_t *_data, uint8_t _size) {
 *     - DEVICE_ERROR_TIMEOUT if device stop talking
 *
 *****************************************************************************************************************************/
-int8_t getPZEM004Metric(const uint8_t _rxPin, const uint8_t _txPin, uint8_t _metric, const char *_ip, uint8_t *_dst) {
+int8_t getPZEM004Metric(const uint8_t _rxPin, const uint8_t _txPin, uint8_t _metric, const char *_addr, uint8_t *_dst) {
   int8_t rc = RESULT_IS_FAIL;
   uint8_t command, len;
   int32_t result;
@@ -53,6 +53,9 @@ int8_t getPZEM004Metric(const uint8_t _rxPin, const uint8_t _txPin, uint8_t _met
      case SENS_READ_ENERGY:
        command = PZEM_ENERGY; 
        break;
+     case SENS_CHANGE_ADDRESS:
+       command = PZEM_SETADDR; 
+       break;
      default:
        goto finish; 
    }
@@ -62,8 +65,8 @@ int8_t getPZEM004Metric(const uint8_t _rxPin, const uint8_t _txPin, uint8_t _met
     // Make packet for PZEM
     // 1-th byte in the packet - metric (command)
     _dst[0] = command; 
-    // 2..5 bytes - ip address. Convert its from _ip or use default (192.168.1.1) if _ip is invalid
-    result = hstoba(&_dst[1], _ip, 4);
+    // 2..5 bytes - ip address. Convert its from _addr or use default (192.168.1.1) if _addr is invalid
+    result = hstoba(&_dst[1], _addr, 4);
     if (!result) {
        _dst[1] = 0xC0;  // 192
        _dst[2] = 0xA8;  // 168
@@ -75,7 +78,7 @@ int8_t getPZEM004Metric(const uint8_t _rxPin, const uint8_t _txPin, uint8_t _met
     _dst[5] = 0x00; 
     // 7-th byte - CRC
     _dst[6] = crcPZEM004(_dst, PZEM_PACKET_SIZE - 1); 
-    // for(int i=0; i < sizeof(_dst); i++) { Serial.print("Byte# "); Serial.print(i); Serial.print(" => "); Serial.println(_dst[i], HEX);  }
+    for(uint8_t i=0; i < PZEM_PACKET_SIZE; i++) { Serial.print("Byte# "); Serial.print(i); Serial.print(" => "); Serial.println(_dst[i], HEX);  }
     serialSend(&swSerial, _dst, PZEM_PACKET_SIZE, false);
 
     //  Recieve from PZEM004
@@ -91,6 +94,8 @@ int8_t getPZEM004Metric(const uint8_t _rxPin, const uint8_t _txPin, uint8_t _met
     // Bad CRC
     if (_dst[6] != crcPZEM004( _dst, len - 1)) { rc = DEVICE_ERROR_CHECKSUM; goto finish; }
     
+    for(uint8_t i=0; i < PZEM_PACKET_SIZE; i++) { Serial.print("Byte# "); Serial.print(i); Serial.print(" => "); Serial.println(_dst[i], HEX);  }
+ 
    // data is placed in buffer from 2-th byte, because 1-th byte is Header
     switch (_metric) {
       case SENS_READ_AC:
@@ -109,6 +114,12 @@ int8_t getPZEM004Metric(const uint8_t _rxPin, const uint8_t _txPin, uint8_t _met
       case SENS_READ_ENERGY:
         result = ((uint32_t) _dst[1] << 16) + ((uint16_t) _dst[2] << 8) + _dst[3];
         ltoa(result, (char*) _dst, 10);
+        break;
+      case SENS_CHANGE_ADDRESS:
+        // All returned bytes must be 0x00 on success, CRC must be equal (command - 0x10)
+        result = _dst[1] | _dst[2] | _dst[3] | _dst[4] | _dst[5];
+        rc = result ? RESULT_IS_FAIL : RESULT_IS_OK;
+        goto finish;         
         break;
     }
   rc = RESULT_IN_BUFFER;

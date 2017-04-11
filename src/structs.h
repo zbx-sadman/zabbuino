@@ -208,15 +208,15 @@ typedef union {                                   // 4 byte
 #define CMD_PZEM004_VOLTAGE                                     0x3D 
 #define CMD_PZEM004_POWER                                       0x3E  
 #define CMD_PZEM004_ENERGY                                      0x3F
+#define CMD_PZEM004_SETADDR                                     0x40
  
-#define CMD_UPS_APCSMART                                        0x40
-#define CMD_UPS_MEGATEC                                         0x41
-#define CMD_SYSTEM_RUN                                          0x42
+#define CMD_UPS_APCSMART                                        0x41
+#define CMD_UPS_MEGATEC                                         0x42
+#define CMD_SYSTEM_RUN                                          0x43
 
-#define CMD_NET_ENC_REINITS                                     0x43
-#define CMD_NET_ENC_REINIT_REASON                               0x44
-#define CMD_NET_ENC_PKTCNT_MAX                                  0x45
-
+#define CMD_NET_ENC_REINITS                                     0x44
+#define CMD_NET_ENC_REINIT_REASON                               0x45
+#define CMD_NET_ENC_PKTCNT_MAX                                  0x46
 
 // add new command as "const char command_<COMMAND_MACRO> PROGMEM". Only 'const' push string to PROGMEM. Tanx, Arduino.
 // command_* values must be in lower case due analyze sub convert all chars to lower
@@ -309,6 +309,7 @@ const char command_CMD_PZEM004_CURRENT[]                        PROGMEM = "pzem0
 const char command_CMD_PZEM004_VOLTAGE[]                        PROGMEM = "pzem004.voltage";
 const char command_CMD_PZEM004_POWER[]                          PROGMEM = "pzem004.power";
 const char command_CMD_PZEM004_ENERGY[]                         PROGMEM = "pzem004.energy";
+const char command_CMD_PZEM004_SETADDR[]                        PROGMEM = "pzem004.setaddr";
 
 const char command_CMD_UPS_APCSMART[]                           PROGMEM = "ups.apcsmart";
 const char command_CMD_UPS_MEGATEC[]                            PROGMEM = "ups.megatec";
@@ -532,7 +533,9 @@ const char* const commands[] PROGMEM = {
   command_CMD_PZEM004_VOLTAGE,
   command_CMD_PZEM004_POWER,
   command_CMD_PZEM004_ENERGY,
+  command_CMD_PZEM004_SETADDR,
 #else
+  command_CMD_ZBX_NOPE,
   command_CMD_ZBX_NOPE,
   command_CMD_ZBX_NOPE,
   command_CMD_ZBX_NOPE,
@@ -619,6 +622,7 @@ typedef enum {
 #define SENS_READ_VOLTAGE                                       0x0B
 #define SENS_READ_POWER                                         0x0C
 #define SENS_READ_ENERGY                                        0x0D
+#define SENS_CHANGE_ADDRESS                                     0x0E
 
 #define SENS_READ_RAW                                           0xFF
 

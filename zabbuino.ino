@@ -1421,11 +1421,11 @@ static int16_t executeCommand(char* _dst, int16_t* _argOffset)
 
 #ifdef FEATURE_PZEM004_ENABLE
     //
-    //  0x0101A8C0 - an IP address for PZEM (192.168.1.1)
+    //  0xC0A80101 - an IP address for PZEM (192.168.1.1)
     //
     case CMD_PZEM004_CURRENT:
       /*/
-      /=/  pzem004.current[rxPin, txPin, ip]
+      /=/  pzem004.current[rxPin, txPin, addr]
       /*/
       if (!isSafePin(argv[0]) || !isSafePin(argv[1])) { break; }
       // _dst cast to (uint8_t*) to use with subroutine math and SoftwareSerial subs, because used instead sub's internal buffer and save a little RAM size.
@@ -1434,24 +1434,31 @@ static int16_t executeCommand(char* _dst, int16_t* _argOffset)
       break;
     case CMD_PZEM004_VOLTAGE:
       /*/
-      /=/  pzem004.voltage[rxPin, txPin, ip]
+      /=/  pzem004.voltage[rxPin, txPin, addr]
       /*/
       if (!isSafePin(argv[0]) || !isSafePin(argv[1])) { break; }
       result = getPZEM004Metric(argv[0], argv[1], SENS_READ_VOLTAGE, &_dst[_argOffset[2]], (uint8_t*) _dst);
       break;
     case CMD_PZEM004_POWER:
       /*/
-      /=/  pzem004.power[rxPin, txPin, ip]
+      /=/  pzem004.power[rxPin, txPin, addr]
       /*/
       if (!isSafePin(argv[0]) || !isSafePin(argv[1])) { break; }
       result = getPZEM004Metric(argv[0], argv[1], SENS_READ_POWER, &_dst[_argOffset[2]], (uint8_t*) _dst);
       break;
     case CMD_PZEM004_ENERGY:
       /*/
-      /=/  pzem004.energy[rxPin, txPin, ip]
+      /=/  pzem004.energy[rxPin, txPin, addr]
       /*/
       if (!isSafePin(argv[0]) || !isSafePin(argv[1])) { break; }
       result = getPZEM004Metric(argv[0], argv[1], SENS_READ_ENERGY, &_dst[_argOffset[2]], (uint8_t*) _dst);
+      break;
+    case CMD_PZEM004_SETADDR:
+      /*/
+      /=/  pzem004.setAddr[rxPin, txPin, addr]
+      /*/
+      if (!isSafePin(argv[0]) || !isSafePin(argv[1])) { break; }
+      result = getPZEM004Metric(argv[0], argv[1], SENS_CHANGE_ADDRESS, &_dst[_argOffset[2]], (uint8_t*) _dst);
       break;
 #endif // FEATURE_PZEM004_ENABLE
 
