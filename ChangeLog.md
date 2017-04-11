@@ -1,24 +1,31 @@
-##Zabbuino change log 
+## Zabbuino change log 
 
-###v1.1.3 (01 Apr 2017)
+### v1.1.4 (11 Apr 2017)
+Added:
+- _PZEM004.setAddr[]_ command.
+
+Changed:
+- _PZEM004.*[]_ commands have new optional parameter now: _address_ - point to device to which request addressed.
+
+### v1.1.3 (01 Apr 2017)
 Fixed:
 - DS18B20 sensor: negative temperature wrong output fixed.
 
-###v1.1.2 (25 Jan 2017)
+### v1.1.2 (25 Jan 2017)
 Fixed:
 - Wrong output of discovered OneWire device ID (some zeros not displayed).
 
 Changed:
 - Default of pins init state. 
 
-###v1.1.1 (28 Dec 2016)
+### v1.1.1 (28 Dec 2016)
 Fixed:
 - DHT11 readings;
 - MAX7219 ASCII output on digital led indicator;
 - ENC28J60 reinit on "hang" code;
 
 
-###v1.1.0 (13 Dec 2016)
+### v1.1.0 (13 Dec 2016)
 Features:
 - Network procedures improved;
 - Commands can be entered via Arduino IDE Serial Monitor;
@@ -38,7 +45,7 @@ Important changes:
 - Source code is refactored.
 
 
-###v1.0.0 (15 Aug 2016)
+### v1.0.0 (15 Aug 2016)
 
 Features:
 - Scaning OneWire and I2C buses to detect sensors ID or adresses is available;
