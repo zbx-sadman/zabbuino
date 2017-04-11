@@ -70,8 +70,7 @@ Tested with:
 - may be i forget someting...
 
 Manuals:
-- In [Russian](https://github.com/zbx-sadman/zabbuino/wiki/Zabbuino-in-Russian);
-- Partially translated to [English](https://github.com/zbx-sadman/Zabbuino/wiki/Zabbuino-in-English).
+- In [Russian](https://github.com/zbx-sadman/Zabbuino/wiki/Zabbuino-in-Russian-(for-release-1.1.x));
 
 User cases:
 - In [Russian](https://github.com/zbx-sadman/Zabbuino/wiki/Zabbuino-User-Cases-in-Russian)
