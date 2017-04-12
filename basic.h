@@ -45,55 +45,6 @@
 
 */
 
-/**** NEW ****/
-
-/*/ 
-/=/      Enable MAX44009 support and commands:
-/=/        - MAX44009.light[]
-/*/
-//#define FEATURE_MAX44009_ENABLE
-
-/*/ 
-/=/      Enable INA219 Zer0-Drift, Bidirectional Current/Power Monitor With I2C Interface support and commands:
-/=/        - INA219.BusVoltage[]
-/=/        - INA219.Current[]
-/=/        - INA219.Power[]
-/*/
-//#define FEATURE_INA219_ENABLE
-
-/*/ 
-/=/      Enable support the user display (LCD which connected via I2C interface) 
-/=/      You must build it manually by example virtual screen #1 in plugin.ino subroutine 
-/*/
-//#define FEATURE_USER_DISPLAY_ENABLE
-
-//#define FEATURE_USER_FUNCTION_PROCESSING
-
-/*/ 
-/=/      Enable support the system RTC (DS3231 RTC chip which connected via I2C interface) and commands:
-/=/        - set.localtime[]
-/=/        - system.localtime[]
-/=/      
-/=/      Refer to SYSTEM HARDWARE SECTION in src\tune.h
-/*/
-//#define FEATURE_SYSTEM_RTC_ENABLE
-
-
-/*/ 
-/=/      Enable command: 
-/=/        - system.run[]
-/*/
-//#define FEATURE_REMOTE_COMMANDS_ENABLE
-
-/*/ 
-/=/      Enable support I2C connected EEPROM chip (AT24C family) and commands:
-/=/        - AT24CXX.write[]
-/=/        - AT24CXX.read[]
-/=/      
-/*/
-//#define FEATURE_AT24CXX_ENABLE
-
-
 /****       Network              ****/
 /*/ 
 /=/      Obtain an IP-address using DHCP
@@ -215,6 +166,12 @@
 //#define FEATURE_BH1750_ENABLE
 
 /*/ 
+/=/      Enable MAX44009 support and commands:
+/=/        - MAX44009.light[]
+/*/
+//#define FEATURE_MAX44009_ENABLE
+
+/*/ 
 /=/     Enable LCD that connected via PCF8574(A)-based I2C expander and command:
 /=/       - PCF8574.LCDPrint[]
 /=/ 
@@ -227,6 +184,22 @@
 /=/       - SHT2x.Temperature[]
 /*/
 //#define FEATURE_SHT2X_ENABLE
+
+/*/ 
+/=/      Enable INA219 Zer0-Drift, Bidirectional Current/Power Monitor With I2C Interface support and commands:
+/=/        - INA219.BusVoltage[]
+/=/        - INA219.Current[]
+/=/        - INA219.Power[]
+/*/
+//#define FEATURE_INA219_ENABLE
+
+/*/ 
+/=/      Enable support external I2C EEPROM chip (AT24C family) and commands:
+/=/        - AT24CXX.write[]
+/=/        - AT24CXX.read[]
+/=/      
+/*/
+//#define FEATURE_AT24CXX_ENABLE
 
 /****       MicroWire bus       ****/
 /*/ 
@@ -315,6 +288,17 @@
 
 
 /****       System        ****/
+/*/ 
+/=/      Enable calling user functions on device start and every _constUserFunctionCallInterval_ if no active network session exist
+/=/      You can write to _plugin.ino_ your own code and use all Zabbuino's internal functions to query sensors and handle actuators
+/*/
+//#define FEATURE_USER_FUNCTION_PROCESSING
+
+/*/ 
+/=/      Support Zabbix's Action functionality and enable command: 
+/=/        - system.run[]
+/*/
+//#define FEATURE_REMOTE_COMMANDS_ENABLE
 
 /*/ 
 /=/     Enable AVR watchdog
@@ -357,6 +341,15 @@
 /=/       - Sys.RAM.FreeMin[]
 /*/
 #define FEATURE_SYSINFO_ENABLE
+
+/*/ 
+/=/      Enable support the system RTC (DS3231 RTC chip which connected via I2C interface) and commands:
+/=/        - set.localtime[]
+/=/        - system.localtime[]
+/=/      
+/=/      Refer to SYSTEM HARDWARE SECTION in src\tune.h
+/*/
+//#define FEATURE_SYSTEM_RTC_ENABLE
 
 /*/
 /=/     View the more or less debug messages on the Serial Monitor. Choose one.
