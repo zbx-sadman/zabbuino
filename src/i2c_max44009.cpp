@@ -1,6 +1,11 @@
 #include "i2c_bus.h"
 #include "i2c_max44009.h"
 
+/*****************************************************************************************************************************
+*
+*   Overloads of main subroutine. Used to get numeric metric's value or it's char presentation only
+*
+*****************************************************************************************************************************/
 int8_t getMAX44009Metric(SoftwareWire* _softTWI, uint8_t _i2cAddress, uint8_t _mode, const uint8_t _integration_time, const uint8_t _metric, uint32_t* _value)
 {
   char stubBuffer;
@@ -19,8 +24,8 @@ int8_t getMAX44009Metric(SoftwareWire* _softTWI, uint8_t _i2cAddress, uint8_t _m
 *
 *   Returns: 
 *     - RESULT_IN_BUFFER on success
-*     - DEVICE_ERROR_CONNECT on connection error
-*
+*     - DEVICE_ERROR_CONNECT on test connection error
+*     - RESULT_IS_FAIL - on other fails
 *
 *   Note: sensor can return wrong values if given integration time so short to make measurement
 *
@@ -42,7 +47,7 @@ int8_t getMAX44009Metric(SoftwareWire* _softTWI, uint8_t _i2cAddress, uint8_t _m
   if (MAX44009_CONTINUOUS_MODE == _mode) {
      if (MAX44009_INTEGRATION_TIME_100MS < _integration_time) { autoTIM = true; }
   } else {
-     _mode = MAX44009_ONETIME_MODE;
+     _mode = MAX44009_800MS_CYCLE_MODE;
      // MAX44009_INTEGRATION_TIME_6MS is latest mode (idx = 0x07)
      if (MAX44009_INTEGRATION_TIME_6MS < _integration_time) { autoTIM = true; }
   }
@@ -99,7 +104,7 @@ int8_t getMAX44009Metric(SoftwareWire* _softTWI, uint8_t _i2cAddress, uint8_t _m
   value[0]    = ((value[0] << 4) & 0xF0);
   value[1]   &= 0x0F;
 
-  *_value = 45L * ( value[0] | value[1] ) * (1<< luxExponent);
+  *_value = 45L * (value[0] | value[1]) * (1<< luxExponent);
   if (!_wantsNumber) {
        ltoaf(*_value, _dst, 3);
   }

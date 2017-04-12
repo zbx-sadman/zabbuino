@@ -12,23 +12,25 @@
 
 /*****************************************************************************************************************************
 *
-*   Measure the voltage on given analogChannel.
+*   Measure the voltage on specified analog channel.
 *
 *   Returns: 
 *     - Voltage in mV
 *
 *****************************************************************************************************************************/
-uint16_t getADCVoltage(const uint8_t _analogChannel);
+uint16_t getADCVoltage(const uint8_t);
 
 
 /*****************************************************************************************************************************
 *
 *  Read specified metric's value of the ACS712 sensor, put it to output buffer on success. 
 *
-*   Returns: 
-*     - always RESULT_IN_BUFFER 
+*  Returns: 
+*    - always RESULT_IN_BUFFER 
+*
+*  Note: code is not tested in production
 *
 *****************************************************************************************************************************/
-int8_t getACS7XXMetric(const uint8_t _sensorPin, uint32_t _aRefVoltage,  const uint8_t _metric, const uint8_t _sensitivity, const int32_t _ZeroCurrentPoint, char *_outBuffer);
+int8_t getACS7XXMetric(const uint8_t, uint32_t, const uint8_t, const uint8_t, const int32_t, char*);
 
 #endif // #ifndef _ZABBINO_ADC_H_

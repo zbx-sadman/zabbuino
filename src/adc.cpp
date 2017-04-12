@@ -2,7 +2,7 @@
 
 /*****************************************************************************************************************************
 *
-*   Measure the voltage on given analogChannel.
+*   Measure the voltage on specified analog channel.
 *
 *   Returns: 
 *     - Voltage in mV
@@ -50,11 +50,13 @@ uint16_t getADCVoltage(const uint8_t _analogChannel) {
 *
 *  Read specified metric's value of the ACS712 sensor, put it to output buffer on success. 
 *
-*   Returns: 
-*     - always RESULT_IN_BUFFER 
+*  Returns: 
+*    - always RESULT_IN_BUFFER 
+*
+*  Note: code is not tested in production
 *
 *****************************************************************************************************************************/
-int8_t getACS7XXMetric(const uint8_t _sensorPin, uint32_t _aRefVoltage,  const uint8_t _metric, const uint8_t _sensitivity, const int32_t _ZeroCurrentPoint, char *_outBuffer)
+int8_t getACS7XXMetric(const uint8_t _sensorPin, uint32_t _aRefVoltage,  const uint8_t _metric, const uint8_t _sensitivity, const int32_t _ZeroCurrentPoint, char* _dst)
 {  
   uint32_t sampleInterval, mVperUnit, prevMicros = 0;
   int32_t result, adcValue, numUnits = 0;
@@ -143,7 +145,7 @@ int8_t getACS7XXMetric(const uint8_t _sensorPin, uint32_t _aRefVoltage,  const u
        return RESULT_IS_FAIL;
   }
 
-  ltoa(result, _outBuffer, 10);
+  ltoa(result, _dst, 10);
 
   return RESULT_IN_BUFFER;
 }

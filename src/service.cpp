@@ -37,11 +37,11 @@ uint8_t millisRollover(void) {
 
 /*****************************************************************************************************************************
 *
-*   Return uptime of device in sec
+*   Return system uptime (seconds)
 *
 *****************************************************************************************************************************/
 uint32_t uptime(void) {
-  return ((uint32_t) millisRollover() * (UINT32_MAX / 1000) + millis() / 1000UL);
+  return ((uint32_t) millisRollover() * (UINT32_MAX / 1000) + (millis() / 1000UL));
 }
 
 
@@ -52,6 +52,7 @@ uint32_t uptime(void) {
 *****************************************************************************************************************************/
 void setConfigDefaults(netconfig_t *_configStruct)
 {
+  memset(_configStruct, '\0', sizeof(netconfig_t));
   // Copying defaut MAC to the config
   uint8_t mac[] = NET_DEFAULT_MAC_ADDRESS;
   memcpy(_configStruct->macAddress, mac, arraySize(_configStruct->macAddress));
@@ -61,8 +62,7 @@ void setConfigDefaults(netconfig_t *_configStruct)
   _configStruct->ipNetmask = NetworkAddress(NET_DEFAULT_NETMASK);
   _configStruct->ipGateway = NetworkAddress(NET_DEFAULT_GATEWAY);
   _configStruct->password  = constSysDefaultPassword;
-  _configStruct->useProtection = constSysDefaultProtection;
-  
+  _configStruct->useProtection = constSysDefaultProtection;  
 #ifdef FEATURE_NET_USE_MCUID
   // if FEATURE_NET_USE_MCUID is defined:
   // 1. Make FDQN-hostname from MCU ID and default domain name
@@ -292,7 +292,7 @@ uint8_t validateNetworkAddress(const NetworkAddress _address) {
 
 uint8_t strToNetworkAddress(const char* _src, NetworkAddress* _dstAddress) {
   if ('\0' == *_src) { return false; }
-  *_dstAddress = strtoul(_src, NULL, 0);
+  *_dstAddress = NetworkAddress(htonl(strtoul(_src, NULL, 0)));
   return true;
 }
 

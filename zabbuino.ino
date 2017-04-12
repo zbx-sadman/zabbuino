@@ -149,14 +149,8 @@ void loop() {
 
   // 3. Forcing the system parameters in accordance with the user's compilation options & hardware set
   //
-#ifdef FEATURE_NET_DHCP_FORCE
-  netConfig.useDHCP = true;
-#endif
 #ifdef FEATURE_PASSWORD_PROTECTION_FORCE
   netConfig.useProtection = true;
-#endif
-#if defined(NETWORK_RS485)
-  netConfig.useDHCP = false;
 #endif
 
 #if defined(FEATURE_SYSTEM_RTC_ENABLE) && defined(FEATURE_EEPROM_ENABLE)
@@ -177,12 +171,12 @@ void loop() {
 
       )
 
-
+/*
 #if !defined(NETWORK_RS485)
   // Start listen sockets
-  //Network.server.begin();
+  Network.server.begin();
 #endif
-
+*/
   // 5. Other system parts initialization
   //
   // I/O ports initialization. Refer to "I/O PORTS SETTING SECTION" in src\tune.h
@@ -248,7 +242,8 @@ void loop() {
       millisRollover();
     }
 
-#if defined(FEATURE_NET_DHCP_ENABLE) || defined (NETWORK_ETH_ENC28J60) || defined (NETWORK_RS485)
+#if defined(FEATURE_NET_DHCP_ENABLE) || defined (NETWORK_ETH_ENC28J60)
+// || defined (NETWORK_RS485)
     // maintain() is very important for UIPEthernet, because it call internal tick() subroutine
     // but this subroutine adds more fat to WIZnet drivers, because includes DHCP functionality to firmware
     result = Network.maintain();
@@ -425,8 +420,8 @@ void loop() {
 static int16_t executeCommand(char* _dst, char* _optarg[], netconfig_t* _netConfig) {
 
   int8_t rc;
-  uint8_t i, accessGranted = false;
-  uint16_t j;
+  uint8_t accessGranted = false;
+  uint16_t i;
   int16_t cmdIdx;
   // duration option in the tone[] command is ulong
   //uint32_t argv[constArgC];
@@ -628,7 +623,7 @@ static int16_t executeCommand(char* _dst, char* _optarg[], netconfig_t* _netConf
 #ifdef FEATURE_REMOTE_COMMANDS_ENABLE
     case CMD_SYSTEM_RUN:
       //
-      //  system.run[newCommand]
+      //  system.run["newCommand"]
       //
       if ('\0' == *_optarg[0]) {
         break;
@@ -641,6 +636,7 @@ static int16_t executeCommand(char* _dst, char* _optarg[], netconfig_t* _netConf
       // Note: ~8bytes can be saved with copying bytes in while() cycle. But source code will not beauty
       memmove(_dst, _optarg[0], i);
       _dst[i] = '\n';
+//      _dst[i+1] = '\0';
       // immediately return RESULT_IS_NEW_COMMAND to re-run executeCommand() with new command
       return RESULT_IS_NEW_COMMAND;
       break;
@@ -792,14 +788,16 @@ static int16_t executeCommand(char* _dst, char* _optarg[], netconfig_t* _netConf
 
       // copy <1-th arg length> bytes from 1-th arg of buffer (0-th arg contain password) to hostname
       //i = (uint8_t) _argOffset[2]-_argOffset[1];
-      i = strlen((char*) _optarg[2]);
+      i = strlen((char*) _optarg[1]);
       if (i > constAgentHostnameMaxLength) {
         i = constAgentHostnameMaxLength;
       }
+      // memset(_netConfig->hostname, '\0', i);
       //copy 0 .. (constAgentHostnameMaxLength-1) chars from buffer to hostname
       memcpy(_netConfig->hostname, _optarg[1], i);
       // Terminate string
-      _netConfig->hostname[constAgentHostnameMaxLength] = '\0';
+//      _netConfig->hostname[constAgentHostnameMaxLength] = '\0';
+      _netConfig->hostname[i] = '\0';
       saveConfigToEEPROM(_netConfig);
       rc = RESULT_IS_OK;
       break;
@@ -854,9 +852,13 @@ static int16_t executeCommand(char* _dst, char* _optarg[], netconfig_t* _netConf
       memcpy(_netConfig->macAddress, &mac, arraySize(_netConfig->macAddress));
       // If string to which point _optarg[3] can be converted to valid NetworkAddress - just do it.
       // Otherwize (string can not be converted) _netConfig->ipAddress will stay untouched;
+      Serial.println("Convert IP's");
       success = (success) ? (strToNetworkAddress((char*) _optarg[3], &_netConfig->ipAddress)) : false;
+      Serial.println(success);
       success = (success) ? (strToNetworkAddress((char*) _optarg[4], &_netConfig->ipNetmask)) : false;
+      Serial.println(success);
       success = (success) ? (strToNetworkAddress((char*) _optarg[5], &_netConfig->ipGateway)) : false;
+      Serial.println(success);
       // if any convert operation failed - stop store process
       if (!success) {
         break;
@@ -1188,11 +1190,11 @@ static int16_t executeCommand(char* _dst, char* _optarg[], netconfig_t* _netConf
 
 #ifdef FEATURE_PZEM004_ENABLE
         //
-        //  0x0101A8C0 - an IP address for PZEM (192.168.1.1)
+        //  0xC0A80101 - an default IP address for PZEM (192.168.1.1)
         //
         case CMD_PZEM004_CURRENT:
           //
-          //  pzem004.current[rxPin, txPin, ip]
+          //  pzem004.current[rxPin, txPin, addr]
           //
           // _dst cast to (uint8_t*) to use with subroutine math and SoftwareSerial subs, because used instead sub's internal buffer and save a little RAM size.
           // Its will be casted to char* inside at moment when its need
@@ -1200,22 +1202,29 @@ static int16_t executeCommand(char* _dst, char* _optarg[], netconfig_t* _netConf
           break;
         case CMD_PZEM004_VOLTAGE:
           //
-          //  pzem004.voltage[rxPin, txPin, ip]
+          //  pzem004.voltage[rxPin, txPin, addr]
           //
           rc = getPZEM004Metric(argv[0], argv[1], SENS_READ_VOLTAGE, _optarg[2], (uint8_t*) _dst);
           break;
         case CMD_PZEM004_POWER:
           //
-          //  pzem004.power[rxPin, txPin, ip]
+          //  pzem004.power[rxPin, txPin, addr]
           //
           rc = getPZEM004Metric(argv[0], argv[1], SENS_READ_POWER, _optarg[2], (uint8_t*) _dst);
           break;
         case CMD_PZEM004_ENERGY:
           //
-          //  pzem004.energy[rxPin, txPin, ip]
+          //  pzem004.energy[rxPin, txPin, addr]
           //
           rc = getPZEM004Metric(argv[0], argv[1], SENS_READ_ENERGY, _optarg[2], (uint8_t*) _dst);
           break;
+
+        case CMD_PZEM004_SETADDR:
+          //
+          //  pzem004.setAddr[rxPin, txPin, addr]
+          //
+          rc = getPZEM004Metric(argv[0], argv[1], SENS_CHANGE_ADDRESS, _optarg[2], (uint8_t*) _dst);
+          break;         
 #endif // FEATURE_PZEM004_ENABLE
 
 #ifdef FEATURE_UPS_APCSMART_ENABLE
@@ -1386,10 +1395,10 @@ static int16_t executeCommand(char* _dst, char* _optarg[], netconfig_t* _netConf
 #ifdef FEATURE_SYSTEM_RTC_ENABLE
         case CMD_SET_LOCALTIME:
           //
-          //  set.localtime[unixTimestamp, tzOffset]
+          //  set.localtime[password, unixTimestamp, tzOffset]
           //  set.localtime must take unixTimestamp as UTC, because system.localtime command returns UTC too
           //
-          // if (!isSafePin(argv[0]) || !isSafePin(argv[1])) { break; }
+          if (!accessGranted) { break; }
           // i used as succes bool variable
           i = true;
 #ifdef FEATURE_EEPROM_ENABLE
@@ -1414,31 +1423,31 @@ static int16_t executeCommand(char* _dst, char* _optarg[], netconfig_t* _netConf
           break;
 #endif // FEATURE_SYSTEM_RTC_ENABLE
 
-
 #ifdef FEATURE_AT24CXX_ENABLE
         case CMD_AT24CXX_WRITE:
           //
           // AT24CXX.write[sdaPin, sclPin, i2cAddress, cellAddress, data]
-          // AT24CXX.write[18,19,0x56,0,0x12132310]
-          j = (strlen(_optarg[4]) - 2) / 2;
-          hstoba((uint8_t*) _dst, _optarg[4], j);
-          rc = (AT24CXXWrite(&SoftTWI, i2CAddress, argv[3], j, (uint8_t*) _dst)) ? RESULT_IS_OK : RESULT_IS_FAIL;
+          // 
+          // i is half length of decoded byte array
+          i = (strlen(_optarg[4]) - 2) / 2;
+          hstoba((uint8_t*) _dst, _optarg[4], i);
+          rc = (AT24CXXWrite(&SoftTWI, i2CAddress, argv[3], i, (uint8_t*) _dst)) ? RESULT_IS_OK : RESULT_IS_FAIL;
           break;
 
         case CMD_AT24CXX_READ:
           //
           // AT24CXX.read[sdaPin, sclPin, i2cAddress, cellAddress, length]
-          // AT24CXX.read[18,19,0x56,0,5]
+          // 
           if (AT24CXXRead(&SoftTWI, i2CAddress, argv[3], argv[4], (uint8_t*) _dst)) {
             Network.client.print("0x");
             DTSL( Serial.print("0x"); )
-            for (j = 0; j < argv[4]; j++) {
-              if (0x10 > _dst[j]) {
+            for (i = 0; i < argv[4]; i++) {
+              if (0x10 > _dst[i]) {
                 Network.client.print("0");
                 DTSL( Serial.print("0"); )
               }
-              Network.client.print(_dst[j], HEX);
-              DTSL( Serial.print(_dst[j], HEX); )
+              Network.client.print(_dst[i], HEX);
+              DTSL( Serial.print(_dst[i], HEX); )
             }
             rc = RESULT_IS_PRINTED;
             _dst[0] = 0x00;
@@ -1452,9 +1461,9 @@ static int16_t executeCommand(char* _dst, char* _optarg[], netconfig_t* _netConf
         case CMD_MAX44009_LIGHT:
           //
           //  MAX44009.light[sdaPin, sclPin, i2cAddress, mode, integrationTime]
-          // max44009.light[18,19,0x4A,0x80,0x03]
-          // max44009.light[18,19,0x4A,0x00]
-          // 0x08 == MAX44009_INTEGRATION_TIME_6MS+1 - put to integrationTime parameter wrong value if no arg#4 given to get auto time conversion inside getMAX44009Metric()
+          // 
+          // 0x08 == MAX44009_INTEGRATION_TIME_6MS+1 - put to integrationTime parameter wrong value if no arg#4 given 
+          // to kick getMAX44009Metric() to use auto measurement time
           rc = getMAX44009Metric(&SoftTWI, i2CAddress, argv[3], (('\0' == *_optarg[4]) ? 0x08 : argv[4]), SENS_READ_LUX, _dst);
           //rc = getMAX44009Metric(&SoftTWI, i2CAddress, argv[3], 0x08, SENS_READ_LUX, _dst);
           break;

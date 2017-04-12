@@ -46,6 +46,11 @@
 #define DS18X20_BYTE_COUNT_PER_C                                0x07
 #define DS18X20_BYTE_SCRATCHPAD_CRC                             0x08
 
+/*****************************************************************************************************************************
+*
+*   Overloads of main subroutine. Used to get numeric metric's value or it's char presentation only
+*
+*****************************************************************************************************************************/
 int8_t getDS18X20Metric(const uint8_t, uint8_t, uint8_t*, int32_t*);
 int8_t getDS18X20Metric(const uint8_t, uint8_t, uint8_t*, char*);
 

@@ -9,10 +9,11 @@ void NetworkClass::init(netconfig_t* _netConfig) {
 #ifdef FEATURE_NET_DHCP_FORCE
   useDHCP = true;
 #endif
-
+/*
 #if defined(NETWORK_RS485)
   useDHCP = false;
 #endif
+*/
 }
 
 

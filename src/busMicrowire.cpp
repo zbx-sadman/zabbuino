@@ -14,8 +14,8 @@ Second modification is by:
 */
 #include "busMicrowire.h"
 
-static void writeByteToMAX7219(const uint8_t _dataPin, const uint8_t _clockPin, const uint8_t _data);
-static void pushDataToMAX7219(const uint8_t _dataPin, const uint8_t _clockPin, const uint8_t _loadPin, const uint8_t _register, const uint8_t _data);
+static void writeByteToMAX7219(const uint8_t, const uint8_t, const uint8_t);
+static void pushDataToMAX7219(const uint8_t, const uint8_t, const uint8_t, const uint8_t, const uint8_t);
 
 
 /*****************************************************************************************************************************
@@ -82,7 +82,7 @@ void writeToMAX7219(const uint8_t _dataPin, const uint8_t _clockPin, const uint8
   col = 1;
   // MAX7219.write[4,5,6,1,"1.2.3.4.5.6.7.8"]
   // MAX7219.write[4,5,6,1,"    1.25"]
-  
+  // MAX7219.write[15,16,17,1,"Hc  -1.25"]
   // HEX strings must be processeed specially
   if (haveHexPrefix(_src)) {
      // Skip "0x"

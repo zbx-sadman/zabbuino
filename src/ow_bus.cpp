@@ -17,27 +17,33 @@
 *
 *****************************************************************************************************************************/
 int8_t scanOneWire(const uint8_t _pin, NetworkClass *_network) {
-#if !defined(NETWORK_RS485)
+//#if !defined(NETWORK_RS485)
   uint8_t dsAddr[8], numDevices = 0, i;
-  OneWire *owDevice;
-  owDevice = new OneWire(_pin);
-  owDevice->reset_search();
+  OneWire owDevice(_pin);
+  owDevice.reset_search();
   delay(250);
-  owDevice->reset();
-  while (owDevice->search(dsAddr)) {
+  owDevice.reset();
+  while (owDevice.search(dsAddr)) {
     numDevices++;
     _network->client.print("0x");
+    DTSL ( Serial.print("0x"); ) 
     for (i = 0; i < arraySize(dsAddr); i++ ) {
-      if (dsAddr[i] < 0x10){ _network->client.print("0"); }
+      if (dsAddr[i] < 0x10) {
+         _network->client.print("0"); 
+         DTSL ( Serial.print("0"); ) 
+      }
       _network->client.print(dsAddr[i], HEX);
+      DTSL ( Serial.print(dsAddr[i], HEX); ) 
     }
     _network->client.print('\n');
+    DTSL ( Serial.print('\n'); )
   }
-  delete owDevice;
   return ((0 < numDevices) ? RESULT_IS_PRINTED : RESULT_IS_FAIL);
+/*
 #else
   return (RESULT_IS_FAIL);
 #endif
+*/
 }
 
 

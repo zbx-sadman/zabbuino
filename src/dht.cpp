@@ -1,4 +1,5 @@
 /*
+
 Based on: https://github.com/RobTillaart/Arduino/tree/master/libraries/DHTstable
 version 0.1.13 is used
 
@@ -6,6 +7,11 @@ version 0.1.13 is used
 
 #include "dht.h"
 
+/*****************************************************************************************************************************
+*
+*   Overloads of main subroutine. Used to get numeric metric's value or it's char presentation only
+*
+*****************************************************************************************************************************/
 int8_t getDHTMetric(const uint8_t _pin, const uint8_t _sensorModel, const uint8_t _metric, int32_t* _value)
 {
   char stubBuffer;
@@ -23,22 +29,22 @@ int8_t getDHTMetric(const uint8_t _pin, const uint8_t _sensorModel, const uint8_
 *
 *  Read specified metric's value of the AM/DHT sensor, put it to output buffer on success. 
 *
-*   Returns: 
-*     - RESULT_IN_BUFFER on success
-*     - DEVICE_ERROR_CONNECT on connection error
-*     - DEVICE_ERROR_ACK_L
-*     - DEVICE_ERROR_ACK_H
-*     - DEVICE_ERROR_TIMEOUT if sensor stops answer to the request
+*  Returns: 
+*    - RESULT_IN_BUFFER on success
+*    - DEVICE_ERROR_CONNECT on connection error
+*    - DEVICE_ERROR_ACK_L
+*    - DEVICE_ERROR_ACK_H
+*    - DEVICE_ERROR_TIMEOUT if sensor stops answer to the request
 *
 *****************************************************************************************************************************/
-//int8_t getDHTMetric(const uint8_t _pin, const uint8_t _sensorModel, const uint8_t _metric, char *_dst)
 int8_t getDHTMetric(const uint8_t _pin, const uint8_t _sensorModel, const uint8_t _metric, char *_dst, int32_t* _value, const uint8_t _wantsNumber)
 {
   int8_t rc = DEVICE_ERROR_TIMEOUT;
   // INIT BUFFERVAR TO RECEIVE DATA
   uint8_t mask = 128,
+          bit, port, i,
           idx = 0, 
-          sum = 0,
+          crc = 0,
           wakeupDelay,
           bits[5];  // buffer to receive data
   uint16_t loopCount = 0;
@@ -59,12 +65,12 @@ int8_t getDHTMetric(const uint8_t _pin, const uint8_t _sensorModel, const uint8_
       wakeupDelay = DHTLIB_DHT_WAKEUP;
   }
 
-  uint8_t bit = digitalPinToBitMask(_pin);
-  uint8_t port = digitalPinToPort(_pin);
+  bit = digitalPinToBitMask(_pin);
+  port = digitalPinToPort(_pin);
   volatile uint8_t *PIR = portInputRegister(port);
 
   // EMPTY BUFFER
-  for (uint8_t i = 0; i < 5; i++) bits[i] = 0;
+  for (i = 0; i < 5; i++) bits[i] = 0;
  
   // DHT sensor have limit for taking samples frequency - 1kHz (1 sample/sec)
   waitTime = millis() - lastReadTime;
@@ -106,7 +112,7 @@ int8_t getDHTMetric(const uint8_t _pin, const uint8_t _sensorModel, const uint8_
   }
 
     // READ THE OUTPUT - 40 BITS => 5 BYTES
-    for (uint8_t i = 40; i != 0; i--)
+    for (i = 40; i != 0; i--)
     {
         loopCount = DHTLIB_TIMEOUT;
         //  while (digitalRead(_pin) == LOW) {
@@ -144,7 +150,7 @@ int8_t getDHTMetric(const uint8_t _pin, const uint8_t _sensorModel, const uint8_
       //        these bits are always zero, masking them reduces errors.
       //        bits[0] &= 0x7F;
       //        bits[2] &= 0x7F;
-      sum = bits[0] + bits[2];
+      crc = bits[0] + bits[2];
       humidity    = bits[0] * 10;  // bits[1] == 0;
       temperature = bits[2] * 10;  // bits[3] == 0;
       break;
@@ -158,16 +164,16 @@ int8_t getDHTMetric(const uint8_t _pin, const uint8_t _sensorModel, const uint8_
       //        bits[0] &= 0x03;
       //        bits[2] &= 0x83;
       //        humidity = (bits[0]*256 + bits[1]) * 0.1;  <== * 0.1 processed by ltoaf()
-      sum = bits[0] + bits[1] + bits[2] + bits[3];
+      crc = bits[0] + bits[1] + bits[2] + bits[3];
       humidity = (bits[0]*256 + bits[1]);
-      temperature = ((bits[2] & 0x7F)*256 + bits[3]);// * 0.1;
-      if (bits[2] & 0x80)  // negative temperature
-         {
-           temperature = -temperature;
-         }
+      temperature = ((bits[2] & 0x7F) * 256 + bits[3]);// * 0.1;
+      // negative temperature
+      if (bits[2] & 0x80) {
+         temperature = -temperature;
+      }
   }
   // TEST CHECKSUM
-  if (bits[4] != sum) { rc = DEVICE_ERROR_CHECKSUM; goto finish; }
+  if (bits[4] != crc) { rc = DEVICE_ERROR_CHECKSUM; goto finish; }
 
   *_value = (SENS_READ_HUMD == _metric) ? humidity : temperature;
   if (!_wantsNumber) {

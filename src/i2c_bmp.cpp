@@ -1,6 +1,6 @@
 #include "i2c_bmp.h"
 
-static uint8_t waitToBMPReady(SoftwareWire*, const uint8_t, const int16_t, const int16_t, const uint16_t);
+static uint8_t waitToBMPReady(SoftwareWire* _softTWI, const uint8_t _i2cAddress, const int16_t _registerAddress, const int16_t _mask, const uint16_t _timeout);
 
 /*****************************************************************************************************************************
 *
@@ -27,6 +27,11 @@ uint8_t waitToBMPReady(SoftwareWire* _softTWI, const uint8_t _i2cAddress, const 
 }
 
 
+/*****************************************************************************************************************************
+*
+*   Overloads of main subroutine. Used to get numeric metric's value or it's char presentation only
+*
+*****************************************************************************************************************************/
 int8_t getBMPMetric(SoftwareWire* _softTWI, uint8_t _i2cAddress, const uint8_t _overSampling, const uint8_t _filterCoef, const uint8_t _metric, int32_t* _value)
 {
   char stubBuffer;

@@ -2,20 +2,42 @@
 
 /*****************************************************************************************************************************
 *
-*   Read specified metric's value of the SHT2X sensor, put it to output buffer on success. 
+*   Overloads of main subroutine. Used to get numeric metric's value or it's char presentation only
+*
+*****************************************************************************************************************************/
+int8_t getINA219Metric(SoftwareWire* _softTWI, const uint8_t _i2cAddress, uint8_t _maxVoltage, uint16_t _maxCurrent, const uint8_t _metric, uint32_t* _value)
+{
+  char stubBuffer;
+  return getINA219Metric(_softTWI, _i2cAddress, _maxVoltage, _maxCurrent, _metric, &stubBuffer, _value, true);
+
+}
+
+int8_t getINA219Metric(SoftwareWire* _softTWI, const uint8_t _i2cAddress, uint8_t _maxVoltage, uint16_t _maxCurrent, const uint8_t _metric, char* _dst)
+{
+  uint32_t stubValue;
+  return getINA219Metric(_softTWI, _i2cAddress, _maxVoltage, _maxCurrent, _metric, _dst, &stubValue, false);
+}
+
+
+/*****************************************************************************************************************************
+*
+*   Read specified metric's value of the INA219 sensor, put it to output buffer on success. 
 *
 *   Returns: 
 *     - RESULT_IN_BUFFER on success
-*     - DEVICE_ERROR_TIMEOUT if sensor do not ready to work
+*     - DEVICE_ERROR_CONNECT on test connection error
+*     - RESULT_IS_FAIL - on other fails
 *
 *****************************************************************************************************************************/
-uint8_t getINA219Metric(SoftwareWire* _softTWI, const uint8_t _i2cAddress, uint8_t _maxVoltage, uint16_t _maxCurrent, const uint8_t _metric,  char* _dst)
+int8_t getINA219Metric(SoftwareWire* _softTWI, const uint8_t _i2cAddress, uint8_t _maxVoltage, uint16_t _maxCurrent, const uint8_t _metric, char* _dst, uint32_t* _value, const uint8_t _wantsNumber)
 {
+  int8_t rc = RESULT_IS_FAIL;
   int16_t result, calValue, configValue;
   uint8_t value[2];
   uint8_t i2cReg, currentDivider_mA, powerDivider_mW;     
 
-//  if (!isI2CDeviceReady(_i2cAddress)) { return DEVICE_ERROR_CONNECT; }
+  if (!isI2CDeviceReady(_softTWI, _i2cAddress)) { rc = DEVICE_ERROR_CONNECT; goto finish; }
+
 /*
     Configuration Register (address = 00h) [on reset = 399Fh / B0011100110011111]
       RST  ---  BRNG  PG1  PG0  BADC4  BADC3  BADC2  BADC1  SADC4  SADC3  SADC2  SADC1  MODE3  MODE2  MODE1
@@ -125,13 +147,13 @@ uint8_t getINA219Metric(SoftwareWire* _softTWI, const uint8_t _i2cAddress, uint8
       break;
    }
 
-  writeByteToI2C(_softTWI, INA219_I2C_ADDRESS, INA219_REG_CONFIGURATION, configValue);
-  writeByteToI2C(_softTWI, INA219_I2C_ADDRESS, INA219_REG_CALIBRATION, calValue);
+  if (0x00 != writeByteToI2C(_softTWI, INA219_I2C_ADDRESS, INA219_REG_CONFIGURATION, configValue)) { goto finish; }
+  if (0x00 != writeByteToI2C(_softTWI, INA219_I2C_ADDRESS, INA219_REG_CALIBRATION, calValue)) { goto finish; }
  
   // Wait ready bit - CNVR == 1 in Bus Voltage Register
   do {
      delay(10);
-     readBytesFromI2C(_softTWI, INA219_I2C_ADDRESS, INA219_REG_BUS_VOLTAGE, value, 2);
+     if (0x00 != readBytesFromI2C(_softTWI, INA219_I2C_ADDRESS, INA219_REG_BUS_VOLTAGE, value, 2)) { goto finish; }
   } while (!(value[1] & B00000010)); 
 
 
@@ -150,7 +172,7 @@ uint8_t getINA219Metric(SoftwareWire* _softTWI, const uint8_t _i2cAddress, uint8
       break;
    }
 
-  readBytesFromI2C(_softTWI, INA219_I2C_ADDRESS, i2cReg, value, 2);
+  if (0x00 != readBytesFromI2C(_softTWI, INA219_I2C_ADDRESS, i2cReg, value, 2)) { goto finish; }
   result = WireToU16(value);
 
   switch (_metric) {
@@ -169,9 +191,16 @@ uint8_t getINA219Metric(SoftwareWire* _softTWI, const uint8_t _i2cAddress, uint8
       break;
    }
 
-  ltoa(result, _dst, 10);
+  *_value = result;
+  if (!_wantsNumber) {
+     ltoa(*_value, _dst, 10);
+  }
+
+  rc = RESULT_IN_BUFFER;
+
+  finish:
   gatherSystemMetrics(); // Measure memory consumption
-  return RESULT_IN_BUFFER;  
+  return rc;
 
 }
 

@@ -2,6 +2,11 @@
 
 static uint16_t getRawDataFromSHT2X(SoftwareWire*, const uint8_t, const uint8_t);
 
+/*****************************************************************************************************************************
+*
+*   Overloads of main subroutine. Used to get numeric metric's value or it's char presentation only
+*
+*****************************************************************************************************************************/
 int8_t getSHT2XMetric(SoftwareWire* _softTWI, uint8_t _i2cAddress, const uint8_t _metric, uint32_t* _value)
 {
   char stubBuffer;
@@ -57,16 +62,16 @@ uint16_t getRawDataFromSHT2X(SoftwareWire* _softTWI, const uint8_t _i2cAddress, 
 *
 *   Returns: 
 *     - RESULT_IN_BUFFER on success
-*     - DEVICE_ERROR_TIMEOUT if sensor do not ready to work
+*     - DEVICE_ERROR_CONNECT on test connection error
+*     - RESULT_IS_FAIL - on other fails
 *
 *****************************************************************************************************************************/
 int8_t getSHT2XMetric(SoftwareWire* _softTWI, uint8_t _i2cAddress, const uint8_t _metric, char *_dst, uint32_t* _value, const uint8_t _wantsNumber) 
 {
-//  int32_t result = 0;
   uint16_t rawData; 
   int8_t rc = RESULT_IS_FAIL;  
   
-  if (!isI2CDeviceReady(_softTWI, _i2cAddress)) { return DEVICE_ERROR_CONNECT; }
+  if (!isI2CDeviceReady(_softTWI, _i2cAddress)) { rc = DEVICE_ERROR_CONNECT; goto finish; }
 
   switch (_metric) {
     case SENS_READ_TEMP:
@@ -97,6 +102,7 @@ int8_t getSHT2XMetric(SoftwareWire* _softTWI, uint8_t _i2cAddress, const uint8_t
      ltoaf(*_value, _dst, 2);
   }
 
+  finish:
   gatherSystemMetrics(); // Measure memory consumption
   return rc;
 

@@ -1,5 +1,12 @@
 #ifdef FEATURE_USER_FUNCTION_PROCESSING
 
+/*/ 
+/=/ Enable support the user display (LCD which connected via I2C interface) 
+/=/ You must build it manually by example virtual screen #1 in plugin.ino subroutine 
+/*/
+//#define FEATURE_USER_DISPLAY_ENABLE
+
+
 // System display settings
 const uint8_t  constUserDisplaySDAPin                         = A4;     // SDA - A4
 const uint8_t  constUserDisplaySCLPin                         = A5;     // SCL - A5
@@ -138,8 +145,8 @@ void loopStageUserFunction(char* _buffer) {
          DTSM ( Serial.println("DS18B20 settings"); )
          DTSM ( Serial.println(ds18B20OWPin); )
          DTSM ( Serial.println(ds18B20OWResolution); )
-         DTSM ( Serial.println(ds18B20AlarmOn); )
-         DTSM ( Serial.println(ds18B20AlarmOff); )
+         DTSM ( Serial.println(ds18B20TempAlarmOn); )
+         DTSM ( Serial.println(ds18B20TempAlarmOff); )
       } // if (calculatedCRC == _buffer[USER_MEMORY_STRUCTURE_CRC8]) 
     } // if (AT24CXXRead(&SoftTWI ...
 
@@ -166,7 +173,7 @@ void loopStageUserFunction(char* _buffer) {
      int32_t temperature;
      if (RESULT_IN_BUFFER == getDS18X20Metric(ds18B20OWPin, ds18B20OWResolution, ds18B20OWAddr, &temperature)) {
         // Returned scaled value is bigger than real, make it normal. For DS18x20 normal_temp = scaled_temp / 1000;
-        temperature = temperature / 10000;
+        temperature = temperature / 1000;
         DTSM ( Serial.println("DS18B20 whole part of temp (C): "); )
         DTSM ( Serial.println(temperature); )
         // if (ds18B20AlarmOff > temperature) { 
@@ -313,16 +320,14 @@ uint8_t dataLength;
          Serial.println("BH read error");
         // Need to do something if conversion isn't success. May be put "error" word into _buffer?
       };
-
-
       break;
 
     case 0x04:
+      // build your own screen and modify constVirtualScreensNum's value on top of this subroutine
       break;
-    // build your own screen and modify constVirtualScreensNum's value on top of this subroutine
 
     default:
-      // write empty string
+      // do nothing
       break;
   }
   //dataLength = strlen(_buffer);

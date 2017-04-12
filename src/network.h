@@ -83,6 +83,6 @@ class NetworkClass
     void init(netconfig_t*);
 };
 
-#endif // NETWORK_RS485
+#endif // NETWORK_ETH_ENC28J60
 #endif // _ZABBUINO_NETWORK_H_
 

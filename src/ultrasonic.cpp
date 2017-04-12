@@ -2,7 +2,6 @@
 
 #include "ultrasonic.h"
 
-
 /*****************************************************************************************************************************
 *
 *  Read the distance of the object with HC-SR04 Ultrasonic sensor.
@@ -13,27 +12,32 @@
 *****************************************************************************************************************************/
 uint32_t getUltrasonicMetric(const uint8_t _triggerPin, const uint8_t _echoPin)
 {
-  uint32_t result;
+  uint8_t i;
   // timeout in microseconds. 38000 * 10 / 58 => 6551. It is out of distance range (too close or too far).
-  uint16_t timeOut =  38000;  
+  uint16_t timeOut = 38000;  
+  uint32_t result = 0;
 
-  // Between pings must be silence period for 50ms or more
-  // delay(50); // Zabbuino will execute command more that 50ms (~300ms on ATMega328P), lets save some progspace
   pinMode(_triggerPin, OUTPUT);
   pinMode(_echoPin, INPUT);
+
+  // delay(50); // Zabbuino will execute command more that 50ms (~300ms on ATMega328P), lets save some progspace
+  for (i = 0; i < ULTRASONIC_SAMPLES; i++) {
+      digitalWrite(_triggerPin, LOW);
+      delayMicroseconds(2);
+ 
+      // Using IO trigger for at least 10us high level signal, 
+      digitalWrite(_triggerPin, HIGH);
+      delayMicroseconds(10);
+      digitalWrite(_triggerPin, LOW);
+      // how much is the result if no obstacle exists ?
+      result += pulseIn(_echoPin, HIGH, timeOut);
+      // Between pings must be silence period for 50ms or more
+      // can delay be decreased for 10+2ms?
+      delay(50);
+  }
   
-  digitalWrite(_triggerPin, LOW);
-  delayMicroseconds(2);
-  
-  // Using IO trigger for at least 10us high level signal, 
-  digitalWrite(_triggerPin, HIGH);
-  delayMicroseconds(10);
-  
-  digitalWrite(_triggerPin, LOW);
-    
-  // how much is the result if no obstacle exists ?
-  result = pulseIn(_echoPin, HIGH, timeOut);
-  
+  result /= ULTRASONIC_SAMPLES;
+
   if ( 0 == result) { result = timeOut; }
   // The speed of sound is 340 m/s or 29 microseconds per centimeter.
   // The ping travels out and back, so to find the distance of the

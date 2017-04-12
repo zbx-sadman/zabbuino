@@ -21,12 +21,14 @@
 #elif defined(ENC28J60_ETHERNET_SHIELD)
    #define NETWORK_ETH_ENC28J60
    #define PHY_MODULE_NAME                                   "ENC28J60"
+/*
 #elif defined(ESP8266_WIFI_SHIELD)
    #define NETWORK_ESP8266
    #define PHY_MODULE_NAME                                   "ESP8266"
 #elif defined(RS485_SHIELD)
    #define NETWORK_RS485
    #define PHY_MODULE_NAME                                   "RS485"
+*/
 #endif
 
 #endif // _ZABBUINO_NETWORK_HELPER_H_

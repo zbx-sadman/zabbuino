@@ -9,12 +9,6 @@
 #include "system.h"
 #include "network.h"
 
-/*-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
-
-                                                      COMMON I2C SECTION
-
- -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-*/
-
 #define WireToU8(_source)  ((uint8_t) _source[0])
 #define WireToS8(_source)  ((int8_t) _source[0])
 
@@ -80,9 +74,48 @@ uint8_t writeBytesToI2C(SoftwareWire* _softTWI, const uint8_t _i2cAddress, const
 *****************************************************************************************************************************/
 uint8_t readBytesFromI2C(SoftwareWire* _softTWI, const uint8_t _i2cAddress, const int16_t _registerAddress, uint8_t *_dst, const uint8_t _len);
 
+/*****************************************************************************************************************************
+*
+*   Reads numeric value from device's register (or not) over I2C.
+*
+*   Returns: 
+*     - RESULT_IS_SIGNED_VALUE on success
+*     - RESULT_IS_FAIL on fail
+*
+*****************************************************************************************************************************/
 int8_t readValueFromI2C(SoftwareWire*, const uint8_t, const int16_t, uint32_t*, uint8_t, uint8_t _numberOfReadings = 0x00);
+
+/*****************************************************************************************************************************
+*
+*   Write numeric value to device's register (or not) over I2C.
+*
+*   Returns: 
+*     - RESULT_IS_OK on success
+*     - RESULT_IS_FAIL on fail
+*
+*****************************************************************************************************************************/
 int8_t writeValueToI2C(SoftwareWire*, const uint8_t, const int16_t, uint32_t, uint8_t);
+
+/*****************************************************************************************************************************
+*
+*   Write bit value (set bit) of byte in device's register (or not).
+*
+*   Returns: 
+*     - RESULT_IS_OK on success
+*     - RESULT_IS_FAIL on fail
+*
+*****************************************************************************************************************************/
 int8_t bitWriteToI2C(SoftwareWire*, const uint8_t, const int16_t, const uint8_t, const uint8_t);
+
+/*****************************************************************************************************************************
+*
+*   Read bit value (get bit) of byte in device's register (or not).
+*
+*   Returns: 
+*     - RESULT_IS_OK on success
+*     - RESULT_IS_FAIL on fail
+*
+*****************************************************************************************************************************/
 int8_t bitReadFromI2C(SoftwareWire*, const uint8_t, const int16_t, const uint8_t, uint8_t*);
 
 /*****************************************************************************************************************************
@@ -99,7 +132,7 @@ int8_t bitReadFromI2C(SoftwareWire*, const uint8_t, const int16_t, const uint8_t
 *
 *
 *****************************************************************************************************************************/
-uint8_t inline isI2CDeviceReady(SoftwareWire* _softTWI, uint8_t _i2cAddress)
+inline uint8_t isI2CDeviceReady(SoftwareWire* _softTWI, uint8_t _i2cAddress)
 {
   _softTWI->beginTransmission(_i2cAddress);
   return (0 == _softTWI->endTransmission(true));

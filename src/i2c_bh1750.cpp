@@ -1,6 +1,11 @@
 #include "i2c_bus.h"
 #include "i2c_bh1750.h"
 
+/*****************************************************************************************************************************
+*
+*   Overloads of main subroutine. Used to get numeric metric's value or it's char presentation only
+*
+*****************************************************************************************************************************/
 int8_t getBH1750Metric(SoftwareWire* _softTWI, uint8_t _i2cAddress, uint8_t _mode, const uint8_t _metric, uint32_t* _value)
 {
   char stubBuffer;
@@ -23,7 +28,8 @@ int8_t getBH1750Metric(SoftwareWire* _softTWI, uint8_t _i2cAddress, uint8_t _mod
 *
 *   Returns: 
 *     - RESULT_IN_BUFFER on success
-*     - DEVICE_ERROR_CONNECT on connection error
+*     - DEVICE_ERROR_CONNECT on test connection error
+*     - RESULT_IS_FAIL - on other fails
 *
 *****************************************************************************************************************************/
 int8_t getBH1750Metric(SoftwareWire* _softTWI, uint8_t _i2cAddress, uint8_t _mode, const uint8_t _metric, char *_dst, uint32_t* _value, const uint8_t _wantsNumber)
@@ -75,7 +81,8 @@ int8_t getBH1750Metric(SoftwareWire* _softTWI, uint8_t _i2cAddress, uint8_t _mod
     // Read data
     if (0x00 != readBytesFromI2C(_softTWI, _i2cAddress, I2C_NO_REG_SPECIFIED, value, 2)) { goto finish; }
   }
-   *_value = WireToU16(value);
+
+  *_value = (((int32_t) value[0]) << 8) | value[1];
 
   if (SENS_READ_RAW == _metric) {
     ltoa(*_value, _dst, 10);

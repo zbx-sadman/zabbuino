@@ -2,13 +2,13 @@
 
 /*****************************************************************************************************************************
 *
-*  Save/Update config to EEPROM
-*   On detect EEPROM cell corruption truing to find a new storage area 
-*
+*   Save/Update config to EEPROM
+*   On detecting EEPROM cell corruption trying to find a new storage area 
+*  
 *   Returns: 
 *     - true on success
 *     - false on fail
-*
+*  
 *****************************************************************************************************************************/
 uint8_t saveConfigToEEPROM(netconfig_t *_configStruct)
 {
@@ -41,18 +41,24 @@ uint8_t saveConfigToEEPROM(netconfig_t *_configStruct)
 
      restartWriteCycle = false;
      index = sizeof(netconfig_t);
+     //Serial.print("Need to write: "); Serial.print(index); Serial.println(" bytes");
+          
      // Operations must be repeated until all bytes of config structure not saved and no write errors found
      while (index && !restartWriteCycle) {
        index--;
        // Just simulate EEPROM.update():
        // Write only changed data and immediately tests the written byte. On testing error - restart write cycle with new start address.
+       //Serial.print("0x"); Serial.print(p_configStruct[index]); Serial.print(" => '"); Serial.print((char) p_configStruct[index]); Serial.print("'"); 
        if (EEPROM[index + startAddress] != p_configStruct[index]) {
+          //Serial.println(" [W]"); 
           EEPROM[index + startAddress] = p_configStruct[index];
           if (EEPROM[index + startAddress] == p_configStruct[index]) { continue; }
           DTSM ( SerialPrintln_P(PSTR("Probaly EEPROM cell is corrupted...")); )
           startAddress = startAddress + index + 1;
           restartWriteCycle = true;
        } // if (EEPROM[index + startAddress] != p_configStruct[index])
+       //Serial.println(" [U]"); 
+
      } // while (index && !restartWriteCycle)
   } // while (index)
 

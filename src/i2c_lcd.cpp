@@ -67,7 +67,7 @@ void pulseEnableOnLCD(SoftwareWire* _softTWI, const uint8_t _i2cAddress, const u
 *
 *   Returns: 
 *     - RESULT_IS_OK on success
-*     - DEVICE_ERROR_CONNECT on connection error
+*     - DEVICE_ERROR_CONNECT on test connection error
 *
 *****************************************************************************************************************************/
 int8_t printToPCF8574LCD(SoftwareWire* _softTWI, uint8_t _i2cAddress, uint8_t _lcdBacklight, const uint16_t _lcdType, const char *_src)
