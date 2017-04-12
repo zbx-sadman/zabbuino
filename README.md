@@ -18,6 +18,7 @@ Implemented:
 - Support DS3231 RTC I2C module;
 - Support incremental encoder (on interrupt's pin);
 - Support any devices that need to use hardware interrupt - tilt switches, dry contacts, water flow sensor, and so;
+- Support INA219 power/current monitor;
 - Support ACS7xx sensors;
 - Support HC-SR04 ultrasonic ranging module;
 - Support any other analog or digital sensor via `analogread` /`digitalread` commands;
