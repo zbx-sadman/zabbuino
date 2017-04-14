@@ -1,5 +1,19 @@
 ## Zabbuino change log 
 
+### v1.2.0 (xx Apr 2017)
+
+New release with:
+- Integrated network drivers for Wiznet & Microchip ENC28J60;
+- Network module monitoring function, that re-init module when detect problem;
+- Integrated SoftWire lib to allow use I2C devices on most Arduino board pins;
+- Support DS3231 realtime clock chip;
+- Support AT24CXX external EEPROM to storing user data;
+- "Plugins" creating ability to allow make autonomic devices;
+- Support MAX44009 ambient light sensor;
+- New commands for Zabbix inventarization feature: system.hw.cpu, system.hw.chassis, and etc.;
+- Ability to work with multiple PZEM004 devices on a single SoftSerial port;
+- Support INA219 Zerø-Drift, Bidirectional Current/Power Monitor.
+
 ### v1.1.4 (11 Apr 2017)
 Added:
 - _PZEM004.setAddr[]_ command.
