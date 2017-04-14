@@ -1,8 +1,6 @@
 #ifndef _ZABBUINO_BASIC_CONFIG_H_
 #define _ZABBUINO_BASIC_CONFIG_H_
 #include <Arduino.h>
-//#include <IPAddress.h>
-#define USE_NETWORK_192_168_0_0
 
 /* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
    
@@ -30,13 +28,6 @@
 //#define ENC28J60_ETHERNET_SHIELD      // Microchip __ENC28J60__ network modules
 //#define W5200_ETHERNET_SHIELD       // WIZ820io, W5200 Ethernet Shield , not tested yet
 //#define W5500_ETHERNET_SHIELD       // WIZ550io, ioShield series of WIZnet , tested but not satisfied with the performance on intensive traffic
-
-/*/ 
-/=/      Let Zabbuino to detect network module errors, and try to fix it.
-/=/      
-/=/      Note: This functionality realised for ENC28J60 only.
-/*/
-//#define FEATURE_NETWORK_MONITORING
 
 /* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
                                                                  PROGRAMM FEATURES SECTION
@@ -360,7 +351,7 @@
 //#define FEATURE_DEBUG_TO_SERIAL_DEV
 
 /*/
-/=/     View the additional debug messages on the Serial Monitor when network errors probaly occurs
+/=/     Let Zabbuino to detect network module errors, and try to fix it.
 /*/
 //#define FEATURE_NETWORK_MONITORING
 
@@ -402,17 +393,10 @@ const uint8_t constNetDefaultUseDHCP = false;
 */
 
 // Zabbuino's IP address
-#ifdef USE_NETWORK_192_168_0_0
-  #define NET_DEFAULT_MAC_ADDRESS                              {0xBE,0xAD,0xEB,0xA8,0x00,0xDD}
-  #define NET_DEFAULT_IP_ADDRESS                               {192,168,0,221}
-  #define NET_DEFAULT_GATEWAY                                  {192,168,0,1}
-  #define NET_DEFAULT_NETMASK                                  {255,255,255,0}
-#else
-  #define NET_DEFAULT_MAC_ADDRESS                              {0xBE,0xAD,0xEB,0x10,0x64,0xDC}
-  #define NET_DEFAULT_IP_ADDRESS                               {172,16,100,220}
-  #define NET_DEFAULT_GATEWAY                                  {172,16,100,254}
-  #define NET_DEFAULT_NETMASK                                  {255,255,255,0}
-#endif
+#define NET_DEFAULT_MAC_ADDRESS                              {0xBE,0xAD,0xEB,0xA8,0x00,0xDD}
+#define NET_DEFAULT_IP_ADDRESS                               {192,168,0,221}
+#define NET_DEFAULT_GATEWAY                                  {192,168,0,1}
+#define NET_DEFAULT_NETMASK                                  {255,255,255,0}
 
 /* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
                                                                ALARM SECTION 
