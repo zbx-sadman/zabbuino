@@ -5,9 +5,6 @@
 
 #include <avr/wdt.h>
 
-const char mySSID[] = "CheckMe";
-const char myPSK[] = "trumptrump";
-
 /* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
                                                             DISPATCH SECTION 
 
@@ -158,9 +155,9 @@ const uint32_t constSysMetricGatherPeriod                      = 1000UL;
 const uint8_t constArgC                                        = 6;
 // Size of buffer's argument part. All separators and delimiters must be taken into account. See note to constBufferSize macro too
 //const uint16_t constArgsPartSize                               = 163;
-const uint16_t constArgsPartSize                               = 25;
+const uint16_t constArgsPartSize                               = 100;
 // Size of buffer's command part
-const uint8_t constCmdPartSize                                 = 100;
+const uint8_t constCmdPartSize                                 = 25;
 
 
 // ***NOTE****    
