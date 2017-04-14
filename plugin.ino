@@ -199,12 +199,12 @@ void loopStageUserFunction(char* _buffer) {
 //    |     ALL OK     |  <<
 //
 // R1, R2 - row #0x1, row #0x2
-// C0..RF - col #0x0 .. col #0xF
+// C0..CF - col #0x0 .. col #0xF
 //
-//        0                                                         N
+//           0                                                         N
 //  _buffer |--Zabbuino 1.2.3--ALL OK                                   |
-//        ^^              ^^
-//  0x01 -++- 0x06  '\n' -++-'\t'
+//           ^^              ^^
+//     0x01 -++- 0x06  '\n' -++-'\t'
 //
 //  N - constBufferSize (tune.h)
 //
@@ -291,11 +291,9 @@ uint8_t dataLength;
       gmtime_r(&timestamp, &dateTime);
       dateTime.tm_yday--;
       strftime(&_buffer[dataLength], 30, "%jD %T", &dateTime);
-
       break;
 
     case 0x02:
-
       time_t y2kts;
       // DS3231 RTC operate by Y2K-based timestamp
       if (RESULT_IS_OK == getY2KTime(&SoftTWI, &y2kts)) {
@@ -304,7 +302,6 @@ uint8_t dataLength;
         dataLength += 7;
         strftime(&_buffer[dataLength], 30, "%d/%m/%Y %T", &dateTime);
       }
-
       break;
 
     case 0x03:

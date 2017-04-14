@@ -1345,21 +1345,21 @@ static int16_t executeCommand(char* _dst, char* _optarg[], netconfig_t* _netConf
           //
           //  INA219.BusVoltage[sdaPin, sclPin, i2cAddress, maxVoltage, maxCurrent]
           //
-          rc = getINA219Metric(&SoftTWI, i2CAddress, SENS_READ_BUS_VOLTAGE, argv[3], argv[4], _dst);
+          rc = getINA219Metric(&SoftTWI, i2CAddress, argv[3], argv[4], SENS_READ_BUS_VOLTAGE, _dst);
           break;
 
         case CMD_INA219_CURRENT:
           //
           //  INA219.Current[sdaPin, sclPin, i2cAddress, maxVoltage, maxCurrent]
           //
-          rc = getINA219Metric(&SoftTWI, i2CAddress, SENS_READ_DC, argv[3], argv[4], _dst);
+          rc = getINA219Metric(&SoftTWI, i2CAddress, argv[3], argv[4], SENS_READ_DC, _dst);
           break;
 
         case CMD_INA219_POWER:
           //
           //  INA219.Power[sdaPin, sclPin, i2cAddress, maxVoltage, maxCurrent]
           //
-          rc = getINA219Metric(&SoftTWI, i2CAddress, SENS_READ_POWER, argv[3], argv[4], _dst);
+          rc = getINA219Metric(&SoftTWI, i2CAddress, argv[3], argv[4], SENS_READ_POWER, _dst);
           break;
 
 #endif // FEATURE_INA219_ENABLE
