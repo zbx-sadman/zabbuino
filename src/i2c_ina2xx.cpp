@@ -147,9 +147,10 @@ int8_t getINA219Metric(SoftwareWire* _softTWI, const uint8_t _i2cAddress, uint8_
       break;
    }
 
+
   if (0x00 != writeByteToI2C(_softTWI, INA219_I2C_ADDRESS, INA219_REG_CONFIGURATION, configValue)) { goto finish; }
   if (0x00 != writeByteToI2C(_softTWI, INA219_I2C_ADDRESS, INA219_REG_CALIBRATION, calValue)) { goto finish; }
- 
+
   // Wait ready bit - CNVR == 1 in Bus Voltage Register
   do {
      delay(10);
@@ -170,10 +171,16 @@ int8_t getINA219Metric(SoftwareWire* _softTWI, const uint8_t _i2cAddress, uint8_
     case SENS_READ_DC:
       i2cReg = INA219_REG_CURRENT;
       break;
+    default:
+      goto finish; 
+      break;
+
    }
 
   if (0x00 != readBytesFromI2C(_softTWI, INA219_I2C_ADDRESS, i2cReg, value, 2)) { goto finish; }
+  // Serial.print("0x"); Serial.print(value[1], HEX);  Serial.print(" 0x"); Serial.print(value[2], HEX);  Serial.println();
   result = WireToU16(value);
+  // Serial.print("result: "); Serial.println(result); 
 
   switch (_metric) {
     case SENS_READ_SHUNT_VOLTAGE:
@@ -187,7 +194,7 @@ int8_t getINA219Metric(SoftwareWire* _softTWI, const uint8_t _i2cAddress, uint8_
       break;
     case SENS_READ_DC:
 //      if bitRead(result, 15) { result = 0; }        // negative
-      result = result / currentDivider_mA;          
+      result = result / currentDivider_mA;
       break;
    }
 

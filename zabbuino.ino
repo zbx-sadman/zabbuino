@@ -1439,18 +1439,21 @@ static int16_t executeCommand(char* _dst, char* _optarg[], netconfig_t* _netConf
           // AT24CXX.read[sdaPin, sclPin, i2cAddress, cellAddress, length]
           // 
           if (AT24CXXRead(&SoftTWI, i2CAddress, argv[3], argv[4], (uint8_t*) _dst)) {
+            uint8_t* _dstptr;
+            // need to use _dst as uint8_t, because sometime autocast is fail and user can get wrong data
+            _dstptr = (uint8_t*) _dst;
             Network.client.print("0x");
             DTSL( Serial.print("0x"); )
             for (i = 0; i < argv[4]; i++) {
-              if (0x10 > _dst[i]) {
+              if (0x10 > _dstptr[i]) {
                 Network.client.print("0");
                 DTSL( Serial.print("0"); )
               }
-              Network.client.print(_dst[i], HEX);
-              DTSL( Serial.print(_dst[i], HEX); )
+              Network.client.print(_dstptr[i], HEX);
+              DTSL( Serial.print(_dstptr[i], HEX); )
             }
             rc = RESULT_IS_PRINTED;
-            _dst[0] = 0x00;
+            _dstptr[0] = 0x00;
           } else {
             rc = RESULT_IS_FAIL;
           }
