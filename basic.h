@@ -414,7 +414,7 @@ const uint8_t constStateLedPin                                 = 0x09;
 */
 
 // Debug serial port speed in baud
-const uint16_t constSerialMonitorSpeed                          = 9600; 
+const uint32_t constSerialMonitorSpeed                          = 9600; 
 
 // Access password must be used anytime.
 const uint8_t constSysDefaultProtection                        = true; 
