@@ -127,7 +127,7 @@ void writeToMAX7219(const uint8_t _dataPin, const uint8_t _clockPin, const uint8
       //
       // currByte '1111110' =>  LED SEG 'ABCDEFG' , if DP must be fired up - currByte |= 0x80
       //    AAAA
-      //   F    B     
+      //   F    B
       //   F    B    
       //    GGGG
       //   E    C
@@ -170,6 +170,12 @@ void writeToMAX7219(const uint8_t _dataPin, const uint8_t _clockPin, const uint8
          case '-':
             currByte = B0000001;
             break;
+         case '_':
+            currByte = B0001000;
+            break;
+         case 'A':
+            currByte = B1110111;
+            break;
          case 'b':
             currByte = B0011111;
             break;
@@ -209,8 +215,17 @@ void writeToMAX7219(const uint8_t _dataPin, const uint8_t _clockPin, const uint8
          case 'r':
             currByte = B0000101;
             break;
+         case 't':
+            currByte = B0001111;
+            break;
+         case 'u':
+            currByte = B0011100;
+            break;
+         case 'U':
+            currByte = B0111110;
+            break;
          case '.':
-            // dot just skip and processed on next step
+            // dot just skipped and processed on next step
             goto next;
             break;
          case 0x20:
