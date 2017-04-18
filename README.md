@@ -23,18 +23,20 @@ Implemented:
 - MCU and runtime metrics (current/min/max VCC, current/min RAM, uptime, MCU name, MCU ID & signature) obtaining;
 - Network module's IP/MAC addresses modification based on MCU ID;
 - Testing connected peripherals without network connection via serial-port terminal (Arduino's Serial Monitor);
-- Support W5100 and ENC28J60 network modules;
-- Support one or more DS18X20 thermometer;
+- Support W5100 and ENC28J60 network modules, drivers is implemented to source code;
+- Support DS18X20 thermometers;
 - Support DHT11/21/22/33/44 or AM2301/2302 humidity and temperature sensors;
 - Support SHT2X humidity and temperature sensors serie;
 - Support BMP180/085, BMP280/BME280 pressure and temperature sensors;
-- Support BH1750 light sensor;
+- Support BH1750, MAX44009 light sensors;
+- Support DS3231 RTC I2C module;
 - Support incremental encoder (on interrupt's pin);
 - Support any devices that can be used with hardware interrupt - tilt switches, dry contacts, water flow sensor, and so;
+- Support INA219 power/current monitor;
 - Support ACS7xx sensors;
 - Support HC-SR04 ultrasonic ranging module;
 - Support any other analog or digital sensor via `analogread` /`digitalread` commands;
-- Support indicators, that connected to MAX7219, 8x8 Led matrix for example;
+- Support indicators, that connected to MAX7219, 8x8 Led matrix, 7-segment numeric LED display for example;
 - Support simple I2C devices (expanders, digital linear potentiometers, etc.);
 - Support One- or Two- (and maybe Four-) lines LCD Character displays with PC8574 I2C expander;
 - Support any actuators or indicators via `digitalwrite` command;
@@ -54,8 +56,10 @@ Tested with:
 - Bunch of Dallas DS18B20 thermometers;
 - AOSONG AM2302 (DHT22) sensor;
 - BOSCH BMP180, BME280 sensors;
-- SHT21 (SI7021) sensor;ali
+- SHT21 (SI7021) sensor;
 - ROHM BH1750 sensor;
+- MAX44009 sensor;
+- INA219 power/current monitor;
 - ACS712 sensor;
 - HC-SR04 sensor;
 - MAX7219 8x8 LED module & 8-Digit LED Display Module;
