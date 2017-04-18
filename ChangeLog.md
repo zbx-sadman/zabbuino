@@ -1,6 +1,6 @@
 ## Zabbuino change log 
 
-### v1.2.0 (xx Apr 2017)
+### v1.2.0 (18 Apr 2017)
 
 New release with:
 - Integrated network drivers for Wiznet & Microchip ENC28J60;

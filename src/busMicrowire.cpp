@@ -14,6 +14,10 @@ Second modification is by:
 */
 #include "busMicrowire.h"
 
+static void writeByteToMAX7219(const uint8_t, const uint8_t, const uint8_t);
+static void pushDataToMAX7219(const uint8_t, const uint8_t, const uint8_t, const uint8_t, const uint8_t);
+
+
 /*****************************************************************************************************************************
 *
 *  Send one byte to MAX7219 controller
@@ -22,7 +26,7 @@ Second modification is by:
 *    - none
 *
 *****************************************************************************************************************************/
-static void writeByteToMAX7219(const uint8_t _dataPin, const uint8_t _clockPin, const uint8_t _data) 
+void writeByteToMAX7219(const uint8_t _dataPin, const uint8_t _clockPin, const uint8_t _data) 
 {
   int8_t i = 7;
   while(i >= 0) {
@@ -41,7 +45,7 @@ static void writeByteToMAX7219(const uint8_t _dataPin, const uint8_t _clockPin, 
 *    - none
 *
 *****************************************************************************************************************************/
-static void pushDataToMAX7219(const uint8_t _dataPin, const uint8_t _clockPin, const uint8_t _loadPin, const uint8_t _register, const uint8_t _data) {    
+void pushDataToMAX7219(const uint8_t _dataPin, const uint8_t _clockPin, const uint8_t _loadPin, const uint8_t _register, const uint8_t _data) {    
   digitalWrite(_loadPin, LOW);
   // specify register or column
   writeByteToMAX7219(_dataPin, _clockPin, _register);   
@@ -78,7 +82,7 @@ void writeToMAX7219(const uint8_t _dataPin, const uint8_t _clockPin, const uint8
   col = 1;
   // MAX7219.write[4,5,6,1,"1.2.3.4.5.6.7.8"]
   // MAX7219.write[4,5,6,1,"    1.25"]
-  
+  // MAX7219.write[15,16,17,1,"Hc  -1.25"]
   // HEX strings must be processeed specially
   if (haveHexPrefix(_src)) {
      // Skip "0x"
@@ -123,7 +127,7 @@ void writeToMAX7219(const uint8_t _dataPin, const uint8_t _clockPin, const uint8
       //
       // currByte '1111110' =>  LED SEG 'ABCDEFG' , if DP must be fired up - currByte |= 0x80
       //    AAAA
-      //   F    B     
+      //   F    B
       //   F    B    
       //    GGGG
       //   E    C
@@ -166,6 +170,12 @@ void writeToMAX7219(const uint8_t _dataPin, const uint8_t _clockPin, const uint8
          case '-':
             currByte = B0000001;
             break;
+         case '_':
+            currByte = B0001000;
+            break;
+         case 'A':
+            currByte = B1110111;
+            break;
          case 'b':
             currByte = B0011111;
             break;
@@ -205,8 +215,17 @@ void writeToMAX7219(const uint8_t _dataPin, const uint8_t _clockPin, const uint8
          case 'r':
             currByte = B0000101;
             break;
+         case 't':
+            currByte = B0001111;
+            break;
+         case 'u':
+            currByte = B0011100;
+            break;
+         case 'U':
+            currByte = B0111110;
+            break;
          case '.':
-            // dot just skip and processed on next step
+            // dot just skipped and processed on next step
             goto next;
             break;
          case 0x20:

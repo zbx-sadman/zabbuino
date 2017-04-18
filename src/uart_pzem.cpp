@@ -32,7 +32,7 @@ static uint8_t crcPZEM004(uint8_t *_data, uint8_t _size) {
 *     - DEVICE_ERROR_TIMEOUT if device stop talking
 *
 *****************************************************************************************************************************/
-int8_t getPZEM004Metric(const uint8_t _rxPin, const uint8_t _txPin, uint8_t _metric, const char *_addr, uint8_t *_dst) {
+int8_t getPZEM004Metric(const uint8_t _rxPin, const uint8_t _txPin, uint8_t _metric, const char *_ip, uint8_t *_dst) {
   int8_t rc = RESULT_IS_FAIL;
   uint8_t command, len;
   int32_t result;
@@ -40,88 +40,87 @@ int8_t getPZEM004Metric(const uint8_t _rxPin, const uint8_t _txPin, uint8_t _met
 
   swSerial.begin(PZEM_UART_SPEED);
 
-   switch (_metric) {
-     case SENS_READ_AC:
-       command = PZEM_CURRENT; 
-       break;
-     case SENS_READ_VOLTAGE:
-       command = PZEM_VOLTAGE; 
-       break;
-     case SENS_READ_POWER:
-       command = PZEM_POWER; 
-       break;
-     case SENS_READ_ENERGY:
-       command = PZEM_ENERGY; 
-       break;
-     case SENS_CHANGE_ADDRESS:
-       command = PZEM_SETADDR; 
-       break;
-     default:
-       goto finish; 
-   }
+  switch (_metric) {
+    case SENS_READ_AC:
+      command = PZEM_CMD_CURRENT; 
+      break;
+    case SENS_READ_VOLTAGE:
+      command = PZEM_CMD_VOLTAGE; 
+      break;
+    case SENS_READ_POWER:
+      command = PZEM_CMD_POWER; 
+      break;
+    case SENS_READ_ENERGY:
+      command = PZEM_CMD_ENERGY; 
+      break;
+    case SENS_CHANGE_ADDRESS:
+      command = PZEM_CMD_SETADDR; 
+      break;
+    default:
+      goto finish; 
+  }
 
-   /*  Send to PZEM004 */
-   
-    // Make packet for PZEM
-    // 1-th byte in the packet - metric (command)
-    _dst[0] = command; 
-    // 2..5 bytes - ip address. Convert its from _addr or use default (192.168.1.1) if _addr is invalid
-    result = hstoba(&_dst[1], _addr, 4);
-    if (!result) {
-       _dst[1] = 0xC0;  // 192
-       _dst[2] = 0xA8;  // 168
-       _dst[3] = 0x01;  // 1
-       _dst[4] = 0x01;  // 1
-    } 
+  /*  Send to PZEM004 */
+  
+  // Make packet for PZEM
+  // 1-th byte in the packet - metric (command)
+  _dst[0] = command; 
+  // 2..5 bytes - ip address. Convert its from _ip or use default (192.168.1.1) if _ip is invalid
+  result = hstoba(&_dst[1], _ip, 4);
+  if (!result) {
+     _dst[1] = 0xC0;  // 192
+     _dst[2] = 0xA8;  // 168
+     _dst[3] = 0x01;  // 1
+     _dst[4] = 0x01;  // 1
+  } 
 
-    // 6-th byte - used to provide the value of the alarm threshold (in kW), 00 else
-    _dst[5] = 0x00; 
-    // 7-th byte - CRC
-    _dst[6] = crcPZEM004(_dst, PZEM_PACKET_SIZE - 1); 
-    for(uint8_t i=0; i < PZEM_PACKET_SIZE; i++) { Serial.print("Byte# "); Serial.print(i); Serial.print(" => "); Serial.println(_dst[i], HEX);  }
-    serialSend(&swSerial, _dst, PZEM_PACKET_SIZE, false);
+  // 6-th byte - used to provide the value of the alarm threshold (in kW), 00 else
+  _dst[5] = 0x00; 
+  // 7-th byte - CRC
+  _dst[6] = crcPZEM004(_dst, PZEM_PACKET_SIZE - 1); 
+  // Serial.println("Send: ");  for(int i=0; i < PZEM_PACKET_SIZE; i++) { Serial.print("Byte# "); Serial.print(i); Serial.print(" => "); Serial.println(_dst[i], HEX);  }
+  serialSend(&swSerial, _dst, PZEM_PACKET_SIZE, false);
 
-    //  Recieve from PZEM004
-    //  It actually do not use '\r', '\n', '\0' to terminate string
-    len = serialRecive(&swSerial, _dst, PZEM_PACKET_SIZE, PZEM_DEFAULT_READ_TIMEOUT, !UART_STOP_ON_CHAR, '\r', !UART_SLOW_MODE);
+  //  Recieve from PZEM004
+  //  It actually do not use '\r', '\n', '\0' to terminate string
+  len = serialRecive(&swSerial, _dst, PZEM_PACKET_SIZE, PZEM_DEFAULT_READ_TIMEOUT, !UART_STOP_ON_CHAR, '\r', !UART_SLOW_MODE);
 
-    // Connection timeout occurs
-    // if (len != PZEM_PACKET_SIZE) { return DEVICE_ERROR_TIMEOUT; }
-    if (len < PZEM_PACKET_SIZE) { rc = DEVICE_ERROR_TIMEOUT; goto finish; }
-    // Wrong answer. buffer[0] must contain command - 0x10 (command B1 -> reply A1)
-    // command = command - 0x10;
-    if (_dst[0] != (command - 0x10)) { rc = DEVICE_ERROR_WRONG_ANSWER; goto finish; }
-    // Bad CRC
-    if (_dst[6] != crcPZEM004( _dst, len - 1)) { rc = DEVICE_ERROR_CHECKSUM; goto finish; }
-    
-    for(uint8_t i=0; i < PZEM_PACKET_SIZE; i++) { Serial.print("Byte# "); Serial.print(i); Serial.print(" => "); Serial.println(_dst[i], HEX);  }
- 
-   // data is placed in buffer from 2-th byte, because 1-th byte is Header
-    switch (_metric) {
-      case SENS_READ_AC:
-        result = ((_dst[1] << 8) + _dst[2]) * 100 + _dst[3];
-        // _dst (cBuffer at real) cast to char due numeric-to-ascii subs require char array
-        ltoaf(result, (char*) _dst, 2);
-        break;
-      case SENS_READ_VOLTAGE:
-        result = ((_dst[1] << 8) + _dst[2]) * 10 + _dst[3]; 
-        ltoaf(result, (char*) _dst, 1);
-        break;
-      case SENS_READ_POWER:
-        result = (_dst[1] << 8) + _dst[2];
-        ltoa(result, (char*) _dst, 10);
-        break;
-      case SENS_READ_ENERGY:
-        result = ((uint32_t) _dst[1] << 16) + ((uint16_t) _dst[2] << 8) + _dst[3];
-        ltoa(result, (char*) _dst, 10);
-        break;
-      case SENS_CHANGE_ADDRESS:
-        // All returned bytes must be 0x00 on success, CRC must be equal (command - 0x10)
-        result = _dst[1] | _dst[2] | _dst[3] | _dst[4] | _dst[5];
-        rc = result ? RESULT_IS_FAIL : RESULT_IS_OK;
-        goto finish;         
-        break;
-    }
+  Serial.println("Recieve: "); for(int i=0; i < len; i++) { Serial.print("Byte# "); Serial.print(i); Serial.print(" => "); Serial.println(_dst[i], HEX);  }
+  // Connection timeout occurs
+  // if (len != PZEM_PACKET_SIZE) { return DEVICE_ERROR_TIMEOUT; }
+  if (len < PZEM_PACKET_SIZE) { rc = DEVICE_ERROR_TIMEOUT; goto finish; }
+  // Wrong answer. buffer[0] must contain command - 0x10 (command B1 -> reply A1)
+  // command = command - 0x10;
+  if (_dst[0] != (command - 0x10)) { rc = DEVICE_ERROR_WRONG_ANSWER; goto finish; }
+  // Bad CRC
+  if (_dst[6] != crcPZEM004( _dst, len - 1)) { rc = DEVICE_ERROR_CHECKSUM; goto finish; }
+  
+  // data is placed in buffer from 2-th byte, because 1-th byte is Header
+  switch (_metric) {
+    case SENS_READ_AC:
+      result = ((_dst[1] << 8) + _dst[2]) * 100 + _dst[3];
+      // _dst (cBuffer at real) cast to char due numeric-to-ascii subs require char array
+      ltoaf(result, (char*) _dst, 2);
+      break;
+    case SENS_READ_VOLTAGE:
+      result = ((_dst[1] << 8) + _dst[2]) * 10 + _dst[3]; 
+      ltoaf(result, (char*) _dst, 1);
+      break;
+    case SENS_READ_POWER:
+      result = (_dst[1] << 8) + _dst[2];
+      ltoa(result, (char*) _dst, 10);
+      break;
+    case SENS_READ_ENERGY:
+      result = ((uint32_t) _dst[1] << 16) + ((uint16_t) _dst[2] << 8) + _dst[3];
+      ltoa(result, (char*) _dst, 10);
+      break;
+    case SENS_CHANGE_ADDRESS:
+      // All returned bytes must be 0x00 on success, CRC must be equal (command - 0x10)
+      result = _dst[1] | _dst[2] | _dst[3] | _dst[4] | _dst[5];
+      rc = result ? RESULT_IS_FAIL : RESULT_IS_OK;
+      goto finish;         
+      break;
+  }
   rc = RESULT_IN_BUFFER;
 
   finish:

@@ -9,14 +9,14 @@
 /*****************************************************************************************************************************
 *
 *   Save/Update config to EEPROM
-*   On detect EEPROM cell corruption truing to find a new storage area 
-*
+*   On detecting EEPROM cell corruption trying to find a new storage area 
+*  
 *   Returns: 
 *     - true on success
 *     - false on fail
-*
+*  
 *****************************************************************************************************************************/
-uint8_t saveConfigToEEPROM(netconfig_t *_configStruct);
+uint8_t saveConfigToEEPROM(netconfig_t*);
 
 /*****************************************************************************************************************************
 *
@@ -27,6 +27,6 @@ uint8_t saveConfigToEEPROM(netconfig_t *_configStruct);
 *     - false on fail
 *
 *****************************************************************************************************************************/
-uint8_t loadConfigFromEEPROM(netconfig_t *_configStruct);
+uint8_t loadConfigFromEEPROM(netconfig_t*);
 
 #endif // #ifndef _ZABBUINO_EEPROM_H_

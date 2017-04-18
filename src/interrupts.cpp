@@ -1,6 +1,7 @@
 #include "interrupts.h"
 
-extern extInterrupt_t *extInterrupt;
+// EXTERNAL_NUM_INTERRUPTS its a macro from <wiring_private.h>
+volatile extInterrupt_t extInterrupt[EXTERNAL_NUM_INTERRUPTS];
 
 /*-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
 
@@ -59,9 +60,9 @@ int8_t manageExtInt(uint32_t *_dst, uint8_t _pin, uint8_t _mode) {
    // This condition placed here to avoid using defaut case (EXTERNAL_NUM_INTERRUPTS <= 0) in switch(interruptNumber) due its very strange but 
    // theoretically possible situation 
 #if (EXTERNAL_NUM_INTERRUPTS > 0)
-   extern extInterrupt_t extInterrupt[];
+//   extern volatile extInterrupt_t extInterrupt[];
 //   extern extInterrupt_t *extInterrupt;
-   int32_t result;
+   // int32_t result;
    voidFuncPtr interruptHandler;
    int8_t interruptNumber=digitalPinToInterrupt(_pin);
    // NOT_AN_INTERRUPT == -1 - it's macro from Arduino.h
@@ -73,7 +74,7 @@ int8_t manageExtInt(uint32_t *_dst, uint8_t _pin, uint8_t _mode) {
    // and value of the variable can be changed before reading is finished
    if ((extInterrupt[interruptNumber].mode != _mode)) {
 
-      // Detach is need to avoid get strange results in extInterrupt[interruptNumber].count if external signals still incoming to pin
+      // Detach is need to avoid get strange results in extInterrupt[interruptNumber].value if external signals still incoming to pin
       // .owner field need to detect owner of counter by manageIncEnc() sub due it don't operate .mode field 
       detachInterrupt(interruptNumber);
       extInterrupt[interruptNumber].owner = OWNER_IS_EXTINT;
@@ -86,7 +87,7 @@ int8_t manageExtInt(uint32_t *_dst, uint8_t _pin, uint8_t _mode) {
       // No ATOMIC_BLOCK(ATOMIC_RESTORESTATE{} used here due interrupt must be previosly detached
       // ...but if new mode is RISING and pin have HIGH state when attachInterrupt() will be called - counter will be increased immediately.
       // May be better init counter after attachInterrupt() to get 0 on any state of _pin?
-      extInterrupt[interruptNumber].count = 0;
+      extInterrupt[interruptNumber].value = 0;
 
       switch (interruptNumber) {
 // This code taken from WInterrupts.c and modifed
@@ -122,11 +123,12 @@ int8_t manageExtInt(uint32_t *_dst, uint8_t _pin, uint8_t _mode) {
       // Need to do checking NOT_AN_INTERRUPT == _mode and notattach if true?
       attachInterrupt(interruptNumber, interruptHandler, _mode);
       // No ATOMIC_BLOCK(ATOMIC_RESTORESTATE{} used here due interrupt must be previosly detached
-      // ATOMIC_BLOCK(ATOMIC_RESTORESTATE) { extInterrupt[interruptNumber].count = 0; }
+      // ATOMIC_BLOCK(ATOMIC_RESTORESTATE) { extInterrupt[interruptNumber].value = 0; }
    }
 
-   ATOMIC_BLOCK(ATOMIC_RESTORESTATE) { *_dst = (uint32_t) extInterrupt[interruptNumber].count; }
-   rc = RESULT_IN_ULONGVAR;
+   ATOMIC_BLOCK(ATOMIC_RESTORESTATE) { *_dst = (uint32_t) extInterrupt[interruptNumber].value; }
+
+   rc = RESULT_IS_UNSIGNED_VALUE;
           
 #endif // #if (EXTERNAL_NUM_INTERRUPTS > 0
 
@@ -182,13 +184,13 @@ int8_t manageExtInt(uint32_t *_dst, uint8_t _pin, uint8_t _mode) {
 *    - RESULT_IS_FAIL if wrong pin is specified
 *
 *****************************************************************************************************************************/
-int8_t manageIncEnc(int32_t *_dst, uint8_t const _terminalAPin, uint8_t const _terminalBPin, int32_t const _initialValue) {
+int8_t manageIncEnc(int32_t* _dst, uint8_t const _terminalAPin, uint8_t const _terminalBPin, int32_t const _initialValue) {
    int8_t rc = RESULT_IS_FAIL;
 
    // This condition placed here to avoid using defaut case (EXTERNAL_NUM_INTERRUPTS <= 0) in switch(interruptNumber) due its very strange but 
    // theoretically possible situation 
 #if (EXTERNAL_NUM_INTERRUPTS > 0)
-   extern extInterrupt_t extInterrupt[];
+   //extern volatile extInterrupt_t extInterrupt[];
 //   extern extInterrupt_t *extInterrupt;
    voidFuncPtr interruptHandler;
    int8_t interruptNumber=digitalPinToInterrupt(_terminalAPin);
@@ -199,7 +201,7 @@ int8_t manageIncEnc(int32_t *_dst, uint8_t const _terminalAPin, uint8_t const _t
    // Just return value of .value field if encoder's handle sub already linked to this interrupt
    // Otherwise - reattach interrupt and init .value field
    if (OWNER_IS_INCENC != extInterrupt[interruptNumber].owner) {
-
+   
       // Detach is need to avoid get strange results in extInterrupt[interruptNumber].value if external signals still incoming to pin
       detachInterrupt(interruptNumber);
       extInterrupt[interruptNumber].owner = OWNER_IS_INCENC;
@@ -248,7 +250,7 @@ int8_t manageIncEnc(int32_t *_dst, uint8_t const _terminalAPin, uint8_t const _t
    } // (OWNER_IS_INCENC != extInterrupt[interruptNumber].owner)
 
    ATOMIC_BLOCK(ATOMIC_RESTORESTATE) { *_dst = (int32_t) extInterrupt[interruptNumber].value; }
-   rc = RESULT_IN_LONGVAR;
+   rc = RESULT_IS_SIGNED_VALUE;
 #endif
 
    finish:

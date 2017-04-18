@@ -99,18 +99,19 @@ extern void stopTimerOne() { TCCR1B = 0; }
 *
 *****************************************************************************************************************************/
 extern void gatherSystemMetrics(){
-#ifdef FEATURE_DEBUG_COMMANDS_ENABLE
   // Global variable from the outside
-  extern volatile int32_t sysMetrics[];
-  sysMetrics[IDX_METRIC_SYS_RAM_FREE] = (int32_t) getRamFree(); 
+
+  //extern volatile int32_t sysMetrics[];
+  //sysMetrics[IDX_METRIC_SYS_RAM_FREE] = (int32_t) getRamFree(); 
   // Correct sys.ram.freemin metric when FreeMem just taken
-  if (sysMetrics[IDX_METRIC_SYS_RAM_FREEMIN] > sysMetrics[IDX_METRIC_SYS_RAM_FREE]) {
-     sysMetrics[IDX_METRIC_SYS_RAM_FREEMIN] = sysMetrics[IDX_METRIC_SYS_RAM_FREE]; 
+  //if (sysMetrics[IDX_METRIC_SYS_RAM_FREEMIN] > sysMetrics[IDX_METRIC_SYS_RAM_FREE]) {
+  //   sysMetrics[IDX_METRIC_SYS_RAM_FREEMIN] = sysMetrics[IDX_METRIC_SYS_RAM_FREE]; 
+  extern volatile sysmetrics_t sysMetrics;
+  sysMetrics.sysRamFree = getRamFree(); 
+  // Correct sys.ram.freemin metric when FreeMem just taken
+  if (sysMetrics.sysRamFreeMin > sysMetrics.sysRamFree) {
+     sysMetrics.sysRamFreeMin = sysMetrics.sysRamFree; 
   }
-#else
-  // This line used to compile this sub in any case, even if the compiler optimize the code 
-  asm volatile ("nop");  
-#endif
 
 }
      

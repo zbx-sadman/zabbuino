@@ -17,7 +17,7 @@
 *     - RESULT_IS_FAIL of no devices found 
 *
 *****************************************************************************************************************************/
-int8_t scanOneWire(const uint8_t _pin, EthernetClient *_ethClient);
+int8_t scanOneWire(const uint8_t, NetworkClass*);
 
 
 #endif // #ifndef _ZABBUINO_OWBUS_H_

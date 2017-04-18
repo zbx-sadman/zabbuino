@@ -3,10 +3,25 @@
 
 #include <Arduino.h>
 #include <avr/boot.h>
+#include <util/crc16.h>
 #include "../basic.h"
 #include "tune.h"
 #include "structs.h"
 #include "system.h"
+
+/*****************************************************************************************************************************
+*
+*   Return number of millis() rollovers every UINT32_MAX ms (~50days)
+*
+*****************************************************************************************************************************/
+uint8_t millisRollover(void);
+
+/*****************************************************************************************************************************
+*
+*   Return system uptime (seconds)
+*
+*****************************************************************************************************************************/
+uint32_t uptime(void);
 
 /*****************************************************************************************************************************
 *
@@ -44,7 +59,7 @@ uint8_t hstoba(uint8_t *_dst, const char* _src, uint8_t _len);
 *   This function placed here to aviod compilation error when OneWire library is not #included
 *
 *****************************************************************************************************************************/
-uint8_t dallas_crc8(const uint8_t *addr, uint8_t len);
+uint8_t dallas_crc8(uint8_t *addr, uint8_t len);
 
 /*****************************************************************************************************************************
 *
@@ -68,6 +83,15 @@ extern void SerialPrintln_P (const char *_src);
 void printArray(uint8_t *_src, uint8_t _len, const uint8_t _type);
 
 void blinkMore(const uint8_t _times, const uint16_t _onTime, const uint16_t _offTime);
+
+/*****************************************************************************************************************************
+*
+*  
+*
+*****************************************************************************************************************************/
+uint8_t validateNetworkAddress(const NetworkAddress);
+uint8_t strToNetworkAddress(const char*, NetworkAddress*);
+uint8_t analyzeStream(char, char*, char**, uint8_t);
 
 /* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
                                                          INLINE AND "DEFINE" FUNCTIONS SECTION 
@@ -95,7 +119,8 @@ inline uint8_t haveHexPrefix(const char *_src) { return (_src[0] == '0' && _src[
 *  Return "Free" memory size
 *
 **************************************************************************************************************************** */
-inline __attribute__((always_inline)) uint32_t getRamFree(void) {
+//inline __attribute__((always_inline)) uint32_t getRamFree(void) {
+inline uint32_t getRamFree(void) {
   extern uint16_t __heap_start, *__brkval;
   uint16_t v;
   return (uint32_t) &v - (__brkval == 0 ? (uint32_t) &__heap_start : (uint32_t) __brkval);
@@ -109,9 +134,9 @@ inline __attribute__((always_inline)) uint32_t getRamFree(void) {
 // __attribute__((always_inline)) 
 inline void correctVCCMetrics(uint32_t _currVCC) {
   // Global variable from outside
-  extern volatile int32_t sysMetrics[];
-  if ((uint32_t) sysMetrics[IDX_METRIC_SYS_VCCMIN] > _currVCC) { sysMetrics[IDX_METRIC_SYS_VCCMIN] = _currVCC; }
-  if ((uint32_t) sysMetrics[IDX_METRIC_SYS_VCCMAX] < _currVCC) { sysMetrics[IDX_METRIC_SYS_VCCMAX] = _currVCC; }
+  extern volatile sysmetrics_t sysMetrics;
+  if (sysMetrics.sysVCCMin > _currVCC) { sysMetrics.sysVCCMin = _currVCC; }
+  if (sysMetrics.sysVCCMax < _currVCC) { sysMetrics.sysVCCMax = _currVCC; }
 }
 
 #ifdef FEATURE_DEBUG_TO_SERIAL_HIGH
@@ -150,5 +175,11 @@ inline void correctVCCMetrics(uint32_t _currVCC) {
  #define NDTS(X) /* blank */
 #endif 
 
+
+#define htonl(x) ( ((x)<<24 & 0xFF000000UL) | \
+                   ((x)<< 8 & 0x00FF0000UL) | \
+                   ((x)>> 8 & 0x0000FF00UL) | \
+                   ((x)>>24 & 0x000000FFUL) )
+#define ntohl(x) htonl(x)
 
 #endif // #ifndef _ZABBUINO_SERVICE_H_

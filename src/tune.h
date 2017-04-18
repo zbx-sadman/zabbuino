@@ -2,15 +2,43 @@
 #define _ZABBUINO_TUNE_CONFIG_H_
 
 #include <Arduino.h>
+
 #include <avr/wdt.h>
 
 /* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
                                                             DISPATCH SECTION 
 
 */
+// Enable LCD support if report screen required
+#if defined(FEATURE_SYSTEM_DISPLAY_ENABLE)
+   #define FEATURE_PCF8574_LCD_ENABLE
+#endif
+
+#if defined(FEATURE_SYSTEM_RTC_ENABLE)
+   #define FEATURE_I2C_RTC_ENABLE
+#endif
+
+#if defined(FEATURE_BMP180_ENABLE)
+   #define FEATURE_BMP_ENABLE
+   #define SUPPORT_BMP180_INCLUDE
+#endif
+
+#if defined(FEATURE_BMP280_ENABLE)
+   #define FEATURE_BMP_ENABLE
+   #define SUPPORT_BMP280_INCLUDE
+#endif
+
+// Enable BMP280 support if need to use BME280, because BME280 is BMP280+Humidity sensor.
+#if defined(FEATURE_BME280_ENABLE)
+   #define FEATURE_BMP_ENABLE
+   #define SUPPORT_BMP280_INCLUDE
+   #define SUPPORT_BME280_INCLUDE
+#endif
+
+
 // Need to use Wire lib if any I2C related feature enabled
-#if defined(FEATURE_I2C_ENABLE) || defined(FEATURE_BMP_ENABLE) || defined(FEATURE_BH1750_ENABLE) || defined (FEATURE_PCF8574_LCD_ENABLE) || defined (FEATURE_SHT2X_ENABLE)
-   #define LIBWIRE_USE
+#if defined(FEATURE_I2C_ENABLE) || defined(FEATURE_BMP_ENABLE) || defined(FEATURE_BH1750_ENABLE) || defined (FEATURE_PCF8574_LCD_ENABLE) || defined (FEATURE_SHT2X_ENABLE) || defined (FEATURE_I2C_RTC_ENABLE) || defined (FEATURE_MAX44009_ENABLE)
+   #define TWI_USE
 #endif
 
 #if defined(FEATURE_SERIAL_LISTEN_TOO) && !(defined(FEATURE_DEBUG_TO_SERIAL_LOW) || defined(FEATURE_DEBUG_TO_SERIAL_MIDDLE) || defined(FEATURE_DEBUG_TO_SERIAL_HIGH))
@@ -27,10 +55,6 @@
    #define INTERRUPT_USE
 #endif
 
-// Enable BMP280 support if need to support BME280, because BME280 is BMP280+Humidity sensor.
-#if defined(SUPPORT_BME280_INCLUDE)
-   #define SUPPORT_BMP280_INCLUDE
-#endif
 
 // Define I/O ports number to reserve port_protect, port_pullup and other arrays size 
 // see below: const uint8_t port_protect[PORTS_NUM] = {...}
@@ -46,7 +70,7 @@
 #endif
 
 /* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
-                                                               ALARM SECTION 
+                                                            ALARM SECTION 
 */
 // Turn off state LED blink (no errors found)
 const uint32_t constBlinkNope                                  = 000UL;
@@ -59,6 +83,21 @@ const uint32_t constBlinkNetworkProblem                        = 500UL;
 
 
 /* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
+                                                          SYSTEM HARDWARE SECTION 
+*/
+
+const uint8_t  constDefaultSDAPin                               = A4;
+const uint8_t  constDefaultSCLPin                               = A5;
+
+// System RTC module settings (only DS3231 is supported at this time)
+const uint8_t  constSystemRtcSDAPin                             = A4;     // SDA - A4
+const uint8_t  constSystemRtcSCLPin                             = A5;     // SCL - A5
+const uint8_t  constSystemRtcI2CAddress                         = 0x68;   // DS3231 RTC I2C address 
+
+const uint16_t constUserFunctionCallInterval                    = 3000UL; // 3sec
+
+
+/* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
                                                             NETWORK MODULE SECTION 
 
    Note, that changing MAC or IP-address separately may cause "strange" network errors until the moment when the router delete old ARP-records from the cache.
@@ -68,8 +107,8 @@ const uint32_t constBlinkNetworkProblem                        = 500UL;
 */
 
 // How often do ENC28J60 module reinit for more stable network
-// 10 sec
-const uint32_t constNetEnc28j60ReinitPeriod                    = 10000UL; 
+// 5 sec
+const uint32_t constPHYCheckInterval                           = 5000UL; 
 
 // Network activity timeout (for which no packets processed or no DHCP lease renews finished with success)
 // 60 sec
@@ -87,7 +126,7 @@ const uint32_t constNetIdleTimeout            	               = 60000UL;
 
 // How often do renew DHCP lease
 // 30 sec
-const uint32_t constNetDhcpRenewPeriod                         = 30000UL;
+//const uint32_t constNetDhcpRenewPeriod                         = 30000UL;
 // How often do renew DHCP lease
 // 0.1 sec
 const uint32_t constNetStabilizationDelay                      = 100UL; 
@@ -116,9 +155,9 @@ const uint32_t constSysMetricGatherPeriod                      = 1000UL;
 const uint8_t constArgC                                        = 6;
 // Size of buffer's argument part. All separators and delimiters must be taken into account. See note to constBufferSize macro too
 //const uint16_t constArgsPartSize                               = 163;
-const uint16_t constArgsPartSize                               = 25;
+const uint16_t constArgsPartSize                               = 100;
 // Size of buffer's command part
-const uint8_t constCmdPartSize                                 = 100;
+const uint8_t constCmdPartSize                                 = 25;
 
 
 // ***NOTE****    
@@ -301,6 +340,8 @@ D13 -^    ^- D8    <- pins   */
   #define MSG_DEVICE_ERROR_ACK_H                                "ACK (H) error"
   #define MSG_DEVICE_ERROR_CHECKSUM                             "Wrong checksum"
   #define MSG_DEVICE_ERROR_TIMEOUT                              "Timeout error"
+  #define MSG_DEVICE_ERROR_WRONG_ID                             "Wrong ID" 
+  #define MSG_DEVICE_ERROR_NOT_SUPPORTED                        "Device not supported" 
   #define MSG_DEVICE_ERROR_WRONG_ANSWER                         "Wrong answer recieved"
   #define MSG_DEVICE_ERROR_EEPROM                               "Can't save to EEPROM"
 #else
@@ -309,7 +350,9 @@ D13 -^    ^- D8    <- pins   */
   #define MSG_DEVICE_ERROR_ACK_H                                "-133"
   #define MSG_DEVICE_ERROR_CHECKSUM                             "-134"
   #define MSG_DEVICE_ERROR_TIMEOUT                              "-135"
-  #define MSG_DEVICE_ERROR_WRONG_ANSWER                         "-136"
+  #define MSG_DEVICE_ERROR_WRONG_ID                             "-136" 
+  #define MSG_DEVICE_ERROR_NOT_SUPPORTED                        "-137" 
+  #define MSG_DEVICE_ERROR_WRONG_ANSWER                         "-138"
   #define MSG_DEVICE_ERROR_EEPROM                               "-151"
 #endif
 

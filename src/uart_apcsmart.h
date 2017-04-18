@@ -26,6 +26,7 @@
 *     - DEVICE_ERROR_TIMEOUT if device stop talking
 *
 *****************************************************************************************************************************/
-int8_t getAPCSmartUPSMetric(const uint8_t _rxPin, const uint8_t _txPin, uint8_t *_command, uint8_t _commandLen,  uint8_t *_dst);
+//int8_t getAPCSmartUPSMetric(const uint8_t _rxPin, const uint8_t _txPin, uint8_t *_command, uint8_t _commandLen,  uint8_t *_dst);
+int8_t getAPCSmartUPSMetric(const uint8_t _rxPin, const uint8_t _txPin, uint8_t *_command, uint8_t *_dst);
 
 #endif // #ifndef _ZABBUINO_UART_APCSMART_H_

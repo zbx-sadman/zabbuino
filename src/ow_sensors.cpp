@@ -1,10 +1,34 @@
 #include "ow_sensors.h"
-
 /*-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
 
                                                                    DS18x20 SECTION
 
- -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-*/
+   Based on: Dallas Temperature Control Library
+   Version 3.7.2  is used
+
+-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-*/
+
+static uint8_t getScratchPadFromDevice(OneWire *_owDevice, const uint8_t *_addr, uint8_t *_scratchPad);
+static inline uint8_t isCRCOK(uint8_t *_scratchPad);
+
+/*****************************************************************************************************************************
+*
+*  Overloaded getDS18X20Metric() functions. Refer to original subroutione to see return codes
+*
+*****************************************************************************************************************************/
+int8_t getDS18X20Metric(const uint8_t _pin, uint8_t _resolution, uint8_t* _id, int32_t* _value)
+{
+  char stubBuffer;
+  return getDS18X20Metric(_pin, _resolution, _id, &stubBuffer, _value, true);
+
+}
+
+int8_t getDS18X20Metric(const uint8_t _pin, uint8_t _resolution, uint8_t* _id, char* _dst)
+{
+  int32_t stubValue;
+  return getDS18X20Metric(_pin, _resolution, _id, _dst, &stubValue, false);
+}
+
 
 
 /*****************************************************************************************************************************
@@ -20,90 +44,91 @@
 *     - DEVICE_ERROR_CHECKSUM on detect data corruption
 *
 *****************************************************************************************************************************/
-int8_t getDS18X20Metric(const uint8_t _pin, uint8_t _resolution, char* _id, char* _dst)
+int8_t getDS18X20Metric(const uint8_t _pin, uint8_t _resolution, uint8_t* _id, char* _dst, int32_t* _value, const uint8_t _wantsNumber)
+//int8_t getDS18X20Metric(const uint8_t _pin, uint8_t _resolution, char* _id, char* _dst)
 {
   int8_t rc = DEVICE_ERROR_CONNECT;
-  uint8_t i, signBit, dsAddr[8], scratchPad[9], parasitePowerUsed;
+  uint8_t signBit, parasitePowerUsed, busReady;// scratchPad[9];
+  uint8_t* scratchPad;
   int16_t conversionTimeout;
-  uint32_t tRaw;
+  int32_t tRaw;
   // Start mass conversion or read data if prev conversion has been finished no more that N sec is good idea, but need to store link busPin<->prevConversionTime
   // static uint32_t prevConversionTime = 0;
 
   // Resolution must be: 9 <= _resolution <= 12 
   _resolution = constrain(_resolution, 9, 12);
 
-  OneWire *owDevice;
-  owDevice = new OneWire(_pin);
-  
+  OneWire owDevice(_pin);
 
+  scratchPad = (uint8_t*) _dst;
   if ('\0' == _id[0]) {
-     // If ID not valid - search any sensor on OneWire bus and use its. Or return error when no devices found.    
-     owDevice->reset_search();
-     if (!owDevice->search(dsAddr)) { goto finish; } // rc already init with DEVICE_ERROR_CONNECT value
+     // If ID not given - search any sensor on OneWire bus and use its. Or return error when no devices found.
+     owDevice.reset_search();
+     // If search() function returns a '1' then it has enumerated the next device and you may retrieve the ROM from the
+     // OneWire::address variable. If there are no devices, no further devices, or something horrible happens in the middle of the
+     // enumeration then a 0 is returned. (R) OneWire.cpp
+     if (0 == owDevice.search(_id)) { goto finish; } // rc already init with DEVICE_ERROR_CONNECT value
   } else {
-     // Convert sensor ID (if its given) from HEX string to byte array (DeviceAddress structure). 
-     // Sensor ID is equal DeviceAddress.
-     // if converting not sucessfully - return DEVICE_ERROR_CONNECT because no sensor address here
-     if (!hstoba((uint8_t*) dsAddr, _id, 8)) { goto finish; }  // rc already init with DEVICE_ERROR_CONNECT value
+     if (dallas_crc8(_id, 7) != _id[7]) { goto finish; }
+     // Testing device presence. It "not connected" if no presence pulse on bus registred or CRC is wrong (bus interference exist)
+     rc = DEVICE_ERROR_CONNECT; 
+     busReady = getScratchPadFromDevice(&owDevice, _id, scratchPad);
+     if (!(busReady && isCRCOK(scratchPad))) { goto finish; }
   }
 
-  // Validate sensor. Model id saved in first byte of DeviceAddress (sensor ID).
-  //  if (DS18S20_ID != dsAddr[0] && DS18B20_ID != dsAddr[0] && DS1822_ID != dsAddr[0]) { goto finish; }  // rc already init with DEVICE_ERROR_CONNECT value
-  switch (dsAddr[0]) {
+  switch (_id[0]) {
      case DS18S20_ID:
      case DS18B20_ID:
      case DS1822_ID:
+     case DS1825_ID:
        break;
     default:
+       rc = DEVICE_ERROR_NOT_SUPPORTED;
        goto finish;
   }
 
-
-  // Get values of CONFIGURATION, HIGH_ALARM_TEMP, LOW_ALARM_TEMP registers via ScratchPad reading.
-  // Or return error if bad CRC detected
-  if (!getScratchPadFromDS18X20(owDevice, dsAddr, scratchPad)) { rc = DEVICE_ERROR_CHECKSUM; goto finish; }
-
   // Detect power on sensor - parasite or not
   parasitePowerUsed = false;
-  owDevice->reset();
-  owDevice->select(dsAddr);
-  owDevice->write(DS18X20_CMD_READPOWERSUPPLY);
-  if (owDevice->read_bit() == 0) parasitePowerUsed = true;
+  owDevice.reset();
+  owDevice.select(_id);
+  owDevice.write(DS18X20_CMD_READPOWERSUPPLY);
+  if (0 == owDevice.read_bit()) { parasitePowerUsed = true; }
 
   // Sensor already configured to use '_resolution'? Do not make write operation. 
   if (scratchPad[DS18X20_BYTE_CONFIGURATION] != _resolution) {
-     //  DS1820 and DS18S20 have not CONFIGURATION registry, resolution setting have no sense
-     if (DS18B20_ID == dsAddr[0]) {
-        switch (_resolution) {
-          case 12:
-            scratchPad[DS18X20_BYTE_CONFIGURATION] = DS18X20_MODE_12_BIT;
-            break;
-          case 11:
-            scratchPad[DS18X20_BYTE_CONFIGURATION] = DS18X20_MODE_11_BIT;
-            break;
-          case 10:
-            scratchPad[DS18X20_BYTE_CONFIGURATION] = DS18X20_MODE_10_BIT;
-            break;
-          case 9:
-          default:
-            scratchPad[DS18X20_BYTE_CONFIGURATION] = DS18X20_MODE_9_BIT;
-            break;
-        }
-
-        owDevice->reset();
-        owDevice->select(dsAddr);
-        owDevice->write(DS18X20_CMD_WRITESCRATCH);
-        // Change only 3 byte. That is enough to sensor's resolution change
-        for ( i = DS18X20_BYTE_HIGH_ALARM_TEMP; i <= DS18X20_BYTE_CONFIGURATION; i++) {
-          owDevice->write(scratchPad[i]); // configuration
-        }
-        // When sensor used 'parasite' power settings must be copied to DS's EEPROM.
-        // Otherwise its will be lost on 'ow.reset()' operation
-        if (parasitePowerUsed) {
-           owDevice->write(DS18X20_CMD_COPYSCRATCH, 1);
-           delay(11);
-       }
-     } // if (DS18B20MODEL == dsAddr[0])
+     switch (_resolution) {
+       case 12:
+         scratchPad[DS18X20_BYTE_CONFIGURATION] = DS18X20_MODE_12_BIT;
+         break;
+       case 11:
+         scratchPad[DS18X20_BYTE_CONFIGURATION] = DS18X20_MODE_11_BIT;
+         break;
+       case 10:
+         scratchPad[DS18X20_BYTE_CONFIGURATION] = DS18X20_MODE_10_BIT;
+         break;
+       case 9:
+       default:
+         scratchPad[DS18X20_BYTE_CONFIGURATION] = DS18X20_MODE_9_BIT;
+         break;
+     }
+     owDevice.reset();
+     owDevice.select(_id);
+     owDevice.write(DS18X20_CMD_WRITESCRATCH);
+     // Change only 3 byte. That is enough to sensor's resolution change
+     owDevice.write(DS18X20_BYTE_HIGH_ALARM_TEMP);
+     owDevice.write(DS18X20_BYTE_LOW_ALARM_TEMP);
+     //  DS1820 and DS18S20 have no CONFIGURATION registry
+     if (DS18S20_ID != _id[0]) { owDevice.write(DS18X20_BYTE_CONFIGURATION); }
+     // When sensor used 'parasite' power settings must be copied to DS's EEPROM.
+     // Otherwise it will be lost on reset()
+     // I do not think that need to make COPYSCRATCH everytime to prolong sensor lifetime, because often measurement on single sensor 
+     // with various resolution may be requested.    
+     if (parasitePowerUsed) {
+        owDevice.write(DS18X20_CMD_COPYSCRATCH, 1);
+        // 20ms delay allow 10ms long EEPROM write operation (as specified by datasheet), 
+        // additional 10ms delay used in Dallas lib for parasite powered sensors
+        delay(20+10);  
+     }
   } // if (scratchPad[CONFIGURATION] != _resolution)
 
   // From Dallas's datasheet:
@@ -116,21 +141,22 @@ int8_t getDS18X20Metric(const uint8_t _pin, uint8_t _resolution, char* _id, char
   conversionTimeout = 825 / (1 << (12 - _resolution));
   
   // Temperature read begin
-  owDevice->reset();
-  owDevice->select(dsAddr);
+  owDevice.reset();
+  owDevice.select(_id);
   // start conversion, with parasite power on at the end
-  owDevice->write(DS18X20_CMD_STARTCONVO, 1); 
+  owDevice.write(DS18X20_CMD_STARTCONVO, 1); 
   // Wait to end conversion
   delay(conversionTimeout);
 
   // Read data from DS's ScratchPad or return 'Error' on failure
- if (!getScratchPadFromDS18X20(owDevice, dsAddr, scratchPad)) { rc = DEVICE_ERROR_CHECKSUM; goto finish;} 
-
+  // DEVICE_ERROR_CHECKSUM instead DEVICE_ERROR_CONNECT returned because sensor is probaly presented on 1-Wire bus (already tested early)
+  busReady = getScratchPadFromDevice(&owDevice, _id, scratchPad);
+  if (!(busReady && isCRCOK(scratchPad))) { rc = DEVICE_ERROR_CHECKSUM; goto finish; }
   // Temperature calculation
   tRaw = (((int32_t) scratchPad[DS18X20_BYTE_TEMP_MSB]) << 8) | scratchPad[DS18X20_BYTE_TEMP_LSB];
 
   // For some DS's models temperature value must be corrected additional 
-  if (DS18S20_ID == dsAddr[0])
+  if (DS18S20_ID == _id[0])
   {
     // DS18S20 & DS1820 have no more 9 bit resolution, higher bits can be dropped
     tRaw = tRaw << 3;
@@ -160,7 +186,6 @@ int8_t getDS18X20Metric(const uint8_t _pin, uint8_t _resolution, char* _id, char
         break;
     }
   }
-
   // Negative value of temperature testing
   // if (signBit) ...
   signBit = false;
@@ -175,18 +200,20 @@ int8_t getDS18X20Metric(const uint8_t _pin, uint8_t _resolution, char* _id, char
   // Do 'unfloat' procedure for using number with my ltoaf() subroutine: multiply temp to 0.0625 (1/16 C)
   tRaw *= 100;
   tRaw = ((tRaw * 6) + (tRaw / 4));
-
   if (signBit) {
     tRaw = -tRaw;
   }
 
-  ltoaf(tRaw, _dst, 4);
+  *_value = tRaw; // TODO: need to replace tRaw -> *_value in all subroutine code
+
+  if (!_wantsNumber) {
+     ltoaf(tRaw, _dst, 4);
+  } 
 
   rc = RESULT_IN_BUFFER;
 
   finish:
   gatherSystemMetrics(); // Measure memory consumption
-  delete owDevice; 
   return rc;
 }
 
@@ -199,16 +226,26 @@ int8_t getDS18X20Metric(const uint8_t _pin, uint8_t _resolution, char* _id, char
 *     - false on fail
 *
 *****************************************************************************************************************************/
-static uint8_t getScratchPadFromDS18X20(OneWire *_owDevice, const uint8_t *_addr, uint8_t *_scratchPad) {
-  uint8_t i;
-  _owDevice->reset();
+uint8_t getScratchPadFromDevice(OneWire *_owDevice, const uint8_t *_addr, uint8_t *_scratchPad) {
+  uint8_t i, busReady;
+  // send the reset command and fail fast
+  // reset() returns 1 if a device asserted a presence pulse, 0 otherwise.
+  busReady = _owDevice->reset();
+  if (0 == busReady) { return false; }
+
   _owDevice->select(_addr);
   _owDevice->write(DS18X20_CMD_READSCRATCH);
   for (i = 0; i < 9; i++) {
     _scratchPad[i] = _owDevice->read();
   }
-  // CRC checking and return result
-  return (dallas_crc8(_scratchPad, 8) == _scratchPad[DS18X20_BYTE_SCRATCHPAD_CRC]);
 
+  busReady = _owDevice->reset();
+  return (1 == busReady);
+}
+
+
+uint8_t isCRCOK(uint8_t *_scratchPad) {
+  // '==' here not typo
+  return (dallas_crc8(_scratchPad, 8) == _scratchPad[DS18X20_BYTE_SCRATCHPAD_CRC]);
 }
 

@@ -7,6 +7,9 @@
 
                                                                    DS18x20 SECTION
 
+   Based on: Dallas Temperature Control Library
+   Version 3.7.2  is used
+
  -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-*/
 
 // Model IDs
@@ -43,6 +46,13 @@
 #define DS18X20_BYTE_COUNT_PER_C                                0x07
 #define DS18X20_BYTE_SCRATCHPAD_CRC                             0x08
 
+/*****************************************************************************************************************************
+*
+*   Overloads of main subroutine. Used to get numeric metric's value or it's char presentation only
+*
+*****************************************************************************************************************************/
+int8_t getDS18X20Metric(const uint8_t, uint8_t, uint8_t*, int32_t*);
+int8_t getDS18X20Metric(const uint8_t, uint8_t, uint8_t*, char*);
 
 /*****************************************************************************************************************************
 *
@@ -57,17 +67,7 @@
 *     - DEVICE_ERROR_CHECKSUM on detect data corruption
 *
 *****************************************************************************************************************************/
-int8_t getDS18X20Metric(const uint8_t _pin, uint8_t _resolution, char *_id, char *_outBuffer);
-
-/*****************************************************************************************************************************
-*
-*  Read DS18x20's scratchpad
-*
-*   Returns: 
-*     - true on success
-*     - false on fail
-*
-*****************************************************************************************************************************/
-static uint8_t getScratchPadFromDS18X20(OneWire *_owDevice, const uint8_t *_addr, uint8_t *_scratchPad);
+int8_t getDS18X20Metric(const uint8_t, uint8_t, uint8_t*, char*, int32_t*, const uint8_t _wantsNumber = false);
+//int8_t getDS18X20Metric(const uint8_t, uint8_t, char*, char*);
 
 #endif // #ifndef _ZABBUINO_OW_SENSORS_H_

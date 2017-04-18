@@ -7,6 +7,8 @@
 #include "service.h"
 #include "system.h"
 
+
+extern volatile extInterrupt_t extInterrupt[];
 /*-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
 
                                                       EXTERNAL INTERRUPTS HANDLING SECTION
@@ -23,7 +25,7 @@
 *    - RESULT_IS_FAIL if interrupt mode is wrong of wrong pin is specified
 *
 *****************************************************************************************************************************/
-  int8_t manageExtInt(uint32_t *_dst, uint8_t _pin, uint8_t _mode);
+  int8_t manageExtInt(uint32_t* _dst, uint8_t _pin, uint8_t _mode);
 
 /*
  macro CASE_INT_N_FOR_EXTINT(INT0) will be transformed to code:
@@ -48,7 +50,7 @@
 */
 
 #define HANDLE_INT_N_FOR_EXTINT(_interrupt) \
-   void handleExt##_interrupt(void) { extern extInterrupt_t extInterrupt[]; extInterrupt[_interrupt].count++; }
+   void handleExt##_interrupt(void) { extInterrupt[_interrupt].value++; }
 
  
 #if (EXTERNAL_NUM_INTERRUPTS > 7)
@@ -96,7 +98,7 @@
 *    - RESULT_IS_FAIL if wrong pin is specified
 *
 *****************************************************************************************************************************/
-  int8_t manageIncEnc(int32_t *_dst, uint8_t const _terminalAPin, uint8_t const _terminalBPin, int32_t const _initialValue);
+  int8_t manageIncEnc(int32_t* _dst, uint8_t const _terminalAPin, uint8_t const _terminalBPin, int32_t const _initialValue);
 
 /*
  macro CASE_INT_N_FOR_INCENC(INT0) will be transformed to code:
@@ -112,8 +114,10 @@
     break;
 
                                             
+// need use overflow test for "extInterrupt[_interrupt].value++" and "extInterrupt[_interrupt].value--" to avoid sign bit flapping  
+// { ((int32_t) extInterrupt[_interrupt].value)++; } else { ((int32_t) extInterrupt[_interrupt].value)--; }
 #define HANDLE_INT_N_FOR_INCENC(_interrupt) \
-   void handleIncEnc##_interrupt(void) { extern extInterrupt_t extInterrupt[]; volatile static uint8_t stateTerminalA = 0, statePrevTerminalA = 0;\
+   void handleIncEnc##_interrupt(void) { volatile static uint8_t stateTerminalA = 0, statePrevTerminalA = 0;\
          delayMicroseconds(constEncoderStabilizationDelay);\
          stateTerminalA = *extInterrupt[_interrupt].encTerminalAPIR & extInterrupt[_interrupt].encTerminalAPinBit;\
          if ((!stateTerminalA) && (statePrevTerminalA)) { \

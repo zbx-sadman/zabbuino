@@ -10,6 +10,11 @@ version 2.2.1 is used
 */
 #include "ir.h"
 
+static void mark (unsigned int time);
+static void space (unsigned int time);
+void enableIROut (int khz);
+static void custom_delay_usec(unsigned long uSecs);
+
 //  ir.send[pwmPin, irPacketType, data, nbits, repeat, address]
 uint8_t sendCommandByIR(const uint8_t _irPacketType, const uint8_t _nbits, const uint32_t _data, const uint8_t _repeat, const uint32_t _address)
 {
@@ -120,7 +125,7 @@ uint8_t sendRawByIR(const uint16_t _frequency, unsigned int _nBits, const char* 
 // Sends an IR mark for the specified number of microseconds.
 // The mark output is modulated at the PWM frequency.
 //
-static void mark (unsigned int time)
+void mark (unsigned int time)
 {
 	TIMER_ENABLE_PWM; // Enable pin 3 PWM output
 	if (time > 0) custom_delay_usec(time);
@@ -131,7 +136,7 @@ static void mark (unsigned int time)
 // Sends an IR space for the specified number of microseconds.
 // A space is no output, so the PWM output is disabled.
 //
-static void space (unsigned int time)
+void space (unsigned int time)
 {
 	TIMER_DISABLE_PWM; // Disable pin 3 PWM output
 	if (time > 0) custom_delay_usec(time);
@@ -169,7 +174,7 @@ void  enableIROut (int khz)
 
 //+=============================================================================
 // Custom delay function that circumvents Arduino's delayMicroseconds limit
-static void custom_delay_usec(unsigned long uSecs) {
+void custom_delay_usec(unsigned long uSecs) {
 
   if (uSecs > 4) {
     unsigned long start = micros();

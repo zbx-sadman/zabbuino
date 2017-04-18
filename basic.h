@@ -1,50 +1,33 @@
 #ifndef _ZABBUINO_BASIC_CONFIG_H_
 #define _ZABBUINO_BASIC_CONFIG_H_
 #include <Arduino.h>
-#include <IPAddress.h>
-//#define USE_NETWORK_192_168_0_0
 
 /* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
    
-                                                             NETWORK MODULE SECTION
-   
-   Old releases of Arduino IDE can do not processing #includes inside #if pragmas (see NETWORK MODULE SECTION) and stops on compiling or show errors
-   If you use that release - comment all #includes, exclude your's module related block.
+   Old releases of Arduino IDE can do not processing #includes inside #if pragmas and stops on compiling or show errors.
+   Release 1.6.11 is okay.
+                                                               
+   Go to NETWORK MODULE SECTION, that placed below to change local address / subnet / gateway
 
-                                                                      Wizet users
 
-    WizNet official library: https://github.com/Wiznet/WIZ_Ethernet_Library/tree/master/Arduino%20IDE%201.5.x/Ethernet can be used with Zabbuino
-    Unfortunatly network chip selection can't be carried from outside of Wiznet library :(
-    You must edit "%Program Files%\Arduino\libraries\Ethernet\src\utility\w5100.h" directly to comment and uncomment the 
-    same #defines - W5100_ETHERNET_SHIELD or W5500_ETHERNET_SHIELD or another else.
-                                                              
-                                                              !!! ENC28J60 users !!!
+                                                     !!! ENC28J60 users !!!
 
-   1. Please try to use https://github.com/ntruchsess/arduino_uip/tree/fix_errata12 brahch of UIPEthernet if your ENC28J60 seems freeze or loose connection.
-   2. Leave as much free memory as possible. If Arduino IDE show to you "Low memory available, stability problems may occur", it means that the chances 
-      of sudden and unpredictable hang your device are large. You can get more memory if disable DHCP feature for Zabbuino and disabe UDP protocol support
-      for UIPEthernet (uipethernet-conf.h -> #define UIP_CONF_UDP 0). 
-      Also, you can increase number of sockets for UIPEthernet (uipethernet-conf.h -> #define #define UIP_CONF_MAX_CONNECTIONS .. ).
-   3. Sometime ENC28J60's RX buffer or configuration registry have corrupt (i don't know how, experiments will go on. May be it my algo error) and 
-      chip re-init is enough to recovery work state. You can enable USE_DIRTY_HACK_AND_REBOOT_ENC28J60_IF_ITS_SEEMS_FREEZE declaration to re-intit 
-      ENC28J60 when corruption is detected. 
-      Note that you need to move the _readReg(uint8_t address)_ declaration from **private** to **public** area in UIPEthernet\utility\Enc28J60Network.h file.
-
+   1. Please do not try to get 3.3V from Arduino board pin if you do not sure that it provide sufficient power. 
+      The likelihood of getting problems tends to 100%. Use additional external power source.
+   2. Leave as much free memory as possible. If Arduino IDE show to you "Low memory available, stability problems may occur", it 
+      means that the chances of sudden and unpredictable hang your device are large. 
+   3. Sometime ENC28J60's RX buffer or configuration registry have corrupt and network module stops network processing. But Arduino board
+      still live and make blink by State LED. 
+      You can enable FEATURE_NETWORK_MONITORING declaration to let the Zabbuino detect this case and try to fix it.
    4. When (1) & (2) & (3) did not help to add stability, you can buy Wiznet 5xxx shield or rewrite the source code.
    
-   Tested on UIPEthernet v1.09
-
-
+                >>> NOTE that network drivers (UIPEthernet & WIZNet libs) are integrated to Zabbuino source code <<<
 */
 
-#define W5100_ETHERNET_SHIELD             // Arduino Ethernet Shield and Compatibles ...
-//#define ENC28J60_ETHERNET_SHIELD          // Microchip __ENC28J60__ network modules
-//#define USE_DIRTY_HACK_AND_REBOOT_ENC28J60_IF_ITS_SEEMS_FREEZE
-
-//#define W5200_ETHERNET_SHIELD             // WIZ820io, W5200 Ethernet Shield , not tested yet
-//#define W5500_ETHERNET_SHIELD             // WIZ550io, ioShield series of WIZnet , not tested yet
-
-
+#define W5100_ETHERNET_SHIELD       // Arduino Ethernet Shield and Compatibles ...
+//#define ENC28J60_ETHERNET_SHIELD      // Microchip __ENC28J60__ network modules
+//#define W5200_ETHERNET_SHIELD       // WIZ820io, W5200 Ethernet Shield , not tested yet
+//#define W5500_ETHERNET_SHIELD       // WIZ550io, ioShield series of WIZnet , tested but not satisfied with the performance on intensive traffic
 
 /* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
                                                                  PROGRAMM FEATURES SECTION
@@ -67,10 +50,11 @@
 //#define FEATURE_NET_DHCP_FORCE
 
 /*/ 
-/=/      Use last byte of MCU ID as MAC`s and IP's last byte 
+/=/      Use last byte of MCU ID as IP's 4-th octet, and last 3 byte as MAC`s NIC speciific part (4,5,6 octets) 
 /=/      
-/=/      Note: changing MAC or IP-address separately may cause "strange" network errors until the moment when the router delete 
-/=/      old ARP-records from the cache.
+/=/      Note: Unique MCU ID defined for ATMega328PB and can not exist on other MCU's (but seems that it exists on my ATMega328P). 
+/=/            You need try to read it before use for network addresses generating.
+/=/            Using only 3 last bytes not guarantee making unique MAC or IP.
 /*/
 //#define FEATURE_NET_USE_MCUID
 
@@ -143,32 +127,25 @@
 #define FEATURE_I2C_ENABLE
 
 /*/ 
-/=/     Enable BOSCH BMP sensors handling and commands:
+/=/     Enable BOSCH BMP180 sensors handling and commands:
 /=/       - BMP.Pressure[];
 /=/       - BMP.Temperature[]
 /=/ 
-/=/     Note: See below to specify BMP model
-/=/
 /*/
-//#define FEATURE_BMP_ENABLE
+#define FEATURE_BMP180_ENABLE
 
 /*/ 
-/=/     BMP180 / BMP085
-/*/
-//#define SUPPORT_BMP180_INCLUDE
+/=/     Enable BOSCH BMP280 sensors handling 
+/*/ 
+// #define FEATURE_BMP280_ENABLE
 
 /*/ 
-/=/     BMP280
-/*/
-//#define SUPPORT_BMP280_INCLUDE
-
-/*/ 
-/=/     BME280 and enable command:
+/=/     Enable BOSCH BME280 sensors handling and enable additional command
 /=/       - BME.Humidity[]
 /=/
 /=/     Note: BME280 is BMP280+Humidity sensor. Temperature and pressure is can be taken with BMP.Temperature[] / BMP.Pressure[] commands
 /*/
-//#define SUPPORT_BME280_INCLUDE
+//#define FEATURE_BME280_ENABLE
 
 /*/ 
 /=/     Enable ROHM BH1750 ambient light sensor handling and command:
@@ -178,6 +155,12 @@
 /=/     This replacement allow to save a little progmem space
 /*/
 //#define FEATURE_BH1750_ENABLE
+
+/*/ 
+/=/      Enable MAX44009 support and commands:
+/=/        - MAX44009.light[]
+/*/
+//#define FEATURE_MAX44009_ENABLE
 
 /*/ 
 /=/     Enable LCD that connected via PCF8574(A)-based I2C expander and command:
@@ -192,6 +175,22 @@
 /=/       - SHT2x.Temperature[]
 /*/
 //#define FEATURE_SHT2X_ENABLE
+
+/*/ 
+/=/      Enable INA219 Zer0-Drift, Bidirectional Current/Power Monitor With I2C Interface support and commands:
+/=/        - INA219.BusVoltage[]
+/=/        - INA219.Current[]
+/=/        - INA219.Power[]
+/*/
+//#define FEATURE_INA219_ENABLE
+
+/*/ 
+/=/      Enable support external I2C EEPROM chip (AT24C family) and commands:
+/=/        - AT24CXX.write[]
+/=/        - AT24CXX.read[]
+/=/      
+/*/
+//#define FEATURE_AT24CXX_ENABLE
 
 /****       MicroWire bus       ****/
 /*/ 
@@ -208,9 +207,8 @@
 /=/       - pzem004.voltage[]
 /=/       - pzem004.power[]  
 /=/       - pzem004.energy[] 
-/=/       - pzem004.setAddr[] 
 /*/
-#define FEATURE_PZEM004_ENABLE
+//#define FEATURE_PZEM004_ENABLE
 
 /*/ 
 /=/     Enable APC SmartUPS protocol support and command:
@@ -233,7 +231,7 @@
 /=/       - DHT.Humidity[];
 /=/       - DHT.Temperature[]
 /*/
-//#define FEATURE_DHT_ENABLE
+#define FEATURE_DHT_ENABLE
 
 /****       Ultrasonic    ****/
 
@@ -281,6 +279,17 @@
 
 
 /****       System        ****/
+/*/ 
+/=/      Enable calling user functions on device start and every _constUserFunctionCallInterval_ if no active network session exist
+/=/      You can write to _plugin.ino_ your own code and use all Zabbuino's internal functions to query sensors and handle actuators
+/*/
+//#define FEATURE_USER_FUNCTION_PROCESSING
+
+/*/ 
+/=/      Support Zabbix's Action functionality and enable command: 
+/=/        - system.run[]
+/*/
+//#define FEATURE_REMOTE_COMMANDS_ENABLE
 
 /*/ 
 /=/     Enable AVR watchdog
@@ -304,7 +313,7 @@
 /*/
 /=/     Store runtime settings in EEPROM and use its on start
 /*/
-//#define FEATURE_EEPROM_ENABLE
+#define FEATURE_EEPROM_ENABLE
 
 /*/
 /=/     Force protect (enable even netConfig.useProtection is false) your system from illegal access for change runtime settings and reboots 
@@ -312,16 +321,26 @@
 //#define FEATURE_PASSWORD_PROTECTION_FORCE
 
 /*/
-/=/     Enable system's command which can be used in system debug process:
-/=/       - Sys.MCU.Name[];
+/=/     Enable commands which returns system information and can be used in system debug process:
+/=/       - System.HW.CPU[];
+/=/       - System.HW.Chassis[];
 /=/       - Sys.MCU.ID[];
-/=/       - Sys.Net.Module[];
+/=/       - Sys.PHY.Module[];
 /=/       - Sys.Cmd.Count[];
 /=/       - Sys.Cmd.TimeMax[];
 /=/       - Sys.RAM.Free[];
 /=/       - Sys.RAM.FreeMin[]
 /*/
-#define FEATURE_DEBUG_COMMANDS_ENABLE
+#define FEATURE_SYSINFO_ENABLE
+
+/*/ 
+/=/      Enable support the system RTC (DS3231 RTC chip which connected via I2C interface) and commands:
+/=/        - set.localtime[]
+/=/        - system.localtime[]
+/=/      
+/=/      Refer to SYSTEM HARDWARE SECTION in src\tune.h
+/*/
+//#define FEATURE_SYSTEM_RTC_ENABLE
 
 /*/
 /=/     View the more or less debug messages on the Serial Monitor. Choose one.
@@ -332,9 +351,9 @@
 //#define FEATURE_DEBUG_TO_SERIAL_DEV
 
 /*/
-/=/     View the additional debug messages on the Serial Monitor when network errors probaly occurs
+/=/     Let Zabbuino to detect network module errors, and try to fix it.
 /*/
-//#define FEATURE_NET_DEBUG_TO_SERIAL
+//#define FEATURE_NETWORK_MONITORING
 
 /*/
 /=/     Recieve command from Serial Monitor too. Do not forget to enable one of FEATURE_DEBUG_TO_SERIAL_* macro 
@@ -344,7 +363,7 @@
 /*/
 /=/     Send back to user text messages if error is occurs. Otherwise - send numeric code
 /*/
-#define USE_TEXT_ERROR_MESSAGES
+//#define USE_TEXT_ERROR_MESSAGES
 
 /*/
 /=/     Use interrupt on Timer1 for internal metric gathering
@@ -361,18 +380,23 @@
 
 const uint8_t constNetDefaultUseDHCP = false;
 
+/*
+   Universally administered and locally administered addresses are distinguished by setting the second-least-significant bit of the first octet of the address. 
+   This bit is also referred to as the U/L bit, short for Universal/Local, which identifies how the address is administered. If the bit is 0, the address is universally 
+   administered. If it is 1, the address is locally administered. In the example address 06-00-00-00-00-00 the first octet is 06 (hex), the binary form of which
+   is 00000110, where the second-least-significant bit is 1. Therefore, it is a locally administered address.[7] Consequently, this bit is 0 in all OUIs.
+   https://en.wikipedia.org/wiki/MAC_address
+
+
+
+   Note: changing MAC or IP-address separately may cause "strange" network errors until the moment when the router flush ARP cache.
+*/
+
 // Zabbuino's IP address
-#ifdef USE_NETWORK_192_168_0_0
-  #define NET_DEFAULT_MAC_ADDRESS                              {0xDE,0xAD,0xBE,0xEF,0xFE,0xF1}
-  #define NET_DEFAULT_IP_ADDRESS                               {192,168,0,1}
-  #define NET_DEFAULT_GATEWAY                                  {192,168,0,254}
-  #define NET_DEFAULT_NETMASK                                  {255,255,255,0}
-#else
-  #define NET_DEFAULT_MAC_ADDRESS                              {0xDE,0xAD,0xBE,0xEF,0xFE,0xF1}
-  #define NET_DEFAULT_IP_ADDRESS                               {172,16,100,1}
-  #define NET_DEFAULT_GATEWAY                                  {172,16,100,254}
-  #define NET_DEFAULT_NETMASK                                  {255,255,255,0}
-#endif
+#define NET_DEFAULT_MAC_ADDRESS                              {0xBE,0xAD,0xEB,0xA8,0x00,0xDD}
+#define NET_DEFAULT_IP_ADDRESS                               {192,168,0,121}
+#define NET_DEFAULT_GATEWAY                                  {192,168,0,1}
+#define NET_DEFAULT_NETMASK                                  {255,255,255,0}
 
 /* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
                                                                ALARM SECTION 
@@ -389,6 +413,9 @@ const uint8_t constStateLedPin                                 = 0x09;
                                                          SYSTEM CONFIGURATION SECTION 
 */
 
+// Debug serial port speed in baud
+const uint32_t constSerialMonitorSpeed                         = 9600; 
+
 // Access password must be used anytime.
 const uint8_t constSysDefaultProtection                        = true; 
 
@@ -402,12 +429,14 @@ const uint8_t constFactoryResetButtonPin                       = 0x08;
                                                           AGENT CONFIGURATION SECTION 
 */
 
+#define ZBX_AGENT_TCP_PORT 10050
+
 #define ZBX_AGENT_DEFAULT_HOSTNAME                             "zabbuino"
 
 // Domain name used only to make FDQN if FEATURE_NET_USE_MCUID is allowed, and FEATURE_EEPROM_ENABLE is disabled
 #define ZBX_AGENT_DEFAULT_DOMAIN                               ".local.net"
 
 
-#define ZBX_AGENT_VERISON                                      "Zabbuino 1.1.4"
+const char constZbxAgentVersion[] PROGMEM =                    "Zabbuino 1.2.0";
 #endif // #ifndef _ZABBUINO_BASIC_CONFIG_H_
 

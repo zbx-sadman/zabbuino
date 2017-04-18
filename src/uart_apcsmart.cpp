@@ -21,7 +21,8 @@
 *     - DEVICE_ERROR_TIMEOUT if device stop talking
 *
 *****************************************************************************************************************************/
-int8_t getAPCSmartUPSMetric(const uint8_t _rxPin, const uint8_t _txPin, uint8_t *_command, uint8_t _commandLen,  uint8_t *_dst) {
+//int8_t getAPCSmartUPSMetric(const uint8_t _rxPin, const uint8_t _txPin, uint8_t *_command, uint8_t _commandLen,  uint8_t *_dst) {
+int8_t getAPCSmartUPSMetric(const uint8_t _rxPin, const uint8_t _txPin, uint8_t *_command,  uint8_t *_dst) {
   int8_t rc = DEVICE_ERROR_TIMEOUT;
   uint8_t command, 
           len, 
@@ -92,7 +93,11 @@ int8_t getAPCSmartUPSMetric(const uint8_t _rxPin, const uint8_t _txPin, uint8_t 
   serialRXFlush(&swSerial, true);
   command = 'Y';
   serialSend(&swSerial, &command, 1, true);
+  DTSD( Serial.println("recieving from UPS..."); )
+
   len = serialRecive(&swSerial, _dst, 0x03, APC_DEFAULT_READ_TIMEOUT, UART_STOP_ON_CHAR, '\r', UART_SLOW_MODE);
+  DTSD( Serial.print("len: "); Serial.println(len, DEC); )
+
   // Connection timeout occurs (recieved less than 3 byte)
   if (len < 0x03) { goto finish; } // rc inited with DEVICE_ERROR_TIMEOUT value
   // Check for "SM\r"
