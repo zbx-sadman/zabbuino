@@ -1403,8 +1403,8 @@ static int16_t executeCommand(char* _dst, char* _optarg[], netconfig_t* _netConf
           i = true;
 #ifdef FEATURE_EEPROM_ENABLE
           // tzOffset is defined?
-          if ('\0' != *_optarg[1]) {
-            _netConfig->tzOffset = (int16_t) argv[1];
+          if ('\0' != *_optarg[2]) {
+            _netConfig->tzOffset = (int16_t) argv[2];
             // Save config to EEPROM
             i = saveConfigToEEPROM(_netConfig);
             if (i) {
@@ -1415,10 +1415,10 @@ static int16_t executeCommand(char* _dst, char* _optarg[], netconfig_t* _netConf
 #endif // FEATURE_EEPROM_ENABLE
 
           // unixTimestamp option is given?
-          if ('\0' != *_optarg[0] && i) {
+          if ('\0' != *_optarg[1] && i) {
             // tzOffset is present and stored sucesfully or just not present
-            rc = setUnixTime(&SoftTWI, argv[0]) ? RESULT_IS_OK : RESULT_IS_FAIL;
-            //rc = sysRTC.setUnixTime(argv[0]);
+            rc = setUnixTime(&SoftTWI, argv[1]) ? RESULT_IS_OK : RESULT_IS_FAIL;
+            //rc = sysRTC.setUnixTime(argv[1]);
           }
           break;
 #endif // FEATURE_SYSTEM_RTC_ENABLE
@@ -1439,8 +1439,8 @@ static int16_t executeCommand(char* _dst, char* _optarg[], netconfig_t* _netConf
           // AT24CXX.read[sdaPin, sclPin, i2cAddress, cellAddress, length]
           // 
           if (AT24CXXRead(&SoftTWI, i2CAddress, argv[3], argv[4], (uint8_t*) _dst)) {
-            uint8_t* _dstptr;
             // need to use _dst as uint8_t, because sometime autocast is fail and user can get wrong data
+            uint8_t* _dstptr;
             _dstptr = (uint8_t*) _dst;
             Network.client.print("0x");
             DTSL( Serial.print("0x"); )

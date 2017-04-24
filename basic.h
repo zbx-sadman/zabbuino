@@ -437,6 +437,6 @@ const uint8_t constFactoryResetButtonPin                       = 0x08;
 #define ZBX_AGENT_DEFAULT_DOMAIN                               ".local.net"
 
 
-const char constZbxAgentVersion[] PROGMEM =                    "Zabbuino 1.2.0";
+const char constZbxAgentVersion[] PROGMEM =                    "Zabbuino 1.2.1";
 #endif // #ifndef _ZABBUINO_BASIC_CONFIG_H_
 
