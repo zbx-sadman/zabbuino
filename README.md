@@ -25,7 +25,7 @@ Implemented:
 - Testing connected peripherals without network connection via serial-port terminal (Arduino's Serial Monitor);
 - Support W5100 and ENC28J60 network modules, drivers is implemented to source code;
 - Support DS18X20 thermometers;
-- Support DHT11/21/22/33/44 or AM2301/2302 humidity and temperature sensors;
+- Support DHT11/21/22/33/44 or AM2301/2302/2320 humidity and temperature sensors;
 - Support SHT2X humidity and temperature sensors serie;
 - Support BMP180/085, BMP280/BME280 pressure and temperature sensors;
 - Support BH1750, MAX44009 light sensors;
