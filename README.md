@@ -54,7 +54,7 @@ Tested with:
 - ENC28J60 mini module & ENC28J60 shield for Arduino Nano (5V both), Ethernet Shield (W5100), Mini Red W5100 Ethernet Module (5V), WIZ811MJ Ethernet module (3.3V);
 - SW-520D sensors, encoders (EC11), buttons & etc;
 - Bunch of Dallas DS18B20 thermometers;
-- AOSONG AM2302 (DHT22) sensor;
+- AOSONG AM2302 (DHT22), AM2320 sensors;
 - BOSCH BMP180, BME280 sensors;
 - SHT21 (SI7021) sensor;
 - ROHM BH1750 sensor;
