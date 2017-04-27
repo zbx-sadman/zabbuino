@@ -33,7 +33,7 @@ Implemented:
 - Simulate varuious vendor's IR transmitters.
 
 
-####29 March 2016
+#### 29 March 2017
 
 Changes: 
 
@@ -47,7 +47,7 @@ Note#3: Automatic measurement always run for 800ms, because i see no way at this
 
 
 
-####13 March 2016
+#### 13 March 2017
 
 Changes: 
  - I2C-related subroutines now used modified SoftwareWire lib (integrated to sources). I2C Sensor can be connected to various MCU pins (not only A4/A5 for ATmega328);
@@ -62,13 +62,13 @@ New feature:
  - Now users can write its own data from EEPROM to using it inside _plugin.ino_ subroutines. For example it allow to make autoswitched light sensor with remotely setted bounds.
 
 
-####10 March 2016
+#### 10 March 2017
 
 Changes: 
  - RTC timezone now saved on MCU EEPROM, because small DS3231 modules does not have onboard AT24C32 and timezony only read/write is expensive operation (300bytes of flash space for two byte handling).
    \_SYSTEM\_RTC\_ONBOARD\_EEPROM\_ENABLE_ is not used and _FEATURE\_EEPROM\_ENABLE_ must be used to allow remotely timezone set.
 
-####03 March 2016
+#### 03 March 2017
 
 Changes: 
  - _set.localtime[unixTimestamp, timeZoneOffset]_ have new options timeZoneOffset (in sec) to be able use TZ inside Zabbuino code. timeZoneOffset can be used with AT24C32 EEPROM;
@@ -76,7 +76,7 @@ Changes:
 New features:
  - _FEATURE\_SYSTEM\_RTC\_ONBOARD\_EEPROM\_ENABLE_ - allow to save timezone into RTC module's onboard AT24C32 EEPROM;
 
-####02 March 2016
+#### 02 March 2017
 
 Changes: 
  - _sys.uptime_ renamed to _system.uptime_ to get more compability with Zabbix;
@@ -95,12 +95,12 @@ New commands:
  - _set.localtime[unixTimestamp]_ - set time on system RTC if it used;
  - _system.localtime_ - returns time as unixTimestamp from system RTC if it used;
 
-####26 Feb 2016
+#### 26 Feb 2017
 
 New feature:
  - With _FEATURE\_REPORT\_SCREEN\_ENABLE_ you can build your own virtual report screen and send it to I2C connected LCD screen. Refer to "SYSTEM HARDWARE SECTION" in _tune.h_ to get more info about LCD connection settings. _reportToScreen()_ function source code can be found in _plugin.ino_
  
-####31 Jan 2016
+#### 31 Jan 2017
 
 Changes: 
  - Network drivers (UIPEthernet and Wiznet libraries) now integrated to source code. It works but not tested so much;
@@ -108,7 +108,7 @@ Changes:
  - if _FEATURE_NET_USE_MCUID_ enabled - 3 last byte of MCU ID's will used for 4, 5, 6 octets of MAC address, and last ID's byte used for 4-th octet of IP address;
  - Refactored Dallas temperature sensors subroutines, device ID validation and tesing for presence on the bus is added. 
 
-####29 Jan 2016
+#### 29 Jan 2017
 
 Going to Zabbuino 1.2.0.
 
@@ -128,14 +128,14 @@ Example: `zabbix_get -s 192.168.0.1 -k "ina219.current[18,19,0x40,16,1000]"` - g
 
 Note: currently you can use 1000, 2000, 3000 (1A, 2A, 3A) as _maxCurrent_. Overflow bit not controlled at this time.
 
-####08 Dec 2016
+#### 08 Dec 2016
 
 Changes: 
   - Zabbuino configs was splitted to _basic.h_ (a little basic setting set) and _src/tune.h_ (tuning settings);
   - Compilation is improved (i think so);
   - Network processing reworked a little again.
 
-####28 Nov 2016
+#### 28 Nov 2016
 
 Fixes:
   - PZEM-004's commands works again (was broken a little on code refactoring).
@@ -146,7 +146,7 @@ Changes:
   - Free memory size measured on end of some subroutines. Perhaps this is to be more reliable. We'll see.
 
 
-####10 Nov 2016
+#### 10 Nov 2016
 
 Fixes:
   - Wrong MCU Signature reading.
@@ -155,7 +155,7 @@ Changes:
  - Subroutine that save config to EEPROM now search non-damaged area if corrupted cell is detected.
  
 
-####07 Nov 2016
+#### 07 Nov 2016
 
 Refactoring is processed...
 
@@ -168,7 +168,7 @@ New feature:
  - _FEATURE_NET_DEBUG_TO_SERIAL_ allow to see the additional debug messages on the Serial Monitor when network errors probaly occurs. May be it help to resolve some cases of the ENC28J60 module freezing.
 
 
-####22 Sep 2016
+#### 22 Sep 2016
 
 Changes:
  - _ups.apcsmart[]_ can send to APC Smart UPS _^N_ & _Z_ (Turn on UPS, Shutdown UPS) commands now.
@@ -182,7 +182,7 @@ New command:
   * Commands: any simple Zabbuino command, _ups.apcsmart[2,3,0x5A]_ for example to turn off APC Smart UPS, which controlled to Zabbuino.
 
 
-####21 Sep 2016
+#### 21 Sep 2016
 
 Changes:
  - _ups.apc.smart[]_ command renamed to _ups.apcsmart[]_. Just for name ordering;
@@ -199,7 +199,7 @@ New commands:
 **Note #2** _ups.megatec[]_ haven't tested on real hardware, user reports require.
 
 
-####19 Sep 2016
+#### 19 Sep 2016
 
 Fixes:
   - _PZEM004.*_ memory leak caused the system hang.
@@ -214,7 +214,7 @@ New commands:
 **Note #2** APC Smart UPS have non-standart pinout, use APC-branded cables.
 
 
-####14 Sep 2016
+#### 14 Sep 2016
 
 Changes:
   - _I2C.Read[]_ command have new optional parameter - _doDoubleReading_ . Some sensors/IC's (like PCF8591) returns the value of previous conversion and need to reply reading to get actual data. Now Zabbuino can ask for result twice if you specify _doDoubleReading_ parameter greater that 0. For example, to get _actual_ 1-byte data from ADC3 (AIN3 pin) of PCF8591: `I2C.Read[18,19,0x48,0x03,1,1]`.
@@ -222,7 +222,7 @@ Changes:
 
 **Note** Zabbuino _I2C.Read[] /I2C.Write[]_ commands tested with PCF8591 module (YL-40). Reading & writing is sucessfull. For example, set voltage on PCF8591 AOUT pin to ~0.75\*VDD Volts ( 255\*0.75 => ~191 ): `zabbix_get -s 192.168.0.1 -k I2C.Write[18,19,0x48,0x40,191]`.
 
-####13 Sep 2016
+#### 13 Sep 2016
 Changes:
   - _I2C.Write[]_ command have new optional parameter. It's a _numBytes_ - how much bytes must be written to the register of I2C device. Example: _I2C.Write[18,19,0x62,0x40,2048,2]_ - send value 2048 in two byte to register 0x40 of MCP4725 DAC IC. If no _numBytes_ specified - _data_ cast to uint8_t and send in one byte;
   - _PZEM004.*[]_ commands have new optional parameter: _ip_ . It's used only for authorization on energymeters with default ip other than 192.168.1.1 and not replaced PZEM's ip. Example: _PZEM004.voltage[5, 6, 0xC0A80001]_ - take voltage from PZEM004 that have 192.168.0.1 address;
@@ -242,7 +242,7 @@ Example: `zabbix_get -s 192.168.0.1 -k 'PCF8574.LCDPrint[18,19,0x20,1,2002,"\x06
 **Note #3** _I2C.Write[]_ have tested with PCF8574, and MCP4725 modules. All seems OK. Value of the "voltage" for MCP4725 (0...4095) must be multiplied by 16, because it's pushed in two bytes with left padding: D12.D11.D10.D09,D08,D07.D06.D05   D04.D03.D02.D01.X.X.X.X (X.X.X.X - unused bits).
 
 
-####08 Sep 2016
+#### 08 Sep 2016
 Changes:
   - New macro - _FEATURE\_NET\_USE\_MCUID_ . If its defined - ATMega's ID is used as Zabbuino's hostname, and the last byte of ATMega's ID is replace the last byte of default MAC/IP address.
 
@@ -257,7 +257,7 @@ New commands:
 **Note** For authorization on PZEM-004 hardcoded fixed default internal IP (192.168.1.1) is used at this time. It's haven't any relation to yours LAN IP.
 
 
-####05 Sep 2016
+#### 05 Sep 2016
 Changes:
  - New macro - _NETWORK\_MODULE_ . Now network interface's libs including depend of _NETWORK\_MODULE_ value. Its allow to recompile source code for various modules without headers #includes mass commenting/uncommenting.
    Unfortunatly, oldest releases of Arduino IDE may throw error when that trik used and you must plug in headers by own hand. IDE v1.6.11 works correctly with NETWORK_MODULE macro;
@@ -271,7 +271,7 @@ New command:
  - _sys.mcu.id_ command return ID of ATMega chip: http://www.avrfreaks.net/forum/unique-id-atmega328pb .
 
 
-####25 Aug 2016
+#### 25 Aug 2016
 
 New commands:
  - _WS2812.SendRaw[dataPin, data]_ - send data to WS2812 led stripe.
@@ -284,13 +284,13 @@ New commands:
 **Note #2 update** The _shiftOut[]_ command has been tested and fixed.
 
 
-####15 Aug 2016
+#### 15 Aug 2016
 
 **Zabbuino 1.0.0 released** 
 
 Work on Zabbuino 1.1.x is begin.
 
-####10 Aug 2016
+#### 10 Aug 2016
 
 Fixes:
 - _BMP.*/BME.*_ commands sometime returns unexpectedly large value of BMP280/BME280 metrics.
@@ -314,13 +314,13 @@ New commands:
 **Note #1** _IR.*_ commands not tested at all, because i haven't TV's of all vendors ;)
 
 
-####27 Jul 2016
+#### 27 Jul 2016
 
 Fixes:
 - _bme.*_/_bmp.*_ commands show previous measured metric values instead actual data (default behavior for _BMP280/BME280 forced mode_);
 
 
-####19 Jul 2016
+#### 19 Jul 2016
 
 Changes:
 - _pc8574.write_ command code moved to  _i2c.write_ ;
@@ -354,7 +354,7 @@ New commands:
 
 **Note #2** Some I2C devices havent registers (PCF8574 expander for example). Just skip value of _register_ option when work with it.
 
-####15 Jul 2016
+#### 15 Jul 2016
 New commands:
 - _ultrasonic.distance[triggerPin, echoPin]_ - returns from obtained HC-SR04 module distance (in **mm**) to the object.
   - _triggerPin_ - pin to which HC-SR04 "Trig" connected;
@@ -368,7 +368,7 @@ New commands:
 **Note #1** - _ultrasonic.distance_ returns 6551 if the object out of distance range (too close or too far).
  
 
-####13 Jul 2016
+#### 13 Jul 2016
 Changes:
 - Programm features section moved to zabbuino.h for code reorganization to reducing firmware size;
 - AnalogReference() related functions disabled until FEATURE_AREF_ENABLE defined. It must prevent MCU damage (see AREF pin connect recommendation).
@@ -387,7 +387,7 @@ New commands:
  
 **Note #2** - The value that measured by _acs7xx.*_  can have large error (may be 5% or more) due to Arduino's circuit design (unstable internal reference voltage, noisy ADC and so) and _acs7xx_ noise (21mv / 0.11A for ACS712-05) exists. To get better results you can try to use external reference voltage on [AREF pin](http://www.skillbank.co.uk/arduino/measure.htm).
 
-####12 Jul 2016
+#### 12 Jul 2016
 
 Fixes:
 - DHT reading unstability (see note #1);
@@ -414,11 +414,11 @@ Therefore need to specify Data Item's update interval to distribute polls on tim
 **Note #2** _SHT2x.*_ commands tested on SHT21 module (SI7021 chip).
 
 
-####09 Jul 2016
+#### 09 Jul 2016
 
 Unfortunately, i've found that DHT-functions of Zabbuino works unstable on long time testing and can hang up the system. I keep on to seek a solution.
 
-####08 Jul 2016
+#### 08 Jul 2016
 
 Fixes:
 - Reboot on incoming data buffer overflow;
@@ -481,7 +481,7 @@ Print on LCD of 2002 type with turned backlight, that connected via expander wit
 
 **Note #2** BMP280 sensor support is added, but not tested yet. I just wait for sensors pack;
 
-####01 Jul 2016
+#### 01 Jul 2016
 
 New command:
 - _incEnc.count[terminalAPin, terminalBPin, intNumber, initialValue]_ - this command allow to get signed long counter, that was increased and decreased by incremental encoder (tested on mechanical EC12E24204A9) that connected to pin which mapped to interrupt.
@@ -499,7 +499,7 @@ Testings:
 
 
 
-####30 Jun 2016
+#### 30 Jun 2016
 
 Fixes:
 - _extInt.count_ always attached with LOW mode. Silly typo;
@@ -514,7 +514,7 @@ Changes:
 [Russian manual](https://github.com/zbx-sadman/Zabbuino/wiki/Zabbuino-in-Russian) is almost finished, [English manual](https://github.com/zbx-sadman/Zabbuino/wiki/Zabbuino-in-English) partially translated using Google translator.
 
 
-####27 Jun 2016
+#### 27 Jun 2016
 
 New command:
 - _MAX7219.write[dataPin, clockPin, loadPin, intensity, value]_ - draw on 8x8 led matrix which connected to MAX7219. You can change _intensity_ (0..15) and send _value_ as HEX string to switch on leds in line. Every two HEX char specify one line leds state. For example - _0x6666001818817E00_ will draw smile.
@@ -526,7 +526,7 @@ Example scripts:
 - [draw hystogram that represent on led matrix the number of active triggers](https://github.com/zbx-sadman/Zabbuino/tree/master/v1.0.0_pre-release/examples/sendHystogrammToZabbuino.pl)
 
 
-####26 Jun 2016
+#### 26 Jun 2016
 
 At first words: command names is not case sensitive, you can write them in your own style (_SyS.CmDCouNT_, for example).
 
@@ -560,7 +560,7 @@ Improvements:
 
 So, you can import [zabbuino.xml](https://github.com/zbx-sadman/Zabbuino/tree/master/v1.0.0_pre-release/zabbuino.xml) to your Zabbix Server (v2.4 min) to see Data Items examples.
 
-####17 Jun 2016
+#### 17 Jun 2016
 
 Changes:
 - System (internal) metrics (like _sys.vccmin_ / _sys.vccmax_ ) gathering process can be use timer interrupt instead calling sub on every loop. I think this will help to get more reliable results of VCC rising/falling (for example) with sensors that have long-time conversion (like DS18x20). So, that feature may be do system unstable when PWM is used (with _analogWrite[]_ command);
@@ -577,7 +577,7 @@ I'm not sure that _interrupt.count_ will be run stable and properly, due not tes
 **Note #1** You can get unexpected growing of _interrupt.count_ value. It's can be 'button bounce' or 'bad electrical contact' problem.
 
 
-####15 Jun 2016
+#### 15 Jun 2016
 
 Changes:
 - _agent.cmdcount_ renamed to _sys.cmdcount_, because original Zabbix agent haven't _agent.cmdcount_ command;
