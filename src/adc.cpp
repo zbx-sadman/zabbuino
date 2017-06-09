@@ -46,6 +46,9 @@ uint16_t getADCVoltage(const uint8_t _analogChannel) {
   return ((uint16_t) avgADC);
 }
 
+// Re: ACS712 Sensor
+// Its a Hall-sensor, it is very noisy, all hall-current sensors are very noisy.
+// I'd expect it to be accurate to 0.5A or so if its the +/-30A device.
 /*****************************************************************************************************************************
 *
 *  Read specified metric's value of the ACS712 sensor, put it to output buffer on success. 

@@ -105,7 +105,7 @@ void loopStageUserFunction(char* _buffer) {
     // Configure TWI to work on special pins
     SoftTWI.reconfigure(constUserEEPROMSDAPin, constUserEEPROMSCLPin);
 
-    // Read 21 bytes started from cell 0 to buffer, that used as uint8_t array.
+    // Read 21 bytes from external EEPROM started from cell 0 to buffer, that used as uint8_t array.
     // On success - update variable's value
     if (AT24CXXRead(&SoftTWI, constUserEEPROMI2CAddress, 0x00, 21, (uint8_t*) _buffer)) {
       // calculate readed data CRC8 for all bytes, exclude byte #USER_MEMORY_STRUCTURE_CRC8 (from 0 to USER_MEMORY_STRUCTURE_DS18B20_ALARMOFF)
@@ -121,7 +121,7 @@ void loopStageUserFunction(char* _buffer) {
          }
          bh1750I2CAddress = _buffer[USER_MEMORY_STRUCTURE_BH1750_I2CADDR];
          bh1750Mode       = _buffer[USER_MEMORY_STRUCTURE_BH1750_MODE];
-         // make 16-byte value from two bytes
+         // make 16-bit value from two bytes
          bh1750LightOn    = _buffer[USER_MEMORY_STRUCTURE_BH1750_LIGHTON_HI] << 8 | _buffer[USER_MEMORY_STRUCTURE_BH1750_LIGHTON_LO];
          bh1750LightOff   = _buffer[USER_MEMORY_STRUCTURE_BH1750_LIGHTOFF_HI] << 8 | _buffer[USER_MEMORY_STRUCTURE_BH1750_LIGHTOFF_LO];
          DTSM ( Serial.println("BH1750 settings"); )

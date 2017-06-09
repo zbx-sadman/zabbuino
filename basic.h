@@ -132,7 +132,7 @@
 /=/       - BMP.Temperature[]
 /=/ 
 /*/
-#define FEATURE_BMP180_ENABLE
+//#define FEATURE_BMP180_ENABLE
 
 /*/ 
 /=/     Enable BOSCH BMP280 sensors handling 
@@ -222,7 +222,7 @@
 /=/     
 /=/     Note: command is not tested on real hardware. Please, send report to me.
 /*/
-//#define FEATURE_UPS_MEGATEC_ENABLE
+#define FEATURE_UPS_MEGATEC_ENABLE
 
 /****       DHT/AM family    ****/
 
@@ -283,7 +283,7 @@
 /=/      Enable calling user functions on device start and every _constUserFunctionCallInterval_ if no active network session exist
 /=/      You can write to _plugin.ino_ your own code and use all Zabbuino's internal functions to query sensors and handle actuators
 /*/
-//#define FEATURE_USER_FUNCTION_PROCESSING
+#define FEATURE_USER_FUNCTION_PROCESSING
 
 /*/ 
 /=/      Support Zabbix's Action functionality and enable command: 
@@ -345,7 +345,7 @@
 /*/
 /=/     View the more or less debug messages on the Serial Monitor. Choose one.
 /*/
-//#define FEATURE_DEBUG_TO_SERIAL_LOW
+#define FEATURE_DEBUG_TO_SERIAL_LOW
 //#define FEATURE_DEBUG_TO_SERIAL_MIDDLE
 //#define FEATURE_DEBUG_TO_SERIAL_HIGH
 //#define FEATURE_DEBUG_TO_SERIAL_DEV
@@ -394,7 +394,7 @@ const uint8_t constNetDefaultUseDHCP = false;
 
 // Zabbuino's IP address
 #define NET_DEFAULT_MAC_ADDRESS                              {0xBE,0xAD,0xEB,0xA8,0x00,0xDD}
-#define NET_DEFAULT_IP_ADDRESS                               {192,168,0,221}
+#define NET_DEFAULT_IP_ADDRESS                               {192,168,0,121}
 #define NET_DEFAULT_GATEWAY                                  {192,168,0,1}
 #define NET_DEFAULT_NETMASK                                  {255,255,255,0}
 
@@ -414,7 +414,7 @@ const uint8_t constStateLedPin                                 = 0x09;
 */
 
 // Debug serial port speed in baud
-const uint32_t constSerialMonitorSpeed                          = 9600; 
+const uint32_t constSerialMonitorSpeed                         = 9600; 
 
 // Access password must be used anytime.
 const uint8_t constSysDefaultProtection                        = true; 
@@ -437,6 +437,6 @@ const uint8_t constFactoryResetButtonPin                       = 0x08;
 #define ZBX_AGENT_DEFAULT_DOMAIN                               ".local.net"
 
 
-const char constZbxAgentVersion[] PROGMEM =                   "Zabbuino 1.2.0";
+const char constZbxAgentVersion[] PROGMEM =                    "Zabbuino 1.2.2";
 #endif // #ifndef _ZABBUINO_BASIC_CONFIG_H_
 

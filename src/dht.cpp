@@ -92,9 +92,12 @@ int8_t getDHTMetric(const uint8_t _pin, const uint8_t _sensorModel, const uint8_
   // REQUEST SAMPLE
   digitalWrite(_pin, LOW);
   delay(wakeupDelay);
+  //delay(20);
   digitalWrite(_pin, HIGH);
   delayMicroseconds(40);
-  pinMode(_pin, INPUT);
+  //pinMode(_pin, INPUT);
+    pinMode(_pin, INPUT_PULLUP);
+  //  delayMicroseconds(10);  // Delay a bit to let sensor pull data line low.
 
   // data exchange with DHT sensor must not be interrupted
 
