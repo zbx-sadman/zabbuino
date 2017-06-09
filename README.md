@@ -40,6 +40,7 @@ Fixes/changes:
 - Megatec code part partially tested. It allow to communicate with Ippon/Sven/Krawler UPS via RS232-TTL convertor by using command _ups.megatec[rxPin, txPin, command, fieldNumber]_ , where rxPin/txPin - any digital Arduino board pins (SoftSerial lib used), _command_ is Megatec protocol command ( http://networkupstools.org/protocols/megatec.html ). At this time supported following: 'F', 'I', 'Q', 'Q1', 'S\*', 'C\*'. _field_ is field number in complex answer string (see Q1 description), that need to be returns. Example: _ups.megatec[4,5,"Q1",1]_ - returns "I/P voltage" field value in Q1 command answer.
 
 Note#1: Cheap (home) UPS's ignore some commands. For example, Ippon can ignore 'I'.
+
 Note#2: S\*, C\*. is not tested actually.
 
 #### 29 March 2017
