@@ -121,7 +121,7 @@
                     <snmp_community/>
                     <multiplier>0</multiplier>
                     <snmp_oid/>
-                    <key>dht.humidity[{$ZABBUINO_DHT22_PIN},21]</key>
+                    <key>dht.humidity[{$ZABBUINO_DHT21_PIN},21]</key>
                     <delay>32</delay>
                     <history>90</history>
                     <trends>365</trends>
