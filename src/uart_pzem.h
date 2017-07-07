@@ -29,6 +29,6 @@ version 1.0 is used
 *     - DEVICE_ERROR_TIMEOUT if device stop talking
 *
 *****************************************************************************************************************************/
-int8_t getPZEM004Metric(const uint8_t _rxPin, const uint8_t _txPin, uint8_t _metric, const char *_ip, uint8_t *_dst);
+int8_t getPZEM004Metric(const uint8_t, const uint8_t, uint8_t, const char*, uint8_t*);
 
 #endif // #ifndef _ZABBUINO_UART_PZEM_H_

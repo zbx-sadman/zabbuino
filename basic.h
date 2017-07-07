@@ -36,6 +36,23 @@
 
 */
 
+/****       New              ****/
+
+/*/ 
+/=/     Enable PWM-connected Winsen MH-Z19 (MH-Z19B) CO2 sensor support and command:
+/=/       - MHZxx.PWM.CO2[]
+/*/
+#define FEATURE_MHZXX_PWM_ENABLE
+
+/*/ 
+/=/     Enable UART-connected Winsen MH-Z19 (MH-Z19B) CO2 sensor support and command:
+/=/       - MHZxx.UART.CO2[]
+/=/       
+/=/     Note: MH-Z19 sensor use 3.3V TTL logic, use TTL level shifter with 5V Arduino
+/*/
+#define FEATURE_MHZXX_UART_ENABLE
+
+
 /****       Network              ****/
 /*/ 
 /=/      Obtain an IP-address using DHCP
@@ -124,7 +141,7 @@
 /=/ Note #1: I2C library (Wire.h) takes at least 32bytes of memory for internal buffers
 /=/ Note #2: I2C library (Wire.h) activate internal pullups for SDA & SCL pins when Wire.begin() called
 /*/
-#define FEATURE_I2C_ENABLE
+//#define FEATURE_I2C_ENABLE
 
 /*/ 
 /=/     Enable BOSCH BMP180 sensors handling and commands:
@@ -222,7 +239,7 @@
 /=/     
 /=/     Note: command is not tested on real hardware. Please, send report to me.
 /*/
-#define FEATURE_UPS_MEGATEC_ENABLE
+//#define FEATURE_UPS_MEGATEC_ENABLE
 
 /****       DHT/AM family    ****/
 

@@ -50,7 +50,8 @@ extern uint8_t initTimerOne(const uint16_t _milliseconds)
   TIMSK1 |= _BV(OCIE1A); 
   // Set boundary
   // It is good practice to set OCR1A after you configure the rest of the timer
-  OCR1A = (F_CPU / 1024) * (_milliseconds/1000);
+  // Take care with OCR1A writing: http://www.atmel.com/webdoc/avrlibcreferencemanual/FAQ_1faq_16bitio.html
+  ATOMIC_BLOCK(ATOMIC_RESTORESTATE) { OCR1A = (F_CPU / 1024) * (_milliseconds/1000); }
   return true; 
 }
 

@@ -64,6 +64,7 @@
 #include "dht.h"
 #include "ir.h"
 #include "interrupts.h"
+#include "mh_zxx.h"
 #include "ultrasonic.h"
 #include "shiftout.h"
 #include "busMicrowire.h"

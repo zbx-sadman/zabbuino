@@ -10,7 +10,8 @@
 /*-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
                                                                   GLOBAL VARIABLES SECTION
 */
-  // some members of struct used in timer's interrupt
+
+// some members of struct used in timer's interrupt
 volatile sysmetrics_t sysMetrics;
 
 netconfig_t netConfig;
@@ -603,7 +604,7 @@ static int16_t executeCommand(char* _dst, char* _optarg[], netconfig_t* _netConf
     DTSH(
       SerialPrint_P(PSTR("argv[")); Serial.print(i); SerialPrint_P(PSTR("] => \""));
     if ('\0' == *_optarg[i]) {
-    SerialPrint_P(PSTR("<null>"));
+      SerialPrint_P(PSTR("<null>"));
     } else {
       Serial.print((char*) _optarg[i]);
     }
@@ -847,12 +848,12 @@ static int16_t executeCommand(char* _dst, char* _optarg[], netconfig_t* _netConf
       _netConfig->useDHCP = (uint8_t) argv[1];
       // ip, netmask and gateway have one structure - 4 byte
       // take 6 bytes from second argument of command and use as new MAC-address
-      // if convertation is failed (return false) succes variable must be falsed too via logic & operator
-      success &= hstoba((uint8_t*) mac, (char*) _optarg[2], arraySize(_netConfig->macAddress));
-      memcpy(_netConfig->macAddress, &mac, arraySize(_netConfig->macAddress));
+      // if convertation is failed (sub return -1) variable must be falsed too via logic & operator
+      success &= (6 != hstoba((uint8_t *) &_netConfig->macAddress, _optarg[2]));
+      //memcpy(_netConfig->macAddress, &mac, arraySize(_netConfig->macAddress));
       // If string to which point _optarg[3] can be converted to valid NetworkAddress - just do it.
       // Otherwize (string can not be converted) _netConfig->ipAddress will stay untouched;
-      Serial.println("Convert IP's");
+      //Serial.println("Convert IP's");
       success = (success) ? (strToNetworkAddress((char*) _optarg[3], &_netConfig->ipAddress)) : false;
       Serial.println(success);
       success = (success) ? (strToNetworkAddress((char*) _optarg[4], &_netConfig->ipNetmask)) : false;
@@ -926,12 +927,16 @@ static int16_t executeCommand(char* _dst, char* _optarg[], netconfig_t* _netConf
       // hang-up if no delay
       delay(constNetStabilizationDelay);
       Network.client.stop();
+      // The reason why using the watchdog timer or RST_SWRST_bm is preferable over jumping to the reset vector, is that when the watchdog or RST_SWRST_bm resets the AVR, 
+      // the registers will be reset to their known, default settings. Whereas jumping to the reset vector will leave the registers in their previous state, which is 
+      // generally not a good idea. http://www.atmel.com/webdoc/avrlibcreferencemanual/FAQ_1faq_softreset.html
 #ifdef FEATURE_WATCHDOG_ENABLE
       // Watchdog deactivation
       wdt_disable();
 #endif
       asm volatile ("jmp 0");
       break;
+
 
 #ifdef FEATURE_SYSINFO_ENABLE
     case CMD_SYSTEM_HW_CPU:
@@ -1015,22 +1020,45 @@ static int16_t executeCommand(char* _dst, char* _optarg[], netconfig_t* _netConf
       //  DS18x20.temperature[pin, resolution, id]
       //
       if (! isSafePin(argv[0])) {
-        //        rc = DEVICE_ERROR_CONNECT;
+       //   rc = DEVICE_ERROR_CONNECT;
         break;
       }
 
       uint8_t dsAddr[8];
       dsAddr[0] = 0;
-      // Convert sensor ID (if its given) from HEX string to byte array (DeviceAddress structure) and validate it.
+      // Convert sensor ID (if its given) from HEX string to byte array (DeviceAddress structure) and validate (sub not finished) it.
       // Sensor ID is equal DeviceAddress.
       // if convertation not successfull or ID not valid - return DEVICE_ERROR_WRONG_ID
-      if ((*_optarg[2]) && (!hstoba(dsAddr, _optarg[2], 8))) {
+      if (('\0' != *_optarg[2]) && (8 != hstoba(dsAddr, _optarg[2]))) {
         rc = DEVICE_ERROR_WRONG_ID;
         break;
       }
       rc = getDS18X20Metric(argv[0], argv[1], dsAddr, _dst);
       break;
 #endif // FEATURE_DS18X20_ENABLE
+
+#ifdef FEATURE_MHZXX_PWM_ENABLE
+    case CMD_MHZXX_PWM_CO2:
+      //
+      //  MHZxx.PWM.CO2[pin, range]
+      //
+      if (! isSafePin(argv[0])) {
+        // rc = DEVICE_ERROR_CONNECT;
+        break;
+      }
+      rc = getMHZxxMetricPWM(argv[0], argv[1], (uint8_t*) _dst);
+      break;
+#endif // FEATURE_MHZXX_PWM_ENABLE
+
+#ifdef FEATURE_MHZXX_UART_ENABLE
+        case CMD_MHZXX_UART_CO2:
+          //
+          //  MHZxx.UART.CO2[rxPin, txPin]
+          //
+          rc = getMHZxxMetricUART(argv[0], argv[1], (uint8_t*) _dst);
+          break;
+#endif // FEATURE_MHZXX_UART_ENABLE
+
 
 #ifdef FEATURE_DHT_ENABLE
     case CMD_DHT_HUMIDITY:
@@ -1049,7 +1077,7 @@ static int16_t executeCommand(char* _dst, char* _optarg[], netconfig_t* _netConf
       //  DHT.temperature[pin, model]
       //
       if (! isSafePin(argv[0])) {
-        rc = DEVICE_ERROR_CONNECT;
+        //rc = DEVICE_ERROR_CONNECT;
         break;
       }
       rc = getDHTMetric(argv[0], argv[1], SENS_READ_TEMP, _dst);
@@ -1244,7 +1272,7 @@ static int16_t executeCommand(char* _dst, char* _optarg[], netconfig_t* _netConf
           //  ups.megatec[rxPin, txPin, command, fieldNumber]
           //    command - HEX or ASCII
           //
-          rc = getMegatecUPSMetric(argv[0], argv[1], (uint8_t*) _optarg[2], argv[3], (uint8_t*) _dst);
+          rc = getMegatecUPSMetric(argv[0], argv[1], _optarg[2], argv[3], (uint8_t*) _dst);
           break;
 #endif // FEATURE_UPS_APCSMART_ENABLE
         default:
@@ -1416,9 +1444,8 @@ static int16_t executeCommand(char* _dst, char* _optarg[], netconfig_t* _netConf
 
           // unixTimestamp option is given?
           if ('\0' != *_optarg[1] && i) {
-            // tzOffset is present and stored sucesfully or just not present
-            rc = setUnixTime(&SoftTWI, argv[1]) ? RESULT_IS_OK : RESULT_IS_FAIL;
-            //rc = sysRTC.setUnixTime(argv[1]);
+            // tzOffset is defined and stored sucesfully
+            if (setUnixTime(&SoftTWI, argv[1])) { rc = RESULT_IS_OK; }
           }
           break;
 #endif // FEATURE_SYSTEM_RTC_ENABLE
@@ -1429,9 +1456,11 @@ static int16_t executeCommand(char* _dst, char* _optarg[], netconfig_t* _netConf
           // AT24CXX.write[sdaPin, sclPin, i2cAddress, cellAddress, data]
           // 
           // i is half length of decoded byte array
-          i = (strlen(_optarg[4]) - 2) / 2;
-          hstoba((uint8_t*) _dst, _optarg[4], i);
-          rc = (AT24CXXWrite(&SoftTWI, i2CAddress, argv[3], i, (uint8_t*) _dst)) ? RESULT_IS_OK : RESULT_IS_FAIL;
+          //i = (strlen(_optarg[4]) - 2) / 2;
+          i = hstoba((uint8_t*) _dst, _optarg[4]);
+          if (0 < i) {
+            if (AT24CXXWrite(&SoftTWI, i2CAddress, argv[3], i, (uint8_t*) _dst)) { rc =  RESULT_IS_OK; }
+          }
           break;
 
         case CMD_AT24CXX_READ:
@@ -1460,6 +1489,7 @@ static int16_t executeCommand(char* _dst, char* _optarg[], netconfig_t* _netConf
           break;
 
 #endif // FEATURE_AT24CXX_ENABLE
+
 #ifdef FEATURE_MAX44009_ENABLE
         case CMD_MAX44009_LIGHT:
           //
@@ -1543,9 +1573,9 @@ finish:
     if (Network.client.connected()) {
       Network.client.println(_dst);
     }
-  }
-  DTSL( Serial.println(_dst); )
+    DTSL( Serial.println(_dst); )
   //   DTSM( Serial.print("[5] "); Serial.println(millis()); )
+  }
 
   return cmdIdx;
 }

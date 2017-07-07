@@ -20,24 +20,27 @@
 *
 *****************************************************************************************************************************/
 
-int8_t getMegatecUPSMetric(const uint8_t _rxPin, const uint8_t _txPin, uint8_t *_command, uint8_t _fieldNumber, uint8_t *_dst) {
+int8_t getMegatecUPSMetric(const uint8_t _rxPin, const uint8_t _txPin, char* _command, uint8_t _fieldNumber, uint8_t* _dst) {
   int8_t rc = DEVICE_ERROR_TIMEOUT;
-  uint8_t len, srcPos, dstPos, fileldNumber, expectedStartByte;
+  uint8_t srcPos, dstPos, fileldNumber, expectedStartByte;
+  int16_t len;
   SoftwareSerial swSerial(_rxPin, _txPin);
   swSerial.begin(MEGATEC_UPS_UART_SPEED);
 
-  // How much butes need to processing
-  len = strlen((char*) _command);
-
-  hstoba(_command, (char*) _command, len);
+  len = hstoba((uint8_t*) _command, _command);
+  // Probaly _command is ASCII=string
+  if (0 > len) { 
+     // How much butes need to processing
+     len = strlen(_command);
+  }
 
   // Convert command to UPPERCASE in accordance with the requirements (i'm do not sure that is strict) of the Megatec protocol  
-  for (srcPos = 0; srcPos < len; srcPos++) { _command[srcPos] = toupper(_command[srcPos]); }
+  strupr(_command);
   // add <CR> to the end of command
   _command[len] = '\r'; 
   len++;
   
-  DTSD ( Serial.print("Command for UPS: "); Serial.println((char*) _command); )
+  DTSD ( SerialPrint_P(PSTR("Command for UPS: ")); Serial.println(_command); )
 
   // Expected nothing on default
   expectedStartByte = 0x00; // 
@@ -71,12 +74,12 @@ int8_t getMegatecUPSMetric(const uint8_t _rxPin, const uint8_t _txPin, uint8_t *
   //DTSD ( Serial.println("Step #1 - communicate to UPS.\n\tFlush Buffer"); )
   serialRXFlush(&swSerial, false);
 
-  DTSD ( Serial.println("Send command"); )
-  serialSend(&swSerial, _command, len , false);
+  DTSD ( SerialPrintln_P(PSTR("Send command")); )
+  serialSend(&swSerial, (uint8_t*) _command, len , !UART_SLOW_MODE);
   // Do not expect the answer? Just go out
   if (! expectedStartByte) { rc = RESULT_IS_OK; goto finish; }
   // Recieve answer from UPS. Answer placed to buffer directly for additional processing 
-  DTSD ( Serial.println("Recieve answer"); )
+  DTSD ( SerialPrint_P(PSTR("Recieve answer")); )
   // We will expect to income no more MEGATEC_MAX_ANSWER_LENGTH bytes for MEGATEC_DEFAULT_READ_TIMEOUT milliseconds
   // Recieving can be stopped when '\r' char taken.
   // Need to use UART_SLOW_MODE with Megatec UPS?

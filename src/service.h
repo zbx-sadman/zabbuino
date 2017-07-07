@@ -50,7 +50,7 @@ void qtoaf(const int64_t _number, char *_dst, uint8_t _fracBits);
 *  Convert _len chars (exclude 0x prefix) of hex string to byte array
 *
 *****************************************************************************************************************************/
-uint8_t hstoba(uint8_t *_dst, const char* _src, uint8_t _len);
+int16_t hstoba(uint8_t*, const char*);
 
 /*****************************************************************************************************************************
 *

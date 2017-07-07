@@ -22,8 +22,8 @@
 *
 *****************************************************************************************************************************/
 //int8_t getAPCSmartUPSMetric(const uint8_t _rxPin, const uint8_t _txPin, uint8_t *_command, uint8_t _commandLen,  uint8_t *_dst) {
-int8_t getAPCSmartUPSMetric(const uint8_t _rxPin, const uint8_t _txPin, uint8_t *_command,  uint8_t *_dst) {
-  int8_t rc = DEVICE_ERROR_TIMEOUT;
+int8_t getAPCSmartUPSMetric(const uint8_t _rxPin, const uint8_t _txPin, uint8_t* _command,  uint8_t* _dst) {
+  int8_t rc = RESULT_IS_FAIL;
   uint8_t command, 
           len, 
           sendTimes,
@@ -33,7 +33,7 @@ int8_t getAPCSmartUPSMetric(const uint8_t _rxPin, const uint8_t _txPin, uint8_t 
 
   // _src used as input uint8_t array and output char array due it can save RAM. 
   // Data does not corrupt, because hstoba() write take two char (2 byte) and write one uin8_t (1 byte).  
-  if (hstoba(_command, (char*) _command, 1)) { _command[1] = '\0'; } ;
+  if (0 < hstoba(_command, (char*) _command)) { _command[1] = '\0'; } ;
   
   
   // May be just make sum of buffer's bytes to use into switch: '^'+'A' => ...
@@ -82,9 +82,10 @@ int8_t getAPCSmartUPSMetric(const uint8_t _rxPin, const uint8_t _txPin, uint8_t 
     //   Serial.println("Command allowed");
        break;
      default:
-       return RESULT_IS_FAIL;
+       goto finish;
   }
   
+  rc = DEVICE_ERROR_TIMEOUT;
   swSerial.begin(APC_UPS_UART_SPEED);
   //  Step #1. Send Y-command. Its must return 'SM<0x0D>' (3 byte) and switch UPS to Smart mode
   //
@@ -93,7 +94,7 @@ int8_t getAPCSmartUPSMetric(const uint8_t _rxPin, const uint8_t _txPin, uint8_t 
   serialRXFlush(&swSerial, true);
   command = 'Y';
   serialSend(&swSerial, &command, 1, true);
-  DTSD( Serial.println("recieving from UPS..."); )
+  DTSD( SerialPrintln_P(PSTR("Recieving from UPS")); )
 
   len = serialRecive(&swSerial, _dst, 0x03, APC_DEFAULT_READ_TIMEOUT, UART_STOP_ON_CHAR, '\r', UART_SLOW_MODE);
   DTSD( Serial.print("len: "); Serial.println(len, DEC); )

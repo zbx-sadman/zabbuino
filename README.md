@@ -33,11 +33,26 @@ Implemented:
 - Simulate varuious vendor's IR transmitters.
 
 
+#### 07 July 2017
+Fixes:
+ - Error -131 ("Device not conected") on first DHT21/AM2301 polling. Now sensor "wake up" time is 2 sec in according to datasheet.
+
+New features:
+ - _FEATURE\_MHZXX\_PWM\_ENABLE_ , _FEATURE\_MHZXX\_UART\_ENABLE_ - enable Winsen MH-Z19 CO2 sensor (MH-Z19B and may be MH-Z14 too...) support and allow to use following commands:
+   - MHZxx.PWM.CO2[pin, range] - to get CO2 level from sensor via PWM pin. Example: _MHZxx.PWM.CO2[6, 5000]_ - get CO2 level from 5000 PPM ranged sensor using PWM output which connected to pin 6.
+   - MHZxx.UART.CO2[rxPin, txPin] - to get CO2 level from sensor via UART. Example: _MHZxx.UART.CO2[4, 5]_ - get CO2 level from sensor using UART connection on pin 4 / pin 5 (SoftSerial technology used)
+
+Note#1: MH-Z19 sensor have 3.3v TTL level. Do not connect it to 5V Arduino directly, use TTL level shifter on UART pins.
+
+Note#2: You can connect PWM pin directly to 5V Arduino directly if Arduino's pin direction is INPUT only. 
+ 
+Note#3: commands tested on real hardware - 5000PPM MH-Z19 sensor.
+
 #### 09 June 2017
 A few fixes testing before release Zabbuino 1.2.2
 
 Fixes/changes:
-- Megatec code part partially tested. It allow to communicate with Ippon/Sven/Krawler UPS via RS232-TTL convertor by using command _ups.megatec[rxPin, txPin, command, fieldNumber]_ , where rxPin/txPin - any digital Arduino board pins (SoftSerial lib used), _command_ is Megatec protocol command ( http://networkupstools.org/protocols/megatec.html ). At this time supported following: 'F', 'I', 'Q', 'Q1', 'S\*', 'C\*'. _field_ is field number in complex answer string (see Q1 description), that need to be returns. Example: _ups.megatec[4,5,"Q1",1]_ - returns "I/P voltage" field value in Q1 command answer.
+ - Megatec code part partially tested. It allow to communicate with Ippon/Sven/Krawler UPS via RS232-TTL convertor by using command _ups.megatec[rxPin, txPin, command, fieldNumber]_ , where rxPin/txPin - any digital Arduino board pins (SoftSerial lib used), _command_ is Megatec protocol command ( http://networkupstools.org/protocols/megatec.html ). At this time supported following: 'F', 'I', 'Q', 'Q1', 'S\*', 'C\*'. _field_ is field number in complex answer string (see Q1 description), that need to be returns. Example: _ups.megatec[4,5,"Q1",1]_ - returns "I/P voltage" field value in Q1 command answer.
 
 Note#1: Cheap (home) UPS's ignore some commands. For example, Ippon can ignore 'I'.
 
@@ -48,7 +63,7 @@ Note#2: S\*, C\*. is not tested actually.
 Changes: 
 
 New feature:
- - _FEATURE\_MAX44009\_ENABLE_ - enable support of I2C connected MAX44009 sensor and allow to use command:
+ - _FEATURE\_MAX44009\_ENABLE_ - enable I2C connected MAX44009 sensor support and allow to use command:
    - MAX44009.light[sdaPin, sclPin, i2cAddress, mode, integrationTime] - get Ambient light value from MAX44009 sensor. _mode_ is mode of reading (0x80 - continuous, and 0x00 - once on request); _integrationTime_ is optional parameter which set time of data collecting by sensor, all alowed values can be found on page #9 of datasheet. If _integrationTime_ is skipped - sensor will be switched to auto-measurement mode. Example: _max44009.light[18,19,0x4A,0x00]_ - make one reading in "auto" mode, _max44009.light[18,19,0x4A,0x80,0x03]_ - switch sensor to continuous measurement mode with 100ms interval and take current light value;
 
 Note#1: You can get wrong light level, if set unsuitable _integrationTime_ value;

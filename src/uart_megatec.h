@@ -26,6 +26,6 @@
 *     - DEVICE_ERROR_TIMEOUT if device stop talking
 *
 *****************************************************************************************************************************/
-int8_t getMegatecUPSMetric(const uint8_t _rxPin, const uint8_t _txPin, uint8_t *_command, uint8_t _fieldNumber, uint8_t *_dst);
+int8_t getMegatecUPSMetric(const uint8_t, const uint8_t, char*, uint8_t, uint8_t*);
 
 #endif // #ifndef _ZABBUINO_UART_MEGATEC_H_

@@ -183,21 +183,35 @@ void ltoaf(const int32_t _number, char* _dst, const uint8_t _num_after_dot)
 *  Convert _len chars (exclude 0x prefix) of hex string to byte array
 *
 *****************************************************************************************************************************/
-uint8_t hstoba(uint8_t *_dst, const char *_src, uint8_t _len)
+int16_t hstoba(uint8_t* _dst, const char* _src)
 {
+  int16_t len = 0;
   // don't fill _array and return false if mailformed string detected
-  if (!haveHexPrefix(_src)) { return false; }
-  
+  if (!haveHexPrefix(_src)) { return -1; }
   // skip prefix
   _src += 2;
+
+  while (*_src) {
+     *_dst = (htod(*_src) << 4);
+     _src++;
+     if (*_src) {
+        *_dst |= htod(*_src);
+        _src++; 
+     }
+    _dst++;
+    len++;
+  }
+
+  /*
   // for all bytes do...
   while (_len--)  {
      *_dst = (htod(*_src) << 4);
      _src++;
-     *_dst += htod(*_src);
+     *_dst |= htod(*_src);
       _src++; _dst++;
   };
-  return true;
+*/
+  return len;
 }
 
 /*****************************************************************************************************************************

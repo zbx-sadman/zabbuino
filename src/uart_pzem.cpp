@@ -16,9 +16,10 @@ version 1.0 is used
 *     - CRC
 *
 *****************************************************************************************************************************/
-static uint8_t crcPZEM004(uint8_t *_data, uint8_t _size) {
+static uint8_t crcPZEM004(uint8_t* _data, uint8_t _size) {
     uint16_t crc = 0;
-    for(uint8_t i=0; i < _size; i++) { crc += (uint8_t) *_data; _data++;}
+//    for(uint8_t i=0; i < _size; i++) { crc += (uint8_t) *_data; _data++;}
+    for(uint8_t i = 0; i < _size; i++) { crc += _data[i]; }
     //while (_size) { crc += *_data; _data++; _size--; }
     return (uint8_t)(crc & 0xFF);
 }
@@ -32,7 +33,7 @@ static uint8_t crcPZEM004(uint8_t *_data, uint8_t _size) {
 *     - DEVICE_ERROR_TIMEOUT if device stop talking
 *
 *****************************************************************************************************************************/
-int8_t getPZEM004Metric(const uint8_t _rxPin, const uint8_t _txPin, uint8_t _metric, const char *_ip, uint8_t *_dst) {
+int8_t getPZEM004Metric(const uint8_t _rxPin, const uint8_t _txPin, uint8_t _metric, const char* _ip, uint8_t* _dst) {
   int8_t rc = RESULT_IS_FAIL;
   uint8_t command, len;
   int32_t result;
@@ -66,8 +67,7 @@ int8_t getPZEM004Metric(const uint8_t _rxPin, const uint8_t _txPin, uint8_t _met
   // 1-th byte in the packet - metric (command)
   _dst[0] = command; 
   // 2..5 bytes - ip address. Convert its from _ip or use default (192.168.1.1) if _ip is invalid
-  result = hstoba(&_dst[1], _ip, 4);
-  if (!result) {
+  if (4 != hstoba(&_dst[1], _ip)) {
      _dst[1] = 0xC0;  // 192
      _dst[2] = 0xA8;  // 168
      _dst[3] = 0x01;  // 1
@@ -79,13 +79,13 @@ int8_t getPZEM004Metric(const uint8_t _rxPin, const uint8_t _txPin, uint8_t _met
   // 7-th byte - CRC
   _dst[6] = crcPZEM004(_dst, PZEM_PACKET_SIZE - 1); 
   // Serial.println("Send: ");  for(int i=0; i < PZEM_PACKET_SIZE; i++) { Serial.print("Byte# "); Serial.print(i); Serial.print(" => "); Serial.println(_dst[i], HEX);  }
-  serialSend(&swSerial, _dst, PZEM_PACKET_SIZE, false);
+  serialSend(&swSerial, _dst, PZEM_PACKET_SIZE, !UART_SLOW_MODE);
 
   //  Recieve from PZEM004
   //  It actually do not use '\r', '\n', '\0' to terminate string
   len = serialRecive(&swSerial, _dst, PZEM_PACKET_SIZE, PZEM_DEFAULT_READ_TIMEOUT, !UART_STOP_ON_CHAR, '\r', !UART_SLOW_MODE);
 
-  Serial.println("Recieve: "); for(int i=0; i < len; i++) { Serial.print("Byte# "); Serial.print(i); Serial.print(" => "); Serial.println(_dst[i], HEX);  }
+  //Serial.println("Recieve: "); for(int i=0; i < len; i++) { Serial.print("Byte# "); Serial.print(i); Serial.print(" => "); Serial.println(_dst[i], HEX);  }
   // Connection timeout occurs
   // if (len != PZEM_PACKET_SIZE) { return DEVICE_ERROR_TIMEOUT; }
   if (len < PZEM_PACKET_SIZE) { rc = DEVICE_ERROR_TIMEOUT; goto finish; }

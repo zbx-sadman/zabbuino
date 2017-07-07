@@ -58,4 +58,4 @@ int8_t getDHTMetric(const uint8_t, const uint8_t, const uint8_t, char*);
 *****************************************************************************************************************************/
 int8_t getDHTMetric(const uint8_t, const uint8_t, const uint8_t, char*, int32_t*, const uint8_t _wantsNumber = false);
 
-#endif // #ifndef ZabbuinoDHT_h
+#endif // #ifndef _ZABBUINO_DHT_H_

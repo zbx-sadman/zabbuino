@@ -46,58 +46,68 @@ int8_t getDHTMetric(const uint8_t _pin, const uint8_t _sensorModel, const uint8_
           idx = 0, 
           crc = 0,
           wakeupDelay,
-          bits[5];  // buffer to receive data
+          bits[5] = {0,0,0,0,0};      // buffer to receive data
   uint16_t loopCount = 0;
-  uint32_t humidity, waitTime = 0;
+  uint32_t humidity, 
+           waitTime,
+           // To avoid reading eror on sensor:
+           //   - two readtake minimum time interval be 1 sec;
+           //   - _pin must be HIGH before operating at least 1 s*. 
+           //
+           //   * DHT11, DHT22 datasheets: "When power is supplied to sensor, don't send any instruction to the sensor within one second to pass unstable status"
+           //   Note: on AM2301 power 2sec crossed the unstable state 
+           readingInterval = 1000UL, 
+           pinUpDelay = 1000UL;       
   int32_t  temperature;
 
   static uint32_t lastReadTime = 0;
-  
-  switch (_sensorModel) {
-    case DHT11_ID:
-      wakeupDelay = DHTLIB_DHT11_WAKEUP;
-      break;
-    case DHT21_ID:
-    case DHT22_ID:
-    case DHT33_ID:
-    case DHT44_ID:
-    default:
-      wakeupDelay = DHTLIB_DHT_WAKEUP;
-  }
 
   bit = digitalPinToBitMask(_pin);
   port = digitalPinToPort(_pin);
   volatile uint8_t *PIR = portInputRegister(port);
 
-  // EMPTY BUFFER
-  for (i = 0; i < 5; i++) bits[i] = 0;
- 
-  // DHT sensor have limit for taking samples frequency - 1kHz (1 sample/sec)
-  waitTime = millis() - lastReadTime;
-  waitTime = (waitTime < 1100) ? (1100 - waitTime) : 0;
-
-  pinMode(_pin, OUTPUT);
-
-  // Sensor won't to connect if no HIGH level exist on pin for a few time (500ms at least)
-
-  //  if (digitalRead(_pin) == LOW ) {
-  if ((*PIR & bit) == LOW ) {
-     digitalWrite(_pin, HIGH);
-     if (waitTime < 500) {waitTime = 500;}
+   switch (_sensorModel) {
+    case DHT11_ID:
+      wakeupDelay = DHTLIB_DHT11_WAKEUP; // T-be - Host the start signal down time
+      break;
+    case DHT21_ID:
+      // To avoid reading eror on AM2301:
+      //   - two readtake minimum time interval for be 2sec
+      //   - _pin must be HIGH before operating ~2 sec (experimental value).
+      readingInterval = pinUpDelay = 2000UL; 
+      //break;
+    case DHT22_ID:
+    case DHT33_ID:
+    case DHT44_ID:
+    default:
+      wakeupDelay = DHTLIB_DHT_WAKEUP;   // T-be
   }
 
-  delay(waitTime); 
+
+  // DHT sensor have limit for taking samples frequency
+  waitTime = millis() - lastReadTime;
+  waitTime = (waitTime < readingInterval) ? (readingInterval - waitTime) : 0;
+
+  // Sensor won't to go ready state if no HIGH level exist on pin for a few time (on first reading). 
+  // This delay can be skipped by setting pin to OUTPUT+HIGH with port_mode[] & port_pullup[] arrays (tune.h)
+  //  if (digitalRead(_pin) == LOW ) {
+  if ((*PIR & bit) == LOW ) {
+     if (waitTime < pinUpDelay) { waitTime = pinUpDelay; }
+  }
 
   stopTimerOne(); 
+  pinMode(_pin, OUTPUT);
+  digitalWrite(_pin, HIGH);
+
+  // Wait for sensor waked up
+  delay(waitTime); 
+
   // REQUEST SAMPLE
   digitalWrite(_pin, LOW);
   delay(wakeupDelay);
-  //delay(20);
   digitalWrite(_pin, HIGH);
   delayMicroseconds(40);
-  //pinMode(_pin, INPUT);
-    pinMode(_pin, INPUT_PULLUP);
-  //  delayMicroseconds(10);  // Delay a bit to let sensor pull data line low.
+  pinMode(_pin, INPUT_PULLUP);
 
   // data exchange with DHT sensor must not be interrupted
 
@@ -141,8 +151,6 @@ int8_t getDHTMetric(const uint8_t _pin, const uint8_t _sensorModel, const uint8_
             idx++;
         }
     }
-  pinMode(_pin, OUTPUT);
-  digitalWrite(_pin, HIGH);
 
   // Store time to use it to use on the next call of sub
   lastReadTime = millis();
