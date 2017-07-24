@@ -7,7 +7,9 @@ All new features can be found on [experimental](https://github.com/zbx-sadman/Za
 
 See [change log](https://github.com/zbx-sadman/Zabbuino/blob/master/ChangeLog.md) before update.
 
-**You can help to the project** by providing new ideas and/or hardware to testing and integrating. Or yoг can just donate for further development. Contact to me via email: [zbx.sadman@gmail.com](mailto://zbx.sadman@gmail.com)
+**You can help to the project** by providing new ideas and/or hardware to testing and integrating. Or yoг can just donate for further development. Contact to me via [email](mailto://zbx.sadman@gmail.com) or use PayPal service 
+[![donation](https://camo.githubusercontent.com/1d4c796d0043ba18176a68767c2ee55188d55cc1/68747470733a2f2f7777772e70617970616c6f626a656374732e636f6d2f656e5f47422f692f62746e2f62746e5f646f6e6174655f4c472e676966)](https://www.paypal.me/GrigoryP)
+
 
 ![Zabbuino: example of chart](https://cloud.githubusercontent.com/assets/12827470/20768231/30de116a-b74e-11e6-932f-09eb6f7712e3.png)
 
