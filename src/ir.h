@@ -12,11 +12,6 @@ version 2.2.1 is used
 #ifndef _ZABBUINO_IR_H_
 #define _ZABBUINO_IR_H_
 
-#include "../basic.h"
-#include "tune.h"
-#include "structs.h"
-#include "service.h"
-
 #define IR_UNKNOWN      -0x01
 #define IR_UNUSED       0x00
 #define IR_RC5          0x01

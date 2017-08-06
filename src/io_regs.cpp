@@ -1,3 +1,8 @@
+// Config & common included files
+#include "sys_includes.h"
+
+#include <util/atomic.h>
+
 #include "io_regs.h"
 
 /*****************************************************************************************************************************

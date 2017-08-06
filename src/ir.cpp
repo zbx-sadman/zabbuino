@@ -8,6 +8,12 @@ version 2.2.1 is used
  #define's for Timer2 & Timer4  are included only to this .ino file. 
 
 */
+
+// Config & common included files
+#include "sys_includes.h"
+
+#include "service.h"
+
 #include "ir.h"
 
 static void mark (unsigned int time);

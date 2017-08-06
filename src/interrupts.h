@@ -1,13 +1,6 @@
 #ifndef _ZABBUINO_INTERRUPTS_H_
 #define _ZABBUINO_INTERRUPTS_H_
 
-#include <wiring_private.h>
-#include "../basic.h"
-#include "tune.h"
-#include "service.h"
-#include "system.h"
-
-
 extern volatile extInterrupt_t extInterrupt[];
 /*-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
 

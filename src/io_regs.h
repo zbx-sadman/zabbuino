@@ -1,11 +1,6 @@
 #ifndef _ZABBUINO_REGS_H_
 #define _ZABBUINO_REGS_H_
 
-#include <util/atomic.h>
-#include "../basic.h"
-#include "tune.h"
-
-
 /*****************************************************************************************************************************
 *
 *   Set I/O port mode

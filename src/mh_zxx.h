@@ -5,11 +5,6 @@
 
 */
 
-#include "../basic.h"
-#include "tune.h"
-#include "service.h"
-#include "uart_bus.h"
-
 #define MH_ZXX_UART_SPEED                                       (9600)    // baud
 #define MH_ZXX_CMD_GAS_CONCENTRATION                            (0x86)
 #define MH_ZXX_PACKET_SIZE                                      (0x09)    // bytes

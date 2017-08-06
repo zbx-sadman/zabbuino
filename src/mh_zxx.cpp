@@ -1,3 +1,12 @@
+// Config & common included files
+#include "sys_includes.h"
+
+#include <SoftwareSerial.h>
+
+#include "service.h"
+#include "system.h"
+
+#include "uart_bus.h"
 #include "mh_zxx.h"
 
 /*****************************************************************************************************************************
@@ -173,14 +182,9 @@ int8_t getMHZxxMetricPWM(uint8_t _pin, uint16_t _range, uint8_t* _dst, int32_t* 
   
   finish:
   if (MH_ZXX_STAGE_CYCLE_FINISHED == stage) {
-/* 
- Serial.print("high = ");
-  Serial.print(highTime);
-  Serial.print(" ; low = ");
-  Serial.print(lowTime);
-  Serial.println();
-*/
- 
+     DTSH( PRINT_PSTR("High level time: ");  Serial.print(highTime);
+           PRINT_PSTR(", low level time: "); Serial.println(highTime);
+     ) 
      *_value = _range * (highTime - 2) / (highTime + lowTime - 4);
      if (!_wantsNumber) {
         ultoa(*_value, (char*) _dst, 10);
