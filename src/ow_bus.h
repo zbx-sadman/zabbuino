@@ -1,13 +1,6 @@
 #ifndef _ZABBUINO_OWBUS_H_
 #define _ZABBUINO_OWBUS_H_
 
-// OneWire lib for Dallas sensors
-#include <OneWire.h>
-#include "../basic.h"
-#include "tune.h"
-#include "service.h"
-#include "network.h"
-
 /*****************************************************************************************************************************
 *
 *   Scan 1-Wire bus and print to ethernet client ID's (Addresses) of all detected devices

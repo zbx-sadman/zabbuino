@@ -1,3 +1,12 @@
+// Config & common included files
+#include "sys_includes.h"
+
+// OneWire lib for Dallas sensors
+#include <OneWire.h>
+
+#include "service.h"
+#include "network.h"
+
 #include "ow_bus.h"
 
 /*-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-

@@ -6,11 +6,8 @@
 #ifndef _ZABBUINO_NETWORK_H_
 #define _ZABBUINO_NETWORK_H_
 
-#include "../basic.h"
-#include "NetworkAddress.h"
-#include "network_hlp.h"
-#include "tune.h"
-#include "service.h"
+#include "net_platforms.h"
+#include "sys_structs.h"
 
 // Include headers for an network module
 #if defined(NETWORK_ETH_WIZNET)

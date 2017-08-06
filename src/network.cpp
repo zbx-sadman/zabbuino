@@ -1,3 +1,11 @@
+// Config & common included files
+#include "sys_includes.h"
+
+#include "service.h"
+
+#include "NetworkAddress.h"
+#include "net_platforms.h"
+
 #include "network.h"
 
 void NetworkClass::init(netconfig_t* _netConfig) {
@@ -19,7 +27,7 @@ void NetworkClass::init(netconfig_t* _netConfig) {
 
 uint8_t NetworkClass::checkPHY() {
   uint8_t rc;
-  DTSL( SerialPrintln_P(PSTR("Checking PHY...")); )   
+  DTSL( PRINTLN_PSTR("Checking PHY..."); )   
   rc = false;
 
 // Persistent IP address does not exist when DHCP used, and testing can not executed
@@ -51,23 +59,23 @@ uint8_t NetworkClass::checkPHY() {
 
 void NetworkClass::showNetworkState() {
 #if defined(NETWORK_RS485)
-  SerialPrint_P(PSTR("Address : ")); Serial.println(localIP()); 
+  PRINT_PSTR("Address : "); Serial.println(localIP()); 
 #else
-  SerialPrint_P(PSTR("MAC     : ")); printArray(macAddress, sizeof(macAddress), DBG_PRINT_AS_MAC); 
-  SerialPrint_P(PSTR("IP      : ")); Serial.println(Ethernet.localIP()); 
-  SerialPrint_P(PSTR("Subnet  : ")); Serial.println(Ethernet.subnetMask()); 
-  SerialPrint_P(PSTR("Gateway : ")); Serial.println(Ethernet.gatewayIP()); 
+  PRINT_PSTR("MAC     : "); printArray(macAddress, sizeof(macAddress), DBG_PRINT_AS_MAC); 
+  PRINT_PSTR("IP      : "); Serial.println(Ethernet.localIP()); 
+  PRINT_PSTR("Subnet  : "); Serial.println(Ethernet.subnetMask()); 
+  PRINT_PSTR("Gateway : "); Serial.println(Ethernet.gatewayIP()); 
 #endif
 #ifdef NETWORK_ETH_ENC28J60
-  DTSL( SerialPrint_P(PSTR("ENC28J60: rev ")); Serial.println(Enc28J60.getrev()); )
+  DTSL( PRINT_PSTR("ENC28J60: rev "); Serial.println(Enc28J60.getrev()); )
 #endif
 }
 
 void NetworkClass::showPHYState() {
 #ifdef NETWORK_ETH_ENC28J60
-   SerialPrint_P(PSTR("ECON1.RXEN: ")); Serial.println(Enc28J60.readReg((uint8_t) ECON1), BIN); 
-   SerialPrint_P(PSTR("EIR.RXERIF: ")); Serial.println(Enc28J60.readReg((uint8_t) EIR), BIN); 
-   SerialPrint_P(PSTR("ESTAT.BUFFER: ")); Serial.println(Enc28J60.readReg((uint8_t) ESTAT), BIN); 
+   PRINT_PSTR("ECON1.RXEN: ")  ; Serial.println(Enc28J60.readReg((uint8_t) ECON1), BIN); 
+   PRINT_PSTR("EIR.RXERIF: ")  ; Serial.println(Enc28J60.readReg((uint8_t) EIR), BIN); 
+   PRINT_PSTR("ESTAT.BUFFER: "); Serial.println(Enc28J60.readReg((uint8_t) ESTAT), BIN); 
 #endif
 }
 
@@ -80,10 +88,10 @@ void NetworkClass::restart() {
  //Serial.println("p3");
 
   if (useDHCP) {
-     DTSM( SerialPrintln_P(PSTR("Obtaining address from DHCP...")); )
+     DTSM( PRINTLN_PSTR("Obtaining address from DHCP..."); )
      // Try to ask DHCP server & turn off DHCP feature for that session if no offer recieved
      if (0 == begin(macAddress)) {
-        DTSM( SerialPrintln_P(PSTR("No success")); )
+        DTSM( PRINTLN_PSTR("No success"); )
 #ifdef FEATURE_NET_DHCP_FORCE
         // infinitive loop here on "DHCP force" setting
 #ifdef ON_ALARM_STATE_BLINK
@@ -108,7 +116,7 @@ void NetworkClass::restart() {
  //Serial.println("p4");
   // No DHCP offer recieved or no DHCP need - start with stored/default IP config
   if (useStaticIP) {
-     DTSM( SerialPrintln_P(PSTR("Use static IP")); )
+     DTSM( PRINTLN_PSTR("Use static IP"); )
 
 #if defined(NETWORK_ETH_ENC28J60) || defined(NETWORK_ETH_WIZNET)
      // That overloaded .begin() function return nothing

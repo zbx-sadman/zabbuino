@@ -1,13 +1,13 @@
 /*
 
-   network_hlp.h : helper header file which just bring physical network type to source code 
+   net_platforms.h : helper header file which just bring physical network type to source code 
 
 */
 #ifndef _ZABBUINO_NETWORK_HELPER_H_
 #define _ZABBUINO_NETWORK_HELPER_H_
 
-#include "../basic.h"
-//#include "tune.h"
+#include "../cfg_basic.h"
+//#include "cfg_tune.h"
 
 #if defined(W5100_ETHERNET_SHIELD)
    #define NETWORK_ETH_WIZNET
