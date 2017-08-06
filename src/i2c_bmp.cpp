@@ -1,3 +1,11 @@
+// Config & common included files
+#include "sys_includes.h"
+
+#include "SoftwareWire/SoftwareWire.h"
+#include "service.h"
+#include "system.h"
+
+#include "i2c_bus.h"
 #include "i2c_bmp.h"
 
 static uint8_t waitToBMPReady(SoftwareWire* _softTWI, const uint8_t _i2cAddress, const int16_t _registerAddress, const int16_t _mask, const uint16_t _timeout);

@@ -1,8 +1,6 @@
 #ifndef _ZABBUINO_I2C_BMP_H_
 #define _ZABBUINO_I2C_BMP_H_
 
-#include "i2c_bus.h"
-
 //#define BMP180_I2C_ADDRESS                                      (0x77  // I2C address of BMP085/180 sensor
 
 //#define BMP280_I2C_ADDRESS_1                                    (0x76  // I2C address of BMP280/BME280 sensor

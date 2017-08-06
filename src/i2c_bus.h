@@ -1,13 +1,7 @@
 #ifndef _ZABBUINO_I2C_BUS_H_
 #define _ZABBUINO_I2C_BUS_H_
 
-#include "SoftwareWire/SoftwareWire.h"
-
-#include "../basic.h"
-#include "tune.h"
-#include "service.h"
-#include "system.h"
-#include "network.h"
+#define I2C_NO_REG_SPECIFIED                                    (-0x01) //
 
 #define WireToU8(_source)  ((uint8_t) _source[0])
 #define WireToS8(_source)  ((int8_t) _source[0])
@@ -21,17 +15,6 @@
 
 #define WireToU24(_source)  ((uint32_t) ( ((uint32_t) _source[0] << 16) | (_source[1] << 8) | _source[2]))
 #define WireToS24(_source)  ((int32_t) ( ((uint32_t) _source[0] << 16) | (_source[1] << 8) | _source[2]))
-
-/*****************************************************************************************************************************
-*
-*   Scan I2C bus and print to ethernet client addresses of all detected devices 
-*
-*   Returns: 
-*     - RESULT_IS_PRINTED on success
-*     - RESULT_IS_FAIL of no devices found 
-*
-*****************************************************************************************************************************/
-int8_t scanI2C(SoftwareWire*, NetworkClass*);
 
 /*****************************************************************************************************************************
 *
@@ -132,10 +115,6 @@ int8_t bitReadFromI2C(SoftwareWire*, const uint8_t, const int16_t, const uint8_t
 *
 *
 *****************************************************************************************************************************/
-inline uint8_t isI2CDeviceReady(SoftwareWire* _softTWI, uint8_t _i2cAddress)
-{
-  _softTWI->beginTransmission(_i2cAddress);
-  return (0 == _softTWI->endTransmission(true));
-}
+uint8_t isI2CDeviceReady(SoftwareWire* _softTWI, uint8_t _i2cAddress);
 
-#endif // #ifndef _ZABBUINO_I2C_BUS_H_
+#endif // _ZABBUINO_I2C_BUS_H_

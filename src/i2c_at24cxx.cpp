@@ -1,4 +1,14 @@
+// Config & common included files
+#include "sys_includes.h"
+
+#include "SoftwareWire/SoftwareWire.h"
+#include "service.h"
+#include "system.h"
+
+#include "i2c_bus.h"
 #include "i2c_at24cxx.h"
+
+//#include "i2c_at24cxx.h"
 
 // No cell boundary control realized
 int8_t AT24CXXWrite(SoftwareWire* _softTWI, const uint8_t _i2cAddress, uint16_t _cellAddress, uint16_t _lenght, uint8_t* _src) {
