@@ -1,10 +1,6 @@
 #ifndef _ZABBUINO_BUSMICROWIRE_H_
 #define _ZABBUINO_BUSMICROWIRE_H_
 
-#include "../basic.h"
-#include "tune.h"
-#include "system.h"
-
 /* 
 
 The original code was written for the Wiring board by:

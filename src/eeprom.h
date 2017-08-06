@@ -1,10 +1,7 @@
 #ifndef _ZABBUINO_EEPROM_H_
 #define _ZABBUINO_EEPROM_H_
 
-#include <EEPROM.h>
-#include "../basic.h"
-#include "tune.h"
-#include "service.h"
+//#include "structs.h"
 
 /*****************************************************************************************************************************
 *

@@ -1,3 +1,9 @@
+// Config & common included files
+#include "sys_includes.h"
+
+#include "service.h"
+#include "system.h"
+
 #include "adc.h"
 
 /*****************************************************************************************************************************

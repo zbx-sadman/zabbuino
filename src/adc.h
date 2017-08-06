@@ -1,12 +1,6 @@
 #ifndef _ZABBINO_ADC_H_
 #define _ZABBINO_ADC_H_
 
-#include "../basic.h"
-#include "tune.h"
-#include "service.h"
-#include "system.h"
-
-
 // for median sampling algo: every sample is int16_t number, total memory consumption is (ADC_SAMPLES * 2) bytes
 #define ADC_SAMPLES                         1000  
 

@@ -5,6 +5,12 @@ version 0.1.13 is used
 
 */
 
+// Config & common included files
+#include "sys_includes.h"
+
+#include "service.h"
+#include "system.h"
+
 #include "dht.h"
 
 /*****************************************************************************************************************************
@@ -89,7 +95,7 @@ int8_t getDHTMetric(const uint8_t _pin, const uint8_t _sensorModel, const uint8_
   waitTime = (waitTime < readingInterval) ? (readingInterval - waitTime) : 0;
 
   // Sensor won't to go ready state if no HIGH level exist on pin for a few time (on first reading). 
-  // This delay can be skipped by setting pin to OUTPUT+HIGH with port_mode[] & port_pullup[] arrays (tune.h)
+  // This delay can be skipped by setting pin to OUTPUT+HIGH with port_mode[] & port_pullup[] arrays (cfg_tune.h)
   //  if (digitalRead(_pin) == LOW ) {
   if ((*PIR & bit) == LOW ) {
      if (waitTime < pinUpDelay) { waitTime = pinUpDelay; }

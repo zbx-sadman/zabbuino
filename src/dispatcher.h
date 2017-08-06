@@ -7,6 +7,7 @@
 
 #include <Arduino.h>
 #include <IPAddress.h>
+#include <SoftwareSerial.h>
 
 #include <time.h>
 
@@ -21,15 +22,17 @@
                                                                ZABBUINO HEADERS SECTION
 */
 
-// basic.h & tune.h must be included before other zabbuino's headers because they contain configuration data
-#include "../basic.h"
-#include "tune.h"
+// cfg_basic.h & cfg_tune.h must be included before other zabbuino's headers because they contain configuration data
+#include "sys_includes.h"
 
-#include "structs.h"
-
+#include "SoftwareWire/SoftwareWire.h"
 #include "NetworkAddress.h"
-//#include "network.h"
-#include "platforms.h"
+#include "network.h"
+#include "sys_structs.h"
+#include "sys_commands.h"
+#include "sys_macros.h"
+#include "sys_debug.h"
+#include "sys_platforms.h"
 
 // runtime libs 
 #include "adc.h"
@@ -41,12 +44,14 @@
 
 // I2C devices 
 #include "i2c_bus.h"
+#include "i2c_common.h"
 #include "i2c_bh1750.h"
 #include "i2c_ina2xx.h"
 #include "i2c_lcd.h"
 #include "i2c_sht.h"
 #include "i2c_bmp.h"
 #include "i2c_ds3231.h"
+#include "i2c_pcf8563.h"
 #include "i2c_at24cxx.h"
 #include "i2c_max44009.h"
 
@@ -65,6 +70,7 @@
 #include "ir.h"
 #include "interrupts.h"
 #include "mh_zxx.h"
+#include "modbus.h"
 #include "ultrasonic.h"
 #include "shiftout.h"
 #include "busMicrowire.h"

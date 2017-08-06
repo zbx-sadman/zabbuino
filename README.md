@@ -32,6 +32,14 @@ Implemented:
 - Support APC Smart UPS (with RS232 interface);
 - Simulate varuious vendor's IR transmitters.
 
+#### 06 Aug 2017
+Changes:
+ - _shiftOut[]_ and _WS2812.sendRaw[]_ commands now have new option - _compressionType_. At this time only following methods supported:
+   - _0_ => no compression. All values from HEX-string send to pin directly;
+   - _1_ => 'Stripe second nibble' compression (it like HTML-color short record). Every nibble will repeated on decompression. 0xABC => 0xAABBCC. It will allow to use long LED stripes.
+   Example: _ws2812.sendraw[5,1,0x001]_ - first pixel on stripe switch to blue with minimal intensity after HEX-string decompression (0x000011).
+ - _basic.h_ & _tune.h_ renamed to _cfg\_basic.h_ & _cfg\_tune.h_
+
 
 #### 07 July 2017
 Fixes:

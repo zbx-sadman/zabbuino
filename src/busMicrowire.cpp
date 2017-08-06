@@ -12,6 +12,13 @@ Second modification is by:
  * http://design.fh-potsdam.de/
 
 */
+
+// Config & common included files
+#include "sys_includes.h"
+
+#include "service.h"
+#include "system.h"
+
 #include "busMicrowire.h"
 
 static void writeByteToMAX7219(const uint8_t, const uint8_t, const uint8_t);

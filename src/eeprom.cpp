@@ -1,4 +1,9 @@
-#include "eeprom.h"
+// Config & common included files
+#include "sys_includes.h"
+
+#include <EEPROM.h>
+
+#include "service.h"
 
 /*****************************************************************************************************************************
 *

@@ -8,11 +8,6 @@ version 0.1.13 is used
 
 */
 
-#include "../basic.h"
-#include "tune.h"
-#include "service.h"
-
-
 #define DHT11_ID                                                (11)
 #define DHT21_ID                                                (21)
 #define DHT22_ID                                                (22)
