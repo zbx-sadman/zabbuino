@@ -22,7 +22,7 @@
  along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include "../network_hlp.h"
+#include "../net_platforms.h"
 #ifdef NETWORK_ETH_ENC28J60
 
 #include "Enc28J60Network.h"
