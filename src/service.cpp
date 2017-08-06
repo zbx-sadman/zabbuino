@@ -1,3 +1,11 @@
+// Config & common included files
+#include "sys_includes.h"
+
+#include <avr/boot.h>
+#include <util/crc16.h>
+
+#include "system.h"
+
 #include "service.h"
 
 /*****************************************************************************************************************************
@@ -337,7 +345,7 @@ uint8_t analyzeStream(char _charFromClient, char* _dst, char* _optarg[], uint8_t
 
   // Put next char to buffer
   _dst[bufferWritePosition] = (doubleQuotedString) ? _charFromClient : tolower(_charFromClient);
-  // no SerialPrint_P(PSTR(...)) used to avoid slow perfomance on analyze loops
+  // no PRINT_PSTR(...)) used to avoid slow perfomance on analyze loops
   // Development mode only debug message level used
   DTSD( Serial.print("anl: ");
         Serial.print(_dst[bufferWritePosition], HEX);
@@ -440,7 +448,7 @@ uint8_t analyzeStream(char _charFromClient, char* _dst, char* _optarg[], uint8_t
     // EOL reached or there is not room to store args. Stop stream analyzing and do command executing
     if (constArgC < cmdSliceNumber) {
 reInitStage:
-      DTSH( SerialPrintln_P(PSTR("Reinit analyzer")); )
+      DTSH( PRINTLN_PSTR("Reinit analyzer"); )
       // Clear vars for next round, and return false as 'Do not need next char'
       bufferWritePosition = cmdSliceNumber = isEscapedChar = doubleQuotedString = 0;
       needSkipZabbix2Header = doubleQuotedString = false;

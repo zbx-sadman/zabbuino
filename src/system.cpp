@@ -1,3 +1,9 @@
+// Config & common included files
+#include "sys_includes.h"
+
+#include <avr/boot.h>
+#include <util/atomic.h>
+#include "service.h"
 #include "system.h"
 
 
@@ -38,7 +44,7 @@ void getBootSignatureBytes(char* _dst, uint8_t _startByte, uint8_t _len, uint8_t
 *     - always true at this time
 *
 *****************************************************************************************************************************/
-extern uint8_t initTimerOne(const uint16_t _milliseconds) 
+uint8_t initTimerOne(const uint16_t _milliseconds) 
 {
   // Don't allow more that 5 sec to avoid overflow on 16Mhz with prescaler 1024 
   if ((1000 > _milliseconds) && (5000 < _milliseconds)) { return false; }
@@ -63,7 +69,7 @@ extern uint8_t initTimerOne(const uint16_t _milliseconds)
 *     - none
 *
 *****************************************************************************************************************************/
-extern void startTimerOne() { TCCR1B = _BV(CS12) | _BV(CS10); }
+void startTimerOne() { TCCR1B = _BV(CS12) | _BV(CS10); }
 
 /*****************************************************************************************************************************
 *
@@ -89,7 +95,7 @@ ISR(TIMER1_COMPA_vect)
 *     - none
 *
 *****************************************************************************************************************************/
-extern void stopTimerOne() { TCCR1B = 0; }
+void stopTimerOne() { TCCR1B = 0; }
 
 /*****************************************************************************************************************************
 *
@@ -99,7 +105,7 @@ extern void stopTimerOne() { TCCR1B = 0; }
 *     - none
 *
 *****************************************************************************************************************************/
-extern void gatherSystemMetrics(){
+void gatherSystemMetrics(){
   // Global variable from the outside
 
   //extern volatile int32_t sysMetrics[];
