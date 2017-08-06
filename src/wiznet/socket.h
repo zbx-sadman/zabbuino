@@ -1,6 +1,6 @@
 #ifndef	_WIZNET_SOCKET_H_
 #define	_WIZNET_SOCKET_H_
-#include "../network_hlp.h"
+#include "../net_platforms.h"
 #ifdef NETWORK_ETH_WIZNET
 
 #include "w5100.h"

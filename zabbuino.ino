@@ -1,14 +1,23 @@
-/*-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
-                                                                PROGRAMM FEATURES SECTION
 
-  Please refer to the "basic.h" file for enabling or disabling Zabbuino's features and refer to the "src/tune.h" to deep tuning.
+/*-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
+                                                                 
+                             To avoid compilation errors use proper release Arduino IDE, please. 
+ 
+                                                 v1.6.11 and above is good
+
+*/
+
+/*-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
+                                                   PROGRAMM FEATURES SECTION
+
+  Please refer to the "cfg_basic.h" file for enabling or disabling Zabbuino's features and refer to the "src/cfg_tune.h" to deep tuning.
   if connected sensors seems not work - first check setting in port_protect[], port_mode[], port_pullup[] arrays in I/O PORTS
-  SETTING SECTION of "src/tune.h" file
+  SETTING SECTION of "src/cfg_tune.h" file
 */
 #include "src/dispatcher.h"
 
 /*-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
-                                                                  GLOBAL VARIABLES SECTION
+                                                   GLOBAL VARIABLES SECTION
 */
 
 // some members of struct used in timer's interrupt
@@ -28,14 +37,14 @@ extern volatile extInterrupt_t extInterrupt[];
 #endif
 
 /*-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
-                                                                       STARTUP SECTION
+                                                           STARTUP SECTION
 */
 void setup() {
 #ifdef SERIAL_USE
   Serial.begin(constSerialMonitorSpeed);
 #endif // SERIAL_USE
 
-  DTSL( SerialPrint_P(constZbxAgentVersion); SerialPrintln_P(PSTR(" wakes up")); )
+  DTSL( SerialPrint_P(constZbxAgentVersion); PRINTLN_PSTR(" wakes up"); )
   // memset take less progspace?
   memset((void*) &sysMetrics, 0x00, sizeof(sysmetrics_t));
 
@@ -93,9 +102,14 @@ void loop() {
 #ifdef TWI_USE
   SoftTWI.begin();
 #endif
+
 #ifdef FEATURE_SYSTEM_RTC_ENABLE
-  initRTC(&SoftTWI);
+  DTSM( PRINT_PSTR("Init system RTC ");
+        if (! initRTC(&SoftTWI)) {Serial.print("un"); }
+        PRINTLN_PSTR("succesfull"); 
+  )  
 #endif
+
 #ifdef FEATURE_USER_FUNCTION_PROCESSING
   uint32_t prevUserFuncCall;
   initStageUserFunction(cBuffer);
@@ -111,18 +125,18 @@ void loop() {
   // Check for constFactoryResetButtonPin shorting to ground?
   // (when pulled INPUT pin shorted to GND - digitalRead() return LOW)
   if (LOW == digitalRead(constFactoryResetButtonPin)) {
-    DTSL( SerialPrintln_P(PSTR("The factory reset button is pressed")); )
+    DTSL( PRINTLN_PSTR("The factory reset button is pressed"); )
     // Fire up state LED
     digitalWrite(constStateLedPin, HIGH);
     // Wait some msecs
     delay(constHoldTimeToFactoryReset);
     // constFactoryResetButtonPin still shorted?
     if (LOW == digitalRead(constFactoryResetButtonPin)) {
-      DTSL( SerialPrintln_P(PSTR("Rewrite EEPROM with defaults...")); )
+      DTSL( PRINTLN_PSTR("Rewrite EEPROM with defaults..."); )
       setConfigDefaults(&netConfig);
       saveConfigToEEPROM(&netConfig);
       // Blink fast while constFactoryResetButtonPin shorted to GND
-      DTSL( SerialPrintln_P(PSTR("Done. Release the factory reset button now")); )
+      DTSL( PRINTLN_PSTR("Done. Release the factory reset button now"); )
       while (LOW == digitalRead(constFactoryResetButtonPin)) {
         digitalWrite(constStateLedPin, millis() % 100 < 50);
       }
@@ -135,15 +149,15 @@ void loop() {
   //
 #ifdef FEATURE_EEPROM_ENABLE
   if (false == loadConfigFromEEPROM(&netConfig)) {
-    DTSM( SerialPrintln_P(PSTR("Config load error")); )
+    DTSM( PRINTLN_PSTR("Config load error"); )
     // bad CRC detected, use default values for this run
     setConfigDefaults(&netConfig);
     if (!saveConfigToEEPROM(&netConfig)) {
-      // what to do with saving error?
+      // what to do on saving error?
     }
   }
 #else // FEATURE_EEPROM_ENABLE
-  DTSM( SerialPrintln_P(PSTR("Use default settings")); )
+  DTSM( PRINTLN_PSTR("Use default settings"); )
   // Use hardcoded values if EEPROM feature disabled
   setConfigDefaults(&netConfig);
 #endif // FEATURE_EEPROM_ENABLE
@@ -160,14 +174,14 @@ void loop() {
 
   // 4. Network initialization and starting
   //
-  Network.init(&netConfig);
-  Network.restart();
+    Network.init(&netConfig);
+    Network.restart();
 
-  DTSL( SerialPrintln_P(PSTR("Serving on:"));
+  DTSL( PRINTLN_PSTR("Serving on:");
         Network.showNetworkState();
-        SerialPrint_P(PSTR("Password: ")); Serial.println(netConfig.password, DEC);
+        PRINT_PSTR("Password: "); Serial.println(netConfig.password, DEC);
 #if defined(FEATURE_SYSTEM_RTC_ENABLE) && defined(FEATURE_EEPROM_ENABLE)
-        SerialPrint_P(PSTR("Timezone: ")); Serial.println(netConfig.tzOffset, DEC);
+        PRINT_PSTR("Timezone: "); Serial.println(netConfig.tzOffset, DEC);
 #endif
 
       )
@@ -180,7 +194,7 @@ void loop() {
 */
   // 5. Other system parts initialization
   //
-  // I/O ports initialization. Refer to "I/O PORTS SETTING SECTION" in src\tune.h
+  // I/O ports initialization. Refer to "I/O PORTS SETTING SECTION" in src\cfg_tune.h
   for (i = PORTS_NUM; 0 != i;) {
     // experimental: variable decrement that place outside for() save a little progspace.
     i--;
@@ -265,7 +279,7 @@ void loop() {
           // Got some errors - blink with "DHCP problem message"
           blinkType = constBlinkDhcpProblem;
           errorCode = ERROR_DHCP;
-          DTSM( SerialPrintln_P(PSTR("DHCP renew problem occured")); )
+          DTSM( PRINTLN_PSTR("DHCP renew problem occured"); )
       }
     }
 #endif // FEATURE_NET_DHCP_ENABLE
@@ -285,7 +299,7 @@ void loop() {
       }
       if (Network.checkPHY()) {
         sysMetrics.netPHYReinits++;
-        DTSL( SerialPrint_P(PSTR("Network module reinit #")); Serial.println(sysMetrics.netPHYReinits); )
+        DTSL( PRINT_PSTR("Network module reinit #"); Serial.println(sysMetrics.netPHYReinits); )
       }
       prevPHYCheckTime = millis();
     }
@@ -311,8 +325,8 @@ void loop() {
         Network.client = Network.server.available();
         if (!Network.client) {
 #ifdef FEATURE_USER_FUNCTION_PROCESSING
-          // Change content on physiscal report screen every constRenewSystemDisplayInterval only if no connection exist, because reportToScreen modify cBuffer variable
-          // and recieved data will be corrupted
+          // Call "loop stage" user function screen every constRenewSystemDisplayInterval only if no connection exist, because that function can modify cBuffer content
+          // and recieved data can be corrupted
           if (constUserFunctionCallInterval <= (uint32_t) (nowTime - prevUserFuncCall)) {
             loopStageUserFunction(cBuffer);
             prevUserFuncCall = nowTime;
@@ -323,12 +337,12 @@ void loop() {
         // reinit analyzer because previous session can be dropped or losted
         analyzeStream('\0', cBuffer, optarg, REINIT_ANALYZER);
         clientConnectTime = millis();
-        DTSH( SerialPrint_P(PSTR("New client #")); Serial.println(Network.client); )
+        DTSH( PRINT_PSTR("New client #"); Serial.println(Network.client); )
       }
 
       // Client will be dropped if its connection so slow. Then round must be restarted.
       if (constNetSessionTimeout <= (uint32_t) (millis() - clientConnectTime)) {
-        DTSH( SerialPrint_P(PSTR("Drop client #")); Serial.println(Network.client); )
+        DTSH( PRINT_PSTR("Drop client #"); Serial.println(Network.client); )
         Network.client.stop();
         continue;
       }
@@ -364,7 +378,7 @@ void loop() {
     // may be need test for client.connected()?
     processStartTime = millis();
     DTSM( uint32_t ramBefore = getRamFree(); )
-    DTSL( Serial.print(cBuffer); SerialPrint_P(PSTR(" => ")); )
+    DTSL( Serial.print(cBuffer); PRINT_PSTR(" => "); )
     //sysMetrics[IDX_METRIC_SYS_CMD_LAST] = executeCommand(cBuffer, optarg, &netConfig);
     sysMetrics.sysCmdLast = executeCommand(cBuffer, optarg, &netConfig);
 #ifdef FEATURE_REMOTE_COMMANDS_ENABLE
@@ -375,16 +389,16 @@ void loop() {
       while (analyzeStream(cBuffer[k], cBuffer, optarg, false)) {
         k++;
       }
-      DTSL( Serial.print(cBuffer); SerialPrint_P(PSTR(" => ")); )
+      DTSL( Serial.print(cBuffer); PRINT_PSTR(" => "); )
       sysMetrics.sysCmdLast = executeCommand(cBuffer, optarg, &netConfig);
     }
 #endif
     processEndTime = millis();
     // use processEndTime as processDurationTime
     processEndTime = processEndTime - processStartTime ;
-    DTSM( SerialPrint_P(PSTR("Spended: ")); Serial.print(processEndTime);
-          SerialPrint_P(PSTR(" ms, ")); Serial.print((ramBefore - getRamFree()));
-          SerialPrintln_P(PSTR(" memory bytes"));
+    DTSM( PRINT_PSTR("Spended: "); Serial.print(processEndTime);
+          PRINT_PSTR(" ms, "); Serial.print((ramBefore - getRamFree()));
+          PRINTLN_PSTR(" memory bytes");
         )
     // Change internal runtime metrics if need
     //    if ((uint32_t) sysMetrics[IDX_METRIC_SYS_CMD_TIMEMAX] < processEndTime) {
@@ -456,7 +470,7 @@ static int16_t executeCommand(char* _dst, char* _optarg[], netconfig_t* _netConf
   }
 
   //DTSM( Serial.print("[1] "); Serial.println(millis()); )
-  DTSM( SerialPrint_P(PSTR("Execute command #")); Serial.print(cmdIdx, HEX); SerialPrint_P(PSTR(" => `")); Serial.print(_dst); Serial.println("`"); )
+  DTSM( PRINT_PSTR("Execute command #"); Serial.print(cmdIdx, HEX); PRINT_PSTR(" => `"); Serial.print(_dst); Serial.println("`"); )
 
   // ***************************************************************************************************************
   // If command have no options - it must be run immedately
@@ -602,14 +616,14 @@ static int16_t executeCommand(char* _dst, char* _optarg[], netconfig_t* _netConf
     //argv[i] = strtoul((char*) _optarg[i], NULL, 0);
     argv[i] = strtol((char*) _optarg[i], NULL, 0);
     DTSH(
-      SerialPrint_P(PSTR("argv[")); Serial.print(i); SerialPrint_P(PSTR("] => \""));
+      PRINT_PSTR("argv["); Serial.print(i); PRINT_PSTR("] => \"");
     if ('\0' == *_optarg[i]) {
-      SerialPrint_P(PSTR("<null>"));
+      PRINT_PSTR("<null>");
     } else {
       Serial.print((char*) _optarg[i]);
     }
-    SerialPrint_P(PSTR("\" => ")); Serial.println(argv[i]);
-    //SerialPrint_P(PSTR(", offset =")); Serial.println(_optarg[i], HEX);
+    PRINT_PSTR("\" => "); Serial.println(argv[i]);
+    //PRINT_PSTR(", offset ="); Serial.println(_optarg[i], HEX);
     )
   }
 
@@ -621,6 +635,16 @@ static int16_t executeCommand(char* _dst, char* _optarg[], netconfig_t* _netConf
   //DTSM( Serial.print("[3] "); Serial.println(millis()); )
 
   switch (cmdIdx) {
+#ifdef FEATURE_USER_FUNCTION_PROCESSING
+    case CMD_USER_RUN:
+      //
+      //  user.run[option#0, option#1, option#2, option#3, option#4, option#5]
+      //
+      rc = executeCommandUserFunction(_dst, _optarg, argv);
+      break;
+
+#endif // FEATURE_USER_FUNCTION_PROCESSING
+
 #ifdef FEATURE_REMOTE_COMMANDS_ENABLE
     case CMD_SYSTEM_RUN:
       //
@@ -719,7 +743,7 @@ static int16_t executeCommand(char* _dst, char* _optarg[], netconfig_t* _netConf
 
     case CMD_ARDUINO_DIGITALREAD:
       //
-      //  digitalRead[pin]
+      //  digitalRead[pin]                                                      
       //
       value = digitalRead(argv[0]);
       rc = RESULT_IS_UNSIGNED_VALUE;
@@ -841,25 +865,20 @@ static int16_t executeCommand(char* _dst, char* _optarg[], netconfig_t* _netConf
       if (!accessGranted) {
         break;
       }
-      uint8_t mac[6], success;
+      uint8_t success;
       success = true;
-      // useDHCP flag coming from first argument and must be numeric (boolean) - 1 or 0,
+      // useDHCP flag coming from argument#1 and must be numeric (boolean) - 1 or 0,
       // argv[0] data contain in _dst[_argOffset[1]] placed from _argOffset[0]
       _netConfig->useDHCP = (uint8_t) argv[1];
       // ip, netmask and gateway have one structure - 4 byte
       // take 6 bytes from second argument of command and use as new MAC-address
       // if convertation is failed (sub return -1) variable must be falsed too via logic & operator
-      success &= (6 != hstoba((uint8_t *) &_netConfig->macAddress, _optarg[2]));
-      //memcpy(_netConfig->macAddress, &mac, arraySize(_netConfig->macAddress));
+      success &= (6 == hstoba((uint8_t *) &_netConfig->macAddress, _optarg[2]));
       // If string to which point _optarg[3] can be converted to valid NetworkAddress - just do it.
       // Otherwize (string can not be converted) _netConfig->ipAddress will stay untouched;
-      //Serial.println("Convert IP's");
       success = (success) ? (strToNetworkAddress((char*) _optarg[3], &_netConfig->ipAddress)) : false;
-      Serial.println(success);
       success = (success) ? (strToNetworkAddress((char*) _optarg[4], &_netConfig->ipNetmask)) : false;
-      Serial.println(success);
       success = (success) ? (strToNetworkAddress((char*) _optarg[5], &_netConfig->ipGateway)) : false;
-      Serial.println(success);
       // if any convert operation failed - stop store process
       if (!success) {
         break;
@@ -883,7 +902,7 @@ static int16_t executeCommand(char* _dst, char* _optarg[], netconfig_t* _netConf
 #ifdef FEATURE_SHIFTOUT_ENABLE
     case CMD_SYS_SHIFTOUT:
       //
-      //  shiftOut[dataPin, clockPin, latchPin, bitOrder, data]
+      //  shiftOut[dataPin, clockPin, latchPin, bitOrder, compressionType, data]
       //
       // i variable used as latchPinDefined
       i = ('\0' != argv[2]) && isSafePin(argv[2]);
@@ -891,11 +910,10 @@ static int16_t executeCommand(char* _dst, char* _optarg[], netconfig_t* _netConf
         if (i) {
           digitalWrite(argv[2], LOW);
         }
-        shiftOutAdvanced(argv[0], argv[1], argv[3], _optarg[4]);
+        rc = shiftOutAdvanced(argv[0], argv[1], argv[3], argv[4], (uint8_t*) _optarg[5]);
         if (i) {
           digitalWrite(argv[2], HIGH);
         }
-        rc = RESULT_IS_OK;
       }
       break;
 #endif
@@ -903,13 +921,12 @@ static int16_t executeCommand(char* _dst, char* _optarg[], netconfig_t* _netConf
 #ifdef FEATURE_WS2812_ENABLE
     case CMD_WS2812_SENDRAW:
       //
-      //  WS2812.sendRaw[dataPin, data]
+      //  WS2812.sendRaw[dataPin, compressionType, data]
       //  !!! need to increase ARGS_PART_SIZE, because every encoded LED color take _six_ HEX-chars => 10 leds stripe take 302 (2+50*6) byte of incoming buffer only
       //
       // Tested on ATmega328@16 and 8 pcs WS2812 5050 RGB LED bar
       if (isSafePin(argv[0])) {
-        WS2812Out(argv[0], _optarg[1]);
-        rc = RESULT_IS_OK;
+        rc = WS2812Out(argv[0], argv[1], (uint8_t*) _optarg[2]);
       }
       break;
 #endif // FEATURE_WS2812_ENABLE
@@ -1504,6 +1521,17 @@ static int16_t executeCommand(char* _dst, char* _optarg[], netconfig_t* _netConf
       
       }  // switch (cmdIdx), I2C block
 #endif // TWI_USE
+
+#ifdef FEATURE_MODBUS_RTU_ENABLE
+        case CMD_MODBUS_RTU_COILSREAD:
+        //  Modbus.RTU.CoilsRead[rxPin, txPin, enablePin, slaveAddr, startAddr, ]
+        // CMD_MODBUS_RTU_INPUTSREAD
+        // CMD_MODBUS_RTU_COILSWRITE
+        //rc = getModbusRTUMetric();
+          //rc = getMAX44009Metric(&SoftTWI, i2CAddress, argv[3], 0x08, SENS_READ_LUX, _dst);
+          break;
+#endif // FEATURE_MODBUS_RTU_ENABLE
+
   } // switch (cmdIdx) .. default in "commands with options" block
 
 finish:
