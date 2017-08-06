@@ -7,9 +7,6 @@ Based on https://github.com/Makuna/Rtc/
 #ifndef _ZABBUINO_I2C_DS3231_H_
 #define _ZABBUINO_I2C_DS3231_H_
 
-#include <time.h>
-
-
 //DS3231 Register Addresses
 #define DS3231_REG_TIMEDATE        0x00
 #define DS3231_REG_ALARMONE        0x07
@@ -47,6 +44,8 @@ Based on https://github.com/Makuna/Rtc/
 #define DS3231_EN32KHZ             3
 #define DS3231_OSF                 7
 #define DS3231_AIFMASK             (_BV(DS3231_A1F) | _BV(DS3231_A2F))
+
+#define DS3231_CENTURY_FLAG        (0x80)
 
 /*****************************************************************************************************************************
 *

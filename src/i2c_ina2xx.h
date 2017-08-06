@@ -6,8 +6,7 @@ Based on: https://github.com/adafruit/Adafruit_INA219
 
 #ifndef _ZABBUINO_I2C_INA2XX_H_
 #define _ZABBUINO_I2C_INA2XX_H_
-
-#include "i2c_bus.h"
+//#include "i2c_bus.h"
 
 #define INA219_I2C_ADDRESS                                      (0x40)
 

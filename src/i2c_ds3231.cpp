@@ -1,11 +1,20 @@
+// Config & common included files
+#include "sys_includes.h"
+
+#include <time.h>
+
+#include "SoftwareWire/SoftwareWire.h"
+#include "service.h"
+#include "system.h"
+
 #include "i2c_bus.h"
 #include "i2c_ds3231.h"
+
+#include "rtc.h"
 
 static uint8_t isDS3231Running(SoftwareWire*, const uint8_t);
 static void setDS3231RunningState(SoftwareWire*, const uint8_t, uint8_t);
 static uint8_t isDS3231DateTimeValid(SoftwareWire*, const uint8_t);
-static uint8_t Uint8ToBcd(uint8_t);
-static uint8_t BcdToUint8(uint8_t);
 static uint8_t BcdToBin24Hour(uint8_t);
 
 /*****************************************************************************************************************************
@@ -66,29 +75,6 @@ uint8_t isDS3231DateTimeValid(SoftwareWire* _softTWI, const uint8_t _i2cAddress)
   return !(status & _BV(DS3231_OSF));
 }
 
-/*****************************************************************************************************************************
-*
-*   Convert the number from uint8_t to BCD format
-*
-*   Returns: 
-*     - BCD value
-*
-*****************************************************************************************************************************/
-uint8_t Uint8ToBcd(uint8_t val) {
-  return val + 6 * (val / 10);
-}
-
-/*****************************************************************************************************************************
-*
-*   Convert the number from BCD format to uint8_t
-*
-*   Returns: 
-*     - unit8_t value
-*
-*****************************************************************************************************************************/
-uint8_t BcdToUint8(uint8_t val) {
-  return val - 6 * (val >> 4);
-}
 
 /*****************************************************************************************************************************
 *
@@ -157,7 +143,7 @@ int8_t initDS3231(SoftwareWire* _softTWI, const uint8_t _i2cAddress) {
 int8_t saveDS3231Time(SoftwareWire* _softTWI, uint8_t _i2cAddress, time_t _y2Ktimestamp) {
   int8_t rc = false;
   uint8_t status, value[DS3231_REG_TIMEDATE_SIZE];
-  uint8_t year, centuryFlag;
+  uint8_t centuryFlag;
   tm dateTime;
 
   if (false == isI2CDeviceReady(_softTWI, _i2cAddress)) { goto finish;  }
@@ -168,13 +154,13 @@ int8_t saveDS3231Time(SoftwareWire* _softTWI, uint8_t _i2cAddress, time_t _y2Kti
 
   dateTime.tm_mon++; // tm_mon - months since January [0 to 11], but DS3231 wants [1 to 12]
   dateTime.tm_wday++; // tm_wday - days since Sunday [0 to 6], but DS3231 wants [1 to 7]
-  dateTime.tm_year += 1900; // tm_year - years since 1900
+  //dateTime.tm_year += 1900; // tm_year - years since 1900
 
-  year = dateTime.tm_year - 2000;
+  //year = dateTime.tm_year - 2000;
   centuryFlag = 0;
-  if (year >= 100) {
-     year -= 100;
-     centuryFlag = _BV(7);
+  if (dateTime.tm_year >= 100) {
+     dateTime.tm_year -= 100;
+     centuryFlag = DS3231_CENTURY_FLAG;
   }
   value[0]=Uint8ToBcd(dateTime.tm_sec);
   value[1]=Uint8ToBcd(dateTime.tm_min);
@@ -182,7 +168,7 @@ int8_t saveDS3231Time(SoftwareWire* _softTWI, uint8_t _i2cAddress, time_t _y2Kti
   value[3]=Uint8ToBcd(dateTime.tm_wday);
   value[4]=Uint8ToBcd(dateTime.tm_mday);
   value[5]=Uint8ToBcd(dateTime.tm_mon) | centuryFlag;
-  value[6]=Uint8ToBcd(year);
+  value[6]=Uint8ToBcd(dateTime.tm_year);
 
   // clear the invalid flag
   readBytesFromI2C(_softTWI, _i2cAddress, DS3231_REG_STATUS, &status, 1);
@@ -209,6 +195,7 @@ int8_t saveDS3231Time(SoftwareWire* _softTWI, uint8_t _i2cAddress, time_t _y2Kti
 int8_t readDS3231Time(SoftwareWire* _softTWI, uint8_t _i2cAddress, time_t* _timestamp) {
   int8_t rc = false;
   uint8_t value[DS3231_REG_TIMEDATE_SIZE];
+  uint8_t centuryFlag;
   tm dateTime;
 
   if (false == isI2CDeviceReady(_softTWI, _i2cAddress)) { goto finish; }
@@ -227,16 +214,19 @@ int8_t readDS3231Time(SoftwareWire* _softTWI, uint8_t _i2cAddress, time_t* _time
   dateTime.tm_wday  = BcdToUint8(value[3]);
   dateTime.tm_mday  = BcdToUint8(value[4]);
   dateTime.tm_mon   = value[5];
-  dateTime.tm_year  = 2000 + BcdToUint8(value[6]);
+  centuryFlag       = dateTime.tm_mon & DS3231_CENTURY_FLAG;
+  dateTime.tm_mon   = BcdToUint8(dateTime.tm_mon & 0x7F);
+//  dateTime.tm_year  = 2000 + BcdToUint8(value[6]);
+  dateTime.tm_year  = BcdToUint8(value[6]);
+
   // century wrap flag
-  if (dateTime.tm_mon & _BV(7)) {
+  if (centuryFlag) {
      dateTime.tm_year += 100;
   }
-  dateTime.tm_mon = BcdToUint8(dateTime.tm_mon & 0x7F);
 
   dateTime.tm_mon--; // tm_mon - months since January [0 to 11], but DS3231 returns [1 to 12]
   dateTime.tm_wday--; // tm_wday - days since Sunday [0 to 6], but DS3231 returns [1 to 7]
-  dateTime.tm_year -= 1900; // tm_year - years since 1900
+  // dateTime.tm_year -= 1900; // tm_year - years since 1900
   // Make timestamp
   *_timestamp = mk_gmtime(&dateTime);
 

@@ -1,3 +1,10 @@
+// Config & common included files
+#include "sys_includes.h"
+
+#include "SoftwareWire/SoftwareWire.h"
+#include "service.h"
+#include "system.h"
+
 #include "i2c_bus.h"
 #include "i2c_max44009.h"
 

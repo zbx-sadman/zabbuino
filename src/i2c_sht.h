@@ -1,8 +1,6 @@
 #ifndef _ZABBUINO_I2C_SHT_H_
 #define _ZABBUINO_I2C_SHT_H_
 
-#include "i2c_bus.h"
-
 #define SHT2X_I2C_ADDRESS                                       (0x40)
 #define SHT2X_CMD_GETTEMP_HOLD                                  (0xE3)
 #define SHT2X_CMD_GETHUMD_HOLD                                  (0xE5)

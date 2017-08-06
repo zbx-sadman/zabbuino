@@ -1,9 +1,6 @@
 #ifndef _ZABBUINO_I2C_LCD_H_
 #define _ZABBUINO_I2C_LCD_H_
 
-#include "i2c_bus.h"
-
-
 // Some pin mappings not used at presently
 /* LCD functional pin             ===>                   PCF8574 port (bit # in byte which send to I2C expander) */
 

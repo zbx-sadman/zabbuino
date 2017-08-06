@@ -1,3 +1,11 @@
+// Config & common included files
+#include "sys_includes.h"
+
+#include <wiring_private.h>
+
+#include "service.h"
+#include "system.h"
+
 #include "interrupts.h"
 
 // EXTERNAL_NUM_INTERRUPTS its a macro from <wiring_private.h>

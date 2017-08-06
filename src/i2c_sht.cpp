@@ -1,3 +1,11 @@
+// Config & common included files
+#include "sys_includes.h"
+
+#include "SoftwareWire/SoftwareWire.h"
+#include "service.h"
+#include "system.h"
+
+#include "i2c_bus.h"
 #include "i2c_sht.h"
 
 static uint16_t getRawDataFromSHT2X(SoftwareWire*, const uint8_t, const uint8_t);
