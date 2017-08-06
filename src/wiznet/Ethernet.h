@@ -2,7 +2,7 @@
  modified 12 Aug 2013
  by Soohwan Kim (suhwan@wiznet.co.kr)
 */
-#include "../network_hlp.h"
+#include "../net_platforms.h"
 #ifdef NETWORK_ETH_WIZNET
 
 #ifndef _WIZNET_ETHERNET_H_

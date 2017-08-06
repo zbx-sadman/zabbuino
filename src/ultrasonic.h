@@ -1,9 +1,6 @@
 #ifndef ZabbuinoULTRASONIC_h
 #define ZabbuinoULTRASONIC_h
 
-#include "../basic.h"
-#include "tune.h"
-
 #define ULTRASONIC_SAMPLES                       (0x05)
 
 /*****************************************************************************************************************************

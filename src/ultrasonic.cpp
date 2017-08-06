@@ -1,5 +1,8 @@
 // Based on: https://github.com/JRodrigoTech/Ultrasonic-HC-SR04
 
+// Config & common included files
+#include "sys_includes.h"
+
 #include "ultrasonic.h"
 
 /*****************************************************************************************************************************

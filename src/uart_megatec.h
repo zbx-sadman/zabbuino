@@ -1,8 +1,6 @@
 #ifndef _ZABBUINO_UART_MEGATEC_H_
 #define _ZABBUINO_UART_MEGATEC_H_
 
-#include "uart_bus.h"
-
 /*-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
 
                                                 MEGATEC-COMPATIBLE UPS SECTION
@@ -11,9 +9,9 @@
 
 -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-*/
 
-#define MEGATEC_UPS_UART_SPEED                2400 // Megatec-compatible UPS works on 2400 baud speed
-#define MEGATEC_MAX_ANSWER_LENGTH             50   // Read no more 50 chars from UPS
-#define MEGATEC_DEFAULT_READ_TIMEOUT          1000L
+#define MEGATEC_UPS_UART_SPEED                (2400)   // Megatec-compatible UPS works on 2400 bps
+#define MEGATEC_MAX_ANSWER_LENGTH             (50)     // Read no more 50 chars from UPS
+#define MEGATEC_DEFAULT_READ_TIMEOUT          (1000UL)
 
 /*****************************************************************************************************************************
 *
