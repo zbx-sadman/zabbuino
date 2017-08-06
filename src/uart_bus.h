@@ -1,12 +1,6 @@
 #ifndef _ZABBUINO_UART_BUS_H_
 #define _ZABBUINO_UART_BUS_H_
 
-#include <SoftwareSerial.h>
-#include "../basic.h"
-#include "tune.h"
-#include "service.h"
-#include "system.h"
-
 /*-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
 
                                                       COMMON UART SECTION

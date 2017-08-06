@@ -1,3 +1,12 @@
+// Config & common included files
+#include "sys_includes.h"
+
+#include <SoftwareSerial.h>
+
+#include "service.h"
+#include "system.h"
+
+#include "uart_bus.h"
 #include "uart_megatec.h"
 
 /*-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
@@ -40,7 +49,7 @@ int8_t getMegatecUPSMetric(const uint8_t _rxPin, const uint8_t _txPin, char* _co
   _command[len] = '\r'; 
   len++;
   
-  DTSD ( SerialPrint_P(PSTR("Command for UPS: ")); Serial.println(_command); )
+  DTSD ( PRINT_PSTR("Command for UPS: "); Serial.println(_command); )
 
   // Expected nothing on default
   expectedStartByte = 0x00; // 
@@ -74,12 +83,12 @@ int8_t getMegatecUPSMetric(const uint8_t _rxPin, const uint8_t _txPin, char* _co
   //DTSD ( Serial.println("Step #1 - communicate to UPS.\n\tFlush Buffer"); )
   serialRXFlush(&swSerial, false);
 
-  DTSD ( SerialPrintln_P(PSTR("Send command")); )
+  DTSD ( PRINTLN_PSTR("Send command"); )
   serialSend(&swSerial, (uint8_t*) _command, len , !UART_SLOW_MODE);
   // Do not expect the answer? Just go out
   if (! expectedStartByte) { rc = RESULT_IS_OK; goto finish; }
   // Recieve answer from UPS. Answer placed to buffer directly for additional processing 
-  DTSD ( SerialPrint_P(PSTR("Recieve answer")); )
+  DTSD ( PRINT_PSTR("Recieve answer"); )
   // We will expect to income no more MEGATEC_MAX_ANSWER_LENGTH bytes for MEGATEC_DEFAULT_READ_TIMEOUT milliseconds
   // Recieving can be stopped when '\r' char taken.
   // Need to use UART_SLOW_MODE with Megatec UPS?

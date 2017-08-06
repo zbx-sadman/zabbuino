@@ -1,8 +1,6 @@
 #ifndef _ZABBUINO_UART_APCSMART_H_
 #define _ZABBUINO_UART_APCSMART_H_
 
-#include "uart_bus.h"
-
 /*-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
                                                          APC SMART-UPS SECTION
  
@@ -13,9 +11,9 @@
 
 -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-*/
 
-#define APC_UPS_UART_SPEED                2400 // APC UPS works on 2400 baud speed
-#define APC_MAX_ANSWER_LENGTH             30   // Read no more 30 chars from UPS
-#define APC_DEFAULT_READ_TIMEOUT          1000L
+#define APC_UPS_UART_SPEED                (2400)   // APC UPS works on 2400 bps
+#define APC_MAX_ANSWER_LENGTH             (30)     // Read no more 30 chars from UPS
+#define APC_DEFAULT_READ_TIMEOUT          (1000UL)
 
 /*****************************************************************************************************************************
 *
