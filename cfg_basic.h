@@ -21,7 +21,7 @@
       You can enable FEATURE_NETWORK_MONITORING declaration to let the Zabbuino detect this case and try to fix it.
    4. When (1) & (2) & (3) did not help to add stability, you can buy Wiznet 5xxx shield or rewrite the source code.
    
-                >>> NOTE that network drivers (UIPEthernet & WIZNet libs) are integrated to Zabbuino source code <<<
+                >>> NOTE : network drivers (UIPEthernet & WIZNet libs) are integrated to Zabbuino source code <<<
 */
 
 #define W5100_ETHERNET_SHIELD       // Arduino Ethernet Shield and Compatibles ...
@@ -154,7 +154,7 @@
 /*/ 
 /=/     Enable BOSCH BMP280 sensors handling 
 /*/ 
-// #define FEATURE_BMP280_ENABLE
+#define FEATURE_BMP280_ENABLE
 
 /*/ 
 /=/     Enable BOSCH BME280 sensors handling and enable additional command
@@ -184,7 +184,7 @@
 /=/       - PCF8574.LCDPrint[]
 /=/ 
 /*/
-//#define FEATURE_PCF8574_LCD_ENABLE
+#define FEATURE_PCF8574_LCD_ENABLE
 
 /*/ 
 /=/     Enable Sensirion SHT2x sensors handling and commands:
@@ -300,7 +300,7 @@
 /=/      Enable calling user functions on device start and every _constUserFunctionCallInterval_ if no active network session exist
 /=/      You can write to _plugin.ino_ your own code and use all Zabbuino's internal functions to query sensors and handle actuators
 /*/
-#define FEATURE_USER_FUNCTION_PROCESSING
+//#define FEATURE_USER_FUNCTION_PROCESSING
 
 /*/ 
 /=/      Support Zabbix's Action functionality and enable command: 

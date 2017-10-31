@@ -35,7 +35,7 @@
 #define LCD_BLINK_TIMES                                         (0x04)   // in cycle of 4 times - 2 off state & 2 on state. Need use even numbers for save previous backlight state on cycle finish
 
 // HD44780-compatible commands
-#define LCD_CMD_BACKLIGHT_BLINK                                 (0x03)   // ASCII 03 - backlight blink
+#define LCD_CMD_BACKLIGHT_BLINK                                 (0x03)   // ASCII 03 - backlight blink (unfortunately ASCII Bell code 0x07 already used for LCD_CMD_ENTRYMODE_LEFTTORIGHT_SCREENSHIFT)
 #define LCD_CMD_HT                                              (0x09)   // ASCII 09 - horizontal tabulation
 #define LCD_CMD_LF                                              (0x0A)   // ASCII 10 - line feed
 
@@ -91,6 +91,6 @@
 *     - DEVICE_ERROR_CONNECT on connection error
 *
 *****************************************************************************************************************************/
-int8_t printToPCF8574LCD(SoftwareWire* _softTWI, uint8_t _i2cAddress, uint8_t _lcdBacklight, const uint16_t _lcdType, const char *_src);
+int8_t printToPCF8574LCD(SoftwareWire* _softTWI, uint8_t _i2cAddress, uint8_t _lcdBacklight, const uint16_t _lcdType, const char *_src, const uint8_t forceInit = true);
 
 #endif // #ifndef _ZABBUINO_I2C_LCD_H_

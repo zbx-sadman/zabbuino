@@ -10,13 +10,19 @@
 
 void NetworkClass::init(netconfig_t* _netConfig) {
   memcpy(macAddress, _netConfig->macAddress, 6*sizeof(uint8_t));
-  localAddress = _netConfig->ipAddress;
-  gwAddress = _netConfig->ipGateway;
-  netmask = _netConfig->ipNetmask;
-  useDHCP = _netConfig->useDHCP;
+  netDefaultIP = _netConfig->ipAddress;
+  netDefaultGW = _netConfig->ipGateway;
+  netDefaultNM = _netConfig->ipNetmask;
+
+#ifdef FEATURE_NET_DHCP_ENABLE
 #ifdef FEATURE_NET_DHCP_FORCE
   useDHCP = true;
-#endif
+#else // FEATURE_NET_DHCP_FORCE
+  useDHCP = _netConfig->useDHCP;
+#endif // FEATURE_NET_DHCP_FORCE
+#else  // FEATURE_NET_DHCP_ENABLE
+  useDHCP = false;
+#endif //FEATURE_NET_DHCP_ENABLE
 /*
 #if defined(NETWORK_RS485)
   useDHCP = false;
@@ -33,7 +39,7 @@ uint8_t NetworkClass::checkPHY() {
 // Persistent IP address does not exist when DHCP used, and testing can not executed
 #ifndef FEATURE_NET_DHCP_ENABLE
   // need "restart" PHY module if it settings is losted (may be PHY power problem?)
-  if (localIP() != localAddress) { 
+  if (localIP() != netDefaultIP) { 
      restart(); 
      rc = true; 
   }
@@ -80,7 +86,7 @@ void NetworkClass::showPHYState() {
 }
 
 void NetworkClass::restart() {
-  uint8_t useStaticIP;
+  uint8_t useDefaultIP;
 
 #ifdef FEATURE_NET_DHCP_ENABLE
   start:
@@ -98,35 +104,43 @@ void NetworkClass::restart() {
       digitalWrite(constStateLedPin, millis() % 1000 < constBlinkDhcpProblem);
 #else
       digitalWrite(constStateLedPin, HIGH);
-#endif
+#endif // ON_ALARM_STATE_BLINK
 
         goto start;
 #endif  // FEATURE_NET_DHCP_FORCE
-        useStaticIP = true;
+        useDefaultIP = true;
      } else {
-        useStaticIP = false;
+        // IP address cannot be obtained, switch to default IP
+        useDefaultIP = false;
     }
   }
 #else // FEATURE_NET_DHCP_ENABLE
   // No DHCP required
-  useStaticIP = true;
+  useDefaultIP = true;
 #endif // FEATURE_NET_DHCP_ENABLE
 
 
  //Serial.println("p4");
+<<<<<<< HEAD
+  // No DHCP offer recieved or no DHCP need - start with stored/netDefault IP config
+  if (useDefaultIP) {
+     DTSM( PRINTLN_PSTR("Use default IP"); )
+     useDHCP = false;
+=======
   // No DHCP offer recieved or no DHCP need - start with stored/default IP config
   if (useStaticIP) {
      DTSM( PRINTLN_PSTR("Use static IP"); )
+>>>>>>> origin/experimental
 
 #if defined(NETWORK_ETH_ENC28J60) || defined(NETWORK_ETH_WIZNET)
      // That overloaded .begin() function return nothing
      // Second netConfig.ipAddress used as dns-address
-     begin(macAddress, localAddress, localAddress, gwAddress, netmask);
+     begin(macAddress, netDefaultIP, netDefaultIP, netDefaultGW, netDefaultNM);
      server.begin();
 
 #elif defined(NETWORK_RS485)
      begin(RS485_SPEED, RS485_RX_PIN, RS485_TX_PIN, RS485_BUSMODE_PIN);
-     server.begin(localAddress);
+     server.begin(netDefaultIP);
 #endif
   }
 

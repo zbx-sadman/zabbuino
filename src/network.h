@@ -20,17 +20,20 @@ class NetworkClass
   private:
     uint8_t useDHCP;
     uint8_t macAddress[6];
-    NetworkAddress localAddress;
-    NetworkAddress gwAddress;
-    NetworkAddress netmask;
+    NetworkAddress netDefaultIP;
+    NetworkAddress netDefaultGW;
+    NetworkAddress netDefaultNM;
 
   public:
     EthernetServer server{ZBX_AGENT_TCP_PORT};  // NOTE: brace need when param is used
     EthernetClient client;
     NetworkClass() {}
     ~NetworkClass() {}
-    IPAddress localIP() { return Ethernet.localIP(); }
+    inline IPAddress localIP() { return Ethernet.localIP(); }
+    inline IPAddress defaultIP() { return (IPAddress) netDefaultIP; }
+
     uint8_t checkPHY();
+    inline uint8_t isDHCPUsed() { return useDHCP; }
     inline uint8_t getRCR() { return 0; }
     inline uint16_t getRTR() { return 0; }
     inline uint16_t getPHYCFG() { return 0; }
@@ -53,9 +56,9 @@ class NetworkClass
   private:
     uint8_t useDHCP;
     uint8_t macAddress[6];
-    NetworkAddress localAddress;
-    NetworkAddress gwAddress;
-    NetworkAddress netmask;
+    NetworkAddress netDefaultIP;
+    NetworkAddress netDefaultGW;
+    NetworkAddress netDefaultNM;
 
   public:
     // uint16_t phyReinits;
@@ -66,6 +69,8 @@ class NetworkClass
     ~NetworkClass() {}
     uint8_t checkPHY();
     inline IPAddress localIP() { return UIPEthernet.localIP(); }
+    inline IPAddress defaultIP() { return (IPAddress) netDefaultIP; }
+    inline void tick() { UIPEthernetClass.tick(); }
     inline uint8_t getRCR() { return 0; }
     inline uint16_t getRTR() { return 0; }
     inline uint16_t getPHYCFG() { return 0; }

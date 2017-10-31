@@ -115,10 +115,13 @@
 #define CMD_MHZXX_UART_CO2                                      (0x4D)
 
 #define CMD_USER_RUN                                            (0x4E)
+<<<<<<< HEAD:src/sys_commands.h
+=======
 
 #define CMD_MODBUS_RTU_COILSREAD                                (0x4F)
 #define CMD_MODBUS_RTU_INPUTSREAD                               (0x50)
 #define CMD_MODBUS_RTU_COILSWRITE                               (0x51)
+>>>>>>> origin/experimental:src/sys_commands.h
 
 // add new command as "const char command_<COMMAND_MACRO> PROGMEM". Only 'const' push string to PROGMEM. Tanx, Arduino & AVR.
 // command_* values must be in lower case due analyze sub convert all chars to lower
@@ -234,10 +237,13 @@ const char command_CMD_MHZXX_PWM_CO2[]                          PROGMEM = "mhzxx
 const char command_CMD_MHZXX_UART_CO2[]                         PROGMEM = "mhzxx.uart.co2";
 
 const char command_CMD_USER_RUN[]                               PROGMEM = "user.run";
+<<<<<<< HEAD:src/sys_commands.h
+=======
 
 const char command_CMD_MODBUS_RTU_COILSREAD[]                   PROGMEM = "modbus.rtu.coilsread";
 const char command_CMD_MODBUS_RTU_COILSWRITE[]                  PROGMEM = "modbus.rtu.coilswrite";
 const char command_CMD_MODBUS_RTU_INPUTSREAD[]                  PROGMEM = "modbus.rtu.inputsread";
+>>>>>>> origin/experimental:src/sys_commands.h
 
 // do not insert new command to any position without syncing indexes. Tanx, Arduino and AVR, for this method of string array pushing to PROGMEM
 // ~300 bytes of PROGMEM space can be saved with crazy "#ifdef-#else-#endif" dance
@@ -526,6 +532,8 @@ const char* const commands[] PROGMEM = {
 #else
   command_CMD_ZBX_NOPE,
 #endif
+<<<<<<< HEAD:src/sys_commands.h
+=======
 
 #ifdef FEATURE_MODBUS_RTU_ENABLE
   command_CMD_MODBUS_RTU_COILSREAD,
@@ -536,6 +544,7 @@ const char* const commands[] PROGMEM = {
   command_CMD_ZBX_NOPE,
   command_CMD_ZBX_NOPE,
 #endif
+>>>>>>> origin/experimental:src/sys_commands.h
 
 };
 #endif // _ZABBUINO_COMMANDS_H_

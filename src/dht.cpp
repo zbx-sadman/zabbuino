@@ -67,6 +67,13 @@ int8_t getDHTMetric(const uint8_t _pin, const uint8_t _sensorModel, const uint8_
   int32_t  temperature;
 
   static uint32_t lastReadTime = 0;
+  /*
+  Need to use lastpin/lastresult static array to return data immedately
+
+  static int8_t lastPin = -1;
+  if ((_pin != lastPin) || (0 == waitTime)) {}
+  */
+
 
   bit = digitalPinToBitMask(_pin);
   port = digitalPinToPort(_pin);
@@ -88,7 +95,6 @@ int8_t getDHTMetric(const uint8_t _pin, const uint8_t _sensorModel, const uint8_
     default:
       wakeupDelay = DHTLIB_DHT_WAKEUP;   // T-be
   }
-
 
   // DHT sensor have limit for taking samples frequency
   waitTime = millis() - lastReadTime;

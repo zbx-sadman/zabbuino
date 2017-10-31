@@ -5,6 +5,9 @@
 
 #include "ultrasonic.h"
 
+#include "service.h"
+#include "system.h"
+
 /*****************************************************************************************************************************
 *
 *  Read the distance of the object with HC-SR04 Ultrasonic sensor.
@@ -20,6 +23,7 @@ uint32_t getUltrasonicMetric(const uint8_t _triggerPin, const uint8_t _echoPin)
   uint16_t timeOut = 38000;  
   uint32_t result = 0;
 
+  stopTimerOne(); 
   pinMode(_triggerPin, OUTPUT);
   pinMode(_echoPin, INPUT);
 
@@ -38,6 +42,8 @@ uint32_t getUltrasonicMetric(const uint8_t _triggerPin, const uint8_t _echoPin)
       // can delay be decreased for 10+2ms?
       delay(50);
   }
+
+  startTimerOne(); 
   
   result /= ULTRASONIC_SAMPLES;
 

@@ -1,219 +1,275 @@
 #ifdef FEATURE_USER_FUNCTION_PROCESSING
 
-/*/ 
-/=/ Enable support the user display (LCD which connected via I2C interface) 
-/=/ You must build it manually by example virtual screen #1 in plugin.ino subroutine 
 /*/
-//#define FEATURE_USER_DISPLAY_ENABLE
+  /=/ Enable support the user display (LCD which connected via I2C interface)
+  /=/ You must build it manually by example virtual screen #1 in plugin.ino subroutine
+  /*/
 
+// Enable or disable some functional blocks:
+// Output to LCD
+#define FEATURE_USER_DISPLAY_ENABLE
+// Using WS2812 Pixel LED to indicate CO2 level by color
+#define FEATURE_USER_WS2812_LED_ENABLE
+
+const int32_t  constSensorErrorCode3digit                     = 999;     // This 3 digit number will be shown if sensor error detected
+const int32_t  constSensorErrorCode4digit                     = 9999;    // This 4 digit number will be shown if sensor error detected
 
 // System display settings
-const uint8_t  constUserDisplaySDAPin                         = A4;     // SDA - A4
-const uint8_t  constUserDisplaySCLPin                         = A5;     // SCL - A5
-const uint8_t  constUserDisplayI2CAddress                     = 0x20;   // I2C LCD interface board address
-const uint8_t  constUserDisplayBackLight                      = 0x00;   // backlight off
-const uint16_t constUserDisplayType                           = 1602;   // 16x2 screen, refer to source code of printToPCF8574LCD() subroutine
-const uint16_t constUserDisplayRenewInterval                  = 5000UL; // 5sec
 
-const uint16_t constUserEEPROMReadInterval                    = 10000UL; // 10sec
-const uint16_t constUserSensorsReadInterval                   = 5000UL;  // 5 sec
+const uint8_t  constUserDisplaySDAPin                         = 4;       // SDA <-> 4
+const uint8_t  constUserDisplaySCLPin                         = 5;       // SCL <-> 5
+const uint8_t  constUserDisplayI2CAddress                     = 0x27;    // I2C LCD interface board address
+const uint8_t  constUserDisplayBackLight                      = 0x01;    // backlight off
+const uint16_t constUserDisplayType                           = 2004;    // 16x2 screen, refer to source code of printToPCF8574LCD() subroutine
+const uint32_t constUserDisplayRenewInterval                  = 5000UL;  // Info on user screen can be renew no more that once in 5 sec
+const uint32_t constUserDisplayNoRefreshTimeout               = 10000UL; // Display renew must be delayed for 10 sec if network process was used LCD (incoming informational message from Zabbix server exist, for example)
 
-const uint8_t  constUserEEPROMSDAPin                          = A4;     // SDA - A4
-const uint8_t  constUserEEPROMSCLPin                          = A5;     // SCL - A5
-const uint8_t  constUserEEPROMI2CAddress                      = 0x56;   // I2C EEPROM address
+#if defined(FEATURE_USER_WS2812_LED_ENABLE)
+// Other indicators settings
+const uint8_t  constUserWS2812LedPin                          = A3;       // WS2812 DIN <-> A3
+typedef struct {                                                          // 7 bytes:
+  int32_t lowerBound;                                                     // 2 bytes
+  int32_t upperBound;                                                     // 2 bytes
+  uint8_t color[3];                                                       // 3 byte - G & R & B
+} co2LevelColors_t ;
 
+// https://tion.ru/blog/normy-co2/
+//const co2LevelColors_t constCO2LevelColors[]                 = { {0, 0, {0x40, 0x00, 0x00}}, {800, 900, {0x80, 0x40, 0x00}}, {1000, 1400, {0x40, 0x80, 0x00}}, {2400, 2500, {0x00, 0xFF, 0x00}} };
+//const co2LevelColors_t constCO2LevelColors[]                 = { {600, 800, {0x40, 0x00, 0x00}}, {800, 1000, {0x80, 0x40, 0x00}}, {1000, 1900, {0x40, 0x80, 0x00}}, {1900, 2500, {0x00, 0xFF, 0x00}} };
+const co2LevelColors_t constCO2LevelColors[]                 = { {0, 0, {0x40, 0x00, 0x00}}, {0, 800, {0x40, 0x40, 0x00}}, {0, 1400, {0x00, 0x40, 0x00}} };
+//const uint8_t co2LevelIntervals                              = sizeof(constCO2LevelColors) / sizeof(constCO2LevelColors)[0];
+const uint8_t co2LevelIntervals                              = 3;
 
-    // AT24CXX EEPROM memory structure for atandalone mode example:
-    //  Cell #0..7 - BH1750 data, SDA pin#, SCL pin#, I2C address, Mode - sensor's connection data, LightOn - how much lux need to turn room light on, 
-    //               and LightOff how much need to turn light off.
-    //               Note: if you will placed sensor near light bulb - it can be never turned off. 
-    //
-    //  Cell #0 ->[SDA pin#][SCL pin#][I2C address][Mode][LightOn HiByte][LightOn LowByte][LightOff HiByte][LightOff LowByte] <- Cell #7
-    //
-    //  Cell #8..19 - DS18B20 data, OneWire pin#, Resolution, ID/Address - sensor's connection data, 
-    //                AlarmOn temperature in Celsius to turn alarm on, and AlarmOff to turn it off
-    //                Note: AlarmOn temperature must be bigger that AlarmOn (refer to Hysteresis).
-    //
-    //  Cell #8 ->[OneWire pin#][Resolution][ID/Address - 8 bytes][AlarmOn temperature][AlarmOff temperature] <- Cell #19
-    //
-    //  Cell #20 is CRC-8 (calculated by Dallas/iButton algo)
-    
-#define USER_MEMORY_STRUCTURE_BH1750_SDA            0
-#define USER_MEMORY_STRUCTURE_BH1750_SCL            1
-#define USER_MEMORY_STRUCTURE_BH1750_I2CADDR        2
-#define USER_MEMORY_STRUCTURE_BH1750_MODE           3
-#define USER_MEMORY_STRUCTURE_BH1750_LIGHTON_HI     4
-#define USER_MEMORY_STRUCTURE_BH1750_LIGHTON_LO     5
-#define USER_MEMORY_STRUCTURE_BH1750_LIGHTOFF_HI    6
-#define USER_MEMORY_STRUCTURE_BH1750_LIGHTOFF_LO    7
+#endif // FEATURE_USER_WS2812_LED_ENABLE
 
-#define USER_MEMORY_STRUCTURE_DS18B20_OW            8
-#define USER_MEMORY_STRUCTURE_DS18B20_RES           9
-#define USER_MEMORY_STRUCTURE_DS18B20_ADDR          10
-#define USER_MEMORY_STRUCTURE_DS18B20_ALARMON       18
-#define USER_MEMORY_STRUCTURE_DS18B20_ALARMOFF      19
+// Sensors settings
 
-#define USER_MEMORY_STRUCTURE_CRC8                  20
+// BMP280, placed inside box
+const uint8_t  constBMPI2CAddress                             = 0x76;                    // BMP280 board address
+const uint8_t  constBMPSDAPin                                 = constUserDisplaySDAPin;  // Use LCD's TWI bus
+const uint8_t  constBMPSCLPin                                 = constUserDisplaySCLPin;  //
+const uint8_t  constBMPPressureOversampling                   = 4;                       // 4 is need for Standard resolution  18 bit / 0.66 Pa
+const uint8_t  constBMPTemperatureOversampling                = 1;                       // 1 is need for Standard resolution, 16 bit / 0.0050 °C
+const uint8_t  constBMPFilterCoef                             = 0;                       // 0 meant "filter off"
+
+// MH-Z19, placed inside box
+const uint8_t  constMHZXXPWMPin                               = 2;                       // Sensor's PWM pin <-> D2
+const uint16_t constMHZXXRange                                = 5000;                    // MH-Z19 range is 5000PPM
+
+// Indoor DHT sensor
+const uint8_t  constIndoorDHTPin                              = 6;                       // Sensor's DATA pin <-> D6
+const uint8_t  constIndoorDHTType                             = 21;                      // DHT 21, AM2301
+
+// Outdoor DHT sensor
+const uint8_t  constOutdoorDHTPin                             = 7;                       // Sensor's DATA pin <-> D7
+const uint8_t  constOutdoorDHTType                            = 21;                      // DHT 21, AM2301
+
 
 /*****************************************************************************************************************************
-*
-*  Subroutine calls on start of Zabbuino
-*
+
+   Subroutine calls on start of Zabbuino
+
 *****************************************************************************************************************************/
 void initStageUserFunction(char* _buffer) {
+  //uint8_t arr[]={0x00, 0x00, 0x40};
   // Note that not all system struct is initialized at this stage and you can't get localIP() or localtime() info
-  printToPCF8574LCD(&SoftTWI, constUserDisplayI2CAddress, constUserDisplayBackLight, constUserDisplayType, _buffer);
   _buffer[0] = 0x06;
   _buffer[1] = 0x01;
-  strcpy_P(&_buffer[2], constZbxAgentVersion);
+  strcpy_P(&_buffer[2], PSTR("\t  Starting\n   "));
+  strcpy_P(&_buffer[strlen(_buffer)], constZbxAgentVersion);
   // push data to LCD via I2C
   SoftTWI.reconfigure(constUserDisplaySDAPin, constUserDisplaySCLPin);
   printToPCF8574LCD(&SoftTWI, constUserDisplayI2CAddress, constUserDisplayBackLight, constUserDisplayType, _buffer);
+
+  WS2812Out(constUserWS2812LedPin, 1, (uint8_t*) &constCO2LevelColors[0].color, 3);
+  /*
+    Serial.print("1: ");Serial.println(constCO2LevelColors[0].color[0]);
+    Serial.print("2: ");Serial.println(constCO2LevelColors[0].color[1]);
+    Serial.print("3: ");Serial.println(constCO2LevelColors[0].color[2]);
+  */
 }
 
 /*****************************************************************************************************************************
-*
-*  Subroutine calls on every loop if no active network session exist
-*
+
+   Subroutine calls when config is already loaded, but network not started yet
+
+*****************************************************************************************************************************/
+void netPrepareStageUserFunction(char* _buffer) {
+  // 'Network' is global object
+  if (Network.isDHCPUsed()) {
+    // This message printed only if DHCP used
+    // Jump to top-left corner by '\x02' and skip 3 lines by '\n'
+    strcpy_P(_buffer, PSTR("\2\n\n\nIP :\tDHCP"));
+    //strcpy_P(_buffer, PSTR("\x02\n\n\nIP :\tDHCP"));
+  } else {
+    strcpy_P(_buffer, PSTR("\2\n\n\nIP :\tfixed"));
+  }
+  SoftTWI.reconfigure(constUserDisplaySDAPin, constUserDisplaySCLPin);
+  // push data to LCD via I2C WITHOUT re-init display (_forceInit_ param is false)
+  printToPCF8574LCD(&SoftTWI, constUserDisplayI2CAddress, constUserDisplayBackLight, constUserDisplayType, _buffer, false);
+}
+/*****************************************************************************************************************************
+
+   Subroutine calls on user.run[] command processing
+    _buffer - internal buffer, tune.h > constBufferSize bytes size. Note: If you modify it - you are change options (option#0..5) content
+    _optarg - array of pointer to options represented as C-string. _optarg[n] point to part of _buffer that is begin of n-th option
+    _argv   - array of options represented as signed numbers.
+
+     This subroutine must return result code to parent function that return it to user.
+*****************************************************************************************************************************/
+int8_t executeCommandUserFunction(char* _buffer, char* _optarg[], int32_t* argv) {
+  //DTSM ( SerialPrint_P(PSTR("Command: ")); Serial.println(_dst);
+  // option#0 is provided
+  if ('\0' != *_optarg[0]) {
+    //SerialPrint_P(PSTR("Option #1 as string: ")); Serial.print(*_optarg[0]);
+    //SerialPrint_P(PSTR("& as number: ")); Serial.println(argv[0]);
+    return RESULT_IS_OK;
+  }
+  return RESULT_IS_FAIL;
+}
+
+/*****************************************************************************************************************************
+
+   Subroutine calls on every loop if no active network session exist
+
 *****************************************************************************************************************************/
 void loopStageUserFunction(char* _buffer) {
-  const uint8_t  constVirtualScreensNum                           = 4;      // Number of report virtual screens
-  uint32_t nowTime;
-  static uint8_t reportVirtualScreenCnt = 0,
-                 bh1750SDAPin        = 18,   // A4
-                 bh1750SCLPin        = 19,   // A5
-                 bh1750I2CAddress    = 0x23,
-                 bh1750Mode          = 0x10,
-                 ds18B20OWPin        = 6,    // D6
-                 ds18B20OWResolution = 9, // 9 bit
-                 ds18B20TempAlarmOn  = 30,   // 30C
-                 ds18B20TempAlarmOff = 25,   // 25C
-                 ds18B20OWAddr[8];
+  int8_t rc;
+  static int32_t co2Level                = constSensorErrorCode4digit,
+                 co2PrevLevel            = 0,
+                 insidePressureLevel     = constSensorErrorCode4digit,
+                 insideTemperatureLevel  = constSensorErrorCode3digit,
+                 indoorTemperatureLevel  = constSensorErrorCode3digit,
+                 indoorHumidityLevel     = constSensorErrorCode3digit,
+                 outdoorHumidityLevel    = constSensorErrorCode3digit,
+                 outdoorTemperatureLevel = constSensorErrorCode3digit;
+  static uint8_t sensorReadStep = 0x00;
+  //  static uint32_t prevSensorsReadTime = 0;
+  static IPAddress deviceIP;
 
-  static uint16_t bh1750LightOn       = 20,   // in Lux
-                  bh1750LightOff      = 600;  // in Lux
+  // DHT sensor should be polled not more often than once every one or two seconds (depended from sensor model).
+  // getDHTMetric() have delay inside, but will be better to do something else when sensor have rest to avoid blocking in runtime.
+  // Sensors polling is mixed here to get interval properly :
+  //     On 1-st step (1 * 1sec) we take DHT temperature, on 3-rd (1 * 3 sec) - DHT humidity. Polling interval are 2 sec.
+  //
+  switch (sensorReadStep) {
+    // Get outdoor temperature
+    case 0x01:
+      rc = getDHTMetric(constOutdoorDHTPin, constOutdoorDHTType, SENS_READ_TEMP, &outdoorTemperatureLevel);
+      if (RESULT_IN_BUFFER != rc) {
+        // Place error code fo temperature field
+        outdoorTemperatureLevel = constSensorErrorCode3digit;
+      } else {
+        // Take whole part of degree only
+        outdoorTemperatureLevel = (outdoorTemperatureLevel) / 10;
+      }
+      // Renew IP info on this step too
+      deviceIP = Network.localIP();
+      break;
 
-  static uint32_t prevUserEEPROMReadTime = 0,
-                  prevSensorsReadTime = 0,
-                  prevUserDisplayRenewTime = 0;
+    // Get pressure
+    case 0x02:
+      SoftTWI.reconfigure(constBMPSDAPin, constBMPSCLPin);
+      rc = getBMPMetric(&SoftTWI, constBMPI2CAddress, constBMPPressureOversampling, constBMPFilterCoef, SENS_READ_PRSS, &insidePressureLevel);
+      if (RESULT_IN_BUFFER != rc) {
+        // Place error code fo pressure field
+        insidePressureLevel = constSensorErrorCode3digit;
+      } else {
+        // Convert Pa to mm rt st
+        insidePressureLevel = insidePressureLevel / 133;
+        // Convert Pa to kPa
+        // insidePressureLevel = insidePressureLevel / 100;
+      }
+      //Serial.print("insidePressureLevel = "); Serial.println(insidePressureLevel);
+      break;
 
-  // current time
-  nowTime = millis();
-#ifdef FEATURE_AT24CXX_ENABLE
-  // Re-read variable's value on first call and every constEEPROMReadInterval
-  if ((0 == prevUserEEPROMReadTime) || (constUserEEPROMReadInterval <= (uint32_t) (nowTime - prevUserEEPROMReadTime))) {
-    // Configure TWI to work on special pins
-    SoftTWI.reconfigure(constUserEEPROMSDAPin, constUserEEPROMSCLPin);
+    // Get indoor temperature
+    case 0x03:
+      rc = getDHTMetric(constIndoorDHTPin, constIndoorDHTType, SENS_READ_TEMP, &indoorTemperatureLevel);
+      if (RESULT_IN_BUFFER != rc) {
+        // Place error code fo temperature field
+        indoorTemperatureLevel = constSensorErrorCode3digit;
+      } else {
+        // Take whole part of degree only
+        indoorTemperatureLevel = (indoorTemperatureLevel) / 10;
+      }
+      break;
 
-    // Read 21 bytes from external EEPROM started from cell 0 to buffer, that used as uint8_t array.
-    // On success - update variable's value
-    if (AT24CXXRead(&SoftTWI, constUserEEPROMI2CAddress, 0x00, 21, (uint8_t*) _buffer)) {
-      // calculate readed data CRC8 for all bytes, exclude byte #USER_MEMORY_STRUCTURE_CRC8 (from 0 to USER_MEMORY_STRUCTURE_DS18B20_ALARMOFF)
-      // if CRC equal data is processed
-      //uint8_t calculatedCRC = dallas_crc8((uint8_t*) _buffer), USER_MEMORY_STRUCTURE_CRC8); 
-      //if (calculatedCRC == _buffer[USER_MEMORY_STRUCTURE_CRC8]) 
-      {
-         // *** BH1750 ****
-         // Change pin numbers only if it safe (see protect_pin array in src/tune.h )
-         if (isSafePin(_buffer[USER_MEMORY_STRUCTURE_BH1750_SDA]) && isSafePin(_buffer[USER_MEMORY_STRUCTURE_BH1750_SCL])) {
-            bh1750SDAPin     = _buffer[USER_MEMORY_STRUCTURE_BH1750_SDA];
-            bh1750SCLPin     = _buffer[USER_MEMORY_STRUCTURE_BH1750_SCL];
-         }
-         bh1750I2CAddress = _buffer[USER_MEMORY_STRUCTURE_BH1750_I2CADDR];
-         bh1750Mode       = _buffer[USER_MEMORY_STRUCTURE_BH1750_MODE];
-         // make 16-bit value from two bytes
-         bh1750LightOn    = _buffer[USER_MEMORY_STRUCTURE_BH1750_LIGHTON_HI] << 8 | _buffer[USER_MEMORY_STRUCTURE_BH1750_LIGHTON_LO];
-         bh1750LightOff   = _buffer[USER_MEMORY_STRUCTURE_BH1750_LIGHTOFF_HI] << 8 | _buffer[USER_MEMORY_STRUCTURE_BH1750_LIGHTOFF_LO];
-         DTSM ( Serial.println("BH1750 settings"); )
-         DTSM ( Serial.println(bh1750SDAPin); )
-         DTSM ( Serial.println(bh1750SCLPin); )
-         DTSM ( Serial.println(bh1750I2CAddress, HEX); )
-         DTSM ( Serial.println(bh1750Mode, HEX); )
-         DTSM ( Serial.println(bh1750LightOn); )
-         DTSM ( Serial.println(bh1750LightOff); )
+    // Get temperature inside box
+    case 0x04:
+      rc = getBMPMetric(&SoftTWI, constBMPI2CAddress, constBMPTemperatureOversampling, constBMPFilterCoef, SENS_READ_TEMP, &insideTemperatureLevel);
+      if (RESULT_IN_BUFFER != rc) {
+        // Place error code fo temperature field
+        insideTemperatureLevel = constSensorErrorCode3digit;
+      } else {
+        // Take whole part of degree only
+        insideTemperatureLevel = (insideTemperatureLevel + 50) / 100;
+      }
+      //Serial.print("insideTemperatureLevel = "); Serial.println(insideTemperatureLevel);
+      break;
 
-         // *** DS18B20 ****
-         // Change pin number only if it safe (see protect_pin array in src/tune.h )
-         if (isSafePin(_buffer[USER_MEMORY_STRUCTURE_DS18B20_OW])) {
-            ds18B20OWPin     = _buffer[USER_MEMORY_STRUCTURE_DS18B20_OW];
-         }
-         ds18B20OWResolution = _buffer[USER_MEMORY_STRUCTURE_DS18B20_RES];
-         // just copy 8 bytes of DS18B20 ID starting from buffer[USER_MEMORY_STRUCTURE_DS18B20_ADDR] position to other byte array
-         memcpy(ds18B20OWAddr, &_buffer[USER_MEMORY_STRUCTURE_DS18B20_ADDR], 8);
-         ds18B20TempAlarmOn  = _buffer[USER_MEMORY_STRUCTURE_DS18B20_ALARMON];
-         ds18B20TempAlarmOff = _buffer[USER_MEMORY_STRUCTURE_DS18B20_ALARMOFF];      
-         DTSM ( Serial.println("DS18B20 settings"); )
-         DTSM ( Serial.println(ds18B20OWPin); )
-         DTSM ( Serial.println(ds18B20OWResolution); )
-         DTSM ( Serial.println(ds18B20TempAlarmOn); )
-         DTSM ( Serial.println(ds18B20TempAlarmOff); )
-      } // if (calculatedCRC == _buffer[USER_MEMORY_STRUCTURE_CRC8]) 
-    } // if (AT24CXXRead(&SoftTWI ...
+    // Get outdoor humidity
+    case 0x05:
+      rc = getDHTMetric(constOutdoorDHTPin, constOutdoorDHTType, SENS_READ_HUMD, &outdoorHumidityLevel);
+      if (RESULT_IN_BUFFER != rc) {
+        // Place error code fo temperature field
+        outdoorHumidityLevel = constSensorErrorCode3digit;
+      } else {
+        // Take whole part of percent only
+        outdoorHumidityLevel = (outdoorHumidityLevel) / 10;
+      }
+      break;
 
-    prevUserEEPROMReadTime = nowTime;
-  } // if ((0 == prevUserEEPROMReadTime)
-#endif
+    // Get CO2 level
+    case 0x06:
+      co2PrevLevel = (constSensorErrorCode4digit == co2Level) ? 0 : co2Level;  // need to detect & handle 'previous level value was wrong (9999)' case
+      rc = getMHZxxMetricPWM(constMHZXXPWMPin, constMHZXXRange, &co2Level);
+      if (RESULT_IN_BUFFER != rc) {
+        co2Level = constSensorErrorCode4digit;
+      }
+      // Serial.print("co2Level = "); Serial.println(co2Level);
+      break;
 
-  // Read&analyze sensor values on first call and every constUserSensorsReadInterval
-  if ((0 == prevSensorsReadTime) || (constUserSensorsReadInterval <= (uint32_t) (nowTime - prevSensorsReadTime))) {
-     // *** BH1750 ****
-     uint32_t light;
-     SoftTWI.reconfigure(bh1750SDAPin, bh1750SCLPin);
-     if (RESULT_IN_BUFFER == getBH1750Metric(&SoftTWI, bh1750I2CAddress, bh1750Mode, SENS_READ_LUX, &light)) {
-        // Returned scaled value is bigger than real, make it normal. For BH1750 normal_lux = scaled_lux / 100;
-        light = light / 100;
-        DTSM ( Serial.println("BH1750 value (lux): "); )
-        DTSM ( Serial.println(light); )
-        // if (bh1750LightOn < light) { 
-        //   Turn light on   
-        // }
-     }
+    // Get indoor humidity
+    case 0x07:
+      rc = getDHTMetric(constIndoorDHTPin, constIndoorDHTType, SENS_READ_HUMD, &indoorHumidityLevel);
+      if (RESULT_IN_BUFFER != rc) {
+        // Place error code fo temperature field
+        indoorHumidityLevel = constSensorErrorCode3digit;
+      } else {
+        // Take whole part of percent only
+        indoorHumidityLevel = (indoorHumidityLevel) / 10;
+      }
+      break;
 
-     // *** DS18B20 ****
-     int32_t temperature;
-     if (RESULT_IN_BUFFER == getDS18X20Metric(ds18B20OWPin, ds18B20OWResolution, ds18B20OWAddr, &temperature)) {
-        // Returned scaled value is bigger than real, make it normal. For DS18x20 normal_temp = scaled_temp / 1000;
-        temperature = temperature / 1000;
-        DTSM ( Serial.println("DS18B20 whole part of temp (C): "); )
-        DTSM ( Serial.println(temperature); )
-        // if (ds18B20AlarmOff > temperature) { 
-        //   Turn alarm off
-        // }
-        // if (ds18B20AlarmOn < temperature) { 
-        //   Turn alarm on   
-        // }
-     }    
-    prevSensorsReadTime = nowTime;
+    //  All sensors are polled, restart round
+    default:
+      sensorReadStep = 0x00;
+      return;
   }
+  // Next metric will be taken on next polling
+  sensorReadStep++;
 
   //Show virtual screens
 #ifdef FEATURE_USER_DISPLAY_ENABLE
+  uint8_t dataLength, co2LevelIdx, i;
+  uint32_t nowTime, howLongWork;
+  static uint8_t reportVirtualScreenCnt = 0x00,
+                 co2LevelPrevIdx = 0x00,
+                 clearScreenOnNextStep = false;
+  static uint32_t prevUserDisplayRenewTime = 0;
+  //  static char animationChars[] = { 0xA1, 0xDF };
+  //  static char animationChars[] = { 0xA2, 0xA3 };
+  static char animationChars[] = { 'H', 'h' };
+  static uint8_t animationStep = 0x00;
 
-//        LCD1602
-//     +- C0 .... CF-+
-//     v             v
-// R1 |XXX.XXX.XXX.XXX |  << IP Address
-// R2 |4294967295 ms   |  << uptime
-//
-//    |Zabbuino 1.2.3  |  <<
-//    |     ALL OK     |  <<
-//
-// R1, R2 - row #0x1, row #0x2
-// C0..CF - col #0x0 .. col #0xF
-//
-//           0                                                         N
-//  _buffer |--Zabbuino 1.2.3--ALL OK                                   |
-//           ^^              ^^
-//     0x01 -++- 0x06  '\n' -++-'\t'
-//
-//  N - constBufferSize (tune.h)
-//
-//  !!! Resulted string must be shorter that constBufferSize to avoid mailfunction !!!
-//
-
-uint8_t dataLength;
-  uint32_t timestamp;
-  tm dateTime;
+  // Get current time
+  nowTime = millis();
+ 
+  // LCD was used by external process (incoming message from Zabbix server exist, for example) and renew not allowed for some secs (constUserDisplayNoRefreshTimeout)
+  if (constUserDisplayNoRefreshTimeout > (uint32_t) (nowTime - sysMetrics.sysLCDLastUsedTime )) {
+    return;
+  }
 
   // do nothing if renew wait time is not expiried
   if (constUserDisplayRenewInterval > (uint32_t) (nowTime - prevUserDisplayRenewTime)) {
@@ -222,118 +278,85 @@ uint8_t dataLength;
 
   prevUserDisplayRenewTime = nowTime;
 
-  // buffer can be nulled to help detects EOL by '\0' at end of string
-  // how fast memset?
-  memset(_buffer, 0x00, constBufferSize + 1);
-  reportVirtualScreenCnt++;
-  if (constVirtualScreensNum <= reportVirtualScreenCnt) {
-    reportVirtualScreenCnt = 0;
-  }
-
-  // Write to _buffer commands for output direction (0x06) and clear screen (0x01)
-  // Note: strcpy() place "\x6\x1" to _buffer as bytes with values 6 and 1 (_buffer[0]=6, _buffer[1]=1), not as C-string '\x6\x1'
-  _buffer[0] = 0x06;
-  _buffer[1] = 0x01;
-  dataLength = 2;
+  // Clear all screen or command to LCD controller to jump 'top-left home' position
+  _buffer[0] = (clearScreenOnNextStep) ? 0x01 : 0x02;
+  dataLength = 1;
+  clearScreenOnNextStep = false;
 
   switch (reportVirtualScreenCnt) {
     case 0x00:
-      // copy constZbxAgentVersion variable (see "AGENT CONFIGURATION SECTION" in basic.h) content to src, starting from [dataLength] cell
-      strcpy_P(&_buffer[dataLength], constZbxAgentVersion);
-      // _buffer is C-string ('\0' terminated) and we can get it length with strlen() for correcting dataLength.
-      dataLength = strlen(_buffer);
-      // replace to '\0' by '\n' at the end position of string to have newline on physical screen
-      _buffer[dataLength++] = '\n';
-      // copy "Uptime: " string to src, following '\n'
-      strcpy_P(&_buffer[dataLength], PSTR("Up: "));
-      dataLength += 4;
-      // write millis() value to the _buffer starting from [dataLength] cell (take address of (_buffer[0] + dataLength) and give ltoa() as buffer);
-      //ultoa(millis(), &_buffer[dataLength], 10);
-      //dataLength = strlen(_buffer);
-      //strcpy_P(&_buffer[dataLength], PSTR(" ms"));
-      // timestamp must be in seconds, not ms
-      timestamp = (millis() / 1000);
-      gmtime_r(&timestamp, &dateTime);
-      dateTime.tm_yday--;
-      // need to add tm::tm_yday directly to _buffer to avoid 'Up: 001D ...' at the start
-      strftime(&_buffer[dataLength], 30, "%jD %T", &dateTime);
-      //timestampToDataTimeStr(timestamp, &_buffer[dataLength]);
-
+      // Replace 'IP : DHCP' message to 'IP : XXX.XXX.XXX.XXX' on very first step
+      dataLength = sprintf_P(_buffer, PSTR("\x0C\n\n\nIP : %03d.%03d.%03d.%03d"), deviceIP[0], deviceIP[1], deviceIP[2], deviceIP[3]);
+      // Clear need before print any other information on the screen
+      clearScreenOnNextStep = true;
       break;
-
     case 0x01:
-      strcpy_P(&_buffer[dataLength], PSTR("VCC:"));
-      // Move write position to 4 char ('VCC:')
-      dataLength += 4;
-      // write unit32_t value to the _buffer starting from [dataLength] cell;
-      // getADCVoltage - internal function, that return actual MCU voltage
-      ultoa(getADCVoltage(ANALOG_CHAN_VBG), &_buffer[dataLength], 10);
-      // voltage in mv, usually take 4 char
-      dataLength += 4;
-      strcpy_P(&_buffer[dataLength], PSTR("mV Mem:"));
-      dataLength += 7;
-      // write unit32_t value to the _buffer starting from [dataLength] cell;
-      // sysMetrics.sysRamFree - internal metric (refer to structs.h)
-      ultoa(sysMetrics.sysRamFree, &_buffer[dataLength], 10);
-      // Now len of string unknown - sysRamFree may take 3 char or 2...
-      dataLength = strlen(_buffer);
-      _buffer[dataLength++] = 'b';
-      // Go to new line
-      _buffer[dataLength++] = '\n';
-      strcpy_P(&_buffer[dataLength], PSTR("Idle: "));
-      dataLength += 6;
-      //ultoa((millis()-sysMetrics.sysCmdLastExecTime), &_buffer[dataLength], 10);
-      // len of string unknown again
-      //dataLength = strlen(_buffer);
-      //strcpy_P(&_buffer[dataLength], PSTR(" ms"));
-      //dataLength += 3;
-      timestamp = ((millis() - sysMetrics.sysCmdLastExecTime) / 1000);
-      gmtime_r(&timestamp, &dateTime);
-      dateTime.tm_yday--;
-      strftime(&_buffer[dataLength], 30, "%jD %T", &dateTime);
-      break;
-
-    case 0x02:
-      time_t y2kts;
-      // DS3231 RTC operate by Y2K-based timestamp
-      if (RESULT_IS_OK == getY2KTime(&SoftTWI, &y2kts)) {
-        localtime_r(&y2kts, &dateTime);
-        strcpy_P(&_buffer[dataLength], PSTR("\t\tTIME\n"));
-        dataLength += 7;
-        strftime(&_buffer[dataLength], 30, "%d/%m/%Y %T", &dateTime);
+      howLongWork = (uptime() / 60 / 60 ) % 100 ;
+      // [s]printf is a function that can show to us many tricks. For example:
+      // - "\xDFC" will be coverted not to 0xDF & 'C', but to 0xFC. "\xDF\0x43" is the same substring that give 0xDF & 'C' to us.
+      // - '+' char in format give +/- signs before digits (it good for temperature value)
+            dataLength = sprintf_P(&_buffer[dataLength], PSTR("\x0CIN : %+4ld\xDF\x43 %3ld%% %2ld%c\n\t%4ld mm %4ld PPM\n\n\nOUT: %+4ld\xDF\x43 %3ld%%"), indoorTemperatureLevel, \
+                                 indoorHumidityLevel, howLongWork, animationChars[animationStep], insidePressureLevel, co2Level, outdoorTemperatureLevel, outdoorHumidityLevel);
+      animationStep++;
+      if (sizeof(animationChars) <= animationStep) {
+        animationStep = 0x00;
       }
       break;
-
-    case 0x03:
-      strcpy_P(&_buffer[dataLength], PSTR("Light (lux): "));
-      // 'Light (lux): ' - 13 chars,
-      dataLength += 13;
-      // I2C sensor is connected on D2 (SDA) & D3 (SCL). Reconfigure global Software I2C Interface and put light value to output buffer
-      SoftTWI.reconfigure(bh1750SDAPin, bh1750SCLPin);
-      //uservalue = WANTS_VALUE_NONE;
-      // RESULT_IN_BUFFER mean that conversion is finished sucessfully
-      // uservalue must be used by reference (with "take address" operation - &) because getBH1750Metric put some data to it
-      if (RESULT_IN_BUFFER != getBH1750Metric(&SoftTWI, bh1750I2CAddress, bh1750Mode, SENS_READ_LUX, &_buffer[dataLength])) {
-         Serial.println("BH read error");
-        // Need to do something if conversion isn't success. May be put "error" word into _buffer?
-      };
-      break;
-
-    case 0x04:
-      // build your own screen and modify constVirtualScreensNum's value on top of this subroutine
-      break;
-
+    //animationChars[animationStep] howLongWork
+    /*
+       case 0x02:
+          // uncomment this block to build your own virtual screen
+         break;
+    */
     default:
-      // do nothing
-      break;
+      // Restart round & skip init screen
+      reportVirtualScreenCnt = 0x01;
+      // jump out from sub to avoid printing _buffer that contain 0x02 only
+      return ;
   }
-  //dataLength = strlen(_buffer);
-  //_buffer[dataLength] = '\0';
+  if (EOF == dataLength) {
+    dataLength = 0;
+  }
+  _buffer[dataLength + 1] = '\0';
+  // Another Virtual Screen will be shown on next step
+  reportVirtualScreenCnt++;
   // push data to LCD via I2C
   SoftTWI.reconfigure(constUserDisplaySDAPin, constUserDisplaySCLPin);
-  printToPCF8574LCD(&SoftTWI, constUserDisplayI2CAddress, constUserDisplayBackLight, constUserDisplayType, _buffer);
+  // !!! _forceInit_ function parameter must be equal to false to avoid LCD reinit. Otherwise all data on the screen can be cleared or spoiled !!!
+  printToPCF8574LCD(&SoftTWI, constUserDisplayI2CAddress, constUserDisplayBackLight, constUserDisplayType, _buffer, false);
 #endif //FEATURE_USER_DISPLAY_ENABLE
+#if defined(FEATURE_USER_WS2812_LED_ENABLE)
+
+  
+  DTSL (
+    char co2Direction = (co2Level > co2PrevLevel) ? '>' : '<';
+    Serial.print("co2Level: "); Serial.print(co2PrevLevel); Serial.print(" "); Serial.print(co2Direction); Serial.print(" "); Serial.println(co2Level); 
+  )
+    
+  for (i = 0; co2LevelIntervals > i; i++) {
+    DTSL ( Serial.print("constCO2LevelColors["); Serial.print(i); Serial.print("]="); Serial.println(constCO2LevelColors[i].upperBound); )
+    // Co2 is growing, need to compare upper bound of Co2 control intervals
+    //  
+    // Use internal procedure WS2812Out(_dataPin, _compressionType, _src, _len) with:
+    // _dataPin = constUserWS2812LedPin
+    // _compressionType = 1 ('repeat' type compression)
+    // _src = current constCO2LevelColors.color
+    // _len = size of current color[] array from co2LevelColors_t struct
+    //
+    // sizeof(((co2LevelColors_t){0}).color) is sizeof(co2LevelColors_t.color[]))
+    //      WS2812Out(constUserWS2812LedPin, 1, (uint8_t*) constCO2LevelColors[i].color, sizeof(((co2LevelColors_t){0}).color));
+    if (co2Level > constCO2LevelColors[i].upperBound) {
+      co2LevelIdx = i;
+    }
+  }
+  DTSL ( Serial.print("Use idx="); Serial.println(co2LevelIdx); )
+  WS2812Out(constUserWS2812LedPin, 1, (uint8_t*) constCO2LevelColors[co2LevelIdx].color, 3);
+
+#endif // FEATURE_USER_WS2812_LED_ENABLE
+
 
 }
 
 #endif // FEATURE_USER_FUNCTION_PROCESSING
+
+

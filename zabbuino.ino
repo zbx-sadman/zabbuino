@@ -8,8 +8,21 @@
 */
 
 /*-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
+<<<<<<< HEAD
+
+                            To avoid compilation errors use proper release Arduino IDE, please.
+
+                                                v1.6.11 and above is good
+
+*/
+
+/*-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
                                                    PROGRAMM FEATURES SECTION
 
+=======
+                                                   PROGRAMM FEATURES SECTION
+
+>>>>>>> origin/experimental
   Please refer to the "cfg_basic.h" file for enabling or disabling Zabbuino's features and refer to the "src/cfg_tune.h" to deep tuning.
   if connected sensors seems not work - first check setting in port_protect[], port_mode[], port_pullup[] arrays in I/O PORTS
   SETTING SECTION of "src/cfg_tune.h" file
@@ -105,9 +118,17 @@ void loop() {
 
 #ifdef FEATURE_SYSTEM_RTC_ENABLE
   DTSM( PRINT_PSTR("Init system RTC ");
+<<<<<<< HEAD
+  if (! initRTC(&SoftTWI)) {
+  Serial.print("un");
+  }
+  PRINTLN_PSTR("succesfull");
+      )
+=======
         if (! initRTC(&SoftTWI)) {Serial.print("un"); }
         PRINTLN_PSTR("succesfull"); 
   )  
+>>>>>>> origin/experimental
 #endif
 
 #ifdef FEATURE_USER_FUNCTION_PROCESSING
@@ -172,10 +193,21 @@ void loop() {
   set_zone(netConfig.tzOffset);
 #endif
 
+
   // 4. Network initialization and starting
   //
+<<<<<<< HEAD
+  Network.init(&netConfig);
+
+#ifdef FEATURE_USER_FUNCTION_PROCESSING
+  netPrepareStageUserFunction(cBuffer);
+#endif
+
+  Network.restart();
+=======
     Network.init(&netConfig);
     Network.restart();
+>>>>>>> origin/experimental
 
   DTSL( PRINTLN_PSTR("Serving on:");
         Network.showNetworkState();
@@ -186,12 +218,12 @@ void loop() {
 
       )
 
-/*
-#if !defined(NETWORK_RS485)
-  // Start listen sockets
-  Network.server.begin();
-#endif
-*/
+  /*
+    #if !defined(NETWORK_RS485)
+    // Start listen sockets
+    Network.server.begin();
+    #endif
+  */
   // 5. Other system parts initialization
   //
   // I/O ports initialization. Refer to "I/O PORTS SETTING SECTION" in src\cfg_tune.h
@@ -257,15 +289,16 @@ void loop() {
       millisRollover();
     }
 
-#if defined(FEATURE_NET_DHCP_ENABLE) || defined (NETWORK_ETH_ENC28J60)
-// || defined (NETWORK_RS485)
-    // maintain() is very important for UIPEthernet, because it call internal tick() subroutine
-    // but this subroutine adds more fat to WIZnet drivers, because includes DHCP functionality to firmware
-    result = Network.maintain();
+#if defined (NETWORK_ETH_ENC28J60)
+    // tick() subroutine is very important for UIPEthernet, and must be called often (every ~250ms)
+    // This subroutine available in Network object only if ENC28J60 driver used
+    Network.tick();
 #endif
 
 #if defined(FEATURE_NET_DHCP_ENABLE)
-    if (true == netConfig.useDHCP) {
+    if (Network.isDHCPUsed() ) {
+      // maintain() subroutine adds more fat to WIZnet drivers, because includes DHCP functionality to firmware even it not need
+      result = Network.maintain();
       // Renew procedure finished with success
       switch (result) {
         case DHCP_CHECK_NONE:
@@ -618,7 +651,11 @@ static int16_t executeCommand(char* _dst, char* _optarg[], netconfig_t* _netConf
     DTSH(
       PRINT_PSTR("argv["); Serial.print(i); PRINT_PSTR("] => \"");
     if ('\0' == *_optarg[i]) {
+<<<<<<< HEAD
+    PRINT_PSTR("<null>");
+=======
       PRINT_PSTR("<null>");
+>>>>>>> origin/experimental
     } else {
       Serial.print((char*) _optarg[i]);
     }
@@ -661,7 +698,7 @@ static int16_t executeCommand(char* _dst, char* _optarg[], netconfig_t* _netConf
       // Note: ~8bytes can be saved with copying bytes in while() cycle. But source code will not beauty
       memmove(_dst, _optarg[0], i);
       _dst[i] = '\n';
-//      _dst[i+1] = '\0';
+      //      _dst[i+1] = '\0';
       // immediately return RESULT_IS_NEW_COMMAND to re-run executeCommand() with new command
       return RESULT_IS_NEW_COMMAND;
       break;
@@ -821,7 +858,7 @@ static int16_t executeCommand(char* _dst, char* _optarg[], netconfig_t* _netConf
       //copy 0 .. (constAgentHostnameMaxLength-1) chars from buffer to hostname
       memcpy(_netConfig->hostname, _optarg[1], i);
       // Terminate string
-//      _netConfig->hostname[constAgentHostnameMaxLength] = '\0';
+      //      _netConfig->hostname[constAgentHostnameMaxLength] = '\0';
       _netConfig->hostname[i] = '\0';
       saveConfigToEEPROM(_netConfig);
       rc = RESULT_IS_OK;
@@ -926,7 +963,12 @@ static int16_t executeCommand(char* _dst, char* _optarg[], netconfig_t* _netConf
       //
       // Tested on ATmega328@16 and 8 pcs WS2812 5050 RGB LED bar
       if (isSafePin(argv[0])) {
+<<<<<<< HEAD
+          // 4-th param equal 0x00 mean that buffer not contain raw color bytes and must be prepared (converted from "0xABCDEF.." string)
+          rc = WS2812Out(argv[0], argv[1], (uint8_t*) _optarg[2], 0x00);
+=======
         rc = WS2812Out(argv[0], argv[1], (uint8_t*) _optarg[2]);
+>>>>>>> origin/experimental
       }
       break;
 #endif // FEATURE_WS2812_ENABLE
@@ -944,8 +986,8 @@ static int16_t executeCommand(char* _dst, char* _optarg[], netconfig_t* _netConf
       // hang-up if no delay
       delay(constNetStabilizationDelay);
       Network.client.stop();
-      // The reason why using the watchdog timer or RST_SWRST_bm is preferable over jumping to the reset vector, is that when the watchdog or RST_SWRST_bm resets the AVR, 
-      // the registers will be reset to their known, default settings. Whereas jumping to the reset vector will leave the registers in their previous state, which is 
+      // The reason why using the watchdog timer or RST_SWRST_bm is preferable over jumping to the reset vector, is that when the watchdog or RST_SWRST_bm resets the AVR,
+      // the registers will be reset to their known, default settings. Whereas jumping to the reset vector will leave the registers in their previous state, which is
       // generally not a good idea. http://www.atmel.com/webdoc/avrlibcreferencemanual/FAQ_1faq_softreset.html
 #ifdef FEATURE_WATCHDOG_ENABLE
       // Watchdog deactivation
@@ -1037,7 +1079,7 @@ static int16_t executeCommand(char* _dst, char* _optarg[], netconfig_t* _netConf
       //  DS18x20.temperature[pin, resolution, id]
       //
       if (! isSafePin(argv[0])) {
-       //   rc = DEVICE_ERROR_CONNECT;
+        //   rc = DEVICE_ERROR_CONNECT;
         break;
       }
 
@@ -1068,12 +1110,12 @@ static int16_t executeCommand(char* _dst, char* _optarg[], netconfig_t* _netConf
 #endif // FEATURE_MHZXX_PWM_ENABLE
 
 #ifdef FEATURE_MHZXX_UART_ENABLE
-        case CMD_MHZXX_UART_CO2:
-          //
-          //  MHZxx.UART.CO2[rxPin, txPin]
-          //
-          rc = getMHZxxMetricUART(argv[0], argv[1], (uint8_t*) _dst);
-          break;
+    case CMD_MHZXX_UART_CO2:
+      //
+      //  MHZxx.UART.CO2[rxPin, txPin]
+      //
+      rc = getMHZxxMetricUART(argv[0], argv[1], (uint8_t*) _dst);
+      break;
 #endif // FEATURE_MHZXX_UART_ENABLE
 
 
@@ -1269,7 +1311,7 @@ static int16_t executeCommand(char* _dst, char* _optarg[], netconfig_t* _netConf
           //  pzem004.setAddr[rxPin, txPin, addr]
           //
           rc = getPZEM004Metric(argv[0], argv[1], SENS_CHANGE_ADDRESS, _optarg[2], (uint8_t*) _dst);
-          break;         
+          break;
 #endif // FEATURE_PZEM004_ENABLE
 
 #ifdef FEATURE_UPS_APCSMART_ENABLE
@@ -1327,7 +1369,7 @@ static int16_t executeCommand(char* _dst, char* _optarg[], netconfig_t* _netConf
         case CMD_I2C_READ:
           //
           // i2c.read(sdaPin, sclPin, i2cAddress, register, length, numberOfReadings)
-          // 
+          //
           rc = readValueFromI2C(&SoftTWI, i2CAddress, i2CRegister, (uint32_t*) &value, argv[4], (('\0' != *_optarg[5]) ? argv[5] : 0x00));
           break;
 
@@ -1344,7 +1386,7 @@ static int16_t executeCommand(char* _dst, char* _optarg[], netconfig_t* _netConf
           //
           rc = bitReadFromI2C(&SoftTWI, i2CAddress, i2CRegister, argv[4], (uint8_t*) &value);
           break;
-          
+
 #endif // FEATURE_I2C_ENABLE
 
 #ifdef FEATURE_BMP_ENABLE
@@ -1415,6 +1457,8 @@ static int16_t executeCommand(char* _dst, char* _optarg[], netconfig_t* _netConf
           //  PCF8574.LCDPrint[sdaPin, sclPin, i2cAddress, lcdBacklight, lcdType, data]
           //
           rc = printToPCF8574LCD(&SoftTWI, i2CAddress, argv[3], argv[4], _optarg[5]);
+          // Store current time when on LCD was printed something to calculation in loopStageUserFunction() (for example) 'no refresh timeout' properly
+          sysMetrics.sysLCDLastUsedTime = millis();
           break;
 
 #endif // FEATURE_PCF8574_LCD_ENABLE
@@ -1443,7 +1487,9 @@ static int16_t executeCommand(char* _dst, char* _optarg[], netconfig_t* _netConf
           //  set.localtime[password, unixTimestamp, tzOffset]
           //  set.localtime must take unixTimestamp as UTC, because system.localtime command returns UTC too
           //
-          if (!accessGranted) { break; }
+          if (!accessGranted) {
+            break;
+          }
           // i used as succes bool variable
           i = true;
 #ifdef FEATURE_EEPROM_ENABLE
@@ -1462,7 +1508,9 @@ static int16_t executeCommand(char* _dst, char* _optarg[], netconfig_t* _netConf
           // unixTimestamp option is given?
           if ('\0' != *_optarg[1] && i) {
             // tzOffset is defined and stored sucesfully
-            if (setUnixTime(&SoftTWI, argv[1])) { rc = RESULT_IS_OK; }
+            if (setUnixTime(&SoftTWI, argv[1])) {
+              rc = RESULT_IS_OK;
+            }
           }
           break;
 #endif // FEATURE_SYSTEM_RTC_ENABLE
@@ -1471,19 +1519,21 @@ static int16_t executeCommand(char* _dst, char* _optarg[], netconfig_t* _netConf
         case CMD_AT24CXX_WRITE:
           //
           // AT24CXX.write[sdaPin, sclPin, i2cAddress, cellAddress, data]
-          // 
+          //
           // i is half length of decoded byte array
           //i = (strlen(_optarg[4]) - 2) / 2;
           i = hstoba((uint8_t*) _dst, _optarg[4]);
           if (0 < i) {
-            if (AT24CXXWrite(&SoftTWI, i2CAddress, argv[3], i, (uint8_t*) _dst)) { rc =  RESULT_IS_OK; }
+            if (AT24CXXWrite(&SoftTWI, i2CAddress, argv[3], i, (uint8_t*) _dst)) {
+              rc =  RESULT_IS_OK;
+            }
           }
           break;
 
         case CMD_AT24CXX_READ:
           //
           // AT24CXX.read[sdaPin, sclPin, i2cAddress, cellAddress, length]
-          // 
+          //
           if (AT24CXXRead(&SoftTWI, i2CAddress, argv[3], argv[4], (uint8_t*) _dst)) {
             // need to use _dst as uint8_t, because sometime autocast is fail and user can get wrong data
             uint8_t* _dstptr;
@@ -1511,18 +1561,27 @@ static int16_t executeCommand(char* _dst, char* _optarg[], netconfig_t* _netConf
         case CMD_MAX44009_LIGHT:
           //
           //  MAX44009.light[sdaPin, sclPin, i2cAddress, mode, integrationTime]
-          // 
-          // 0x08 == MAX44009_INTEGRATION_TIME_6MS+1 - put to integrationTime parameter wrong value if no arg#4 given 
+          //
+          // 0x08 == MAX44009_INTEGRATION_TIME_6MS+1 - put to integrationTime parameter wrong value if no arg#4 given
           // to kick getMAX44009Metric() to use auto measurement time
           rc = getMAX44009Metric(&SoftTWI, i2CAddress, argv[3], (('\0' == *_optarg[4]) ? 0x08 : argv[4]), SENS_READ_LUX, _dst);
           //rc = getMAX44009Metric(&SoftTWI, i2CAddress, argv[3], 0x08, SENS_READ_LUX, _dst);
           break;
 #endif // FEATURE_MAX44009_ENABLE
-      
+
       }  // switch (cmdIdx), I2C block
 #endif // TWI_USE
 
 #ifdef FEATURE_MODBUS_RTU_ENABLE
+<<<<<<< HEAD
+    case CMD_MODBUS_RTU_COILSREAD:
+      //  Modbus.RTU.CoilsRead[rxPin, txPin, enablePin, slaveAddr, startAddr, ]
+      // CMD_MODBUS_RTU_INPUTSREAD
+      // CMD_MODBUS_RTU_COILSWRITE
+      //rc = getModbusRTUMetric();
+      //rc = getMAX44009Metric(&SoftTWI, i2CAddress, argv[3], 0x08, SENS_READ_LUX, _dst);
+      break;
+=======
         case CMD_MODBUS_RTU_COILSREAD:
         //  Modbus.RTU.CoilsRead[rxPin, txPin, enablePin, slaveAddr, startAddr, ]
         // CMD_MODBUS_RTU_INPUTSREAD
@@ -1530,6 +1589,7 @@ static int16_t executeCommand(char* _dst, char* _optarg[], netconfig_t* _netConf
         //rc = getModbusRTUMetric();
           //rc = getMAX44009Metric(&SoftTWI, i2CAddress, argv[3], 0x08, SENS_READ_LUX, _dst);
           break;
+>>>>>>> origin/experimental
 #endif // FEATURE_MODBUS_RTU_ENABLE
 
   } // switch (cmdIdx) .. default in "commands with options" block
@@ -1602,7 +1662,7 @@ finish:
       Network.client.println(_dst);
     }
     DTSL( Serial.println(_dst); )
-  //   DTSM( Serial.print("[5] "); Serial.println(millis()); )
+    //   DTSM( Serial.print("[5] "); Serial.println(millis()); )
   }
 
   return cmdIdx;

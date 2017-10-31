@@ -144,7 +144,7 @@
 *   Overloads of main subroutine. Used to get numeric metric's value or it's char presentation only
 *
 *****************************************************************************************************************************/
-int8_t getBMPMetric(SoftwareWire*, uint8_t, const uint8_t, const uint8_t, const uint8_t, uint32_t*);
+int8_t getBMPMetric(SoftwareWire*, uint8_t, const uint8_t, const uint8_t, const uint8_t, int32_t*);
 int8_t getBMPMetric(SoftwareWire*, uint8_t, const uint8_t, const uint8_t, const uint8_t, char*);
 
 /*****************************************************************************************************************************

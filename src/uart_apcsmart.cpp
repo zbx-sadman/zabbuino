@@ -99,7 +99,7 @@ int8_t getAPCSmartUPSMetric(const uint8_t _rxPin, const uint8_t _txPin, uint8_t*
   //
   // Flush all device's transmitted data to avoid get excess data in recieve buffer
   // APC UPS can be flushed in slow mode
-  serialRXFlush(&swSerial, true);
+  serialRXFlush(&swSerial, UART_SLOW_MODE);
   command = 'Y';
   serialSend(&swSerial, &command, 1, true);
   DTSD( SerialPrintln_P(PSTR("Recieving from UPS")); )

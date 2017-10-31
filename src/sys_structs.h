@@ -39,6 +39,10 @@ typedef struct {
 //  uint16_t sysVCC;
   uint16_t sysVCCMin;                             // Maximum VCC (in mV) from MCU powering on
   uint16_t sysVCCMax;                             // Minimum VCC (in mV) from MCU powering on
+<<<<<<< HEAD
+  uint32_t sysLCDLastUsedTime;                    // Last time, when System LCD was used 
+=======
+>>>>>>> origin/experimental
   uint32_t sysRamFree;                            // "Current" free memory (in bytes).
   uint32_t sysRamFreeMin;                         // Minimum free memory (in bytes) from MCU powering on
   uint32_t netPHYReinits;                         // PHY reinits number (restarts of network module)

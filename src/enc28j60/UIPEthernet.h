@@ -81,6 +81,7 @@ public:
   // data and issue IP events to the sketch.  It does not return until all IP
   // events have been processed. Renews dhcp-lease if required.
   int maintain();
+  static void tick();
 
   IPAddress localIP();
   IPAddress subnetMask();
@@ -100,8 +101,6 @@ private:
 
   static void init(const uint8_t* mac);
   static void configure(IPAddress ip, IPAddress dns, IPAddress gateway, IPAddress subnet);
-
-  static void tick();
 
   static boolean network_send();
 

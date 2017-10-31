@@ -191,8 +191,7 @@ int8_t bitWriteToI2C(SoftwareWire* _softTWI, const uint8_t _i2cAddress, const in
 
   if (0x00 != readBytesFromI2C(_softTWI, _i2cAddress, _registerAddress, bytes, 1)) { goto finish; }
 
-  // "!!" convert value 0100 to 1.
-  bitWrite (bytes[0], _bitNumber, !!_value);
+  bitWrite (bytes[0], _bitNumber, (_value ? 1 : 0));
 
   // Write one byte to I2C
   rc = (0x00 == writeBytesToI2C(_softTWI, _i2cAddress, _registerAddress, bytes, 1)) ? RESULT_IS_OK : RESULT_IS_FAIL;

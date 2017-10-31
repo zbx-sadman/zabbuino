@@ -37,10 +37,11 @@ void writeByteToMAX7219(const uint8_t _dataPin, const uint8_t _clockPin, const u
 {
   int8_t i = 7;
   while(i >= 0) {
-    digitalWrite(_clockPin, LOW);                     // tick
-    digitalWrite(_dataPin, !!(_data & (0x01 << i)));  // send i-th bit value 
-    digitalWrite(_clockPin, HIGH);                    // tock
-    --i;                                              // move to lesser bit
+    digitalWrite(_clockPin, LOW);                             // tick
+//    digitalWrite(_dataPin, !!(_data & (0x01 << i)));        // send i-th bit value 
+    digitalWrite(_dataPin, ((_data & (0x01 << i)) ? 1 : 0));  // send i-th bit value 
+    digitalWrite(_clockPin, HIGH);                            // tock
+    --i;                                                      // move to lesser bit
   }
 }
 

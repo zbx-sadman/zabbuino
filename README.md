@@ -41,6 +41,17 @@ Changes:
  - _basic.h_ & _tune.h_ renamed to _cfg\_basic.h_ & _cfg\_tune.h_
 
 
+#### 31 Oct 2017
+Fixes:
+ - DHCP: Many troubles that switch Zabbuino to sloooow mode if no DHCP available while device need for it.
+
+Changes: 
+ -  Config files _basic.h_ & _tune.h_ is renamed to _cfg\_basic.h+ & _cfg\_tune.h_;
+ - _WS2812.SendRaw[_pin, _compressionType_, data]_ have new option - _compressionType_ . One type of compression are supported at this time - "nibble repeat method". 
+    It work like HTML color coding: 0xABC is converting to 0xAABBCC and then pushing to data line of Pixel led. Examples: _ws2812.sendraw[6,1,0xABC]_ - send 0xAABBCC to Led, which conncted to D6. _ws2812.sendraw[6,0,0xA1B2C3]_ - send 0xA1B2C3 to the same Led;
+ - _WS2812Out()_ internal function can be called from user plugin now.
+
+
 #### 07 July 2017
 Fixes:
  - Error -131 ("Device not conected") on first DHT21/AM2301 polling. Now sensor "wake up" time is 2 sec in according to datasheet.
@@ -67,8 +78,6 @@ Note#1: Cheap (home) UPS's ignore some commands. For example, Ippon can ignore '
 Note#2: S\*, C\*. is not tested actually.
 
 #### 29 March 2017
-
-Changes: 
 
 New feature:
  - _FEATURE\_MAX44009\_ENABLE_ - enable I2C connected MAX44009 sensor support and allow to use command:
@@ -309,7 +318,7 @@ New command:
 
 New commands:
  - _WS2812.SendRaw[dataPin, data]_ - send data to WS2812 led stripe.
-   - _pwmPin_ - pin to which WS2812's DIN connected;
+   - _dataPin_ - pin to which WS2812's DIN connected;
    - _data_ - prefixed HEX-string that contain encoded color data. Every led color specify by group of six HEX-numbers - two number (one byte) for every color in GRB order. Number of HEX groups is equal to number of leds in stripe. [8 leds bar](https://ru.aliexpress.com/item/Free-Shipping-NeoPixel-Stick-8-channel-WS2812-5050-RGB-LED-lights-built-in-full-color-driven/32582877809.html) example: zabbix_get.exe -s 192.168.0.1 -k "ws2812.sendraw[5,0x00FF00 001100 0000FF 000011 FF0000 110000 003333 330033]" (max red, min red, max blue, min blue and etc.);
 
 **Note #1** Code was taken from [Adafruit's NeoPixel](https://github.com/adafruit/Adafruit_NeoPixel) library and handles 800 KHz bitstreams on 16 MHz ATmega MCUs only.

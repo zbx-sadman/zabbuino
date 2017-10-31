@@ -9,6 +9,11 @@
 #define MH_ZXX_CMD_GAS_CONCENTRATION                            (0x86)
 #define MH_ZXX_PACKET_SIZE                                      (0x09)    // bytes
 #define MH_ZXX_DEFAULT_READ_TIMEOUT                             (1000UL)
+#define MH_ZXX_PREHEAT_TIMEOUT                                  (20000UL)  // Pre-heat sensor time. No reads are made, returns MH_ZXX_PREHEAT_GAS_CONCENTRATION value  
+                                                                           // On datasheet pre-heat time is 3 min, but less time can be used too 
+                                                                           // Increase it to avoid reading or measuring errors if need. 
+
+#define MH_ZXX_PREHEAT_GAS_CONCENTRATION                        (399)      // The value which will be returs on MH_ZXX_PREHEAT_TIMEOUT
 
 #define MH_ZXX_STARTING_BYTE                                    (0)
 #define MH_ZXX_SENSOR_NUMBER                                    (1)

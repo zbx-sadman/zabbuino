@@ -88,6 +88,8 @@ int8_t getPZEM004Metric(const uint8_t _rxPin, const uint8_t _txPin, uint8_t _met
   // 7-th byte - CRC
   _dst[6] = crcPZEM004(_dst, PZEM_PACKET_SIZE - 1); 
   // Serial.println("Send: ");  for(int i=0; i < PZEM_PACKET_SIZE; i++) { Serial.print("Byte# "); Serial.print(i); Serial.print(" => "); Serial.println(_dst[i], HEX);  }
+  // Flush all device's transmitted data to avoid get excess data in recieve buffer
+  serialRXFlush(&swSerial, !UART_SLOW_MODE);
   serialSend(&swSerial, _dst, PZEM_PACKET_SIZE, !UART_SLOW_MODE);
 
   //  Recieve from PZEM004

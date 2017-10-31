@@ -72,8 +72,8 @@ uint8_t isSafePin(const uint8_t _pin)
   result &= ~port_protect[digitalPinToPort(_pin)];
   // pinmask=B00100000, safemask=B11011100. result = B00100000 & ~B11011100 = B00100000 & B00100011 = B00100000. B00100000 > 0, pin is safe (not protected)
   // pinmask=B00100000, safemask=B11111100. result = B00100000 & ~B11111100 = B00100000 & B00000011 = B00000000. B00000000 == 0, pin is unsafe (protected)
-//  if (0 == result) { return false; } else { return true; }
-  return !!result;
+  return (result ? 1 : 0);
+  //return (bool) result;
 }
 
 

@@ -119,7 +119,7 @@ const uint8_t  constSystemRtcSDAPin                             = A4;     // SDA
 const uint8_t  constSystemRtcSCLPin                             = A5;     // SCL - A5
 const uint8_t  constSystemRtcI2CAddress                         = 0x68;   // DS3231 RTC I2C address 
 
-const uint16_t constUserFunctionCallInterval                    = 3000UL; // 3sec
+const uint16_t constUserFunctionCallInterval                    = 1000UL; // 3sec
 
 
 /* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
