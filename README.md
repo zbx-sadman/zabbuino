@@ -32,24 +32,20 @@ Implemented:
 - Support APC Smart UPS (with RS232 interface);
 - Simulate varuious vendor's IR transmitters.
 
-#### 06 Aug 2017
-Changes:
- - _shiftOut[]_ and _WS2812.sendRaw[]_ commands now have new option - _compressionType_. At this time only following methods supported:
-   - _0_ => no compression. All values from HEX-string send to pin directly;
-   - _1_ => 'Stripe second nibble' compression (it like HTML-color short record). Every nibble will repeated on decompression. 0xABC => 0xAABBCC. It will allow to use long LED stripes.
-   Example: _ws2812.sendraw[5,1,0x001]_ - first pixel on stripe switch to blue with minimal intensity after HEX-string decompression (0x000011).
- - _basic.h_ & _tune.h_ renamed to _cfg\_basic.h_ & _cfg\_tune.h_
-
-
 #### 31 Oct 2017
 Fixes:
  - DHCP: Many troubles that switch Zabbuino to sloooow mode if no DHCP available while device need for it.
 
 Changes: 
- -  Config files _basic.h_ & _tune.h_ is renamed to _cfg\_basic.h+ & _cfg\_tune.h_;
- - _WS2812.SendRaw[_pin, _compressionType_, data]_ have new option - _compressionType_ . One type of compression are supported at this time - "nibble repeat method". 
-    It work like HTML color coding: 0xABC is converting to 0xAABBCC and then pushing to data line of Pixel led. Examples: _ws2812.sendraw[6,1,0xABC]_ - send 0xAABBCC to Led, which conncted to D6. _ws2812.sendraw[6,0,0xA1B2C3]_ - send 0xA1B2C3 to the same Led;
  - _WS2812Out()_ internal function can be called from user plugin now.
+
+#### 06 Aug 2017
+Changes:
+ - _shiftOut[]_ and _WS2812.sendRaw[]_ commands now have new option - _compressionType_. At this time only following methods supported:
+   - _0_ => no compression. All values from HEX-string send to pin directly;
+   - _1_ => 'Repeat nibble' compression (it like HTML-color short record). Every nibble will repeated on decompression. 0xABC => 0xAABBCC. It will allow to use long LED stripes.
+   Example: _ws2812.sendraw[5,1,0x001]_ - first pixel on stripe switch to blue with minimal intensity after HEX-string decompression (0x000011).
+ - _basic.h_ & _tune.h_ renamed to _cfg\_basic.h_ & _cfg\_tune.h_
 
 
 #### 07 July 2017
