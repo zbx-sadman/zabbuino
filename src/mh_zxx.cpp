@@ -153,7 +153,6 @@ int8_t getMHZxxMetricPWM(uint8_t _pin, uint16_t _range, uint8_t* _dst, int32_t* 
      stopTimerOne(); 
      startTime = millis();
   
-<<<<<<< HEAD
      do {
         nowTime = millis();
         pinState = digitalRead(_pin);
@@ -210,17 +209,6 @@ int8_t getMHZxxMetricPWM(uint8_t _pin, uint16_t _range, uint8_t* _dst, int32_t* 
 
      // Return 'good concentracion' while sensor heated
      *_value = MH_ZXX_PREHEAT_GAS_CONCENTRATION;
-=======
-  finish:
-  if (MH_ZXX_STAGE_CYCLE_FINISHED == stage) {
-     DTSH( PRINT_PSTR("High level time: ");  Serial.print(highTime);
-           PRINT_PSTR(", low level time: "); Serial.println(highTime);
-     ) 
-     *_value = _range * (highTime - 2) / (highTime + lowTime - 4);
-     if (!_wantsNumber) {
-        ultoa(*_value, (char*) _dst, 10);
-     }
->>>>>>> origin/experimental
      rc = RESULT_IN_BUFFER;
   }  // if (millis() > MH_ZXX_PREHEAT_TIMEOUT)
 

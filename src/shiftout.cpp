@@ -87,11 +87,7 @@ int8_t shiftOutAdvanced(const uint8_t _dataPin, const uint8_t _clockPin, const u
 *            first pixel's data input and minimize distance between Arduino and first pixel.  
 *            Avoid connecting on a live circuit...if you must, connect GND first.
 *****************************************************************************************************************************/
-<<<<<<< HEAD
 int8_t WS2812Out(const uint8_t _dataPin, const uint8_t _compressionType, uint8_t* _src, uint16_t _len) 
-=======
-int8_t WS2812Out(const uint8_t _dataPin, const uint8_t _compressionType, uint8_t* _src) 
->>>>>>> origin/experimental
 {
   volatile uint8_t  *port;         // Output PORT register
   uint8_t pinMask;                 // Output PORT bitmask
@@ -103,7 +99,6 @@ int8_t WS2812Out(const uint8_t _dataPin, const uint8_t _compressionType, uint8_t
                    lo;             // PORT w/output bit set low
   volatile uint8_t next, bit;
 
-<<<<<<< HEAD
   // Prepare the buffer for burst bit-banging or just use array with raw color coding bytes if it _len> 0
   //Serial.print("_len = ");Serial.println(_len);
 
@@ -127,12 +122,6 @@ int8_t WS2812Out(const uint8_t _dataPin, const uint8_t _compressionType, uint8_t
 //  Serial.print("i = ");Serial.println(i);
   //for (byte k=0; k < i; k++) { Serial.println(_src[k], HEX); } 
  
-=======
-  // Prepare the buffer for burst bit-banging
-  i = prepareBufferForAdvShiftout(MSBFIRST, _compressionType, _src);
-  if (i <= 0) { return RESULT_IS_FAIL; }
-
->>>>>>> origin/experimental
   pinMode(_dataPin, OUTPUT);
   digitalWrite(_dataPin, LOW);
   port    = portOutputRegister(digitalPinToPort(_dataPin));
@@ -277,11 +266,7 @@ int16_t prepareBufferForAdvShiftout(const uint8_t _bitOrder, const uint8_t compr
       // Data will be 'decompressed' from HEX string by repeat every nibble twice: FD3 => FFDD33
       // This compression method allow to minimize len of recieved HEX-string when it used for color coding (RGB pixel leds and etc)
       case 1:
-<<<<<<< HEAD
         DTSD ( SerialPrintln_P(PSTR("'repeat' type compression ")); )
-=======
-        DTSD ( SerialPrintln_P(PSTR("'repeat' decompression ")); )
->>>>>>> origin/experimental
         for (dataBufferReadPosition = 0; dataBufferReadPosition <= lenOfBuffer; dataBufferReadPosition++) {
             _src[dataBufferReadPosition] = (_src[dataBufferReadPosition] << 4) | _src[dataBufferReadPosition];
         }

@@ -209,11 +209,7 @@ int8_t printToPCF8574LCD(SoftwareWire* _softTWI, uint8_t _i2cAddress, uint8_t _l
              // take next two char (+2 & +3) and move pointer 
              if (*(_src+2) && *(_src+3)) { 
                 currChar = (htod((char) tolower(*(_src+2))) << 4) + htod((char) tolower(*(_src+3))); 
-<<<<<<< HEAD
                 _src += 2; 
-=======
-                _src += 3; 
->>>>>>> origin/experimental
              }
              break;
          } // switch (*(_src+1))

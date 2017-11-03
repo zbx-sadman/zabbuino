@@ -70,7 +70,6 @@
 #include "ir.h"
 #include "interrupts.h"
 #include "mh_zxx.h"
-#include "modbus.h"
 #include "ultrasonic.h"
 #include "shiftout.h"
 #include "busMicrowire.h"

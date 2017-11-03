@@ -1,14 +1,4 @@
-
 /*-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
-                                                                 
-                             To avoid compilation errors use proper release Arduino IDE, please. 
- 
-                                                 v1.6.11 and above is good
-
-*/
-
-/*-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
-<<<<<<< HEAD
 
                             To avoid compilation errors use proper release Arduino IDE, please.
 
@@ -19,10 +9,6 @@
 /*-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
                                                    PROGRAMM FEATURES SECTION
 
-=======
-                                                   PROGRAMM FEATURES SECTION
-
->>>>>>> origin/experimental
   Please refer to the "cfg_basic.h" file for enabling or disabling Zabbuino's features and refer to the "src/cfg_tune.h" to deep tuning.
   if connected sensors seems not work - first check setting in port_protect[], port_mode[], port_pullup[] arrays in I/O PORTS
   SETTING SECTION of "src/cfg_tune.h" file
@@ -118,17 +104,11 @@ void loop() {
 
 #ifdef FEATURE_SYSTEM_RTC_ENABLE
   DTSM( PRINT_PSTR("Init system RTC ");
-<<<<<<< HEAD
   if (! initRTC(&SoftTWI)) {
   Serial.print("un");
   }
   PRINTLN_PSTR("succesfull");
       )
-=======
-        if (! initRTC(&SoftTWI)) {Serial.print("un"); }
-        PRINTLN_PSTR("succesfull"); 
-  )  
->>>>>>> origin/experimental
 #endif
 
 #ifdef FEATURE_USER_FUNCTION_PROCESSING
@@ -196,7 +176,6 @@ void loop() {
 
   // 4. Network initialization and starting
   //
-<<<<<<< HEAD
   Network.init(&netConfig);
 
 #ifdef FEATURE_USER_FUNCTION_PROCESSING
@@ -204,10 +183,6 @@ void loop() {
 #endif
 
   Network.restart();
-=======
-    Network.init(&netConfig);
-    Network.restart();
->>>>>>> origin/experimental
 
   DTSL( PRINTLN_PSTR("Serving on:");
         Network.showNetworkState();
@@ -651,11 +626,7 @@ static int16_t executeCommand(char* _dst, char* _optarg[], netconfig_t* _netConf
     DTSH(
       PRINT_PSTR("argv["); Serial.print(i); PRINT_PSTR("] => \"");
     if ('\0' == *_optarg[i]) {
-<<<<<<< HEAD
     PRINT_PSTR("<null>");
-=======
-      PRINT_PSTR("<null>");
->>>>>>> origin/experimental
     } else {
       Serial.print((char*) _optarg[i]);
     }
@@ -780,7 +751,7 @@ static int16_t executeCommand(char* _dst, char* _optarg[], netconfig_t* _netConf
 
     case CMD_ARDUINO_DIGITALREAD:
       //
-      //  digitalRead[pin]                                                      
+      //  digitalRead[pin]
       //
       value = digitalRead(argv[0]);
       rc = RESULT_IS_UNSIGNED_VALUE;
@@ -963,12 +934,8 @@ static int16_t executeCommand(char* _dst, char* _optarg[], netconfig_t* _netConf
       //
       // Tested on ATmega328@16 and 8 pcs WS2812 5050 RGB LED bar
       if (isSafePin(argv[0])) {
-<<<<<<< HEAD
           // 4-th param equal 0x00 mean that buffer not contain raw color bytes and must be prepared (converted from "0xABCDEF.." string)
           rc = WS2812Out(argv[0], argv[1], (uint8_t*) _optarg[2], 0x00);
-=======
-        rc = WS2812Out(argv[0], argv[1], (uint8_t*) _optarg[2]);
->>>>>>> origin/experimental
       }
       break;
 #endif // FEATURE_WS2812_ENABLE
@@ -1573,7 +1540,6 @@ static int16_t executeCommand(char* _dst, char* _optarg[], netconfig_t* _netConf
 #endif // TWI_USE
 
 #ifdef FEATURE_MODBUS_RTU_ENABLE
-<<<<<<< HEAD
     case CMD_MODBUS_RTU_COILSREAD:
       //  Modbus.RTU.CoilsRead[rxPin, txPin, enablePin, slaveAddr, startAddr, ]
       // CMD_MODBUS_RTU_INPUTSREAD
@@ -1581,15 +1547,6 @@ static int16_t executeCommand(char* _dst, char* _optarg[], netconfig_t* _netConf
       //rc = getModbusRTUMetric();
       //rc = getMAX44009Metric(&SoftTWI, i2CAddress, argv[3], 0x08, SENS_READ_LUX, _dst);
       break;
-=======
-        case CMD_MODBUS_RTU_COILSREAD:
-        //  Modbus.RTU.CoilsRead[rxPin, txPin, enablePin, slaveAddr, startAddr, ]
-        // CMD_MODBUS_RTU_INPUTSREAD
-        // CMD_MODBUS_RTU_COILSWRITE
-        //rc = getModbusRTUMetric();
-          //rc = getMAX44009Metric(&SoftTWI, i2CAddress, argv[3], 0x08, SENS_READ_LUX, _dst);
-          break;
->>>>>>> origin/experimental
 #endif // FEATURE_MODBUS_RTU_ENABLE
 
   } // switch (cmdIdx) .. default in "commands with options" block

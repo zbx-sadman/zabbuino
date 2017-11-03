@@ -121,16 +121,10 @@ void NetworkClass::restart() {
 
 
  //Serial.println("p4");
-<<<<<<< HEAD
   // No DHCP offer recieved or no DHCP need - start with stored/netDefault IP config
   if (useDefaultIP) {
      DTSM( PRINTLN_PSTR("Use default IP"); )
      useDHCP = false;
-=======
-  // No DHCP offer recieved or no DHCP need - start with stored/default IP config
-  if (useStaticIP) {
-     DTSM( PRINTLN_PSTR("Use static IP"); )
->>>>>>> origin/experimental
 
 #if defined(NETWORK_ETH_ENC28J60) || defined(NETWORK_ETH_WIZNET)
      // That overloaded .begin() function return nothing

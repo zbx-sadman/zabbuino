@@ -20,11 +20,7 @@ int8_t shiftOutAdvanced(const uint8_t _dataPin, const uint8_t _clockPin, const u
 *     - none
 *
 *****************************************************************************************************************************/
-<<<<<<< HEAD
 int8_t WS2812Out(const uint8_t _dataPin, const uint8_t _compressionType, uint8_t* _src, uint16_t _len = 0);
-=======
-int8_t WS2812Out(const uint8_t _dataPin, const uint8_t _compressionType, uint8_t* _src);
->>>>>>> origin/experimental
 
 /*****************************************************************************************************************************
 *
