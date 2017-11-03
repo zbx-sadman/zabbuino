@@ -1,17 +1,9 @@
-/*/
-/=/                                               Zabbuino v1.2.2 and above required
-/=/ 
-/=/  This plugin written for "Network environment monitoring station & informer" (https://github.com/zbx-sadman/zabbuino/wiki/Zabbuino-User-Cases-in-Russian)
-/=/  
-/=/  Equipment that need for project: 
-/=/    - AM2301 sensor - 2pcs
-/=/    - BMP280 sensor - 1pcs
-/=/    - MH-Z19 sensor - 1pcs
-/=/    - 2004 LCD display + I2C interface module - 1pcs
-/=/    - WS2812/WS2811 pixel led module - 1pcs
-/=/    - Arduino Mini Pro / Nano / Uno / Any ATMega328 based with Optiboot firmware
-/*/
 #ifdef FEATURE_USER_FUNCTION_PROCESSING
+
+/*/
+  /=/ Enable support the user display (LCD which connected via I2C interface)
+  /=/ You must build it manually by example virtual screen #1 in plugin.ino subroutine
+  /*/
 
 // Enable or disable some functional blocks:
 // Output to LCD
@@ -19,12 +11,13 @@
 // Using WS2812 Pixel LED to indicate CO2 level by color
 #define FEATURE_USER_WS2812_LED_ENABLE
 
-const int32_t  constSensorErrorCode                           = 999;     // This number will be shown if sensor error detected
+const int32_t  constSensorErrorCode3digit                     = 999;     // This 3 digit number will be shown if sensor error detected
+const int32_t  constSensorErrorCode4digit                     = 9999;    // This 4 digit number will be shown if sensor error detected
 
 // System display settings
 
-const uint8_t  constUserDisplaySDAPin                         = 4;       // SDA <-> D4
-const uint8_t  constUserDisplaySCLPin                         = 5;       // SCL <-> D5
+const uint8_t  constUserDisplaySDAPin                         = 4;       // SDA <-> 4
+const uint8_t  constUserDisplaySCLPin                         = 5;       // SCL <-> 5
 const uint8_t  constUserDisplayI2CAddress                     = 0x27;    // I2C LCD interface board address
 const uint8_t  constUserDisplayBackLight                      = 0x01;    // backlight off
 const uint16_t constUserDisplayType                           = 2004;    // 16x2 screen, refer to source code of printToPCF8574LCD() subroutine
@@ -34,18 +27,18 @@ const uint32_t constUserDisplayNoRefreshTimeout               = 10000UL; // Disp
 #if defined(FEATURE_USER_WS2812_LED_ENABLE)
 // Other indicators settings
 const uint8_t  constUserWS2812LedPin                          = A3;       // WS2812 DIN <-> A3
-typedef struct {                                                          // 11 bytes:
-  int32_t lowerBound;                                                     // 4 bytes
-  int32_t upperBound;                                                     // 4 bytes
+typedef struct {                                                          // 7 bytes:
+  int32_t lowerBound;                                                     // 2 bytes
+  int32_t upperBound;                                                     // 2 bytes
   uint8_t color[3];                                                       // 3 byte - G & R & B
 } co2LevelColors_t ;
 
 // https://tion.ru/blog/normy-co2/
 //const co2LevelColors_t constCO2LevelColors[]                 = { {0, 0, {0x40, 0x00, 0x00}}, {800, 900, {0x80, 0x40, 0x00}}, {1000, 1400, {0x40, 0x80, 0x00}}, {2400, 2500, {0x00, 0xFF, 0x00}} };
 //const co2LevelColors_t constCO2LevelColors[]                 = { {600, 800, {0x40, 0x00, 0x00}}, {800, 1000, {0x80, 0x40, 0x00}}, {1000, 1900, {0x40, 0x80, 0x00}}, {1900, 2500, {0x00, 0xFF, 0x00}} };
-const co2LevelColors_t constCO2LevelColors[]                  = { {0, 0, {0x40, 0x00, 0x00}}, {0, 800, {0x40, 0x40, 0x00}}, {0, 1400, {0x00, 0x40, 0x00}} };
+const co2LevelColors_t constCO2LevelColors[]                 = { {0, 0, {0x40, 0x00, 0x00}}, {0, 800, {0x40, 0x40, 0x00}}, {0, 1400, {0x00, 0x40, 0x00}} };
 //const uint8_t co2LevelIntervals                              = sizeof(constCO2LevelColors) / sizeof(constCO2LevelColors)[0];
-const uint8_t co2LevelIntervals                               = 3;
+const uint8_t co2LevelIntervals                              = 3;
 
 #endif // FEATURE_USER_WS2812_LED_ENABLE
 
@@ -64,7 +57,7 @@ const uint8_t  constMHZXXPWMPin                               = 2;              
 const uint16_t constMHZXXRange                                = 5000;                    // MH-Z19 range is 5000PPM
 
 // Indoor DHT sensor
-const uint8_t  constIndoorDHTPin                              = 6;                      // Sensor's DATA pin <-> D6
+const uint8_t  constIndoorDHTPin                              = 6;                       // Sensor's DATA pin <-> D6
 const uint8_t  constIndoorDHTType                             = 21;                      // DHT 21, AM2301
 
 // Outdoor DHT sensor
@@ -78,7 +71,7 @@ const uint8_t  constOutdoorDHTType                            = 21;             
 
 *****************************************************************************************************************************/
 void initStageUserFunction(char* _buffer) {
-  uint8_t arr[]={0x00, 0x00, 0xF0};
+  //uint8_t arr[]={0x00, 0x00, 0x40};
   // Note that not all system struct is initialized at this stage and you can't get localIP() or localtime() info
   _buffer[0] = 0x06;
   _buffer[1] = 0x01;
@@ -88,7 +81,7 @@ void initStageUserFunction(char* _buffer) {
   SoftTWI.reconfigure(constUserDisplaySDAPin, constUserDisplaySCLPin);
   printToPCF8574LCD(&SoftTWI, constUserDisplayI2CAddress, constUserDisplayBackLight, constUserDisplayType, _buffer);
 
-  WS2812Out(constUserWS2812LedPin, 1, (uint8_t*) &arr, 3);
+  WS2812Out(constUserWS2812LedPin, 1, (uint8_t*) &constCO2LevelColors[0].color, 3);
   /*
     Serial.print("1: ");Serial.println(constCO2LevelColors[0].color[0]);
     Serial.print("2: ");Serial.println(constCO2LevelColors[0].color[1]);
@@ -132,6 +125,7 @@ int8_t executeCommandUserFunction(char* _buffer, char* _optarg[], int32_t* argv)
     //SerialPrint_P(PSTR("& as number: ")); Serial.println(argv[0]);
     return RESULT_IS_OK;
   }
+  return RESULT_IS_FAIL;
 }
 
 /*****************************************************************************************************************************
@@ -141,15 +135,15 @@ int8_t executeCommandUserFunction(char* _buffer, char* _optarg[], int32_t* argv)
 *****************************************************************************************************************************/
 void loopStageUserFunction(char* _buffer) {
   int8_t rc;
-  static int32_t co2Level                = 0,
+  static int32_t co2Level                = constSensorErrorCode4digit,
                  co2PrevLevel            = 0,
-                 insidePressureLevel     = 0,
-                 insideTemperatureLevel  = 0,
-                 indoorTemperatureLevel  = 0,
-                 indoorHumidityLevel     = 0,
-                 outdoorHumidityLevel    = 0,
-                 outdoorTemperatureLevel = 0;
-  static uint8_t sensorReadStep = 0x01;
+                 insidePressureLevel     = constSensorErrorCode4digit,
+                 insideTemperatureLevel  = constSensorErrorCode3digit,
+                 indoorTemperatureLevel  = constSensorErrorCode3digit,
+                 indoorHumidityLevel     = constSensorErrorCode3digit,
+                 outdoorHumidityLevel    = constSensorErrorCode3digit,
+                 outdoorTemperatureLevel = constSensorErrorCode3digit;
+  static uint8_t sensorReadStep = 0x00;
   //  static uint32_t prevSensorsReadTime = 0;
   static IPAddress deviceIP;
 
@@ -164,7 +158,7 @@ void loopStageUserFunction(char* _buffer) {
       rc = getDHTMetric(constOutdoorDHTPin, constOutdoorDHTType, SENS_READ_TEMP, &outdoorTemperatureLevel);
       if (RESULT_IN_BUFFER != rc) {
         // Place error code fo temperature field
-        outdoorTemperatureLevel = constSensorErrorCode;
+        outdoorTemperatureLevel = constSensorErrorCode3digit;
       } else {
         // Take whole part of degree only
         outdoorTemperatureLevel = (outdoorTemperatureLevel) / 10;
@@ -179,7 +173,7 @@ void loopStageUserFunction(char* _buffer) {
       rc = getBMPMetric(&SoftTWI, constBMPI2CAddress, constBMPPressureOversampling, constBMPFilterCoef, SENS_READ_PRSS, &insidePressureLevel);
       if (RESULT_IN_BUFFER != rc) {
         // Place error code fo pressure field
-        insidePressureLevel = constSensorErrorCode;
+        insidePressureLevel = constSensorErrorCode3digit;
       } else {
         // Convert Pa to mm rt st
         insidePressureLevel = insidePressureLevel / 133;
@@ -194,7 +188,7 @@ void loopStageUserFunction(char* _buffer) {
       rc = getDHTMetric(constIndoorDHTPin, constIndoorDHTType, SENS_READ_TEMP, &indoorTemperatureLevel);
       if (RESULT_IN_BUFFER != rc) {
         // Place error code fo temperature field
-        indoorTemperatureLevel = constSensorErrorCode;
+        indoorTemperatureLevel = constSensorErrorCode3digit;
       } else {
         // Take whole part of degree only
         indoorTemperatureLevel = (indoorTemperatureLevel) / 10;
@@ -206,7 +200,7 @@ void loopStageUserFunction(char* _buffer) {
       rc = getBMPMetric(&SoftTWI, constBMPI2CAddress, constBMPTemperatureOversampling, constBMPFilterCoef, SENS_READ_TEMP, &insideTemperatureLevel);
       if (RESULT_IN_BUFFER != rc) {
         // Place error code fo temperature field
-        insideTemperatureLevel = constSensorErrorCode;
+        insideTemperatureLevel = constSensorErrorCode3digit;
       } else {
         // Take whole part of degree only
         insideTemperatureLevel = (insideTemperatureLevel + 50) / 100;
@@ -219,7 +213,7 @@ void loopStageUserFunction(char* _buffer) {
       rc = getDHTMetric(constOutdoorDHTPin, constOutdoorDHTType, SENS_READ_HUMD, &outdoorHumidityLevel);
       if (RESULT_IN_BUFFER != rc) {
         // Place error code fo temperature field
-        outdoorHumidityLevel = constSensorErrorCode;
+        outdoorHumidityLevel = constSensorErrorCode3digit;
       } else {
         // Take whole part of percent only
         outdoorHumidityLevel = (outdoorHumidityLevel) / 10;
@@ -228,10 +222,10 @@ void loopStageUserFunction(char* _buffer) {
 
     // Get CO2 level
     case 0x06:
-      co2PrevLevel = co2Level;  // need to detect & handle 'previous level value was wrong (9999)' case
+      co2PrevLevel = (constSensorErrorCode4digit == co2Level) ? 0 : co2Level;  // need to detect & handle 'previous level value was wrong (9999)' case
       rc = getMHZxxMetricPWM(constMHZXXPWMPin, constMHZXXRange, &co2Level);
       if (RESULT_IN_BUFFER != rc) {
-        co2Level = 9999; // constSensorErrorCode;
+        co2Level = constSensorErrorCode4digit;
       }
       // Serial.print("co2Level = "); Serial.println(co2Level);
       break;
@@ -241,7 +235,7 @@ void loopStageUserFunction(char* _buffer) {
       rc = getDHTMetric(constIndoorDHTPin, constIndoorDHTType, SENS_READ_HUMD, &indoorHumidityLevel);
       if (RESULT_IN_BUFFER != rc) {
         // Place error code fo temperature field
-        indoorHumidityLevel = constSensorErrorCode;
+        indoorHumidityLevel = constSensorErrorCode3digit;
       } else {
         // Take whole part of percent only
         indoorHumidityLevel = (indoorHumidityLevel) / 10;
@@ -251,7 +245,7 @@ void loopStageUserFunction(char* _buffer) {
     //  All sensors are polled, restart round
     default:
       sensorReadStep = 0x00;
-      break;
+      return;
   }
   // Next metric will be taken on next polling
   sensorReadStep++;
@@ -271,7 +265,7 @@ void loopStageUserFunction(char* _buffer) {
 
   // Get current time
   nowTime = millis();
-
+ 
   // LCD was used by external process (incoming message from Zabbix server exist, for example) and renew not allowed for some secs (constUserDisplayNoRefreshTimeout)
   if (constUserDisplayNoRefreshTimeout > (uint32_t) (nowTime - sysMetrics.sysLCDLastUsedTime )) {
     return;
@@ -281,7 +275,6 @@ void loopStageUserFunction(char* _buffer) {
   if (constUserDisplayRenewInterval > (uint32_t) (nowTime - prevUserDisplayRenewTime)) {
     return;
   }
-
 
   prevUserDisplayRenewTime = nowTime;
 
@@ -293,17 +286,17 @@ void loopStageUserFunction(char* _buffer) {
   switch (reportVirtualScreenCnt) {
     case 0x00:
       // Replace 'IP : DHCP' message to 'IP : XXX.XXX.XXX.XXX' on very first step
-      dataLength = sprintf_P(_buffer, PSTR("\x0C\x02\n\n\nIP : %03d.%03d.%03d.%03d"), deviceIP[0], deviceIP[1], deviceIP[2], deviceIP[3]);
+      dataLength = sprintf_P(_buffer, PSTR("\x0C\n\n\nIP : %03d.%03d.%03d.%03d"), deviceIP[0], deviceIP[1], deviceIP[2], deviceIP[3]);
       // Clear need before print any other information on the screen
       clearScreenOnNextStep = true;
       break;
     case 0x01:
       howLongWork = (uptime() / 60 / 60 ) % 100 ;
       // [s]printf is a function that can show to us many tricks. For example:
-      // - "\xDFC" will be coverted not to 0xDF & 'C', to 0xFC. "\xDF\C" is the same substring that give 0xDF & 'C' to us.
+      // - "\xDFC" will be coverted not to 0xDF & 'C', but to 0xFC. "\xDF\0x43" is the same substring that give 0xDF & 'C' to us.
       // - '+' char in format give +/- signs before digits (it good for temperature value)
-      dataLength = sprintf_P(&_buffer[dataLength], PSTR("\x0CIN : %+4ld\xDF\C %3ld%% %2ld%c\n\t%4ld mm %4ld PPM\n\n\nOUT: %+4ld\xDF\C %3ld%%"), indoorTemperatureLevel, \
-                             indoorHumidityLevel, howLongWork, animationChars[animationStep], insidePressureLevel, co2Level, outdoorTemperatureLevel, outdoorHumidityLevel);
+            dataLength = sprintf_P(&_buffer[dataLength], PSTR("\x0CIN : %+4ld\xDF\x43 %3ld%% %2ld%c\n\t%4ld mm %4ld PPM\n\n\nOUT: %+4ld\xDF\x43 %3ld%%"), indoorTemperatureLevel, \
+                                 indoorHumidityLevel, howLongWork, animationChars[animationStep], insidePressureLevel, co2Level, outdoorTemperatureLevel, outdoorHumidityLevel);
       animationStep++;
       if (sizeof(animationChars) <= animationStep) {
         animationStep = 0x00;
@@ -317,8 +310,9 @@ void loopStageUserFunction(char* _buffer) {
     */
     default:
       // Restart round & skip init screen
-      reportVirtualScreenCnt = 0x00;
-      break;
+      reportVirtualScreenCnt = 0x01;
+      // jump out from sub to avoid printing _buffer that contain 0x02 only
+      return ;
   }
   if (EOF == dataLength) {
     dataLength = 0;
@@ -333,25 +327,31 @@ void loopStageUserFunction(char* _buffer) {
 #endif //FEATURE_USER_DISPLAY_ENABLE
 #if defined(FEATURE_USER_WS2812_LED_ENABLE)
 
-  char co2Direction = (co2Level > co2PrevLevel) ? '>' : '<';
-  DTSL ( Serial.print("co2Level: "); Serial.print(co2PrevLevel); Serial.print(" "); Serial.print(co2Direction); Serial.print(" "); Serial.println(co2Level); )
+  
+  DTSL (
+    char co2Direction = (co2Level > co2PrevLevel) ? '>' : '<';
+    Serial.print("co2Level: "); Serial.print(co2PrevLevel); Serial.print(" "); Serial.print(co2Direction); Serial.print(" "); Serial.println(co2Level); 
+  )
+    
   for (i = 0; co2LevelIntervals > i; i++) {
-  DTSL ( Serial.print("constCO2LevelColors[");Serial.print(i);Serial.print("]=");Serial.println(constCO2LevelColors[i].upperBound); )
-  // Co2 is growing, need to compare upper bound of Co2 control intervals
-  //  }
-  // Use internal procedure WS2812Out(_dataPin, _compressionType, _src, _len) with:
-  // _dataPin = constUserWS2812LedPin
-  // _compressionType = 1 ('repeat' type compression)
-  // _src = current constCO2LevelColors.color
-  // _len = size of current color[] array from co2LevelColors_t struct
-  //
-  // sizeof(((co2LevelColors_t){0}).color) is sizeof(co2LevelColors_t.color[]))
-  //      WS2812Out(constUserWS2812LedPin, 1, (uint8_t*) constCO2LevelColors[i].color, sizeof(((co2LevelColors_t){0}).color));
-        if (co2Level > constCO2LevelColors[i].upperBound) { co2LevelIdx = i; }
+    DTSL ( Serial.print("constCO2LevelColors["); Serial.print(i); Serial.print("]="); Serial.println(constCO2LevelColors[i].upperBound); )
+    // Co2 is growing, need to compare upper bound of Co2 control intervals
+    //  
+    // Use internal procedure WS2812Out(_dataPin, _compressionType, _src, _len) with:
+    // _dataPin = constUserWS2812LedPin
+    // _compressionType = 1 ('repeat' type compression)
+    // _src = current constCO2LevelColors.color
+    // _len = size of current color[] array from co2LevelColors_t struct
+    //
+    // sizeof(((co2LevelColors_t){0}).color) is sizeof(co2LevelColors_t.color[]))
+    //      WS2812Out(constUserWS2812LedPin, 1, (uint8_t*) constCO2LevelColors[i].color, sizeof(((co2LevelColors_t){0}).color));
+    if (co2Level > constCO2LevelColors[i].upperBound) {
+      co2LevelIdx = i;
+    }
   }
   DTSL ( Serial.print("Use idx="); Serial.println(co2LevelIdx); )
   WS2812Out(constUserWS2812LedPin, 1, (uint8_t*) constCO2LevelColors[co2LevelIdx].color, 3);
-  
+
 #endif // FEATURE_USER_WS2812_LED_ENABLE
 
 
