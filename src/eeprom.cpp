@@ -25,7 +25,7 @@ uint8_t saveConfigToEEPROM(netconfig_t *_configStruct)
   DTSM ( SerialPrintln_P(PSTR("Saving config to EEPROM")); )
   // Calculate CRC of _configStruct and place it to first byte of structure to batch writing.
   // CRC-byte must be skipped on CRC calculating
-  _configStruct->CRC = dallas_crc8(((uint8_t*) _configStruct) + CONFIG_CRC_LEN, sizeof(netconfig_t));
+  _configStruct->CRC = dallas_crc8(((uint8_t*) _configStruct) + sizeof(netconfig_t::CRC), sizeof(netconfig_t)-sizeof(netconfig_t::CRC));
 
   // Save every byte of _configStruct to EEPROM
 
@@ -102,18 +102,20 @@ uint8_t loadConfigFromEEPROM(netconfig_t *_configStruct)
   }
 
   // Read all bytes from EEPROM to config structure
-  // no sense to call AVR functions directly - sketch still uses the same size of program storage space and RAM.
+  // no sense to call AVR functions directly - sketch still uses the same or more (with eeprom_read_block() ) size of program storage space and RAM/
   // p_configStruct[index] = eeprom_read_byte((uint8_t *) index);
   // EEPROM.read(index) eq EEPROM[index], but last is looks nice
+
   index = sizeof(netconfig_t);
   while (index) {
      index--;
      p_configStruct[index] = EEPROM[startAddress + index];
   }
+
                                     
   // Comparing loaded and calculated CRC and return false if its not equal
   // First byte of structure is CRC, it's must be skipped on CRC calculating
-  if (dallas_crc8(((uint8_t*) _configStruct) + CONFIG_CRC_LEN, sizeof(netconfig_t)) != _configStruct->CRC) {
+  if (dallas_crc8(((uint8_t*) _configStruct) + sizeof(netconfig_t::CRC), sizeof(netconfig_t)-sizeof(netconfig_t::CRC)) != _configStruct->CRC) {
      return false;
   } 
 

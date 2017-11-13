@@ -103,8 +103,6 @@ ADC channels
 #define DBG_PRINT_AS_MAC 		                        (0x01)
 #define DBG_PRINT_AS_IP  		                        (0x02)
 
-// Length of netconfig_t's CRC field
-#define CONFIG_CRC_LEN                                          (0x01)
 // PoConfig will be stored or loaded on ...                         
 #define CONFIG_STORE_PTR_ADDRESS                                (0x01)
 #define CONFIG_STORE_DEFAULT_START_ADDRESS                      (0x02)

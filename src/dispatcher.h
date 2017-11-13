@@ -28,10 +28,7 @@
 #include "SoftwareWire/SoftwareWire.h"
 #include "NetworkAddress.h"
 #include "network.h"
-#include "sys_structs.h"
 #include "sys_commands.h"
-#include "sys_macros.h"
-#include "sys_debug.h"
 #include "sys_platforms.h"
 
 // runtime libs 
@@ -73,5 +70,27 @@
 #include "ultrasonic.h"
 #include "shiftout.h"
 #include "busMicrowire.h"
+
+/*-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
+                                                   GLOBAL VARIABLES SECTION
+*/
+
+// some members of struct used in timer's interrupt
+volatile sysmetrics_t sysMetrics;
+
+netconfig_t netConfig;
+
+NetworkClass Network;
+
+#ifdef TWI_USE
+SoftwareWire SoftTWI(constDefaultSDAPin, constDefaultSCLPin);
+#endif
+
+#ifdef INTERRUPT_USE
+extern volatile extInterrupt_t extInterrupt[];
+#endif
+
+
 #endif // _ZABBUINO_DISPATCHER_H_
+
 

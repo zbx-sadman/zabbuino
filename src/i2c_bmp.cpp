@@ -8,8 +8,6 @@
 #include "i2c_bus.h"
 #include "i2c_bmp.h"
 
-static uint8_t waitToBMPReady(SoftwareWire* _softTWI, const uint8_t _i2cAddress, const int16_t _registerAddress, const int16_t _mask, const uint16_t _timeout);
-
 /*****************************************************************************************************************************
 *
 *   Waiting for a timeout to detect the BMP sensor ready state
@@ -19,7 +17,7 @@ static uint8_t waitToBMPReady(SoftwareWire* _softTWI, const uint8_t _i2cAddress,
 *     - false on timeout
 *
 **************************************************************************************************************************** */
-uint8_t waitToBMPReady(SoftwareWire* _softTWI, const uint8_t _i2cAddress, const int16_t _registerAddress, const int16_t _mask, const uint16_t _timeout)
+static uint8_t waitToBMPReady(SoftwareWire* _softTWI, const uint8_t _i2cAddress, const int16_t _registerAddress, const int16_t _mask, const uint16_t _timeout)
 {
   uint8_t value;
   uint32_t startTime;

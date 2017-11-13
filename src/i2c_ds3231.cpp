@@ -12,11 +12,6 @@
 
 #include "rtc.h"
 
-static uint8_t isDS3231Running(SoftwareWire*, const uint8_t);
-static void setDS3231RunningState(SoftwareWire*, const uint8_t, uint8_t);
-static uint8_t isDS3231DateTimeValid(SoftwareWire*, const uint8_t);
-static uint8_t BcdToBin24Hour(uint8_t);
-
 /*****************************************************************************************************************************
 *
 *   Test oscillator's enable flag
@@ -26,7 +21,7 @@ static uint8_t BcdToBin24Hour(uint8_t);
 *     - False otherwise
 *
 *****************************************************************************************************************************/
-uint8_t isDS3231Running(SoftwareWire* _softTWI, const uint8_t _i2cAddress) {
+static uint8_t isDS3231Running(SoftwareWire* _softTWI, const uint8_t _i2cAddress) {
   uint8_t creg;
   // EOSC - enable Oscillator. When set to logic 0, the oscillator is started. When set to logic 1, the oscillator is stopped 
   // when the DS3231 switches to VBAT. This bit is clear (logic 0) when power is first applied. When the DS3231 is powered by 
@@ -43,7 +38,7 @@ uint8_t isDS3231Running(SoftwareWire* _softTWI, const uint8_t _i2cAddress) {
 *     - 
 *
 *****************************************************************************************************************************/
-void setDS3231RunningState(SoftwareWire* _softTWI, const uint8_t _i2cAddress, uint8_t _isRunning) {
+static void setDS3231RunningState(SoftwareWire* _softTWI, const uint8_t _i2cAddress, uint8_t _isRunning) {
   uint8_t creg;
   readBytesFromI2C(_softTWI, _i2cAddress, DS3231_REG_CONTROL, &creg, 1);
   if (_isRunning) {
@@ -63,7 +58,7 @@ void setDS3231RunningState(SoftwareWire* _softTWI, const uint8_t _i2cAddress, ui
 *     - False otherwise
 *
 *****************************************************************************************************************************/
-uint8_t isDS3231DateTimeValid(SoftwareWire* _softTWI, const uint8_t _i2cAddress) {
+static uint8_t isDS3231DateTimeValid(SoftwareWire* _softTWI, const uint8_t _i2cAddress) {
   // OSF - Oscillator Stop Flag ). A logic 1 in this bit indicates that the oscillator either is stopped or was stopped for 
   // some period and may be used to judge the validity of the timekeeping data. 
   // OSF bit is be set on:
@@ -84,7 +79,7 @@ uint8_t isDS3231DateTimeValid(SoftwareWire* _softTWI, const uint8_t _i2cAddress)
 *     - 24H format value
 *
 *****************************************************************************************************************************/
-uint8_t BcdToBin24Hour(uint8_t bcdHour) {
+static uint8_t BcdToBin24Hour(uint8_t bcdHour) {
   uint8_t hour;
   if (bcdHour & 0x40) {
      // 12 hour mode, convert to 24

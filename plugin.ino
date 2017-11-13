@@ -9,7 +9,7 @@
 // Output to LCD
 #define FEATURE_USER_DISPLAY_ENABLE
 // Using WS2812 Pixel LED to indicate CO2 level by color
-#define FEATURE_USER_WS2812_LED_ENABLE
+//#define FEATURE_USER_WS2812_LED_ENABLE
 
 const int32_t  constSensorErrorCode3digit                     = 999;     // This 3 digit number will be shown if sensor error detected
 const int32_t  constSensorErrorCode4digit                     = 9999;    // This 4 digit number will be shown if sensor error detected
@@ -81,7 +81,9 @@ void initStageUserFunction(char* _buffer) {
   SoftTWI.reconfigure(constUserDisplaySDAPin, constUserDisplaySCLPin);
   printToPCF8574LCD(&SoftTWI, constUserDisplayI2CAddress, constUserDisplayBackLight, constUserDisplayType, _buffer);
 
+#if defined(FEATURE_USER_WS2812_LED_ENABLE)
   WS2812Out(constUserWS2812LedPin, 1, (uint8_t*) &constCO2LevelColors[0].color, 3);
+#endif
   /*
     Serial.print("1: ");Serial.println(constCO2LevelColors[0].color[0]);
     Serial.print("2: ");Serial.println(constCO2LevelColors[0].color[1]);
@@ -108,6 +110,7 @@ void netPrepareStageUserFunction(char* _buffer) {
   // push data to LCD via I2C WITHOUT re-init display (_forceInit_ param is false)
   printToPCF8574LCD(&SoftTWI, constUserDisplayI2CAddress, constUserDisplayBackLight, constUserDisplayType, _buffer, false);
 }
+
 /*****************************************************************************************************************************
 
    Subroutine calls on user.run[] command processing
@@ -126,6 +129,21 @@ int8_t executeCommandUserFunction(char* _buffer, char* _optarg[], int32_t* argv)
     return RESULT_IS_OK;
   }
   return RESULT_IS_FAIL;
+}
+
+/*****************************************************************************************************************************
+
+   Subroutine calls when alarm in main loop rised
+
+*****************************************************************************************************************************/
+void alarmStageUserFunction(char* _buffer, uint8_t errorCode) {
+  const uint32_t noIncomingPacketsTimeout = 60000UL;    
+  const uint8_t routerRebootPin = 6;
+
+  // if no network activity for 60sec - reboot the router
+  if ((ERROR_NET == errorCode) && (noIncomingPacketsTimeout < millis() - sysMetrics.sysAlarmRisedTime)) {
+     digitalWrite(routerRebootPin, HIGH);
+  }
 }
 
 /*****************************************************************************************************************************
@@ -325,8 +343,8 @@ void loopStageUserFunction(char* _buffer) {
   // !!! _forceInit_ function parameter must be equal to false to avoid LCD reinit. Otherwise all data on the screen can be cleared or spoiled !!!
   printToPCF8574LCD(&SoftTWI, constUserDisplayI2CAddress, constUserDisplayBackLight, constUserDisplayType, _buffer, false);
 #endif //FEATURE_USER_DISPLAY_ENABLE
-#if defined(FEATURE_USER_WS2812_LED_ENABLE)
 
+#if defined(FEATURE_USER_WS2812_LED_ENABLE)
   
   DTSL (
     char co2Direction = (co2Level > co2PrevLevel) ? '>' : '<';

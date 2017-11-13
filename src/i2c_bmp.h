@@ -181,4 +181,5 @@ int8_t getBMP280Metric(SoftwareWire*, uint8_t, const uint8_t, uint8_t, const uin
 *****************************************************************************************************************************/
 int8_t getBMP180Metric(SoftwareWire*, uint8_t, uint8_t, const uint8_t, char*, int32_t*, const uint8_t);
 
+
 #endif // #ifndef _ZABBUINO_I2C_BMP_H_

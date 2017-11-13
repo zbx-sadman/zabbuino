@@ -12,9 +12,6 @@
 
 #include "rtc.h"
 
-//static uint8_t isPCF8563Running(SoftwareWire*, const uint8_t);
-//static void setPCF8563RunningState(SoftwareWire*, const uint8_t, uint8_t);
-static uint8_t isPCF8563DateTimeValid(SoftwareWire*, const uint8_t);
 
 /*****************************************************************************************************************************
 *

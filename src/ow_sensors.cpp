@@ -19,8 +19,38 @@
 
 -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-*/
 
-static uint8_t getScratchPadFromDevice(OneWire *_owDevice, const uint8_t *_addr, uint8_t *_scratchPad);
-static inline uint8_t isCRCOK(uint8_t *_scratchPad);
+/*****************************************************************************************************************************
+*
+*  Read DS18x20's scratchpad
+*
+*   Returns: 
+*     - true on success
+*     - false on fail
+*
+*****************************************************************************************************************************/
+static uint8_t getScratchPadFromDevice(OneWire *_owDevice, const uint8_t *_addr, uint8_t *_scratchPad) {
+  uint8_t i, busReady;
+  // send the reset command and fail fast
+  // reset() returns 1 if a device asserted a presence pulse, 0 otherwise.
+  busReady = _owDevice->reset();
+  if (0 == busReady) { return false; }
+
+  _owDevice->select(_addr);
+  _owDevice->write(DS18X20_CMD_READSCRATCH);
+  for (i = 0; i < 9; i++) {
+    _scratchPad[i] = _owDevice->read();
+  }
+
+  busReady = _owDevice->reset();
+  return (1 == busReady);
+}
+
+
+static inline uint8_t isCRCOK(uint8_t *_scratchPad) {
+  // '==' here not typo
+  return (dallas_crc8(_scratchPad, 8) == _scratchPad[DS18X20_BYTE_SCRATCHPAD_CRC]);
+}
+
 
 /*****************************************************************************************************************************
 *
@@ -226,37 +256,5 @@ int8_t getDS18X20Metric(const uint8_t _pin, uint8_t _resolution, uint8_t* _id, c
   finish:
   gatherSystemMetrics(); // Measure memory consumption
   return rc;
-}
-
-/*****************************************************************************************************************************
-*
-*  Read DS18x20's scratchpad
-*
-*   Returns: 
-*     - true on success
-*     - false on fail
-*
-*****************************************************************************************************************************/
-uint8_t getScratchPadFromDevice(OneWire *_owDevice, const uint8_t *_addr, uint8_t *_scratchPad) {
-  uint8_t i, busReady;
-  // send the reset command and fail fast
-  // reset() returns 1 if a device asserted a presence pulse, 0 otherwise.
-  busReady = _owDevice->reset();
-  if (0 == busReady) { return false; }
-
-  _owDevice->select(_addr);
-  _owDevice->write(DS18X20_CMD_READSCRATCH);
-  for (i = 0; i < 9; i++) {
-    _scratchPad[i] = _owDevice->read();
-  }
-
-  busReady = _owDevice->reset();
-  return (1 == busReady);
-}
-
-
-uint8_t isCRCOK(uint8_t *_scratchPad) {
-  // '==' here not typo
-  return (dallas_crc8(_scratchPad, 8) == _scratchPad[DS18X20_BYTE_SCRATCHPAD_CRC]);
 }
 

@@ -32,6 +32,14 @@ Implemented:
 - Support APC Smart UPS (with RS232 interface);
 - Simulate varuious vendor's IR transmitters.
 
+#### 13 Oct 2017
+Changes: 
+ - _PCF8574.LCDPrint[]_ now can be used with [MELT](www.melt.com.ru) LCD displays. You must enable _#define LCD_MELT_CODEPAGE_COMPABILITY_ to get ability for whole codepage use. Otherwise - codes 0x80...0x9E used for change cursor position.
+
+New features:
+  - alarmStageUserFunction() which placed in plugin.ino will be called when alarm was rised and State LED begin indicate network error (DHCP update error or no incominng connection for a long time). You can connect relay to Arduino pin and reboot your hanged router with digitalWrite() function used inside alarmStageUserFunction(). 
+
+
 #### 31 Oct 2017
 Fixes:
  - DHCP: Many troubles that switch Zabbuino to sloooow mode if no DHCP available while device need for it.

@@ -65,11 +65,12 @@ void setConfigDefaults(netconfig_t *_configStruct)
   uint8_t mac[] = NET_DEFAULT_MAC_ADDRESS;
   memcpy(_configStruct->macAddress, mac, arraySize(_configStruct->macAddress));
 
-  _configStruct->useDHCP = constNetDefaultUseDHCP;
+  _configStruct->useDHCP   = constNetDefaultUseDHCP;
   _configStruct->ipAddress = NetworkAddress(NET_DEFAULT_IP_ADDRESS);
   _configStruct->ipNetmask = NetworkAddress(NET_DEFAULT_NETMASK);
   _configStruct->ipGateway = NetworkAddress(NET_DEFAULT_GATEWAY);
   _configStruct->password  = constSysDefaultPassword;
+  _configStruct->tzOffset  = constSysTZOffset;
   _configStruct->useProtection = constSysDefaultProtection;  
 #ifdef FEATURE_NET_USE_MCUID
   // if FEATURE_NET_USE_MCUID is defined:
@@ -232,19 +233,11 @@ int16_t hstoba(uint8_t* _dst, const char* _src)
 uint8_t dallas_crc8(uint8_t *_src, uint8_t _len)
 {
   uint8_t crc = 0;
-
   while (_len) {
     _len--;
     uint8_t inbyte = *_src++;
     crc = _crc_ibutton_update(crc, inbyte);
-/*    
-    for (uint8_t i = 8; i; i--) {
- 	uint8_t mix = (crc ^ inbyte) & 0x01;
-	crc >>= 1;
-	if (mix) crc ^= 0x8C;
-	inbyte >>= 1;
-    }
-*/
+
   }
   return crc;
 }

@@ -16,26 +16,6 @@
 #include "src/dispatcher.h"
 
 /*-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
-                                                   GLOBAL VARIABLES SECTION
-*/
-
-// some members of struct used in timer's interrupt
-volatile sysmetrics_t sysMetrics;
-
-netconfig_t netConfig;
-
-NetworkClass Network;
-
-
-#ifdef TWI_USE
-SoftwareWire SoftTWI(constDefaultSDAPin, constDefaultSCLPin);
-#endif
-
-#ifdef INTERRUPT_USE
-extern volatile extInterrupt_t extInterrupt[];
-#endif
-
-/*-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
                                                            STARTUP SECTION
 */
 void setup() {
@@ -88,11 +68,11 @@ void setup() {
                                                                        GENERAL SECTION
 */
 void loop() {
-  uint8_t i, result,
-          errorCode = ERROR_NONE;
+  uint8_t i, result, alarmTimeSaved = false,
+                     errorCode = ERROR_NONE;
   char incomingData;
   uint16_t blinkType = constBlinkNope;
-  uint32_t nowTime, processStartTime, processEndTime, prevPHYCheckTime, prevNetProblemTime, prevSysMetricGatherTime, clientConnectTime, netDebugPrintTime;
+  uint32_t processStartTime, processEndTime, prevPHYCheckTime, prevNetProblemTime, prevSysMetricGatherTime, clientConnectTime, netDebugPrintTime;
   char cBuffer[constBufferSize + 1]; // +1 for trailing \0
   // Last idx is not the same that array size
   char* optarg[constArgC];
@@ -248,9 +228,8 @@ void loop() {
     wdt_reset();
 #endif
 
-    nowTime = millis();
     // Gather internal metrics periodically
-    if (constSysMetricGatherPeriod <= (uint32_t) (nowTime - prevSysMetricGatherTime)) {
+    if (constSysMetricGatherPeriod <= (uint32_t) (millis() - prevSysMetricGatherTime)) {
       // When FEATURE_SYSINFO_ENABLE is disabled, compiler can be omit gatherSystemMetrics() sub (due find no operators inside) and trow exception
 #ifndef GATHER_METRIC_USING_TIMER_INTERRUPT
       gatherSystemMetrics();
@@ -259,7 +238,7 @@ void loop() {
       // correctVCCMetrics() must be always inline compiled
       //correctVCCMetrics(sysMetrics.sysVCC);
       correctVCCMetrics(getADCVoltage(ANALOG_CHAN_VBG));
-      prevSysMetricGatherTime = nowTime;
+      prevSysMetricGatherTime = millis();
       // update millis() rollovers to using it in uptime() function
       millisRollover();
     }
@@ -293,17 +272,17 @@ void loop() {
 #endif // FEATURE_NET_DHCP_ENABLE
 
     // No DHCP problem found, but no data recieved or network activity for a long time
-    if (ERROR_NONE == errorCode && (constNetIdleTimeout <= (uint32_t) (nowTime - prevNetProblemTime))) {
+    if (ERROR_NONE == errorCode && (constNetIdleTimeout <= (uint32_t) (millis() - prevNetProblemTime))) {
       blinkType = constBlinkNetworkProblem;
       errorCode = ERROR_NET;
     }
 
 #if defined(FEATURE_NETWORK_MONITORING)
-    if (constPHYCheckInterval <= (uint32_t) (nowTime - prevPHYCheckTime)) {
+    if (constPHYCheckInterval <= (uint32_t) (millis() - prevPHYCheckTime)) {
       // netModuleCheck() subroutine returns true if detect network module error and reinit it.
-      if (5000UL <= (uint32_t) (nowTime - netDebugPrintTime )) {
+      if (5000UL <= (uint32_t) (millis() - netDebugPrintTime )) {
         DTSL( Network.showPHYState(); )
-        netDebugPrintTime = nowTime;
+        netDebugPrintTime = millis();
       }
       if (Network.checkPHY()) {
         sysMetrics.netPHYReinits++;
@@ -317,9 +296,18 @@ void loop() {
     // Otherwise - make LED blinked or just turn on
     if (ERROR_NONE == errorCode) {
       digitalWrite(constStateLedPin, LOW);
+      alarmTimeSaved  = false;
     } else {
+      if (!alarmTimeSaved) {
+        sysMetrics.sysAlarmRisedTime = millis();
+        alarmTimeSaved = true;
+      }
+#ifdef FEATURE_USER_FUNCTION_PROCESSING
+      alarmStageUserFunction(cBuffer, errorCode);
+#endif
+
 #ifdef ON_ALARM_STATE_BLINK
-      digitalWrite(constStateLedPin, nowTime % 1000 < blinkType);
+      digitalWrite(constStateLedPin, millis() % 1000 < blinkType);
 #else
       digitalWrite(constStateLedPin, HIGH);
 #endif
@@ -335,9 +323,9 @@ void loop() {
 #ifdef FEATURE_USER_FUNCTION_PROCESSING
           // Call "loop stage" user function screen every constRenewSystemDisplayInterval only if no connection exist, because that function can modify cBuffer content
           // and recieved data can be corrupted
-          if (constUserFunctionCallInterval <= (uint32_t) (nowTime - prevUserFuncCall)) {
+          if (constUserFunctionCallInterval <= (uint32_t) (millis() - prevUserFuncCall)) {
             loopStageUserFunction(cBuffer);
-            prevUserFuncCall = nowTime;
+            prevUserFuncCall = millis();
           }
 #endif // FEATURE_USER_FUNCTION_PROCESSING
           continue;
@@ -934,8 +922,8 @@ static int16_t executeCommand(char* _dst, char* _optarg[], netconfig_t* _netConf
       //
       // Tested on ATmega328@16 and 8 pcs WS2812 5050 RGB LED bar
       if (isSafePin(argv[0])) {
-          // 4-th param equal 0x00 mean that buffer not contain raw color bytes and must be prepared (converted from "0xABCDEF.." string)
-          rc = WS2812Out(argv[0], argv[1], (uint8_t*) _optarg[2], 0x00);
+        // 4-th param equal 0x00 mean that buffer not contain raw color bytes and must be prepared (converted from "0xABCDEF.." string)
+        rc = WS2812Out(argv[0], argv[1], (uint8_t*) _optarg[2], 0x00);
       }
       break;
 #endif // FEATURE_WS2812_ENABLE

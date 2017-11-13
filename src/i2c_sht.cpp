@@ -8,8 +8,6 @@
 #include "i2c_bus.h"
 #include "i2c_sht.h"
 
-static uint16_t getRawDataFromSHT2X(SoftwareWire*, const uint8_t, const uint8_t);
-
 /*****************************************************************************************************************************
 *
 *   Overloads of main subroutine. Used to get numeric metric's value or it's char presentation only
@@ -37,7 +35,7 @@ int8_t getSHT2XMetric(SoftwareWire* _softTWI, uint8_t _i2cAddress, const uint8_t
 *     - 16-bit raw data on success
 *
 *****************************************************************************************************************************/
-uint16_t getRawDataFromSHT2X(SoftwareWire* _softTWI, const uint8_t _i2cAddress, const uint8_t _command)
+static uint16_t getRawDataFromSHT2X(SoftwareWire* _softTWI, const uint8_t _i2cAddress, const uint8_t _command)
 {
     uint16_t result;
 

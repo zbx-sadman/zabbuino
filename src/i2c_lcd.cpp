@@ -16,40 +16,6 @@ version 1.1.2 is used
 
 */
 
-static void sendToLCD(SoftwareWire*, const uint8_t, const uint8_t, const uint8_t);
-static void write4bitsToLCD(SoftwareWire*, const uint8_t, uint8_t) ;
-static void pulseEnableOnLCD(SoftwareWire*, const uint8_t, const uint8_t);
-
-/*****************************************************************************************************************************
-*
-*  Send data to I2C extender
-*
-*   Returns: 
-*     - none
-*
-*****************************************************************************************************************************/
-void sendToLCD(SoftwareWire* _softTWI, const uint8_t _i2cAddress, const uint8_t _data, const uint8_t _mode)
-{
-  // Send first nibble (first four bits) into high byte area
-  write4bitsToLCD(_softTWI, _i2cAddress, (_data & 0xF0) | _mode);
-  // Send second nibble (second four bits) into high byte area
-  write4bitsToLCD(_softTWI, _i2cAddress, ((_data << 4) & 0xF0) | _mode);
-}
-
-/*****************************************************************************************************************************
-*
-*  Write four bits to I2C extender (if HD44780 controller is used in 4-bit mode)
-*
-*   Returns: 
-*     - none
-*
-*****************************************************************************************************************************/
-void write4bitsToLCD(SoftwareWire* _softTWI, const uint8_t _i2cAddress, uint8_t _data) 
-{
-  writeBytesToI2C(_softTWI, _i2cAddress, I2C_NO_REG_SPECIFIED, &_data, 1);
-  pulseEnableOnLCD(_softTWI, _i2cAddress, _data);
-}
-
 /*****************************************************************************************************************************
 *
 *  Make pulse action for HD44780
@@ -68,6 +34,36 @@ void pulseEnableOnLCD(SoftwareWire* _softTWI, const uint8_t _i2cAddress, const u
   writeBytesToI2C(_softTWI, _i2cAddress, I2C_NO_REG_SPECIFIED, &sendByte, 1);	// 'Enable' low
   delayMicroseconds(50);	                        // commands need > 37us to settle
 } 
+
+/*****************************************************************************************************************************
+*
+*  Write four bits to I2C extender (if HD44780 controller is used in 4-bit mode)
+*
+*   Returns: 
+*     - none
+*
+*****************************************************************************************************************************/
+void write4bitsToLCD(SoftwareWire* _softTWI, const uint8_t _i2cAddress, uint8_t _data) 
+{
+  writeBytesToI2C(_softTWI, _i2cAddress, I2C_NO_REG_SPECIFIED, &_data, 1);
+  pulseEnableOnLCD(_softTWI, _i2cAddress, _data);
+}
+
+/*****************************************************************************************************************************
+*
+*  Send data to I2C extender
+*
+*   Returns: 
+*     - none
+*
+*****************************************************************************************************************************/
+void sendToLCD(SoftwareWire* _softTWI, const uint8_t _i2cAddress, const uint8_t _data, const uint8_t _mode)
+{
+  // Send first nibble (first four bits) into high byte area
+  write4bitsToLCD(_softTWI, _i2cAddress, (_data & 0xF0) | _mode);
+  // Send second nibble (second four bits) into high byte area
+  write4bitsToLCD(_softTWI, _i2cAddress, ((_data << 4) & 0xF0) | _mode);
+}
 
 /*****************************************************************************************************************************
 *
@@ -218,12 +214,13 @@ int8_t printToPCF8574LCD(SoftwareWire* _softTWI, uint8_t _i2cAddress, uint8_t _l
     } // if (isHexString) ... else 
 
 //    Serial.print("currChar: 0x"); Serial.println(currChar, HEX);
-    
+#ifndef LCD_MELT_CODEPAGE_COMPABILITY
     if (currChar > 0x7F && currChar < 0x9F) {
        // Jump to position 
        //Serial.print("Jump to:"); Serial.println(int (currChar - 0x80));
        sendToLCD(_softTWI, _i2cAddress, LCD_SETDDRAMADDR | ((currChar - 0x80) + rowOffsets[currLine]), 0 | _lcdBacklight);
       } else {
+#endif
        // Analyze character
        switch (currChar) {
          // clear display, set cursor position to zero
@@ -277,7 +274,9 @@ int8_t printToPCF8574LCD(SoftwareWire* _softTWI, uint8_t _i2cAddress, uint8_t _l
          default:
            sendToLCD(_softTWI, _i2cAddress, currChar , 0 | _BV(LCD_RS) | _lcdBacklight);    
        } //switch (currChar) {
+#ifndef LCD_MELT_CODEPAGE_COMPABILITY
     } // if (currChar > 0x7F && currChar < 0x9F) .. else 
+#endif
     // move pointer to next char
     _src++;
   } // while(*_src)

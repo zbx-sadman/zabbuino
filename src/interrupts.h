@@ -1,7 +1,6 @@
 #ifndef _ZABBUINO_INTERRUPTS_H_
 #define _ZABBUINO_INTERRUPTS_H_
 
-extern volatile extInterrupt_t extInterrupt[];
 /*-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
 
                                                       EXTERNAL INTERRUPTS HANDLING SECTION

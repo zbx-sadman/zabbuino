@@ -1,8 +1,6 @@
 #ifndef _ZABBUINO_EEPROM_H_
 #define _ZABBUINO_EEPROM_H_
 
-//#include "structs.h"
-
 /*****************************************************************************************************************************
 *
 *   Save/Update config to EEPROM

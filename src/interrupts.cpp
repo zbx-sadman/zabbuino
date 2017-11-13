@@ -2,6 +2,7 @@
 #include "sys_includes.h"
 
 #include <wiring_private.h>
+#include <util/atomic.h>
 
 #include "service.h"
 #include "system.h"
