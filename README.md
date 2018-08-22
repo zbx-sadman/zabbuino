@@ -15,6 +15,7 @@ Implemented:
 - Support SHT2X humidity and temperature sensors serie;
 - Support BMP180/085, BMP280/BME280 pressure and temperature sensors;
 - Support BH1750, MAX44009 light sensors;
+- Support VEML6070 ultraviolet sensors;
 - Support DS3231 RTC I2C module;
 - Support incremental encoder (on interrupt's pin);
 - Support any devices that need to use hardware interrupt - tilt switches, dry contacts, water flow sensor, and so;
@@ -26,12 +27,13 @@ Implemented:
 - Support simple I2C devices (expanders, digital linear potentiometers, etc.);
 - Support One- or Two- (and maybe Four-) lines LCD Character displays with PC8574 I2C expander;
 - Support any actuators or indicators via `digitalwrite` command;
+- Support simple way of digital servo manipulating;
 - Support WS2801 Led stripe and any indicators on shift registers via extended `shiftout` command;
 - Support WS2812 Led stripe;
 - Support PZEM-004 energy meter;
 - Support APC Smart UPS (with RS232 interface);
 - Simulate varuious vendor's IR transmitters.
-
+-----------------------------
 
 #### 22 Aug 2018
 
