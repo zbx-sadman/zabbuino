@@ -1,5 +1,4 @@
-#ifndef _ZABBUINO_BUSMICROWIRE_H_
-#define _ZABBUINO_BUSMICROWIRE_H_
+#pragma once
 
 /* 
 
@@ -36,5 +35,3 @@ Second modification is by:
 *****************************************************************************************************************************/
 void writeToMAX7219(const uint8_t, const uint8_t, const uint8_t, const uint8_t, char*);
 
-
-#endif // #ifndef _ZABBUINO_BUSMICROWIRE_H_

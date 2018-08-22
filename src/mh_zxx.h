@@ -1,5 +1,4 @@
-#ifndef _ZABBUINO_MH_ZXX_H_
-#define _ZABBUINO_MH_ZXX_H_
+#pragma once
 
 /*
 
@@ -50,7 +49,7 @@ int8_t getMHZxxMetricPWM(const uint8_t, const uint16_t, uint8_t*);
 *  Read specified metric's value of the Winsen MH-Zxx CO2 sensor via PWM, put it to output buffer on success. 
 *
 *  Returns: 
-*    - RESULT_IN_BUFFER on success
+*    - RESULT_IS_BUFFERED on success
 *    - DEVICE_ERROR_ACK_L
 *    - DEVICE_ERROR_ACK_H
 *    - DEVICE_ERROR_TIMEOUT if sensor stops answer to the request
@@ -64,10 +63,9 @@ int8_t getMHZxxMetricPWM(const uint8_t _pin, const uint16_t _range, uint8_t* _ds
 *   Read specified metric's value of the Winsen MH-Zxx CO2 sensor via UART, put it to output buffer on success. 
 *
 *   Returns: 
-*     - RESULT_IN_BUFFER on success
+*     - RESULT_IS_BUFFERED on success
 *     - DEVICE_ERROR_TIMEOUT if device stop talking
 *
 *****************************************************************************************************************************/
 int8_t getMHZxxMetricUART(const uint8_t _rxPin, const uint8_t _txPin, uint8_t* _dst, int32_t* _value, const uint8_t _wantsNumber = false);
 
-#endif // #ifndef _ZABBUINO_MH_ZXX_H_

@@ -1,12 +1,9 @@
+#pragma once
 /*
 
 Based on: https://github.com/adafruit/Adafruit_INA219
 
 */
-
-#ifndef _ZABBUINO_I2C_INA2XX_H_
-#define _ZABBUINO_I2C_INA2XX_H_
-//#include "i2c_bus.h"
 
 #define INA219_I2C_ADDRESS                                      (0x40)
 
@@ -69,11 +66,9 @@ int8_t getINA219Metric(SoftwareWire*, const uint8_t, uint8_t, uint16_t, const ui
 *   Read specified metric's value of the INA219 sensor, put it to output buffer on success. 
 *
 *   Returns: 
-*     - RESULT_IN_BUFFER on success
+*     - RESULT_IS_BUFFERED on success
 *     - DEVICE_ERROR_CONNECT on test connection error
 *     - RESULT_IS_FAIL - on other fails
 *
 *****************************************************************************************************************************/
 int8_t getINA219Metric(SoftwareWire*, const uint8_t, uint8_t, uint16_t, const uint8_t,  char*, uint32_t*, const uint8_t);
-
-#endif // #ifndef _ZABBUINO_I2C_INA2XX_H_

@@ -36,7 +36,7 @@ int8_t getDHTMetric(const uint8_t _pin, const uint8_t _sensorModel, const uint8_
 *  Read specified metric's value of the AM/DHT sensor, put it to output buffer on success. 
 *
 *  Returns: 
-*    - RESULT_IN_BUFFER on success
+*    - RESULT_IS_BUFFERED on success
 *    - DEVICE_ERROR_CONNECT on connection error
 *    - DEVICE_ERROR_ACK_L
 *    - DEVICE_ERROR_ACK_H
@@ -203,7 +203,7 @@ int8_t getDHTMetric(const uint8_t _pin, const uint8_t _sensorModel, const uint8_
      ltoaf(*_value, _dst, 1);
   }
 
-  rc = RESULT_IN_BUFFER;
+  rc = RESULT_IS_BUFFERED;
 
   finish:
   startTimerOne(); 

@@ -1,5 +1,4 @@
-#ifndef _ZABBUINO_UART_BUS_H_
-#define _ZABBUINO_UART_BUS_H_
+#pragma once
 
 /*-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
 
@@ -38,6 +37,5 @@ uint8_t serialRecive(SoftwareSerial *_swSerial, uint8_t *_src, const uint8_t _si
 *     - none, because wrapped SoftwareSerial(HardwareSerial)'s write() sub always return 1
 *
 *****************************************************************************************************************************/
-void serialSend(SoftwareSerial *_swSerial, const uint8_t *_src, const uint8_t _size, const uint8_t _slowMode);
+void serialSend(SoftwareSerial *_swSerial, uint8_t *_src, uint8_t _size, const uint8_t _slowMode);
 
-#endif // #ifndef _ZABBUINO_UART_BUS_H_

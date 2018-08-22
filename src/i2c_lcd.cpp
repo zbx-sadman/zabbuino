@@ -168,7 +168,7 @@ int8_t printToPCF8574LCD(SoftwareWire* _softTWI, uint8_t _i2cAddress, uint8_t _l
     if (isHexString) {
        // restore full byte (ASCII char) from HEX nibbles
        // Make first four bits of byte to push from HEX.
-       currChar = htod(*_src); _src++;
+       currChar = htod(*_src); ++_src;
        // Move first nibble to high
        currChar <<= 4;
        // Check for second nibble existience
@@ -232,7 +232,10 @@ int8_t printToPCF8574LCD(SoftwareWire* _softTWI, uint8_t _i2cAddress, uint8_t _l
 
          // Blink with backlight
          case LCD_CMD_BACKLIGHT_BLINK:
-           for (i = 0; i < LCD_BLINK_TIMES; i++) {
+           // for (i = 0; i < LCD_BLINK_TIMES; i++) {
+           i = LCD_BLINK_TIMES;
+           while (i) {
+              --i;
               // _lcdBacklight is not false/true, is 0x00 / 0x08
               _lcdBacklight = _lcdBacklight ? 0x00 : _BV(LCD_BL);
               writeByteToI2C(_softTWI, _i2cAddress, I2C_NO_REG_SPECIFIED, _lcdBacklight);
@@ -261,7 +264,9 @@ int8_t printToPCF8574LCD(SoftwareWire* _softTWI, uint8_t _i2cAddress, uint8_t _l
          // Print 'Tab'
          case LCD_CMD_HT:
            // Space is 0x20 ASCII
-           for (i = 0; i < LCD_TAB_SIZE; i++) { sendToLCD(_softTWI, _i2cAddress, 0x20, 0 | _BV(LCD_RS) | _lcdBacklight); }
+           //for (i = 0; i < LCD_TAB_SIZE; i++) { sendToLCD(_softTWI, _i2cAddress, 0x20, 0 | _BV(LCD_RS) | _lcdBacklight); }
+           i = LCD_TAB_SIZE;
+           while (i) { --i; sendToLCD(_softTWI, _i2cAddress, 0x20, 0 | _BV(LCD_RS) | _lcdBacklight); }
            break;
        
          // Go to new line
@@ -278,7 +283,7 @@ int8_t printToPCF8574LCD(SoftwareWire* _softTWI, uint8_t _i2cAddress, uint8_t _l
     } // if (currChar > 0x7F && currChar < 0x9F) .. else 
 #endif
     // move pointer to next char
-    _src++;
+    ++_src;
   } // while(*_src)
   gatherSystemMetrics(); // Measure memory consumption
   return RESULT_IS_OK;

@@ -1,6 +1,4 @@
-#ifndef _ZABBUINO_I2C_LCD_H_
-#define _ZABBUINO_I2C_LCD_H_
-
+#pragma once
 
 #define LCD_MELT_CODEPAGE_COMPABILITY
 
@@ -96,5 +94,3 @@
 *
 *****************************************************************************************************************************/
 int8_t printToPCF8574LCD(SoftwareWire* _softTWI, uint8_t _i2cAddress, uint8_t _lcdBacklight, const uint16_t _lcdType, const char *_src, const uint8_t forceInit = true);
-
-#endif // #ifndef _ZABBUINO_I2C_LCD_H_

@@ -1,5 +1,4 @@
-#ifndef _ZABBUINO_DHT_H_
-#define _ZABBUINO_DHT_H_
+#pragma once
 
 /*
 
@@ -44,7 +43,7 @@ int8_t getDHTMetric(const uint8_t, const uint8_t, const uint8_t, char*);
 *  Read specified metric's value of the AM/DHT sensor, put it to output buffer on success. 
 *
 *  Returns: 
-*    - RESULT_IN_BUFFER on success
+*    - RESULT_IS_BUFFERED on success
 *    - DEVICE_ERROR_CONNECT on connection error
 *    - DEVICE_ERROR_ACK_L
 *    - DEVICE_ERROR_ACK_H
@@ -52,5 +51,3 @@ int8_t getDHTMetric(const uint8_t, const uint8_t, const uint8_t, char*);
 *
 *****************************************************************************************************************************/
 int8_t getDHTMetric(const uint8_t, const uint8_t, const uint8_t, char*, int32_t*, const uint8_t _wantsNumber = false);
-
-#endif // #ifndef _ZABBUINO_DHT_H_

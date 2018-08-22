@@ -1,5 +1,4 @@
-#ifndef _ZABBUINO_BASIC_CONFIG_H_
-#define _ZABBUINO_BASIC_CONFIG_H_
+#pragma once
 #include <Arduino.h>
 
 /* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
@@ -21,7 +20,7 @@
       You can enable FEATURE_NETWORK_MONITORING declaration to let the Zabbuino detect this case and try to fix it.
    4. When (1) & (2) & (3) did not help to add stability, you can buy Wiznet 5xxx shield or rewrite the source code.
    
-                >>> NOTE : network drivers (UIPEthernet & WIZNet libs) are integrated to Zabbuino source code <<<
+                >>> NOTE that network drivers (UIPEthernet & WIZNet libs) are integrated to Zabbuino source code <<<
 */
 
 #define W5100_ETHERNET_SHIELD       // Arduino Ethernet Shield and Compatibles ...
@@ -38,20 +37,8 @@
 
 /****       New              ****/
 
-/*/ 
-/=/     Enable PWM-connected Winsen MH-Z19 (MH-Z19B) CO2 sensor support and command:
-/=/       - MHZxx.PWM.CO2[]
-/*/
-#define FEATURE_MHZXX_PWM_ENABLE
-
-/*/ 
-/=/     Enable UART-connected Winsen MH-Z19 (MH-Z19B) CO2 sensor support and command:
-/=/       - MHZxx.UART.CO2[]
-/=/       
-/=/     Note: MH-Z19 sensor use 3.3V TTL logic, use TTL level shifter with 5V Arduino
-/*/
-#define FEATURE_MHZXX_UART_ENABLE
-
+//#define FEATURE_VEML6070_ENABLE
+//#define FEATURE_SERVO_ENABLE
 
 /****       Network              ****/
 /*/ 
@@ -59,12 +46,12 @@
 /=/      
 /=/      Note: Do not forget to enable UDP prototol support for network module driver.
 /*/
-//#define FEATURE_NET_DHCP_ENABLE
+#define FEATURE_NET_DHCP_ENABLE
 
 /*/ 
 /=/      Force obtain IP-address using DHCP even netConfig.useDHCP = false
 /*/
-//#define FEATURE_NET_DHCP_FORCE
+#define FEATURE_NET_DHCP_FORCE
 
 /*/ 
 /=/      Use last byte of MCU ID as IP's 4-th octet, and last 3 byte as MAC`s NIC speciific part (4,5,6 octets) 
@@ -73,7 +60,7 @@
 /=/            You need try to read it before use for network addresses generating.
 /=/            Using only 3 last bytes not guarantee making unique MAC or IP.
 /*/
-//#define FEATURE_NET_USE_MCUID
+#define FEATURE_NET_USE_MCUID
 
 /****       Arduino wrappers     ****/
   
@@ -154,7 +141,7 @@
 /*/ 
 /=/     Enable BOSCH BMP280 sensors handling 
 /*/ 
-#define FEATURE_BMP280_ENABLE
+//#define FEATURE_BMP280_ENABLE
 
 /*/ 
 /=/     Enable BOSCH BME280 sensors handling and enable additional command
@@ -184,7 +171,7 @@
 /=/       - PCF8574.LCDPrint[]
 /=/ 
 /*/
-#define FEATURE_PCF8574_LCD_ENABLE
+//#define FEATURE_PCF8574_LCD_ENABLE
 
 /*/ 
 /=/     Enable Sensirion SHT2x sensors handling and commands:
@@ -385,7 +372,6 @@
 /*/
 /=/     Use interrupt on Timer1 for internal metric gathering
 /*/
-// Need to try Phase Correct PWM mode - _BV(WGM13);
 #define GATHER_METRIC_USING_TIMER_INTERRUPT
 
 /* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
@@ -410,10 +396,10 @@ const uint8_t constNetDefaultUseDHCP = false;
 */
 
 // Zabbuino's IP address
-#define NET_DEFAULT_MAC_ADDRESS                              {0xBE,0xAD,0xEB,0xA8,0x00,0xDD}
-#define NET_DEFAULT_IP_ADDRESS                               {192,168,0,121}
-#define NET_DEFAULT_GATEWAY                                  {192,168,0,1}
-#define NET_DEFAULT_NETMASK                                  {255,255,255,0}
+#define NET_DEFAULT_MAC_ADDRESS                                {0xBE,0xAD,0xEB,0xA8,0x00,0xDD}
+#define NET_DEFAULT_IP_ADDRESS                                 {192,168,0,121}
+#define NET_DEFAULT_GATEWAY                                    {192,168,0,1}
+#define NET_DEFAULT_NETMASK                                    {255,255,255,0}
 
 /* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
                                                                ALARM SECTION 
@@ -442,11 +428,14 @@ const uint32_t constSysDefaultPassword                         = 0x000;
 // Digital pin which must shorted on the GND for constHoldTimeToFactoryReset time to copy default system setting into EEPROM
 const uint8_t constFactoryResetButtonPin                       = 0x08; 
 
+//
+const uint16_t constSysTZOffset                                = 0x6789;
+
 /* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
                                                           AGENT CONFIGURATION SECTION 
 */
 
-#define ZBX_AGENT_TCP_PORT 10050
+#define ZBX_AGENT_TCP_PORT                                     (10050)
 
 #define ZBX_AGENT_DEFAULT_HOSTNAME                             "zabbuino"
 
@@ -454,6 +443,5 @@ const uint8_t constFactoryResetButtonPin                       = 0x08;
 #define ZBX_AGENT_DEFAULT_DOMAIN                               ".local.net"
 
 
-const char constZbxAgentVersion[] PROGMEM =                    "Zabbuino 1.2.2";
-#endif // #ifndef _ZABBUINO_BASIC_CONFIG_H_
+const char constZbxAgentVersion[] PROGMEM =                    "Zabbuino 1.3";
 

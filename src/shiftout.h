@@ -1,6 +1,4 @@
-#ifndef _ZABBUINO_SHIFTOUT_H_
-#define _ZABBUINO_SHIFTOUT_H_
-
+#pragma once
 
 /*****************************************************************************************************************************
 *
@@ -33,4 +31,3 @@ int8_t WS2812Out(const uint8_t _dataPin, const uint8_t _compressionType, uint8_t
 *****************************************************************************************************************************/
 int16_t prepareBufferForAdvShiftout(const uint8_t _bitOrder, const uint8_t _compressionType, uint8_t* _src);
 
-#endif // #ifndef _ZABBUINO_SHIFTOUT_H_

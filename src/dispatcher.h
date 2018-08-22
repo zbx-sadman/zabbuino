@@ -1,5 +1,4 @@
-#ifndef _ZABBUINO_DISPATCHER_H_
-#define _ZABBUINO_DISPATCHER_H_
+#pragma once
 
 /* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
                                                               SYSTEM HEADERS SECTION
@@ -38,6 +37,7 @@
 #include "rtc.h"
 #include "system.h"
 #include "service.h"
+#include "plugin.h"
 
 // I2C devices 
 #include "i2c_bus.h"
@@ -51,6 +51,7 @@
 #include "i2c_pcf8563.h"
 #include "i2c_at24cxx.h"
 #include "i2c_max44009.h"
+#include "i2c_veml6070.h"
 
 // 1-Wire devices 
 #include "ow_bus.h"
@@ -70,6 +71,7 @@
 #include "ultrasonic.h"
 #include "shiftout.h"
 #include "busMicrowire.h"
+#include "actuators.h"
 
 /*-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
                                                    GLOBAL VARIABLES SECTION
@@ -89,8 +91,4 @@ SoftwareWire SoftTWI(constDefaultSDAPin, constDefaultSCLPin);
 #ifdef INTERRUPT_USE
 extern volatile extInterrupt_t extInterrupt[];
 #endif
-
-
-#endif // _ZABBUINO_DISPATCHER_H_
-
 

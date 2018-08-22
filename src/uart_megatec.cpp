@@ -24,7 +24,7 @@
 *   Not tested yet.
 *
 *   Returns: 
-*     - RESULT_IN_BUFFER on success
+*     - RESULT_IS_BUFFERED on success
 *     - DEVICE_ERROR_TIMEOUT if device stop talking
 *
 *****************************************************************************************************************************/
@@ -101,7 +101,7 @@ int8_t getMegatecUPSMetric(const uint8_t _rxPin, const uint8_t _txPin, char* _co
   if ('\r' != _dst[len])  { goto finish; } // rc inited with DEVICE_ERROR_TIMEOUT value
   _dst[len] = '\0';
 
-  //  if (0 == fileldNumber) { rc = RESULT_IN_BUFFER; }
+  //  if (0 == fileldNumber) { rc = RESULT_IS_BUFFERED; }
   
   //  Step #2. Search the field that specified by number & move data to the output buffer begin
   //           If the field number is greater than the available, then use the data from the last field.
@@ -128,7 +128,7 @@ int8_t getMegatecUPSMetric(const uint8_t _rxPin, const uint8_t _txPin, char* _co
   // make C-string
   _dst[dstPos] = '\0';
 
-  rc = RESULT_IN_BUFFER;
+  rc = RESULT_IS_BUFFERED;
 
   finish:
   swSerial.~SoftwareSerial(); 

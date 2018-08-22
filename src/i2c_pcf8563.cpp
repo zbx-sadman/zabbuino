@@ -95,7 +95,7 @@ int8_t initPCF8563(SoftwareWire* _softTWI, const uint8_t _i2cAddress) {
   //    Bit 1, AIE = 0 - alarm interrupt disabled
   //    Bit 0, TIE = 0 - timer interrupt disabled
 
-  if (0x00 != readBytesFromI2C(_softTWI, _i2cAddress, PCF8563_REG_CONTROL_STATUS_1, creg, 2)) { goto finish; }
+  if (0x02 != readBytesFromI2C(_softTWI, _i2cAddress, PCF8563_REG_CONTROL_STATUS_1, creg, 0x02)) { goto finish; }
 
   rc = true;
 
@@ -142,7 +142,7 @@ int8_t savePCF8563Time(SoftwareWire* _softTWI, uint8_t _i2cAddress, time_t _y2Kt
   value[6] = Uint8ToBcd(dateTime.tm_year);
 
   // set the date time and return OK if Wire.endTransmission called from writeBytesToI2C() returns 0
-  rc = (0x00 == writeBytesToI2C(_softTWI, _i2cAddress, PCF8563_REG_VL_SECONDS, value, sizeof(value)));
+  rc = (sizeof(value) == writeBytesToI2C(_softTWI, _i2cAddress, PCF8563_REG_VL_SECONDS, value, sizeof(value)));
 
   finish:
   return rc;
@@ -169,7 +169,7 @@ int8_t readPCF8563Time(SoftwareWire* _softTWI, uint8_t _i2cAddress, time_t* _tim
 
   if (!isPCF8563DateTimeValid(_softTWI, _i2cAddress)) { goto finish; } // rc already init as RESULT_IS_FAIL
 
-  rc = (0x00 == readBytesFromI2C(_softTWI, _i2cAddress, PCF8563_REG_VL_SECONDS, value, sizeof(value)));
+  rc = (sizeof(value) == readBytesFromI2C(_softTWI, _i2cAddress, PCF8563_REG_VL_SECONDS, value, sizeof(value)));
 
   dateTime.tm_sec   = BcdToUint8(value[0] & 0x7F);
   dateTime.tm_min   = BcdToUint8(value[1] & 0x7F);

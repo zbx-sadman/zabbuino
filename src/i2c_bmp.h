@@ -1,5 +1,4 @@
-#ifndef _ZABBUINO_I2C_BMP_H_
-#define _ZABBUINO_I2C_BMP_H_
+#pragma once
 
 //#define BMP180_I2C_ADDRESS                                      (0x77  // I2C address of BMP085/180 sensor
 
@@ -164,7 +163,7 @@ int8_t getBMPMetric(SoftwareWire*, uint8_t, const uint8_t, const uint8_t, const 
 *  Read specified metric's value of the BMP280/BME280 sensor, put it to output buffer on success. 
 *
 *   Returns: 
-*     - RESULT_IN_BUFFER on success
+*     - RESULT_IS_BUFFERED on success
 *     - DEVICE_ERROR_TIMEOUT if sensor do not ready to work
 *
 *****************************************************************************************************************************/
@@ -175,11 +174,10 @@ int8_t getBMP280Metric(SoftwareWire*, uint8_t, const uint8_t, uint8_t, const uin
 *   Read specified metric's value of the BMP180/BMP085 sensor, put it to output buffer on success. 
 *
 *   Returns: 
-*     - RESULT_IN_BUFFER on success
+*     - RESULT_IS_BUFFERED on success
 *     - DEVICE_ERROR_TIMEOUT if sensor do not ready to work
 *
 *****************************************************************************************************************************/
 int8_t getBMP180Metric(SoftwareWire*, uint8_t, uint8_t, const uint8_t, char*, int32_t*, const uint8_t);
 
 
-#endif // #ifndef _ZABBUINO_I2C_BMP_H_

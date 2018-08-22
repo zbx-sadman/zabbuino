@@ -1,5 +1,4 @@
-#ifndef _ZABBUINO_MACROS_H_
-#define _ZABBUINO_MACROS_H_
+#pragma once
 
 /* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
                                                             ALARM SECTION 
@@ -19,9 +18,13 @@
 // Zabbix v2.x header prefix ('ZBXD\x01')
 #define ZBX_HEADER_PREFIX                                       "zbxd\1"
 // sizeof() returns wrong result -> 6
-#define ZBX_HEADER_PREFIX_LENGTH                                4
+#define ZBX_HEADER_PREFIX_LENGTH                                5
 // Zabbix v2.x header length
-#define ZBX_HEADER_LENGTH                                       12
+#define ZBX_HEADER_LENGTH                                       13
+
+#define PACKET_TYPE_NONE                                        0x00
+#define PACKET_TYPE_PLAIN                                       0x01
+#define PACKET_TYPE_ZABBIX                                      0x02
 
 /*
 
@@ -59,17 +62,21 @@ typedef enum {
 #define SENS_READ_ENERGY                                        (0x0F)                                                                   
 #define SENS_CHANGE_ADDRESS                                     (0x10)
 
+#define SENS_READ_UV                                            (0x20)
+
 #define SENS_READ_RAW                                           (0xFF)
 
 
 #define RESULT_IS_FAIL                                          false
 #define RESULT_IS_OK                                            true
-#define RESULT_IN_BUFFER                                        (0x02)
+#define RESULT_IS_BUFFERED                                      (0x02)
 #define RESULT_IS_PRINTED                                       (0x04)
 #define RESULT_IS_SIGNED_VALUE                                  (0x08)
 #define RESULT_IS_UNSIGNED_VALUE                                (0x10)
+#define RESULT_IS_UNSTORED_IN_EEPROM                            (0x20)
+#define RESULT_IS_SYSTEM_REBOOT_ACTION                          (0x30)
 // RESULT_IS_NEW_COMMAND's value must not equal any command index to avoid incorrect processing
-#define RESULT_IS_NEW_COMMAND                                   (0xF5)
+#define RESULT_IS_NEW_COMMAND                                   (0xF9)
 
 // Error Codes
 //#define DEVICE_DISCONNECTED_C         	-127
@@ -85,7 +92,7 @@ typedef enum {
 #define DEVICE_ERROR_WRONG_ANSWER                               (-0x50)
 #define DEVICE_ERROR_EEPROM_CORRUPTED                           (-0x60)
 /*
-ADC channels 
+ATMega 328 ADC channels 
 
      • Bits 3:0 – MUX[3:0]: Analog Channel Selection Bits
        The value of these bits selects which analog inputs are connected to the ADC. See Table 24-4 for details. If
@@ -97,11 +104,21 @@ ADC channels
        1110     1.1V (VBG)
        1111     0V (GND)       - noise level measurement possible
 */
-#define ANALOG_CHAN_VBG 		                        (0x0E) // B1110
-#define ANALOG_CHAN_GND 		                        (0x0F) // B1111
+#if defined(__AVR_ATmega32U4__) || defined(__AVR_ATmega1280__) || defined(__AVR_ATmega2560__)
+  #define ANALOG_CHAN_VBG 		                        (0x1E) 
+  #define ANALOG_CHAN_GND 		                        (0x1F)  
+#else
+  #define ANALOG_CHAN_VBG 		                        (0x0E) // B1110
+  #define ANALOG_CHAN_GND 		                        (0x0F) // B1111
+#endif
                                                                     
-#define DBG_PRINT_AS_MAC 		                        (0x01)
-#define DBG_PRINT_AS_IP  		                        (0x02)
+#define MAC_ADDRESS                                             (0x01)
+#define IP_ADDRESS  	                                        (0x02)
+#define I2C_ADDRESS                                             (0x03)
+#define OW_ADDRESS                                              (0x04)
+
+#define I2C_ADDRESS_LENGTH                                      (0x01)
+#define OW_ADDRESS_LENGTH                                       (0x08)
 
 // PoConfig will be stored or loaded on ...                         
 #define CONFIG_STORE_PTR_ADDRESS                                (0x01)
@@ -122,5 +139,3 @@ ADC channels
 #define WANTS_VALUE_SCALED                                      (0x0F)
                                                                     
                                                                     
-#endif // _ZABBUINO_MACROS_H_
-

@@ -66,7 +66,9 @@ static uint8_t isDS3231DateTimeValid(SoftwareWire* _softTWI, const uint8_t _i2cA
   //    2) The voltages present on both VCC and VBAT are insufficient to support oscillation.
   //    3) The EOSC bit is turned off in battery-backed mode.
   //    4) External influences on the crystal (i.e., noise, leakage,etc.).
-  uint8_t status = readBytesFromI2C(_softTWI, _i2cAddress, DS3231_REG_STATUS, &status, 1);
+
+  uint8_t status;
+  readBytesFromI2C(_softTWI, _i2cAddress, DS3231_REG_STATUS, &status, 0x01);
   return !(status & _BV(DS3231_OSF));
 }
 
@@ -83,7 +85,7 @@ static uint8_t BcdToBin24Hour(uint8_t bcdHour) {
   uint8_t hour;
   if (bcdHour & 0x40) {
      // 12 hour mode, convert to 24
-     bool isPm = ((bcdHour & 0x20) != 0);
+     int8_t isPm = ((bcdHour & 0x20) != 0);
      hour = BcdToUint8(bcdHour & 0x1f);
      if (isPm) {
         hour += 12;
@@ -110,7 +112,7 @@ int8_t initDS3231(SoftwareWire* _softTWI, const uint8_t _i2cAddress) {
 
   uint8_t creg;
 
-  if (0x00 != readBytesFromI2C(_softTWI, _i2cAddress, DS3231_REG_CONTROL, &creg, 1)) { goto finish; }
+  if (0x01 != readBytesFromI2C(_softTWI, _i2cAddress, DS3231_REG_CONTROL, &creg, 0x01)) { goto finish; }
 
   // Set SquareWavePin mode 'None'
   // clear all relevant bits to a known "off" state
@@ -147,8 +149,8 @@ int8_t saveDS3231Time(SoftwareWire* _softTWI, uint8_t _i2cAddress, time_t _y2Kti
   gmtime_r(&_y2Ktimestamp, &dateTime);
 
 
-  dateTime.tm_mon++; // tm_mon - months since January [0 to 11], but DS3231 wants [1 to 12]
-  dateTime.tm_wday++; // tm_wday - days since Sunday [0 to 6], but DS3231 wants [1 to 7]
+  ++dateTime.tm_mon; // tm_mon - months since January [0 to 11], but DS3231 wants [1 to 12]
+  ++dateTime.tm_wday; // tm_wday - days since Sunday [0 to 6], but DS3231 wants [1 to 7]
   //dateTime.tm_year += 1900; // tm_year - years since 1900
 
   //year = dateTime.tm_year - 2000;
@@ -166,11 +168,11 @@ int8_t saveDS3231Time(SoftwareWire* _softTWI, uint8_t _i2cAddress, time_t _y2Kti
   value[6]=Uint8ToBcd(dateTime.tm_year);
 
   // clear the invalid flag
-  readBytesFromI2C(_softTWI, _i2cAddress, DS3231_REG_STATUS, &status, 1);
+  readBytesFromI2C(_softTWI, _i2cAddress, DS3231_REG_STATUS, &status, 0x01);
   status &= ~_BV(DS3231_OSF); // clear the flag
   writeByteToI2C(_softTWI, _i2cAddress, DS3231_REG_STATUS, status);
   // set the date time and return OK if Wire.endTransmission called from writeBytesToI2C() returns 0
-  rc = (0x00 == writeBytesToI2C(_softTWI, _i2cAddress, DS3231_REG_TIMEDATE, value, sizeof(value)));
+  rc = (sizeof(value) == writeBytesToI2C(_softTWI, _i2cAddress, DS3231_REG_TIMEDATE, value, sizeof(value)));
 
   finish:
   return rc;
@@ -219,8 +221,8 @@ int8_t readDS3231Time(SoftwareWire* _softTWI, uint8_t _i2cAddress, time_t* _time
      dateTime.tm_year += 100;
   }
 
-  dateTime.tm_mon--; // tm_mon - months since January [0 to 11], but DS3231 returns [1 to 12]
-  dateTime.tm_wday--; // tm_wday - days since Sunday [0 to 6], but DS3231 returns [1 to 7]
+  --dateTime.tm_mon; // tm_mon - months since January [0 to 11], but DS3231 returns [1 to 12]
+  --dateTime.tm_wday; // tm_wday - days since Sunday [0 to 6], but DS3231 returns [1 to 7]
   // dateTime.tm_year -= 1900; // tm_year - years since 1900
   // Make timestamp
   *_timestamp = mk_gmtime(&dateTime);

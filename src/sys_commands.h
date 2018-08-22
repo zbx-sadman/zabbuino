@@ -1,5 +1,4 @@
-#ifndef _ZABBUINO_COMMANDS_H_
-#define _ZABBUINO_COMMANDS_H_
+#pragma once
 
 /* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
                                                             COMMAND NAMES SECTION 
@@ -116,6 +115,10 @@
 
 #define CMD_USER_RUN                                            (0x4E)
 
+#define CMD_VEML6070_UV                                         (0x4F)
+
+#define CMD_SERVO_TURN                                          (0x50)
+
 // add new command as "const char command_<COMMAND_MACRO> PROGMEM". Only 'const' push string to PROGMEM. Tanx, Arduino & AVR.
 // command_* values must be in lower case due analyze sub convert all chars to lower
 const char command_CMD_ZBX_NOPE[]                               PROGMEM = "\1";
@@ -230,6 +233,10 @@ const char command_CMD_MHZXX_PWM_CO2[]                          PROGMEM = "mhzxx
 const char command_CMD_MHZXX_UART_CO2[]                         PROGMEM = "mhzxx.uart.co2";
 
 const char command_CMD_USER_RUN[]                               PROGMEM = "user.run";
+
+const char command_CMD_VEML6070_UV[]                            PROGMEM = "veml6070.uv";
+
+const char command_CMD_SERVO_TURN[]                             PROGMEM = "servo.turn";
 
 // do not insert new command to any position without syncing indexes. Tanx, Arduino and AVR, for this method of string array pushing to PROGMEM
 // ~300 bytes of PROGMEM space can be saved with crazy "#ifdef-#else-#endif" dance
@@ -519,6 +526,17 @@ const char* const commands[] PROGMEM = {
   command_CMD_ZBX_NOPE,
 #endif
 
-};
-#endif // _ZABBUINO_COMMANDS_H_
+#ifdef FEATURE_VEML6070_ENABLE
+   command_CMD_VEML6070_UV,
+#else
+  command_CMD_ZBX_NOPE,
+#endif
 
+
+#ifdef FEATURE_SERVO_ENABLE
+   command_CMD_SERVO_TURN,
+#else
+  command_CMD_ZBX_NOPE,
+#endif
+
+};

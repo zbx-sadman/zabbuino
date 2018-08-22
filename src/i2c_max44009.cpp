@@ -30,7 +30,7 @@ int8_t getMAX44009Metric(SoftwareWire* _softTWI, uint8_t _i2cAddress, uint8_t _m
 *   Read specified metric's value of the MAX44009 sensor, put it to output buffer on success. 
 *
 *   Returns: 
-*     - RESULT_IN_BUFFER on success
+*     - RESULT_IS_BUFFERED on success
 *     - DEVICE_ERROR_CONNECT on test connection error
 *     - RESULT_IS_FAIL - on other fails
 *
@@ -43,9 +43,10 @@ int8_t getMAX44009Metric(SoftwareWire* _softTWI, uint8_t _i2cAddress, uint8_t _m
   int8_t rc = RESULT_IS_FAIL;
   uint8_t autoTIM = false,
           luxExponent,
-          value[2]; 
+          value[2];
+  uint16_t integrationTime[] = {800, 400, 200, 100, 50, 25, 13, 7};
   uint16_t waitTime = 0;
-
+ 
 
   if (!isI2CDeviceReady(_softTWI, _i2cAddress)) { rc = DEVICE_ERROR_CONNECT; goto finish; }
 
@@ -61,7 +62,7 @@ int8_t getMAX44009Metric(SoftwareWire* _softTWI, uint8_t _i2cAddress, uint8_t _m
 
   // Manual mode choosed
   if (! autoTIM) {
-     switch (_integration_time) {
+/*     switch (_integration_time) {
        case MAX44009_INTEGRATION_TIME_800MS:
          waitTime = 800;
          break;
@@ -87,13 +88,16 @@ int8_t getMAX44009Metric(SoftwareWire* _softTWI, uint8_t _i2cAddress, uint8_t _m
          waitTime = 7;  // Must be 6.25, but i do not use float
          break;
      }
+*/
+     waitTime = integrationTime[_integration_time];
+
      // "Manual" mode, bit 6 must be 1
      _mode |= 0x40;
      // Set integration time 
      // CDR byte is dropped, current not divided. All of the photodiode current goes to the ADC.
      _mode |= _integration_time;
      // Seems that need wait max integration time (800ms) on first reading after configuration byte changing to avoid get wrong values
-     if (0x00 != readBytesFromI2C(_softTWI, _i2cAddress, MAX44009_REG_CONFIGURATION, value, 1)) { goto finish; }
+     if (0x01 != readBytesFromI2C(_softTWI, _i2cAddress, MAX44009_REG_CONFIGURATION, value, 0x01)) { goto finish; }
      if (value[0] != _mode) { waitTime = 800; }
   } else {
     // wait 800ms, because no way to get end of conversion flag
@@ -116,7 +120,7 @@ int8_t getMAX44009Metric(SoftwareWire* _softTWI, uint8_t _i2cAddress, uint8_t _m
        ltoaf(*_value, _dst, 3);
   }
 
-  rc = RESULT_IN_BUFFER;
+  rc = RESULT_IS_BUFFERED;
   finish:
   return rc;
 }

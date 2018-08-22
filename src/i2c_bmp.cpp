@@ -71,7 +71,7 @@ int8_t getBMPMetric(SoftwareWire* _softTWI, uint8_t _i2cAddress, const uint8_t _
 
   // Taking Chip ID
   // false == 0 == succes transmission
-  if (false != readBytesFromI2C(_softTWI, _i2cAddress, BMP_REGISTER_CHIPID, &chipID, 1)) { rc = DEVICE_ERROR_TIMEOUT; goto finish; }
+  if (0x01 != readBytesFromI2C(_softTWI, _i2cAddress, BMP_REGISTER_CHIPID, &chipID, 0x01)) { rc = DEVICE_ERROR_TIMEOUT; goto finish; }
   
   switch (chipID) {
     // BMP085 and BMP180 have the same ID  
@@ -107,7 +107,7 @@ int8_t getBMPMetric(SoftwareWire* _softTWI, uint8_t _i2cAddress, const uint8_t _
 *   Read specified metric's value of the BMP280/BME280 sensor, put it to output b\uffer on success. 
 *
 *   Returns: 
-*     - RESULT_IN_BUFFER on success
+*     - RESULT_IS_BUFFERED on success
 *     - DEVICE_ERROR_TIMEOUT if sensor do not ready to work
 *
 *****************************************************************************************************************************/
@@ -338,7 +338,7 @@ int8_t getBMP280Metric(SoftwareWire* _softTWI, uint8_t _i2cAddress, const uint8_
 #endif        
   }  // switch (_metric)
 
-  rc = RESULT_IN_BUFFER;
+  rc = RESULT_IS_BUFFERED;
 
   finish:
   gatherSystemMetrics(); // Measure memory consumption
@@ -350,7 +350,7 @@ int8_t getBMP280Metric(SoftwareWire* _softTWI, uint8_t _i2cAddress, const uint8_
 *   Read specified metric's value of the BMP180/BMP085 sensor, put it to output buffer on success. 
 *
 *   Returns: 
-*     - RESULT_IN_BUFFER on success
+*     - RESULT_IS_BUFFERED on success
 *     - DEVICE_ERROR_TIMEOUT if sensor do not ready to work
 *
 *****************************************************************************************************************************/
@@ -499,7 +499,7 @@ int8_t getBMP180Metric(SoftwareWire* _softTWI, uint8_t _i2cAddress, uint8_t _ove
     }
   }
 
-  rc = RESULT_IN_BUFFER;
+  rc = RESULT_IS_BUFFERED;
 
   finish:
   gatherSystemMetrics(); // Measure memory consumption

@@ -1,5 +1,4 @@
-#ifndef _ZABBUINO_SERVICE_H_
-#define _ZABBUINO_SERVICE_H_
+#pragma once
 
 /*****************************************************************************************************************************
 *
@@ -72,7 +71,7 @@ extern void SerialPrintln_P (const char *_src);
 *  Print array to Serial as MAC or IP or other string with sign-separated parts
 *
 *****************************************************************************************************************************/
-void printArray(uint8_t *_src, uint8_t _len, const uint8_t _type);
+void printArray(uint8_t *_src, const uint8_t _len, Stream* _stream, const uint8_t _type);
 
 void blinkMore(const uint8_t _times, const uint16_t _onTime, const uint16_t _offTime);
 
@@ -83,7 +82,7 @@ void blinkMore(const uint8_t _times, const uint16_t _onTime, const uint16_t _off
 *****************************************************************************************************************************/
 uint8_t validateNetworkAddress(const NetworkAddress);
 uint8_t strToNetworkAddress(const char*, NetworkAddress*);
-uint8_t analyzeStream(char, char*, char**, uint8_t);
+uint8_t analyzeStream(char _charFromClient, char* _dst, uint8_t doReInit, packetInfo_t* _packetInfo);
 
 /* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
                                                          INLINE AND "DEFINE" FUNCTIONS SECTION 
@@ -144,4 +143,4 @@ inline void correctVCCMetrics(uint32_t _currVCC) {
 
 #define PRINT_PSTR(str) ( SerialPrint_P(PSTR(str)) )
 
-#endif // #ifndef _ZABBUINO_SERVICE_H_
+

@@ -1,5 +1,4 @@
-#ifndef _ZABBUINO_REGS_H_
-#define _ZABBUINO_REGS_H_
+#pragma once
 
 /*****************************************************************************************************************************
 *
@@ -9,7 +8,7 @@
 *     - none
 *
 **************************************************************************************************************************** */
-void setPortMode(const uint8_t _port, const uint8_t _mode, const uint8_t _pullup);
+int8_t setPortMode(const uint8_t, const uint8_t, const uint8_t);
 
 /*****************************************************************************************************************************
 *
@@ -19,7 +18,7 @@ void setPortMode(const uint8_t _port, const uint8_t _mode, const uint8_t _pullup
 *     - none
 *
 **************************************************************************************************************************** */
-void writeToPort(const uint8_t _port, const uint8_t _value);
+int8_t writeToPort(const uint8_t, const uint8_t);
 
 
 /*****************************************************************************************************************************
@@ -31,6 +30,5 @@ void writeToPort(const uint8_t _port, const uint8_t _value);
 *     - false on fail (pin is unsafe)
 *
 **************************************************************************************************************************** */
-uint8_t isSafePin(const uint8_t _pin);
+uint8_t isSafePin(const uint8_t);
  
-#endif // #ifndef ZabbuinoIOREGS_h

@@ -1,5 +1,4 @@
-#ifndef _ZABBUINO_INTERRUPTS_H_
-#define _ZABBUINO_INTERRUPTS_H_
+#pragma once
 
 /*-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
 
@@ -42,7 +41,7 @@
 */
 
 #define HANDLE_INT_N_FOR_EXTINT(_interrupt) \
-   void handleExt##_interrupt(void) { extInterrupt[_interrupt].value++; }
+   void handleExt##_interrupt(void) { ++extInterrupt[_interrupt].value; }
 
  
 #if (EXTERNAL_NUM_INTERRUPTS > 7)
@@ -114,7 +113,7 @@
          stateTerminalA = *extInterrupt[_interrupt].encTerminalAPIR & extInterrupt[_interrupt].encTerminalAPinBit;\
          if ((!stateTerminalA) && (statePrevTerminalA)) { \
            if (*extInterrupt[_interrupt].encTerminalBPIR & extInterrupt[_interrupt].encTerminalBPinBit) \
-              { extInterrupt[_interrupt].value++; } else { extInterrupt[_interrupt].value--; } \
+              { ++extInterrupt[_interrupt].value; } else { --extInterrupt[_interrupt].value; } \
          } statePrevTerminalA = stateTerminalA; }
 
 #if (EXTERNAL_NUM_INTERRUPTS > 7)
@@ -144,4 +143,3 @@
 
 #endif // FEATURE_INCREMENTAL_ENCODER_ENABLE
 
-#endif // #ifndef _ZABBUINO_INTERRUPTS_H_

@@ -32,7 +32,7 @@ int8_t getINA219Metric(SoftwareWire* _softTWI, const uint8_t _i2cAddress, uint8_
 *   Read specified metric's value of the INA219 sensor, put it to output buffer on success. 
 *
 *   Returns: 
-*     - RESULT_IN_BUFFER on success
+*     - RESULT_IS_BUFFERED on success
 *     - DEVICE_ERROR_CONNECT on test connection error
 *     - RESULT_IS_FAIL - on other fails
 *
@@ -162,7 +162,7 @@ int8_t getINA219Metric(SoftwareWire* _softTWI, const uint8_t _i2cAddress, uint8_
   // Wait ready bit - CNVR == 1 in Bus Voltage Register
   do {
      delay(10);
-     if (0x00 != readBytesFromI2C(_softTWI, INA219_I2C_ADDRESS, INA219_REG_BUS_VOLTAGE, value, 2)) { goto finish; }
+     if (0x02 != readBytesFromI2C(_softTWI, INA219_I2C_ADDRESS, INA219_REG_BUS_VOLTAGE, value, 0x02)) { goto finish; }
   } while (!(value[1] & B00000010)); 
 
 
@@ -211,7 +211,7 @@ int8_t getINA219Metric(SoftwareWire* _softTWI, const uint8_t _i2cAddress, uint8_
      ltoa(*_value, _dst, 10);
   }
 
-  rc = RESULT_IN_BUFFER;
+  rc = RESULT_IS_BUFFERED;
 
   finish:
   gatherSystemMetrics(); // Measure memory consumption

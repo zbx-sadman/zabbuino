@@ -1,5 +1,4 @@
-#ifndef _ZABBUINO_DEBUG_H_
-#define _ZABBUINO_DEBUG_H_
+#pragma once
 
 #ifdef FEATURE_DEBUG_TO_SERIAL_HIGH
     #define DTSL(x) x
@@ -37,4 +36,3 @@
  #define NDTS(X) /* blank */
 #endif 
 
-#endif // #ifndef _ZABBUINO_DEBUG_H_

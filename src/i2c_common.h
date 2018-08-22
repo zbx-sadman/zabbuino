@@ -1,15 +1,12 @@
-#ifndef _ZABBUINO_I2C_COMMON_H_
-#define _ZABBUINO_I2C_COMMON_H_
+#pragma once
 
 /*****************************************************************************************************************************
 *
-*   Scan I2C bus and print to ethernet client addresses of all detected devices 
+*   Scan I2C bus and store I2C addresses of detected devices 
 *
 *   Returns: 
-*     - RESULT_IS_PRINTED on success
-*     - RESULT_IS_FAIL of no devices found 
+*     - number of found devices
 *
 *****************************************************************************************************************************/
-int8_t scanI2C(SoftwareWire*, NetworkClass*);
+int8_t scanI2C(SoftwareWire* _softTWI, uint8_t *_dst);
 
-#endif // _ZABBUINO_I2C_COMMON_H_

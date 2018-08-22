@@ -52,8 +52,8 @@ uint8_t NetworkClass::checkPHY() {
   uint8_t stateEirRxerif = Enc28J60.readReg((uint8_t) EIR) & EIR_RXERIF;
   uint8_t stateEstatBuffer = Enc28J60.readReg((uint8_t) ESTAT) & ESTAT_BUFFER;
   if (!stateEconRxen || (stateEstatBuffer && stateEirRxerif)) {
+     // Seems, that init() does not flush IP-address settings on chip registers
      Enc28J60.init(macAddress);  
-     //phyReinits++;
      rc = true;
   }
 #elif defined(NETWORK_RS485)
@@ -67,7 +67,7 @@ void NetworkClass::showNetworkState() {
 #if defined(NETWORK_RS485)
   PRINT_PSTR("Address : "); Serial.println(localIP()); 
 #else
-  PRINT_PSTR("MAC     : "); printArray(macAddress, sizeof(macAddress), DBG_PRINT_AS_MAC); 
+  PRINT_PSTR("MAC     : "); printArray(macAddress, sizeof(macAddress), &Serial, MAC_ADDRESS); 
   PRINT_PSTR("IP      : "); Serial.println(Ethernet.localIP()); 
   PRINT_PSTR("Subnet  : "); Serial.println(Ethernet.subnetMask()); 
   PRINT_PSTR("Gateway : "); Serial.println(Ethernet.gatewayIP()); 

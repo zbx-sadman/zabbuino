@@ -342,10 +342,10 @@ void writeToMAX7219(const uint8_t _dataPin, const uint8_t _clockPin, const uint8
     // Pushing byte to column
     pushDataToMAX7219(_dataPin, _clockPin, _loadPin, col, currByte);
     // only 8 columns must be processeed, comment its if need more
-    col++;
+    ++col;
     if (0x08 < col) { break; }
     next:
-    _src++;
+    ++_src;
 
   }
   gatherSystemMetrics(); // Measure memory consumption

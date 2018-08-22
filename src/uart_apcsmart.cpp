@@ -25,7 +25,7 @@
 *  Read values of the specified metric from the APC Smart UPS, put it to output buffer on success. 
 *
 *   Returns: 
-*     - RESULT_IN_BUFFER on success
+*     - RESULT_IS_BUFFERED on success
 *     - DEVICE_ERROR_TIMEOUT if device stop talking
 *
 *****************************************************************************************************************************/
@@ -152,7 +152,7 @@ int8_t getAPCSmartUPSMetric(const uint8_t _rxPin, const uint8_t _txPin, uint8_t*
   serialRXFlush(&swSerial, true);
   //Serial.println("Destroy current SoftwareSerial instance");
  
-  rc = RESULT_IN_BUFFER;
+  rc = RESULT_IS_BUFFERED;
 
   finish:
   gatherSystemMetrics(); // Measure memory consumption

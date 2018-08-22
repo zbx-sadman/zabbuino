@@ -65,10 +65,10 @@ int8_t shiftOutAdvanced(const uint8_t _dataPin, const uint8_t _clockPin, const u
        // *_src = *_src << 1;
        *_src = *_src << 1;
        // bit counter increase
-       i--;
+       --i;
      }        
-     _src++;
-     lenOfBuffer--;
+     ++_src;
+     --lenOfBuffer;
   }
 
   interrupts();
@@ -204,7 +204,7 @@ int16_t prepareBufferForAdvShiftout(const uint8_t _bitOrder, const uint8_t compr
       0x00, 0x08, 0x04, 0x0C, 0x02, 0x0A, 0x06, 0x0E, 0x01, 0x09, 0x05, 0x0D, 0x03, 0x0B, 0x07, 0x0F  //   <- number reversed
   };
   uint16_t dataBufferReadPosition, dataBufferWritePosition, dataBufferSwapPosition, halfLenOfBuffer, lenOfBuffer;
-  uint8_t tmpVal, i;
+  uint8_t tmpVal;
   
   dataBufferReadPosition = 2;
   // Is HEX-string incoming?
@@ -213,7 +213,7 @@ int16_t prepareBufferForAdvShiftout(const uint8_t _bitOrder, const uint8_t compr
      // Walk over buffer, convert HEX do DEC and shift data to the left (destroy '0x' gap)
      while (_src[dataBufferReadPosition]) {
         _src[dataBufferReadPosition - 2] = htod(_src[dataBufferReadPosition]);
-        dataBufferReadPosition++;
+        ++dataBufferReadPosition;
      }
      // Correct position to prefix length for taking buffer new lenght
      dataBufferReadPosition -= 2;
@@ -249,9 +249,9 @@ int16_t prepareBufferForAdvShiftout(const uint8_t _bitOrder, const uint8_t compr
        _src[dataBufferSwapPosition] = _src[dataBufferReadPosition];
        _src[dataBufferReadPosition] = tmpVal;
        // shrink swapping area
-       dataBufferReadPosition--;
-       dataBufferSwapPosition++;
-       halfLenOfBuffer--;
+       --dataBufferReadPosition;
+       ++dataBufferSwapPosition;
+       --halfLenOfBuffer;
      } 
      // Make fast bit reversing for all items
      // That procedure is stand separately because one central item not processeed on previous stage if buffer length is odd
@@ -279,13 +279,13 @@ int16_t prepareBufferForAdvShiftout(const uint8_t _bitOrder, const uint8_t compr
           // On case of one nibble found at forward - just move nibble to high, correct the buffer length and jump out
           if ((dataBufferReadPosition + 2) > lenOfBuffer) {
              _src[dataBufferWritePosition] = (_src[dataBufferReadPosition] << 4);
-             lenOfBuffer++; break;
+             ++lenOfBuffer; break;
           // Two nibble available - make one byte
           } else {
              _src[dataBufferWritePosition] = ((_src[dataBufferReadPosition] << 4) | _src[dataBufferReadPosition + 1]);
           }
           dataBufferReadPosition += 2;
-          dataBufferWritePosition++;
+          ++dataBufferWritePosition;
         }
         // after nibbles joining length of array is the half 
         lenOfBuffer = lenOfBuffer >> 1;  

@@ -57,7 +57,7 @@ int8_t getMHZxxMetricPWM(const uint8_t _pin, const uint16_t _range, uint8_t* _ds
 *   Read specified metric's value of the Winsen MH-Zxx CO2 sensor via UART, put it to output buffer on success. 
 *
 *   Returns: 
-*     - RESULT_IN_BUFFER on success
+*     - RESULT_IS_BUFFERED on success
 *     - DEVICE_ERROR_TIMEOUT if device stop talking
 *
 *****************************************************************************************************************************/
@@ -109,7 +109,7 @@ int8_t getMHZxxMetricUART(const uint8_t _rxPin, const uint8_t _txPin, uint8_t* _
      ultoa(*_value, (char*) _dst, 10);
   }
 
-  rc = RESULT_IN_BUFFER;
+  rc = RESULT_IS_BUFFERED;
 
   finish:
   gatherSystemMetrics(); // Measure memory consumption
@@ -124,7 +124,7 @@ int8_t getMHZxxMetricUART(const uint8_t _rxPin, const uint8_t _txPin, uint8_t* _
 *  Read specified metric's value of the Winsen MH-Zxx CO2 sensor via PWM, put it to output buffer on success. 
 *
 *  Returns: 
-*    - RESULT_IN_BUFFER on success
+*    - RESULT_IS_BUFFERED on success
 *    - DEVICE_ERROR_ACK_L
 *    - DEVICE_ERROR_ACK_H
 *    - DEVICE_ERROR_TIMEOUT if sensor stops answer to the request
@@ -200,7 +200,7 @@ int8_t getMHZxxMetricPWM(uint8_t _pin, uint16_t _range, uint8_t* _dst, int32_t* 
               PRINT_PSTR(", low level time: "); Serial.println(highTime);
         ) 
         *_value = _range * (highTime - 2) / (highTime + lowTime - 4);
-        rc = RESULT_IN_BUFFER;
+        rc = RESULT_IS_BUFFERED;
      } 
      startTimerOne(); 
      gatherSystemMetrics(); 
@@ -209,7 +209,7 @@ int8_t getMHZxxMetricPWM(uint8_t _pin, uint16_t _range, uint8_t* _dst, int32_t* 
 
      // Return 'good concentracion' while sensor heated
      *_value = MH_ZXX_PREHEAT_GAS_CONCENTRATION;
-     rc = RESULT_IN_BUFFER;
+     rc = RESULT_IS_BUFFERED;
   }  // if (millis() > MH_ZXX_PREHEAT_TIMEOUT)
 
   if (!_wantsNumber) {

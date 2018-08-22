@@ -1,5 +1,4 @@
-#ifndef _ZABBUINO_STRUCTS_H_
-#define _ZABBUINO_STRUCTS_H_
+#pragma once
 
 #include "NetworkAddress.h"
 
@@ -19,7 +18,7 @@ typedef struct {
   NetworkAddress ipAddress;     		  // 4 byte (uint8_t[])
   NetworkAddress ipNetmask;     		  // 4 byte (uint8_t[])
   NetworkAddress ipGateway;     	          // 4 byte (uint8_t[])
-  char hostname[constAgentHostnameMaxLength+1];     // +1 for '\0', 255 - (1 + 1 + 1 + 6 + 4*4 + 2 + 1) = 227 bytes max
+  char hostname[constAgentHostnameMaxLength];     // 255 - (1 + 1 + 1 + 6 + 4*4 + 2 ) = 201 bytes max
   // #ifdef ... #elif ... #endif does not work with struct operator
   uint32_t password;                              // 4 byte
   int16_t tzOffset;                               // 2 byte
@@ -40,6 +39,7 @@ typedef struct {
   uint32_t sysRamFreeMin;                         // Minimum free memory (in bytes) from MCU powering on
   uint32_t netPHYReinits;                         // PHY reinits number (restarts of network module)
   uint32_t sysAlarmRisedTime;                     // Last time, when Alarm was rised
+  uint32_t sysStartTimestamp;                     // Last time, when Alarm was rised
 } sysmetrics_t;
 
 
@@ -53,6 +53,12 @@ typedef struct {                                  // 9 bytes:
   uint8_t encTerminalAPinBit;                     // 1 byte
   uint8_t encTerminalBPinBit;                     // 1 byte
 } extInterrupt_t ;
-#pragma pack(pop) 
 
-#endif //_ZABBUINO_STRUCTS_H_
+typedef struct {                                  
+  uint8_t type;
+  uint16_t dataLength;
+  char** optarg;
+} packetInfo_t ;
+
+#pragma pack(pop)
+

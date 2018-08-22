@@ -13,13 +13,13 @@
 *     - none
 *
 **************************************************************************************************************************** */
-void setPortMode(const uint8_t _port, const uint8_t _mode, const uint8_t _pullup)
+int8_t setPortMode(const uint8_t _port, const uint8_t _mode, const uint8_t _pullup)
 {
   volatile uint8_t *modeRegister, *pullUpRegister;
 
   // Input/Output toggle register
   modeRegister = portModeRegister(_port);
-  if (NOT_A_PORT == modeRegister) return;
+  if (NOT_A_PORT == modeRegister) return RESULT_IS_FAIL;
 
   // pull-up port register 
   pullUpRegister = portOutputRegister(_port);
@@ -29,6 +29,7 @@ void setPortMode(const uint8_t _port, const uint8_t _mode, const uint8_t _pullup
     *modeRegister |= _mode;
     *pullUpRegister |= _pullup;
   }
+  return RESULT_IS_OK;
 }
 
 /*****************************************************************************************************************************
@@ -39,18 +40,18 @@ void setPortMode(const uint8_t _port, const uint8_t _mode, const uint8_t _pullup
 *     - none
 *
 **************************************************************************************************************************** */
-void writeToPort(const uint8_t _port, const uint8_t _value)
+int8_t writeToPort(const uint8_t _port, const uint8_t _value)
 {
   volatile uint8_t *portRegister;
 
   portRegister = portOutputRegister(_port);
-  if (NOT_A_PORT == portRegister) return;
+  if (NOT_A_PORT == portRegister) return RESULT_IS_FAIL;
   // Port write transaction
   // Use protection mask when write to port for saving some pins state
   ATOMIC_BLOCK(ATOMIC_RESTORESTATE) {  
     *portRegister = (*portRegister & port_protect[_port]) | (_value & ~port_protect[_port]);
   }
-
+  return RESULT_IS_OK;
 }
 
 

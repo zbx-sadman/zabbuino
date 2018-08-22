@@ -1,5 +1,4 @@
-#ifndef _ZABBUINO_UART_MEGATEC_H_
-#define _ZABBUINO_UART_MEGATEC_H_
+#pragma once
 
 /*-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
 
@@ -20,10 +19,9 @@
 *   Not tested yet.
 *
 *   Returns: 
-*     - RESULT_IN_BUFFER on success
+*     - RESULT_IS_BUFFERED on success
 *     - DEVICE_ERROR_TIMEOUT if device stop talking
 *
 *****************************************************************************************************************************/
 int8_t getMegatecUPSMetric(const uint8_t, const uint8_t, char*, uint8_t, uint8_t*);
 
-#endif // #ifndef _ZABBUINO_UART_MEGATEC_H_

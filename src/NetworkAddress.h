@@ -1,5 +1,4 @@
-#ifndef NetworkAddress_H
-#define NetworkAddress_H
+#pragma once
 
 #include <Arduino.h>
 #include <IPAddress.h>
@@ -34,5 +33,3 @@ public:
     NetworkAddress& operator=(const uint8_t *address);
     NetworkAddress& operator=(uint32_t address);
 };
-#endif // NetworkAddress_H
-

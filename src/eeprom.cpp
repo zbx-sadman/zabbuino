@@ -50,7 +50,7 @@ uint8_t saveConfigToEEPROM(netconfig_t *_configStruct)
           
      // Operations must be repeated until all bytes of config structure not saved and no write errors found
      while (index && !restartWriteCycle) {
-       index--;
+       --index;
        // Just simulate EEPROM.update():
        // Write only changed data and immediately tests the written byte. On testing error - restart write cycle with new start address.
        //Serial.print("0x"); Serial.print(p_configStruct[index]); Serial.print(" => '"); Serial.print((char) p_configStruct[index]); Serial.print("'"); 
@@ -108,7 +108,7 @@ uint8_t loadConfigFromEEPROM(netconfig_t *_configStruct)
 
   index = sizeof(netconfig_t);
   while (index) {
-     index--;
+     --index;
      p_configStruct[index] = EEPROM[startAddress + index];
   }
 

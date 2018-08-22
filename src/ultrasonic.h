@@ -1,5 +1,4 @@
-#ifndef ZabbuinoULTRASONIC_h
-#define ZabbuinoULTRASONIC_h
+#pragma once
 
 #define ULTRASONIC_SAMPLES                       (0x05)
 
@@ -13,4 +12,3 @@
 *****************************************************************************************************************************/
 uint32_t getUltrasonicMetric(const uint8_t _triggerPin, const uint8_t _echoPin);
 
-#endif // #ifndef ZabbuinoULTRASONIC_h

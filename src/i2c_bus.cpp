@@ -1,9 +1,8 @@
 // Config & common included files
 #include "sys_includes.h"
 
+
 #include "SoftwareWire/SoftwareWire.h"
-#include "service.h"
-#include "system.h"
 
 #include "i2c_bus.h"
 
@@ -27,29 +26,33 @@ uint8_t writeByteToI2C(SoftwareWire* _softTWI, const uint8_t _i2cAddress, const 
 *   Write incoming bytes to I2C device register (if specified) or just to device
 *
 *   Returns: 
-*     - Wire.endTransmission result code
-*       0 - success
-*       1 - data too long to fit in transmit buffer
-*       2 - received NACK on transmit of address
-*       3 - received NACK on transmit of data
-*       4 - other error
+*     - number of bytes written to I2C device
+*     - 0 on any error detected on I2C bus
 *
 *****************************************************************************************************************************/
-uint8_t writeBytesToI2C(SoftwareWire* _softTWI, const uint8_t _i2cAddress, const int16_t _registerAddress, const uint8_t *_src, uint8_t _len) 
+uint8_t writeBytesToI2C(SoftwareWire* _softTWI, const uint8_t _i2cAddress, const int16_t _registerAddress, const uint8_t *_src, const uint8_t _len) 
 {
+  uint8_t writtenBytes = 0x00;
+
+  // Do nothing if no lenght
+  if (!_len) { goto finish; }
 
   _softTWI->beginTransmission(_i2cAddress); // start transmission to device 
   // registerAddress is 0x00 and above ?
   if (I2C_NO_REG_SPECIFIED < _registerAddress) {
      _softTWI->write((uint8_t) _registerAddress); // sends register address to be written
   }
-  while (_len) {
-    _softTWI->write(*_src);  // write data
-    _src++;
-    _len--;
-  }
-  return _softTWI->endTransmission(true); // end transmission
 
+  // Make bulk write to device
+  writtenBytes = _softTWI->write(_src, _len);
+
+  // on any error return Zero as written bytes count
+  if (SOFTWAREWIRE_NO_ERROR != _softTWI->endTransmission(true)) {
+     writtenBytes = 0x00;
+  } 
+
+  finish:
+  return writtenBytes;
 }
 
 /*****************************************************************************************************************************
@@ -57,40 +60,36 @@ uint8_t writeBytesToI2C(SoftwareWire* _softTWI, const uint8_t _i2cAddress, const
 *   Reads bytes from device's register (or not) over I2C.
 *
 *   Returns: 
-*     - Wire.endTransmission result code
-*       0 - success
-*       1 - data too long to fit in transmit buffer
-*       2 - received NACK on transmit of address
-*       3 - received NACK on transmit of data
-*       4 - other error
+*     - number of bytes written to I2C device
+*     - 0 on any error detected on I2C bus
 *
 *****************************************************************************************************************************/
-uint8_t readBytesFromI2C(SoftwareWire* _softTWI, const uint8_t _i2cAddress, const int16_t _registerAddress, uint8_t *_dst, uint8_t _len)
+uint8_t readBytesFromI2C(SoftwareWire* _softTWI, const uint8_t _i2cAddress, const int16_t _registerAddress, uint8_t *_dst, const uint8_t _len)
 {
-  if (!_len) { return false; }
+  uint8_t recievedBytes = 0x00;
+  
+  if (!_len) { goto finish; }
 
-  _softTWI->beginTransmission(_i2cAddress);   
   if (I2C_NO_REG_SPECIFIED < _registerAddress) {
+     _softTWI->beginTransmission(_i2cAddress);   
      _softTWI->write((uint8_t) _registerAddress);
      // No Stop Condition, for repeated Talk
      _softTWI->endTransmission(false);     
   }
 
-  uint32_t lastTimeCheck = millis();         
-  _softTWI->requestFrom(_i2cAddress, _len);  
-  while(_len && (_softTWI->available() > 0)) {
-    // 100 => 0.1 sec timeout
-    // SoftwareWire have protection timeout for 1sec, but error sign is not returned :(
-    if ((millis() - lastTimeCheck) > 300UL) {
-       _softTWI->endTransmission(true);
-       return false;
-    }
-    *_dst = (uint8_t) _softTWI->read();
-    _dst++;
-    _len--;
+  // Make request with Stop Condition
+  recievedBytes = _softTWI->requestFrom(_i2cAddress, _len, true);
+  if (_len != recievedBytes) {
+     recievedBytes = 0x00;
+     goto finish;
   }
-  // Stop Condition
-  return _softTWI->endTransmission(true);    
+
+  if (recievedBytes == _len) {
+    _softTWI->readBytes(_dst, _len);
+  }
+
+  finish:
+  return recievedBytes;
 }
 
 /*****************************************************************************************************************************
@@ -106,7 +105,7 @@ int8_t readValueFromI2C(SoftwareWire* _softTWI, const uint8_t _i2cAddress, const
 {
   int8_t rc = RESULT_IS_FAIL;
   uint8_t i, dropResult, readNumber, bytes[4];
-  int32_t accResult, tmpResult;
+  int32_t accResult = 0x00, tmpResult;
    
 
   _len = constrain(_len, 1, 4);
@@ -123,8 +122,8 @@ int8_t readValueFromI2C(SoftwareWire* _softTWI, const uint8_t _i2cAddress, const
 
   while (readNumber) {
     readNumber--;
-    delayMicroseconds(constAdcStabilizationDelay);
-    if (0 != readBytesFromI2C(_softTWI, _i2cAddress, _registerAddress, bytes, _len)) {
+//    delayMicroseconds(constAdcStabilizationDelay);
+    if (_len != readBytesFromI2C(_softTWI, _i2cAddress, _registerAddress, bytes, _len)) {
       goto finish;
     }
     if (dropResult) {
@@ -132,8 +131,8 @@ int8_t readValueFromI2C(SoftwareWire* _softTWI, const uint8_t _i2cAddress, const
        dropResult = false;
     } else {
        // make int32 from i2C's bytes
-       tmpResult = 0;
-       for (i = 0; i < _len; i++) {
+       tmpResult = 0x00;
+       for (i = 0x00; i < _len; i++) {
          tmpResult <<= 8;
          tmpResult |= bytes[i];
        }
@@ -160,17 +159,21 @@ int8_t readValueFromI2C(SoftwareWire* _softTWI, const uint8_t _i2cAddress, const
 *****************************************************************************************************************************/
 int8_t writeValueToI2C(SoftwareWire* _softTWI, const uint8_t _i2cAddress, const int16_t _registerAddress, uint32_t _value, uint8_t _len)
 {
-  uint8_t i, bytes[4];
+  uint8_t bytes[4];
 
   _len = constrain(_len, 1, 4);
+/*
   i = _len;
   while (i) {
-    i--;
+  i--;
+*/
+  while (_len) {
+    _len--;
     // take last byte and shift bits right to make able get next byte
-    bytes[i] = _value & 0xFF;
+    bytes[_len] = _value & 0xFF;
     _value = _value >> 8;
   }
-  return (0x00 == writeBytesToI2C(_softTWI, _i2cAddress, _registerAddress, bytes, _len)) ? RESULT_IS_OK : RESULT_IS_FAIL;
+  return (_len == writeBytesToI2C(_softTWI, _i2cAddress, _registerAddress, bytes, _len)) ? RESULT_IS_OK : RESULT_IS_FAIL;
 }
 
 /*****************************************************************************************************************************
@@ -187,14 +190,16 @@ int8_t bitWriteToI2C(SoftwareWire* _softTWI, const uint8_t _i2cAddress, const in
   int8_t rc = RESULT_IS_FAIL;
   uint8_t bytes[1];
 
-  if (0 > _bitNumber || 7 < _bitNumber) { goto finish; }
+  //if (0x00 > _bitNumber || 7 < _bitNumber) { goto finish; }
+  // _bitNumber is unsigned and can't be less than zero
+  if (7 < _bitNumber) { goto finish; }
 
-  if (0x00 != readBytesFromI2C(_softTWI, _i2cAddress, _registerAddress, bytes, 1)) { goto finish; }
+  if (sizeof(bytes) != readBytesFromI2C(_softTWI, _i2cAddress, _registerAddress, bytes, sizeof(bytes))) { goto finish; }
 
-  bitWrite (bytes[0], _bitNumber, (_value ? 1 : 0));
+  bitWrite (bytes[0], _bitNumber, !!_value);
 
   // Write one byte to I2C
-  rc = (0x00 == writeBytesToI2C(_softTWI, _i2cAddress, _registerAddress, bytes, 1)) ? RESULT_IS_OK : RESULT_IS_FAIL;
+  rc = (sizeof(bytes) == writeBytesToI2C(_softTWI, _i2cAddress, _registerAddress, bytes, sizeof(bytes))) ? RESULT_IS_OK : RESULT_IS_FAIL;
 
   finish:
   return rc;
@@ -215,9 +220,11 @@ int8_t bitReadFromI2C(SoftwareWire* _softTWI, const uint8_t _i2cAddress, const i
   int8_t rc = RESULT_IS_FAIL;
   uint8_t bytes[1];
 
-  if (0 > _bitNumber || 7 < _bitNumber) { goto finish; }
+  //if (0 > _bitNumber || 7 < _bitNumber) { goto finish; }
+  // _bitNumber is unsigned and can't be less than zero
+  if (7 < _bitNumber) { goto finish; }
 
-  if (0x00 != readBytesFromI2C(_softTWI, _i2cAddress, _registerAddress, bytes, 1)) { goto finish; }
+  if (sizeof(bytes) != readBytesFromI2C(_softTWI, _i2cAddress, _registerAddress, bytes, sizeof(bytes))) { goto finish; }
 
   *_value = bitRead(bytes[0], _bitNumber);
 
@@ -231,5 +238,5 @@ int8_t bitReadFromI2C(SoftwareWire* _softTWI, const uint8_t _i2cAddress, const i
 uint8_t isI2CDeviceReady(SoftwareWire* _softTWI, uint8_t _i2cAddress)
 {
   _softTWI->beginTransmission(_i2cAddress);
-  return (0 == _softTWI->endTransmission(true));
+  return (SOFTWAREWIRE_NO_ERROR == _softTWI->endTransmission(true));
 }

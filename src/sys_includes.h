@@ -1,3 +1,4 @@
+#pragma once
 #include <Arduino.h>
 
 // cfg_basic.h & cfg_tune.h must be included before other zabbuino's headers because they contain configuration data

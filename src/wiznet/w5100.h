@@ -339,7 +339,7 @@ private:
   static const uint16_t SMASK = 0x07FF; // Tx buffer MASK
   static const uint16_t RMASK = 0x07FF; // Rx buffer MASK
 public:
-  static const uint16_t SSIZE = 2048; // Max Tx buffer size
+  static const uint16_t SSIZE = 0x0800; // Max Tx buffer size - 2048
 private:
   static const uint16_t RSIZE = 2048; // Max Rx buffer size
   uint16_t SBASE[SOCKETS]; // Tx buffer base address

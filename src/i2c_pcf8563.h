@@ -1,11 +1,10 @@
+#pragma once
 /*
 
 Based on 
 
 */
 
-#ifndef _ZABBUINO_I2C_PCF8563_H_
-#define _ZABBUINO_I2C_PCF8563_H_
 
 //PCF8563 Register Addresses
 #define PCF8563_REG_CONTROL_STATUS_1  (0x00)
@@ -77,4 +76,3 @@ int8_t savePCF8563Time(SoftwareWire*, uint8_t, time_t);
 int8_t readPCF8563Time(SoftwareWire*, uint8_t, time_t*);
 
 
-#endif // #ifndef _ZABBUINO_I2C_PCF8563_H_

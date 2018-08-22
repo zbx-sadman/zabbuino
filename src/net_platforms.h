@@ -1,10 +1,9 @@
+#pragma once
 /*
 
    net_platforms.h : helper header file which just bring physical network type to source code 
 
 */
-#ifndef _ZABBUINO_NETWORK_HELPER_H_
-#define _ZABBUINO_NETWORK_HELPER_H_
 
 #include "../cfg_basic.h"
 //#include "cfg_tune.h"
@@ -30,6 +29,4 @@
    #define PHY_MODULE_NAME                                   "RS485"
 */
 #endif
-
-#endif // _ZABBUINO_NETWORK_HELPER_H_
 

@@ -1,5 +1,4 @@
-#ifndef _ZABBUINO_I2C_BUS_H_
-#define _ZABBUINO_I2C_BUS_H_
+#pragma once
 
 #define I2C_NO_REG_SPECIFIED                                    (-0x01) //
 
@@ -7,8 +6,8 @@
 #define WireToS8(_source)  ((int8_t) _source[0])
 
 //#define WireToU16(_source)  ((uint16_t) ( ((uint16_t) _source[0] << 8)| (uint16_t) _source[1]))
-#define WireToU16(_source)  ((uint16_t) ( ((uint8_t) _source[0] << 8)| (uint8_t) _source[1]))
-#define WireToS16(_source)  ((int16_t)  ( ((uint8_t) _source[0] << 8)| (uint8_t) _source[1]))
+#define WireToU16(_source)  ((uint16_t) ( ((uint16_t) _source[0] << 8)| (uint8_t) _source[1]))
+#define WireToS16(_source)  ((int16_t)  ( ((uint16_t) _source[0] << 8)| (uint8_t) _source[1]))
 
 #define WireToU16LE(_source)  ((uint16_t) ( ((uint16_t) _source[1] << 8)| _source[0]))
 #define WireToS16LE(_source)  ((int16_t) ( ((uint16_t) _source[1] << 8)| _source[0]))
@@ -31,28 +30,19 @@ uint8_t writeByteToI2C(SoftwareWire* _softTWI, const uint8_t _i2cAddress, const 
 *   Write incoming bytes to I2C device register (if specified) or just to device
 *
 *   Returns: 
-*     - Wire.endTransmission result code
-*       0 - success
-*       1 - data too long to fit in transmit buffer
-*       2 - received NACK on transmit of address
-*       3 - received NACK on transmit of data
-*       4 - other error
+*     - number of bytes written to I2C device
+*     - 0 on any error detected on I2C bus
 *
 *****************************************************************************************************************************/
-uint8_t writeBytesToI2C(SoftwareWire* _softTWI, const uint8_t _i2cAddress, const int16_t _registerAddress, const uint8_t *_src, uint8_t _len);
+uint8_t writeBytesToI2C(SoftwareWire* _softTWI, const uint8_t _i2cAddress, const int16_t _registerAddress, const uint8_t *_src, const uint8_t _len); 
 
 /*****************************************************************************************************************************
 *
 *   Reads bytes from device's register (or not) over I2C.
 *
 *   Returns: 
-*     - Wire.endTransmission result code
-*       0 - success
-*       1 - data too long to fit in transmit buffer
-*       2 - received NACK on transmit of address
-*       3 - received NACK on transmit of data
-*       4 - other error
-*
+*     - number of bytes written to I2C device
+*     - 0 on any error detected on I2C bus
 *
 *****************************************************************************************************************************/
 uint8_t readBytesFromI2C(SoftwareWire* _softTWI, const uint8_t _i2cAddress, const int16_t _registerAddress, uint8_t *_dst, const uint8_t _len);
@@ -116,5 +106,4 @@ int8_t bitReadFromI2C(SoftwareWire*, const uint8_t, const int16_t, const uint8_t
 *
 *****************************************************************************************************************************/
 uint8_t isI2CDeviceReady(SoftwareWire* _softTWI, uint8_t _i2cAddress);
-
-#endif // _ZABBUINO_I2C_BUS_H_
+                              

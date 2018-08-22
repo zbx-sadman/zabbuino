@@ -1,5 +1,4 @@
-#ifndef _ZABBUINO_EEPROM_H_
-#define _ZABBUINO_EEPROM_H_
+#pragma once
 
 /*****************************************************************************************************************************
 *
@@ -24,4 +23,3 @@ uint8_t saveConfigToEEPROM(netconfig_t*);
 *****************************************************************************************************************************/
 uint8_t loadConfigFromEEPROM(netconfig_t*);
 
-#endif // #ifndef _ZABBUINO_EEPROM_H_

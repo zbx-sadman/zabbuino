@@ -7,6 +7,7 @@
 #include "system.h"
 
 #include "service.h"
+#include "sys_macros.h"
 
 /*****************************************************************************************************************************
 *
@@ -118,7 +119,7 @@ void qtoaf(const int64_t _number, char *_dst, uint8_t _fracBits){
     while (0 < _fracBits) {
         tmp <<= 1;
         tmp |= 1;
-        _fracBits--;
+        --_fracBits;
     }
     tmp = _number & tmp;
     ltoa(tmp, _dst, 10);
@@ -168,7 +169,7 @@ void ltoaf(const int32_t _number, char* _dst, const uint8_t _num_after_dot)
       // Decrease that digit to next comparison (6xx, 5xx, 4xx, 3xx, 2xx, 1xx, 0xx)
       value -= dividers[i];
       // Increase character value
-      currChar++;
+      ++currChar;
     }
     // When the 'while' cycle is completed, the value of currChar will be increased N-th times
     // ('0', '1', '2', '3', '4', '5', '6') and currChar wil be represent digit that placed into
@@ -180,7 +181,7 @@ void ltoaf(const int32_t _number, char* _dst, const uint8_t _num_after_dot)
     skipLeadingZeros = false; 
     // Push currChar to buffer
     *_dst = currChar;
-    _dst++;
+    ++_dst;
     // do not add trailing zeros after dot
     if (0 >= value and pointIsUsed) {break;}
   }
@@ -202,13 +203,13 @@ int16_t hstoba(uint8_t* _dst, const char* _src)
 
   while (*_src) {
      *_dst = (htod(*_src) << 4);
-     _src++;
+     ++_src;
      if (*_src) {
         *_dst |= htod(*_src);
-        _src++; 
+        ++_src; 
      }
-    _dst++;
-    len++;
+    ++_dst;
+    ++len;
   }
 
   /*
@@ -234,7 +235,7 @@ uint8_t dallas_crc8(uint8_t *_src, uint8_t _len)
 {
   uint8_t crc = 0;
   while (_len) {
-    _len--;
+    --_len;
     uint8_t inbyte = *_src++;
     crc = _crc_ibutton_update(crc, inbyte);
 
@@ -267,28 +268,65 @@ void SerialPrintln_P (const char *_src) {
 *
 *****************************************************************************************************************************/
 
-void printArray(uint8_t *_src, uint8_t _len, const uint8_t _type)
+void printArray(uint8_t *_src, const uint8_t _len, Stream* _stream, const uint8_t _type)
 {
   char separator;
-  uint8_t format;
+  uint8_t format, i;
+  uint16_t pos = 0;
 
+  // One byte step
+//  step = 1;
+  format = HEX;
   switch (_type) {
-    case DBG_PRINT_AS_MAC:
-      format = HEX;
+    case OW_ADDRESS:
+      // Eight bytes step
+//      step = 8;
+      separator = '\n';
+      break;
+    case I2C_ADDRESS:
+      separator = '\n';
+      break;
+    case MAC_ADDRESS:
       separator = ':';
       break;
-    case DBG_PRINT_AS_IP:
+    case IP_ADDRESS:
     default:
       format = DEC;
       separator = '.';
    }     
 
-  while (_len--) {
-    Serial.print(*_src, format);
-    if (1 <= _len) Serial.print(separator);
-    _src++;
+  while (pos < _len) {
+    switch (_type) {
+      case OW_ADDRESS:
+        _stream->print("0x");
+        i = 7;
+        while (i) {
+          --i;
+          if (0x0F > _src[pos]) { _stream->print('0'); }
+          _stream->print(_src[pos], format);
+          ++pos;
+        }
+        break;
+
+      case I2C_ADDRESS:
+        _stream->print("0x");
+      case MAC_ADDRESS:
+          if (0x0F > _src[pos]) { _stream->print('0'); }
+        break;
+
+      case IP_ADDRESS:
+      default:
+        break;
+
+    }     
+
+    _stream->print(_src[pos], format);
+    ++pos;
+    if (pos < _len) { _stream->print(separator); 
+
+}
   }
-  Serial.println();
+  _stream->println();
 }
 
 void blinkMore(const uint8_t _times, const uint16_t _onTime, const uint16_t _offTime) 
@@ -317,8 +355,8 @@ uint8_t strToNetworkAddress(const char* _src, NetworkAddress* _dstAddress) {
    Detect Zabbix packets, on-fly spit incoming stream to command & arguments
 
 **************************************************************************************************************************** */
-uint8_t analyzeStream(char _charFromClient, char* _dst, char* _optarg[], uint8_t doReInit) {
-  uint8_t static needSkipZabbix2Header = false,
+uint8_t analyzeStream(char _charFromClient, char* _dst, uint8_t doReInit, packetInfo_t* _packetInfo) {
+  uint8_t static allowAnalyze          = true, 
                  cmdSliceNumber        = 0,
                  isEscapedChar         = 0,
                  doubleQuotedString    = false;
@@ -327,6 +365,8 @@ uint8_t analyzeStream(char _charFromClient, char* _dst, char* _optarg[], uint8_t
   // Jump into reInitStage procedure. This is a bad programming style, but the subroutine must be lightweight.
   if (doReInit) {
     // Temporary clean code stub
+    _packetInfo->dataLength = 0x00;
+    _packetInfo->type = PACKET_TYPE_PLAIN;
     *_dst = '\0';
     goto reInitStage;
   }
@@ -338,36 +378,40 @@ uint8_t analyzeStream(char _charFromClient, char* _dst, char* _optarg[], uint8_t
 
   // Put next char to buffer
   _dst[bufferWritePosition] = (doubleQuotedString) ? _charFromClient : tolower(_charFromClient);
-  // no PRINT_PSTR(...)) used to avoid slow perfomance on analyze loops
-  // Development mode only debug message level used
-  DTSD( Serial.print("anl: ");
-        Serial.print(_dst[bufferWritePosition], HEX);
-        Serial.print(" '");
-        Serial.print((char) _dst[bufferWritePosition]); Serial.println("' ");
-      )
+
   // When ZBX_HEADER_PREFIX_LENGTH chars is saved to buffer - test its for Zabbix2 protocol header prefix ("ZBXD\01") presence
   // (ZBX_HEADER_PREFIX_LENGTH-1) was used because bufferWritePosition is start count from 0, not from 1
-  if ((ZBX_HEADER_PREFIX_LENGTH - 1) == bufferWritePosition) {
+  if ((ZBX_HEADER_PREFIX_LENGTH-1) == bufferWritePosition) {
     if (0 == memcmp(_dst, (ZBX_HEADER_PREFIX), ZBX_HEADER_PREFIX_LENGTH)) {
-      // If packet have prefix - set 'skip whole header' flag
-      needSkipZabbix2Header = true;
+      // If packet have prefix - it is Zabbix's native packet
+      _packetInfo->type = PACKET_TYPE_ZABBIX;
       DTSD( Serial.println("ZBX header detected"); )
+      allowAnalyze = false;
+  //    _packetInfo->dataLength = 0;
     }
   }
 
-  // When ZBX_HEADER_LENGTH chars is saved to buffer - check 'skip whole header' flag and just begin write new data from begin of buffer.
-  // This operation 'drops' Zabbix2 header
-  if (ZBX_HEADER_LENGTH == bufferWritePosition && needSkipZabbix2Header) {
-    bufferWritePosition = 0;
-    needSkipZabbix2Header = false;
-    DTSD( Serial.println("ZBX header dropped"); )
+  // Allow packet analyzing when Zabbix header is skipped
+  if (ZBX_HEADER_LENGTH == bufferWritePosition && PACKET_TYPE_ZABBIX == _packetInfo->type) {
+    //bufferWritePosition = 0;
+    //needSkipZabbix2Header = false;
+    allowAnalyze = true;
+    _packetInfo->dataLength = 0;
+    //DTSD( Serial.println("ZBX header dropped"); )
+    DTSD( Serial.println("ZBX header passed"); )
     // Return 'Need next char' and save a lot cpu time
-    return true;
+    //return true;
   }
 
+  // no PRINT_PSTR(...)) used to avoid slow perfomance on analyze loops
+  // Development mode only debug message level used
+  DTSD( Serial.print("in: "); Serial.print(_dst[bufferWritePosition], HEX); Serial.print(" '");Serial.print((char) _dst[bufferWritePosition]); Serial.print("' "); )
+
   // Process all chars if its not from header data
-  if (!needSkipZabbix2Header) {
+//  if (!needSkipZabbix2Header) 
+  if (allowAnalyze) {
     // char is not escaped
+    DTSD( Serial.println("...");  )
     switch (_charFromClient) {
       // Doublequote sign is arrived
       case '"':
@@ -405,7 +449,7 @@ uint8_t analyzeStream(char _charFromClient, char* _dst, char* _optarg[], uint8_t
         if (!doubleQuotedString) {
           //  If '_argOffset' array is not exhausted - push begin of next argument (bufferWritePosition+1) on buffer to arguments offset array.
           if (constArgC > cmdSliceNumber) {
-            _optarg[cmdSliceNumber] = &_dst[bufferWritePosition + 1];
+            _packetInfo->optarg[cmdSliceNumber] = &_dst[bufferWritePosition + 1];
           }
           cmdSliceNumber++;
           // Make current buffer segment like C-string
@@ -423,11 +467,12 @@ uint8_t analyzeStream(char _charFromClient, char* _dst, char* _optarg[], uint8_t
 
       // EOL detected
       case '\n':
+        DTSH( PRINTLN_PSTR("NEWLINE"); )
         // Save last argIndex that pointed to <null> item. All unused _argOffset[] items must be pointed to this <null> item too.
         _dst[bufferWritePosition] = '\0';
         //while (constArgC > cmdSliceNumber) { _argOffset[cmdSliceNumber++] = bufferWritePosition;}
         while (constArgC > cmdSliceNumber) {
-          _optarg[cmdSliceNumber++] = &_dst[bufferWritePosition];
+          _packetInfo->optarg[cmdSliceNumber++] = &_dst[bufferWritePosition];
         }
         // Change argIndex value to pass (constArgC < argIndex) condition
         cmdSliceNumber = constArgC + 1;
@@ -437,19 +482,22 @@ uint8_t analyzeStream(char _charFromClient, char* _dst, char* _optarg[], uint8_t
       default:
         isEscapedChar = false;
     }
-
+    _packetInfo->dataLength++;
     // EOL reached or there is not room to store args. Stop stream analyzing and do command executing
     if (constArgC < cmdSliceNumber) {
 reInitStage:
       DTSH( PRINTLN_PSTR("Reinit analyzer"); )
       // Clear vars for next round, and return false as 'Do not need next char'
       bufferWritePosition = cmdSliceNumber = isEscapedChar = doubleQuotedString = 0;
-      needSkipZabbix2Header = doubleQuotedString = false;
+      doubleQuotedString = false;
+      allowAnalyze = true;
       return false;
     }
+  } else {
+    DTSD( Serial.println();  )
   }
   //
-  bufferWritePosition++;
+  ++bufferWritePosition;
   // Return 'Need next char' and save a lot cpu time
   return true;
 }

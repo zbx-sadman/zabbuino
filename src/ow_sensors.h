@@ -1,5 +1,4 @@
-#ifndef _ZABBUINO_OW_SENSORS_H_
-#define _ZABBUINO_OW_SENSORS_H_
+#pragma once
 
 #include <OneWire.h>
 
@@ -23,6 +22,9 @@
 #define DS18X20_MODE_10_BIT                                     (0x3F) // 10 bit
 #define DS18X20_MODE_11_BIT                                     (0x5F) // 11 bit
 #define DS18X20_MODE_12_BIT                                     (0x7F) // 12 bit
+
+#define DS18X20_MIN_RESOLUTION                                  (9) //  9 bit
+#define DS18X20_MAX_RESOLUTION                                  (12) //  12 bit
 
 
 // OneWire commands
@@ -63,12 +65,10 @@ int8_t getDS18X20Metric(const uint8_t, uint8_t, uint8_t*, char*);
 *        probably you can meet problems with the correct calculation of temperature due to incorrect 'tRaw' adjustment 
 *
 *   Returns: 
-*     - RESULT_IN_BUFFER on success
+*     - RESULT_IS_BUFFERED on success
 *     - DEVICE_ERROR_CONNECT on connection error
 *     - DEVICE_ERROR_CHECKSUM on detect data corruption
 *
 *****************************************************************************************************************************/
 int8_t getDS18X20Metric(const uint8_t, uint8_t, uint8_t*, char*, int32_t*, const uint8_t _wantsNumber = false);
 //int8_t getDS18X20Metric(const uint8_t, uint8_t, char*, char*);
-
-#endif // #ifndef _ZABBUINO_OW_SENSORS_H_

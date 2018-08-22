@@ -1,10 +1,9 @@
+#pragma once
 /*
 
    network.h : header file which make virtual network interface from various physical interface drivers
 
 */
-#ifndef _ZABBUINO_NETWORK_H_
-#define _ZABBUINO_NETWORK_H_
 
 #include "net_platforms.h"
 #include "sys_structs.h"
@@ -33,6 +32,8 @@ class NetworkClass
     inline IPAddress defaultIP() { return (IPAddress) netDefaultIP; }
 
     uint8_t checkPHY();
+    inline void checkClient() { client = server.available(); }
+    inline void stopClient() { client.stop(); }
     inline uint8_t isDHCPUsed() { return useDHCP; }
     inline uint8_t getRCR() { return 0; }
     inline uint16_t getRTR() { return 0; }
@@ -45,6 +46,7 @@ class NetworkClass
     void showNetworkState();
     void showPHYState();
     void restart();
+
     void init(netconfig_t*);
 };
 
@@ -68,9 +70,11 @@ class NetworkClass
     NetworkClass() {}
     ~NetworkClass() {}
     uint8_t checkPHY();
+    inline void checkClient() { client = server.available(); }
+    inline void stopClient() { client.stop(); }
     inline IPAddress localIP() { return UIPEthernet.localIP(); }
     inline IPAddress defaultIP() { return (IPAddress) netDefaultIP; }
-    inline void tick() { UIPEthernetClass.tick(); }
+    inline void tick() { UIPEthernet.tick(); }
     inline uint8_t getRCR() { return 0; }
     inline uint16_t getRTR() { return 0; }
     inline uint16_t getPHYCFG() { return 0; }
@@ -86,5 +90,3 @@ class NetworkClass
 };
 
 #endif // NETWORK_ETH_ENC28J60
-#endif // _ZABBUINO_NETWORK_H_
-

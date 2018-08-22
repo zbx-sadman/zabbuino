@@ -38,14 +38,19 @@ static uint8_t crcPZEM004(uint8_t* _data, uint8_t _size) {
 *   Read values of the specified metric from the Peacefair PZEM-004 Energy Meter, put it to output buffer on success. 
 *
 *   Returns: 
-*     - RESULT_IN_BUFFER on success
+*     - RESULT_IS_BUFFERED on success
 *     - DEVICE_ERROR_TIMEOUT if device stop talking
 *
 *****************************************************************************************************************************/
 int8_t getPZEM004Metric(const uint8_t _rxPin, const uint8_t _txPin, uint8_t _metric, const char* _ip, uint8_t* _dst) {
+
   int8_t rc = RESULT_IS_FAIL;
   uint8_t command, len;
   int32_t result;
+  uint32_t waitTime;
+  static uint32_t lastReadTime = 0x00;
+
+
   SoftwareSerial swSerial(_rxPin, _txPin);
 
   swSerial.begin(PZEM_UART_SPEED);
@@ -69,6 +74,12 @@ int8_t getPZEM004Metric(const uint8_t _rxPin, const uint8_t _txPin, uint8_t _met
     default:
       goto finish; 
   }
+
+  waitTime = millis() - lastReadTime;
+
+  // PZEM004 answer twice in second only
+  waitTime = (waitTime < 1000) ? (1000 - waitTime) : 0;
+  delay(waitTime); 
 
   /*  Send to PZEM004 */
   
@@ -132,7 +143,7 @@ int8_t getPZEM004Metric(const uint8_t _rxPin, const uint8_t _txPin, uint8_t _met
       goto finish;         
       break;
   }
-  rc = RESULT_IN_BUFFER;
+  rc = RESULT_IS_BUFFERED;
 
   finish:
   gatherSystemMetrics(); // Measure memory consumption

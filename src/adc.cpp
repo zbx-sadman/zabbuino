@@ -19,7 +19,9 @@ uint16_t getADCVoltage(const uint8_t _analogChannel) {
   uint16_t i;
   uint32_t avgADC = 0;
   oldADMUX = ADMUX;
-  ADMUX = (0 << REFS1) | (1 << REFS0) | _analogChannel;
+
+  // ATmega328 /  ATmega2560 just used different _analogChannel to get 1.1V ref voltage value
+  ADMUX = _BV(REFS0) | _analogChannel;
 
   //  save ADCSRA register
   oldADCSRA = ADCSRA;
@@ -60,7 +62,7 @@ uint16_t getADCVoltage(const uint8_t _analogChannel) {
 *  Read specified metric's value of the ACS712 sensor, put it to output buffer on success. 
 *
 *  Returns: 
-*    - always RESULT_IN_BUFFER 
+*    - always RESULT_IS_BUFFERED 
 *
 *  Note: code is not tested in production
 *
@@ -156,6 +158,6 @@ int8_t getACS7XXMetric(const uint8_t _sensorPin, uint32_t _aRefVoltage,  const u
 
   ltoa(result, _dst, 10);
 
-  return RESULT_IN_BUFFER;
+  return RESULT_IS_BUFFERED;
 }
 

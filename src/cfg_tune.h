@@ -1,19 +1,19 @@
-#ifndef _ZABBUINO_TUNE_CONFIG_H_
-#define _ZABBUINO_TUNE_CONFIG_H_
-
+#pragma once
 #include <avr/wdt.h>
 
 /* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
                                                             DISPATCH SECTION 
 
 */
+
 // Enable LCD support if report screen required
 #if defined (FEATURE_SYSTEM_DISPLAY_ENABLE)
     #define FEATURE_PCF8574_LCD_ENABLE
 #endif
 
-#if defined (FEATURE_SYSTEM_RTC_ENABLE)
-    #define FEATURE_I2C_RTC_ENABLE
+#if defined (FEATURE_SYSTEM_RTC_DS3231_ENABLE)    || \
+    defined (FEATURE_SYSTEM_RTC_PCF8563_ENABLE)
+    #define FEATURE_SYSTEM_RTC_ENABLE
 #endif
 
 #if defined (FEATURE_BMP180_ENABLE)
@@ -40,10 +40,10 @@
     defined (FEATURE_BH1750_ENABLE)      || \
     defined (FEATURE_PCF8574_LCD_ENABLE) || \
     defined (FEATURE_SHT2X_ENABLE)       || \
-    defined (FEATURE_I2C_RTC_ENABLE)     || \
+    defined (FEATURE_SYSTEM_RTC_ENABLE)  || \
     defined (FEATURE_MAX44009_ENABLE)    || \
+    defined (FEATURE_VEML6070_ENABLE)    || \
     defined (FEATURE_INA219_ENABLE)
-
     #define TWI_USE
 #endif
 
@@ -79,15 +79,15 @@
     defined (ARDUINO_AVR_ETHERNET)
     #define PORTS_NUM                                           0x05
 
-#elif defined(ARDUINO_AVR_LEONARDO)      || \
+#elif defined (ARDUINO_AVR_LEONARDO)     || \
     defined (ARDUINO_AVR_MICRO)          || \
-    defined(ARDUINO_AVR_ROBOT_CONTROL)   || \
-    defined(ARDUINO_AVR_ROBOT_MOTOR)     || \
+    defined (ARDUINO_AVR_ROBOT_CONTROL)  || \
+    defined (ARDUINO_AVR_ROBOT_MOTOR)    || \
     defined (ARDUINO_AVR_YUN)
     #define PORTS_NUM                                           0x07
 
 #elif defined (ARDUINO_AVR_MEGA) || \
-    defined(ARDUINO_AVR_MEGA2560)
+    defined (ARDUINO_AVR_MEGA2560)
     #define PORTS_NUM                                           0x0D
 #else // Unknow boards equal to "Arduino Duemilanove"
     #define ARDUINO_AVR_DUEMILANOVE
@@ -117,7 +117,11 @@ const uint8_t  constDefaultSCLPin                               = A5;
 // System RTC module settings (only DS3231 is supported at this time)
 const uint8_t  constSystemRtcSDAPin                             = A4;     // SDA - A4
 const uint8_t  constSystemRtcSCLPin                             = A5;     // SCL - A5
+#if defined (FEATURE_SYSTEM_RTC_DS3231_ENABLE)
 const uint8_t  constSystemRtcI2CAddress                         = 0x68;   // DS3231 RTC I2C address 
+#elif defined (FEATURE_SYSTEM_RTC_PCF8563_ENABLE)
+const uint8_t  constSystemRtcI2CAddress                         = 0x51;   // PCF8563 RTC I2C address 
+#endif
 
 const uint16_t constUserFunctionCallInterval                    = 1000UL; // 3sec
 
@@ -156,6 +160,11 @@ const uint32_t constNetIdleTimeout            	                = 60000UL;
 // 0.1 sec
 const uint32_t constNetStabilizationDelay                       = 100UL; 
 
+// How much system wait for Ethernet Shield resetting
+// https://arduinodiy.wordpress.com/2017/04/12/the-w5100-bug/ -> Bug 3 – The Funduino Reset Bug
+const uint32_t constEthernetShieldInitDelay                     = 250UL;
+
+const uint32_t consNetDebugPrintInterval                        = 5000UL;
 /* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
                                                          SYSTEM CONFIGURATION SECTION 
 */
@@ -252,13 +261,16 @@ D13 -^    ^- D8    <- pins   */
   // check ports settings for your platform
   B00000000, // not a port
   B00000000, // PORTA
-  B00000000, // PORTB
+  B00011111, /* PORTB
+  D10-^^- D50 ... D53 (SPI BUS + D10 - Ethernet.h's CS pin) */
   B00000000, // PORTC
   B00000000, // PORTD
-  B00000000, // PORTE
+  B00000011, /* PORTE
+         ^-D1,D0 (USART0) */
   B00000000, // PORTF
   B00000000, // PORTG
-  B00000000, // PORTH
+  B01100000, /* PORTH
+    ^-D9,D8 (Status LED, Factory Reset Button */
   B00000000, // not a port
   B00000000, // PORTJ
   B00000000, // PORTK
@@ -287,11 +299,11 @@ const uint8_t port_mode[PORTS_NUM] PROGMEM = {
   B00000000, // not a port
   B00000000, // not a port
   // Bits 6, 7 have not correspondented pins in Arduino Mini Pro / Freeduino 2009
-  B00111110, /*     PORTB        
+  B00000000, /*     PORTB        
 D13 -^    ^- D8    <- pins   */
-  B11111110, /*     PORTC 
+  B00000000, /*     PORTC 
    ^-A7   ^-A0   <- pins    */
-  B11111111  /*     PORTD 
+  B00000000  /*     PORTD 
    ^-D7   ^-D0   <- pins    */
 #elif defined (ARDUINO_AVR_LEONARDO)    || \
     defined (ARDUINO_AVR_MICRO)         || \
@@ -301,27 +313,27 @@ D13 -^    ^- D8    <- pins   */
   // check ports settings for your platform
   B00000000, // not a port
   B00000000, // not a port
-  B11111111, // PORTB
-  B11111111, // PORTC
-  B11111111, // PORTD
-  B11111111, // PORTE
-  B11111111  // PORTF
+  B00000000, // PORTB
+  B00000000, // PORTC
+  B00000000, // PORTD
+  B00000000, // PORTE
+  B00000000  // PORTF
 #elif defined (ARDUINO_AVR_MEGA)        || \
     defined(ARDUINO_AVR_MEGA2560)
   // check ports settings for your platform
   B00000000, // not a port
-  B11111111, // PORTA
-  B11111111, // PORTB
-  B11111111, // PORTC
-  B11111111, // PORTD
-  B11111111, // PORTE
-  B11111111, // PORTF
-  B11111111, // PORTG
-  B11111111, // PORTH
+  B00000000, // PORTA
+  B00000000, // PORTB
+  B00000000, // PORTC
+  B00000000, // PORTD
+  B00000000, // PORTE
+  B00000000, // PORTF
+  B00000000, // PORTG
+  B00000000, // PORTH
   B00000000, // not a port
-  B11111111, // PORTJ
-  B11111111, // PORTK
-  B11111111  // PORTL
+  B00000000, // PORTJ
+  B00000000, // PORTK
+  B00000000  // PORTL
 #endif
 };
 
@@ -344,7 +356,7 @@ const uint8_t port_pullup[PORTS_NUM] PROGMEM = {
   B00000000, // not a port
   B00000000, // not a port
   // Bits 6, 7 have not correspondented pins in Arduino Mini Pro / Freeduino 2009
-  B00111101, /*     PORTB        
+  B00000000, /*     PORTB        
 D13 -^    ^- D8    <- pins   */
   B00000000, /*     PORTC 
    ^-A7   ^-A0   <- pins    */
@@ -425,6 +437,3 @@ const uint32_t constAdcStabilizationDelay                       = 1000UL;
 // On Leonardo, Micro and other ATmega32u4 boards wait to Serial Monitor ready for 5sec 
 const uint32_t constSerialWaitTimeout                           = 5000UL;  
  
-
-#endif // _ZABBUINO_TUNE_CONFIG_H_
-
