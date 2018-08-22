@@ -47,14 +47,14 @@ New features:
   - Zabbix v4 compability (trying to complete);
   - Arduino Mega2560 is used for testing from now;
   - User plugin function's can be omitted now, and system will not call its (weak linking used);
-  - _FEATURE\_SERVO\_ENABLE_ enables simple digital servo turning feature. Command (unfortunately it block runtime) servo.turn[servoPin, targetAnglePulseWidth, turnTime, holdTime, returnAnglePulseWidth] is added:
+  - _FEATURE\_SERVO\_ENABLE_ enables simple digital servo turning feature. Command (unfortunately it block runtime) ``servo.turn[servoPin, targetAnglePulseWidth, turnTime, holdTime, returnAnglePulseWidth]`` is added:
     - _servoPin_ - pin to which servo connected, 
     - _targetAnglePulseWidth_ - duration of pulse (in ms) that will be "send" to Servo for moving it to destination;
     - _turnTime_ - time (in ms) to finish turning servo on desired angle with;
     - _holdTime_ - time (in ms) of pause before return back servo to start (or other) position;
     - _returnAnglePulseWidth_ - duraton of pulse (in ms) that will be "send" to Servo for moving it to back;
     Example: ``servo.turn[5, 1500, 500, 2000, 680]``
-  - _FEATURE\_VEML6070\_ENABLE_ enables VEML6070 Ultraviolet sensor support. Command VEML6070.uv[sdaPin, sclPin, integrationTime]. _integrationTime_ is Two-bits code of sensor's preset: integrationTime=1 mean "1T" period (~125 ms), integrationTime=2 mean "2T" period (~250 ms), integrationTime=3 mean "4T" period (~500 ms). Example: ``VEML6070.uv[18, 19, 3]``
+  - _FEATURE\_VEML6070\_ENABLE_ enables VEML6070 Ultraviolet sensor support. Command ``VEML6070.uv[sdaPin, sclPin, integrationTime]``. _integrationTime_ is Two-bits code of sensor's preset: integrationTime=1 mean "1T" period (~125 ms), integrationTime=2 mean "2T" period (~250 ms), integrationTime=3 mean "4T" period (~500 ms). Example: ``VEML6070.uv[18, 19, 3]``
 
 
 #### 13 Oct 2017
