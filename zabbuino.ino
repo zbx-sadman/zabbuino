@@ -62,10 +62,10 @@ void loop() {
 #endif
 
 #ifdef FEATURE_SYSTEM_RTC_ENABLE
-  DTSM( PRINT_PSTR("Init system RTC ");
+  DTSM( PRINT_PSTR("Init system RTC "); )
   if (! initRTC(&SoftTWI)) {
-  // sysMetrics.sysStartTimestamp already inited by 0x00 with memset() on start
-  Serial.print("un");
+    // sysMetrics.sysStartTimestamp already inited by 0x00 with memset() on start
+    DTSM( PRINT_PSTR("un"); )
   } else {
     // Get current timestamp from system RTC and store it into sysMetrics structure.
     // On RTC failure - do not use it
@@ -73,8 +73,7 @@ void loop() {
       sysMetrics.sysStartTimestamp = 0x00;
     }
   }
-  PRINTLN_PSTR("succesfull");
-      )
+  DTSM( PRINTLN_PSTR("succesfull"); )
 #endif
 
   // Run user function
@@ -485,7 +484,7 @@ static int16_t executeCommand(char* _dst, netconfig_t* _netConfig, packetInfo_t*
 
     case CMD_SYSTEM_UPTIME:
       //
-      //  sys.uptime
+      //  system.uptime
       //
       value  = ((uint32_t) millisRollover() * (UINT32_MAX / 1000) + (millis() / 1000UL));
 #ifdef FEATURE_SYSTEM_RTC_ENABLE
@@ -511,7 +510,7 @@ static int16_t executeCommand(char* _dst, netconfig_t* _netConfig, packetInfo_t*
 
     case CMD_NET_PHY_NAME:
       //
-      //  sys.net.module
+      //  net.phy.name
       //
       strcpy_P(payload, PSTR(PHY_MODULE_NAME));
       rc = RESULT_IS_BUFFERED;
@@ -654,7 +653,7 @@ static int16_t executeCommand(char* _dst, netconfig_t* _netConfig, packetInfo_t*
         return RESULT_IS_NEW_COMMAND;
         goto finish;
       }
-#endif
+#endif // FEATURE_REMOTE_COMMANDS_ENABLE
 
     case CMD_ARDUINO_ANALOGWRITE:
       //
@@ -683,7 +682,7 @@ static int16_t executeCommand(char* _dst, netconfig_t* _netConfig, packetInfo_t*
       }
       value = analogRead(argv[0]);
       if ('\0' != *_optarg[2] && '\0' != *_optarg[3]) {
-        value = map(value, 0, 1023, argv[2], argv[3]);
+        value = map(value, constAnalogReadMappingLowValue, constAnalogReadMappingHighValue, argv[2], argv[3]);
       }
       rc = RESULT_IS_UNSIGNED_VALUE;
       goto finish;
@@ -793,27 +792,17 @@ static int16_t executeCommand(char* _dst, netconfig_t* _netConfig, packetInfo_t*
       //  set.hostname[password, hostname]
       //
       // payload[_argOffset[1]] != \0 if argument #2 given
-      if (!accessGranted || '0' == *_optarg[1]) {
-        goto finish;
+      if (!accessGranted || '0' != *_optarg[1]) {
+        strncpy(_netConfig->hostname, _optarg[1], constAgentHostnameMaxLength);
+        rc = RESULT_IS_UNSTORED_IN_EEPROM;
       }
-      // copy <1-th arg length> bytes from 1-th arg of buffer (0-th arg contain password) to hostname
-      i = strlen((char*) _optarg[1]);
-      if (i > constAgentHostnameMaxLength) {
-        i = constAgentHostnameMaxLength;
-      }
-      // memset(_netConfig->hostname, '\0', i);
-      //copy 0 .. (constAgentHostnameMaxLength-1) chars from buffer to hostname
-      memcpy(_netConfig->hostname, _optarg[1], i);
-      // Terminate string instead last char
-      _netConfig->hostname[i - 1] = '\0';
-      rc = RESULT_IS_UNSTORED_IN_EEPROM;
       goto finish;
 
     case CMD_SET_PASSWORD:
       //
       //  set.password[oldPassword, newPassword]
       //
-      if (accessGranted && '\0' == *_optarg[1]) {
+      if (accessGranted && '\0' != *_optarg[1]) {
         // take new password from argument #2
         _netConfig->password = argv[1];
         rc = RESULT_IS_UNSTORED_IN_EEPROM;
@@ -824,7 +813,7 @@ static int16_t executeCommand(char* _dst, netconfig_t* _netConfig, packetInfo_t*
       //
       //  set.sysprotect[password, protection]
       //
-      if (accessGranted && '\0' == *_optarg[1]) {
+      if (accessGranted && '\0' != *_optarg[1]) {
         _netConfig->useProtection = (1 == argv[1]) ? true : false;
         rc = RESULT_IS_UNSTORED_IN_EEPROM;
       }
@@ -841,11 +830,11 @@ static int16_t executeCommand(char* _dst, netconfig_t* _netConfig, packetInfo_t*
       i = true;
       // useDHCP flag coming from argument#1 and must be numeric (boolean) - 1 or 0,
       // argv[0] data contain in payload[_argOffset[1]] placed from _argOffset[0]
-      _netConfig->useDHCP = (uint8_t) argv[1];
+      _netConfig->useDHCP = (0 != (uint8_t) argv[1]);
       // ip, netmask and gateway have one structure - 4 byte
       // take 6 bytes from second argument of command and use as new MAC-address
       // if convertation is failed (sub return -1) variable must be falsed too via logic & operator
-      i &= (6 == hstoba((uint8_t *) &_netConfig->macAddress, _optarg[2]));
+      i = i ? (6 == hstoba((uint8_t *) &_netConfig->macAddress, _optarg[2])) : false;
       // If string to which point _optarg[3] can be converted to valid NetworkAddress - just do it.
       // Otherwize (string can not be converted) _netConfig->ipAddress will stay untouched;
       i = (i) ? (strToNetworkAddress((char*) _optarg[3], &_netConfig->ipAddress)) : false;
@@ -858,6 +847,40 @@ static int16_t executeCommand(char* _dst, netconfig_t* _netConfig, packetInfo_t*
       goto finish;
 
 #endif // FEATURE_EEPROM_ENABLE
+
+#ifdef FEATURE_SYSTEM_RTC_ENABLE
+    case CMD_SET_LOCALTIME:
+      //
+      //  set.localtime[password, unixTimestamp, tzOffset]
+      //  set.localtime must take unixTimestamp as UTC, because system.localtime command returns UTC too
+      //
+      if (!accessGranted) {
+        goto finish;
+      }
+      // i used as succes bool variable
+      i = true;
+#ifdef FEATURE_EEPROM_ENABLE
+      // tzOffset is defined?
+      if ('\0' != *_optarg[2]) {
+        _netConfig->tzOffset = (int16_t) argv[2];
+        // Save config to EEPROM
+        i = saveConfigToEEPROM(_netConfig);
+        if (i) {
+          set_zone(_netConfig->tzOffset);
+          rc = RESULT_IS_OK;
+        }
+      }
+#endif // FEATURE_EEPROM_ENABLE
+
+      // unixTimestamp option is given?
+      if ('\0' != *_optarg[1] && i) {
+        // tzOffset is defined and stored sucesfully
+        if (setUnixTime(&SoftTWI, argv[1])) {
+          rc = RESULT_IS_OK;
+        }
+      }
+      goto finish;
+#endif // FEATURE_SYSTEM_RTC_ENABLE
 
     case CMD_SYS_PORTWRITE:
       //
@@ -1175,8 +1198,6 @@ static int16_t executeCommand(char* _dst, netconfig_t* _netConfig, packetInfo_t*
       goto finish;
 #endif // FEATURE_SERVO_ENABLE
 
-
-
     default:
       // ************************************************************************************************************************************
       // Following commands use <argv[0]> or <argv[1]> pins for sensor handling (UART, I2C, etc) and these pins can be disabled in port_protect[] array
@@ -1189,6 +1210,7 @@ static int16_t executeCommand(char* _dst, netconfig_t* _netConfig, packetInfo_t*
       // ************************************************************************************************************************************
       // Non-I2C related commands block
       //
+      Serial.println("Non-I2C related commands block");
       switch (cmdIdx) {
 #ifdef FEATURE_INCREMENTAL_ENCODER_ENABLE
         case CMD_INCENC_VALUE:
@@ -1292,13 +1314,14 @@ static int16_t executeCommand(char* _dst, netconfig_t* _netConfig, packetInfo_t*
       i2CRegister = ('\0' != *_optarg[3]) ? (int16_t) argv[3] : I2C_NO_REG_SPECIFIED;
 #endif // FEATURE_I2C_ENABLE
 
+
       switch (cmdIdx) {
 #ifdef FEATURE_I2C_ENABLE
         case CMD_I2C_SCAN:
           //
           //  I2C.scan[sdaPin, sclPin]
           //
-          //    value = scanI2C(&SoftTWI, (uint8_t*) payload);
+          value = scanI2C(&SoftTWI, (uint8_t*) payload);
           if (value) {
             rc = RESULT_IS_BUFFERED;
           }
@@ -1306,9 +1329,11 @@ static int16_t executeCommand(char* _dst, netconfig_t* _netConfig, packetInfo_t*
 
         case CMD_I2C_WRITE:
           //
-          // i2c.write(sdaPin, sclPin, i2cAddress, register, length, data)
+          // i2c.write(sdaPin, sclPin, i2cAddress, register, data, length)
           //
-          rc = writeValueToI2C(&SoftTWI, i2CAddress, i2CRegister, (uint8_t) argv[4], (uint32_t) argv[5]);
+          Serial.print("i2CAddress: "); Serial.println(i2CAddress, HEX);
+          Serial.print("i2CRegister: "); Serial.println(i2CRegister, HEX);
+          rc = writeValueToI2C(&SoftTWI, i2CAddress, i2CRegister, (uint32_t) argv[4], (uint8_t) argv[5]);
           goto finish;
 
         case CMD_I2C_READ:
@@ -1425,40 +1450,6 @@ static int16_t executeCommand(char* _dst, netconfig_t* _netConfig, packetInfo_t*
           rc = getSHT2XMetric(&SoftTWI, i2CAddress, SENS_READ_TEMP, payload);
           goto finish;
 #endif // FEATURE_SHT2X_ENABLE  
-
-#ifdef FEATURE_SYSTEM_RTC_ENABLE
-        case CMD_SET_LOCALTIME:
-          //
-          //  set.localtime[password, unixTimestamp, tzOffset]
-          //  set.localtime must take unixTimestamp as UTC, because system.localtime command returns UTC too
-          //
-          if (!accessGranted) {
-            goto finish;
-          }
-          // i used as succes bool variable
-          i = true;
-#ifdef FEATURE_EEPROM_ENABLE
-          // tzOffset is defined?
-          if ('\0' != *_optarg[2]) {
-            _netConfig->tzOffset = (int16_t) argv[2];
-            // Save config to EEPROM
-            i = saveConfigToEEPROM(_netConfig);
-            if (i) {
-              set_zone(_netConfig->tzOffset);
-              rc = RESULT_IS_OK;
-            }
-          }
-#endif // FEATURE_EEPROM_ENABLE
-
-          // unixTimestamp option is given?
-          if ('\0' != *_optarg[1] && i) {
-            // tzOffset is defined and stored sucesfully
-            if (setUnixTime(&SoftTWI, argv[1])) {
-              rc = RESULT_IS_OK;
-            }
-          }
-          goto finish;
-#endif // FEATURE_SYSTEM_RTC_ENABLE
 
 #ifdef FEATURE_AT24CXX_ENABLE
         case CMD_AT24CXX_WRITE:
@@ -1700,6 +1691,7 @@ finish:
   switch (rc) {
     case RESULT_IS_SYSTEM_REBOOT_ACTION:
       Network.stopClient();
+      delay(100);
       // The reason why using the watchdog timer or RST_SWRST_bm is preferable over jumping to the reset vector, is that when the watchdog or RST_SWRST_bm resets the AVR,
       // the registers will be reset to their known, default settings. Whereas jumping to the reset vector will leave the registers in their previous state, which is
       // generally not a good idea. http://www.atmel.com/webdoc/avrlibcreferencemanual/FAQ_1faq_softreset.html

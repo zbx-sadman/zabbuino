@@ -46,21 +46,21 @@
 /=/      
 /=/      Note: Do not forget to enable UDP prototol support for network module driver.
 /*/
-#define FEATURE_NET_DHCP_ENABLE
+//#define FEATURE_NET_DHCP_ENABLE
 
 /*/ 
 /=/      Force obtain IP-address using DHCP even netConfig.useDHCP = false
 /*/
-#define FEATURE_NET_DHCP_FORCE
+//#define FEATURE_NET_DHCP_FORCE
 
 /*/ 
-/=/      Use last byte of MCU ID as IP's 4-th octet, and last 3 byte as MAC`s NIC speciific part (4,5,6 octets) 
+/=/      MCU ID (in HEX) used as hostname, and last byte of MCU ID as IP's 4-th octet, and last 3 byte as MAC`s NIC speciific part (4,5,6 octets) 
 /=/      
 /=/      Note: Unique MCU ID defined for ATMega328PB and can not exist on other MCU's (but seems that it exists on my ATMega328P). 
 /=/            You need try to read it before use for network addresses generating.
 /=/            Using only 3 last bytes not guarantee making unique MAC or IP.
 /*/
-#define FEATURE_NET_USE_MCUID
+//#define FEATURE_NET_USE_MCUID
 
 /****       Arduino wrappers     ****/
   
@@ -128,7 +128,7 @@
 /=/ Note #1: I2C library (Wire.h) takes at least 32bytes of memory for internal buffers
 /=/ Note #2: I2C library (Wire.h) activate internal pullups for SDA & SCL pins when Wire.begin() called
 /*/
-//#define FEATURE_I2C_ENABLE
+#define FEATURE_I2C_ENABLE
 
 /*/ 
 /=/     Enable BOSCH BMP180 sensors handling and commands:
@@ -235,7 +235,7 @@
 /=/       - DHT.Humidity[];
 /=/       - DHT.Temperature[]
 /*/
-#define FEATURE_DHT_ENABLE
+//#define FEATURE_DHT_ENABLE
 
 /****       Ultrasonic    ****/
 
@@ -338,12 +338,14 @@
 #define FEATURE_SYSINFO_ENABLE
 
 /*/ 
-/=/      Enable support the system RTC (DS3231 RTC chip which connected via I2C interface) and commands:
+/=/      Enable support the system RTC (DS3231 or PCF8563 RTC chip which connected via I2C interface) and commands:
 /=/        - set.localtime[]
 /=/        - system.localtime[]
 /=/      
 /=/      Refer to SYSTEM HARDWARE SECTION in src\tune.h
 /*/
+#define FEATURE_SYSTEM_RTC_DS3231_ENABLE
+//#define FEATURE_SYSTEM_RTC_PCF8563_ENABLE
 //#define FEATURE_SYSTEM_RTC_ENABLE
 
 /*/
@@ -362,7 +364,7 @@
 /*/
 /=/     Recieve command from Serial Monitor too. Do not forget to enable one of FEATURE_DEBUG_TO_SERIAL_* macro 
 /*/
-//#define FEATURE_SERIAL_LISTEN_TOO
+#define FEATURE_SERIAL_LISTEN_TOO
 
 /*/
 /=/     Send back to user text messages if error is occurs. Otherwise - send numeric code
@@ -429,7 +431,7 @@ const uint32_t constSysDefaultPassword                         = 0x000;
 const uint8_t constFactoryResetButtonPin                       = 0x08; 
 
 //
-const uint16_t constSysTZOffset                                = 0x6789;
+const uint16_t constSysTZOffset                                = 0x2A30; //10800;
 
 /* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
                                                           AGENT CONFIGURATION SECTION 

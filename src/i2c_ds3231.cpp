@@ -118,7 +118,7 @@ int8_t initDS3231(SoftwareWire* _softTWI, const uint8_t _i2cAddress) {
   // clear all relevant bits to a known "off" state
   creg &= ~(DS3231_AIEMASK | _BV(DS3231_BBSQW));
   creg |= _BV(DS3231_INTCN);  // set INTCN to disables SQW
-  if (0x00 != writeByteToI2C(_softTWI, _i2cAddress, DS3231_REG_CONTROL, creg)) { goto finish; } 
+  if (0x00 == writeByteToI2C(_softTWI, _i2cAddress, DS3231_REG_CONTROL, creg)) { goto finish; } 
 
   rc = true;
 
@@ -202,8 +202,9 @@ int8_t readDS3231Time(SoftwareWire* _softTWI, uint8_t _i2cAddress, time_t* _time
   //    2) the battery on the device is low or even missing
   // TODO: make new retcode (?)
   if (!isDS3231DateTimeValid(_softTWI, _i2cAddress)) { goto finish; } // rc already init as RESULT_IS_FAIL
+  Serial.println(" ++ 3 ++");
 
-  rc = (0x00 == readBytesFromI2C(_softTWI, _i2cAddress, DS3231_REG_TIMEDATE, value, sizeof(value)));
+  rc = (sizeof(value) == readBytesFromI2C(_softTWI, _i2cAddress, DS3231_REG_TIMEDATE, value, sizeof(value)));
 
   dateTime.tm_sec   = BcdToUint8(value[0] & 0x7F);
   dateTime.tm_min   = BcdToUint8(value[1]);
@@ -226,7 +227,19 @@ int8_t readDS3231Time(SoftwareWire* _softTWI, uint8_t _i2cAddress, time_t* _time
   // dateTime.tm_year -= 1900; // tm_year - years since 1900
   // Make timestamp
   *_timestamp = mk_gmtime(&dateTime);
+/*  Serial.println("datetime: ");
+  Serial.println(dateTime.tm_sec);
+  Serial.println(dateTime.tm_min);
+  Serial.println(dateTime.tm_hour);
+  Serial.println(dateTime.tm_wday);
+  Serial.println(dateTime.tm_mday);
+  Serial.println(dateTime.tm_mon);
+  Serial.println(dateTime.tm_year);
 
+
+  Serial.print("*_timestamp: ");
+  Serial.println(*_timestamp);
+*/
   finish:
   return rc;
 }

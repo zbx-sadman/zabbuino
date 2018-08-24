@@ -111,12 +111,12 @@ const uint32_t constBlinkNetworkProblem                         = 500UL;
                                                           SYSTEM HARDWARE SECTION 
 */
 
-const uint8_t  constDefaultSDAPin                               = A4;
-const uint8_t  constDefaultSCLPin                               = A5;
+const uint8_t  constDefaultSDAPin                               = SDA;
+const uint8_t  constDefaultSCLPin                               = SCL;
 
 // System RTC module settings (only DS3231 is supported at this time)
-const uint8_t  constSystemRtcSDAPin                             = A4;     // SDA - A4
-const uint8_t  constSystemRtcSCLPin                             = A5;     // SCL - A5
+const uint8_t  constSystemRtcSDAPin                             = SDA;     // SDA - A4
+const uint8_t  constSystemRtcSCLPin                             = SCL;     // SCL - A5
 #if defined (FEATURE_SYSTEM_RTC_DS3231_ENABLE)
 const uint8_t  constSystemRtcI2CAddress                         = 0x68;   // DS3231 RTC I2C address 
 #elif defined (FEATURE_SYSTEM_RTC_PCF8563_ENABLE)
@@ -437,3 +437,6 @@ const uint32_t constAdcStabilizationDelay                       = 1000UL;
 // On Leonardo, Micro and other ATmega32u4 boards wait to Serial Monitor ready for 5sec 
 const uint32_t constSerialWaitTimeout                           = 5000UL;  
  
+// 10 bit ADC
+const uint16_t constAnalogReadMappingLowValue                  = 0;
+const uint16_t constAnalogReadMappingHighValue                  = 1023;

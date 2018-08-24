@@ -34,6 +34,7 @@ int8_t scanI2C(SoftwareWire* _softTWI, uint8_t *_dst)
     // 4:other error
     if (0 == _softTWI->endTransmission(true)) {
       _dst[numDevices]=i2cAddress;
+      Serial.print("0x"); Serial.println(i2cAddress,HEX);
       numDevices++;
     }
   } 

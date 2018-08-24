@@ -65,7 +65,6 @@ uint8_t isPCF8563DateTimeValid(SoftwareWire* _softTWI, const uint8_t _i2cAddress
   // The VL flag is intended to detect the situation when VDD is decreasing slowly, for example
   // under battery operation. Should the oscillator stop or VDD reach Vlow before power is
   // re-asserted, then the VL flag is set. This will indicate that the time may be corrupted.
-  DTSL( Serial.println("isPCF8563DateTimeValid"); )
   readBytesFromI2C(_softTWI, _i2cAddress, PCF8563_REG_VL_SECONDS, &creg, 1);
   return !(creg & PCF8563_VL);
 }

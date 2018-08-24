@@ -67,7 +67,7 @@ int8_t readValueFromI2C(SoftwareWire*, const uint8_t, const int16_t, uint32_t*, 
 *     - RESULT_IS_FAIL on fail
 *
 *****************************************************************************************************************************/
-int8_t writeValueToI2C(SoftwareWire*, const uint8_t, const int16_t, uint32_t, uint8_t);
+int8_t writeValueToI2C(SoftwareWire*, const uint8_t, const int16_t, uint32_t, const uint8_t);
 
 /*****************************************************************************************************************************
 *

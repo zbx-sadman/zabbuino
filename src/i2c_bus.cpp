@@ -36,20 +36,26 @@ uint8_t writeBytesToI2C(SoftwareWire* _softTWI, const uint8_t _i2cAddress, const
 
   // Do nothing if no lenght
   if (!_len) { goto finish; }
+  Serial.println(" -- 1 --");
 
   _softTWI->beginTransmission(_i2cAddress); // start transmission to device 
   // registerAddress is 0x00 and above ?
   if (I2C_NO_REG_SPECIFIED < _registerAddress) {
+  Serial.println(" -- 2 --");
      _softTWI->write((uint8_t) _registerAddress); // sends register address to be written
   }
 
   // Make bulk write to device
   writtenBytes = _softTWI->write(_src, _len);
+  Serial.print("writtenBytes: "); Serial.println(writtenBytes);
 
   // on any error return Zero as written bytes count
   if (SOFTWAREWIRE_NO_ERROR != _softTWI->endTransmission(true)) {
+     Serial.println(" -- 3 --");
      writtenBytes = 0x00;
   } 
+
+  Serial.println(" -- 4 --");
 
   finish:
   return writtenBytes;
@@ -157,23 +163,21 @@ int8_t readValueFromI2C(SoftwareWire* _softTWI, const uint8_t _i2cAddress, const
 *     - RESULT_IS_FAIL on fail
 *
 *****************************************************************************************************************************/
-int8_t writeValueToI2C(SoftwareWire* _softTWI, const uint8_t _i2cAddress, const int16_t _registerAddress, uint32_t _value, uint8_t _len)
+int8_t writeValueToI2C(SoftwareWire* _softTWI, const uint8_t _i2cAddress, const int16_t _registerAddress, uint32_t _value, const uint8_t _len)
 {
-  uint8_t bytes[4];
+  uint8_t bytes[sizeof(uint32_t)];
+  uint8_t i, nBytes;
+  nBytes = constrain(_len, 1, sizeof(uint32_t));
 
-  _len = constrain(_len, 1, 4);
-/*
-  i = _len;
+  i = nBytes;
   while (i) {
-  i--;
-*/
-  while (_len) {
-    _len--;
+    i--;
     // take last byte and shift bits right to make able get next byte
-    bytes[_len] = _value & 0xFF;
+    bytes[i] = _value & 0xFF;
     _value = _value >> 8;
   }
-  return (_len == writeBytesToI2C(_softTWI, _i2cAddress, _registerAddress, bytes, _len)) ? RESULT_IS_OK : RESULT_IS_FAIL;
+  
+  return ((nBytes == writeBytesToI2C(_softTWI, _i2cAddress, _registerAddress, bytes, nBytes)) ? RESULT_IS_OK : RESULT_IS_FAIL);
 }
 
 /*****************************************************************************************************************************

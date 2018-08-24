@@ -1,0 +1,121 @@
+I2C.Scan[20,21]
+I2C.Read[20,21,0x48,0x03,1,1]
+I2C.Write[20,21,0x48,0x40,16,1]
+0x28FFE47861160410
+
+*     agent.ping
+*     agent.hostname
+*     agent.version
+*     system.uptime  (need to test with RTC)
+    
+*     analogwrite         
+*     analogread
+     analogreference
+*     delay
+*     digitalwrite
+*     digitalread 
+    
+     tone
+     notone
+    
+*     randomseed
+*     random
+    
+*     set.hostname
+*     set.network
+*     set.password
+*     set.sysprotect
+*     set.localtime
+    
+     portwrite
+    
+     shiftout
+    
+*     reboot              
+    
+*     system.localtime
+     system.run
+    
+*     system.hw.chassis
+*     system.hw.cpu
+    
+*     net.phy.name
+*     net.phy.reinits
+    
+*     sys.cmd.count
+*     sys.cmd.timemax
+*     sys.cmd.timemax.n
+    
+*     sys.ram.free
+*     sys.ram.freemin
+    
+*     sys.vcc
+*     sys.vccmin
+*     sys.vccmax
+    
+     extint.count
+     incenc.value
+    
+*     ow.scan
+    
+*     i2c.scan
+*     i2c.write
+*     i2c.read
+     i2c.bitwrite
+     i2c.bitread
+    
+*     ds18x20.temperature
+    
+     dht.humidity
+     dht.temperature
+    
+     bmp.pressure
+     bmp.temperature
+     bme.humidity
+    
+     bh1750.light
+    
+     max7219.write
+    
+     pcf8574.lcdprint
+    
+     sht2x.humidity
+     sht2x.temperature
+    
+     acs7xx.zc
+     acs7xx.ac
+     acs7xx.dc
+    
+     ultrasonic.distance
+     ir.send
+     ir.sendraw
+    
+     ws2812.sendraw
+    
+     pzem004.current
+     pzem004.voltage
+     pzem004.power
+     pzem004.energy
+     pzem004.setaddr
+    
+     ups.apcsmart
+     ups.megatec
+    
+     ina219.busvoltage
+     ina219.current
+     ina219.power
+    
+     at24cxx.write
+     at24cxx.read
+    
+     max44009.light
+    
+     mhzxx.pwm.co2
+     mhzxx.uart.co2
+    
+     user.run
+    
+     veml6070.uv
+    
+     servo.turn
+    

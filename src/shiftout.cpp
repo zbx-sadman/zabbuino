@@ -274,7 +274,7 @@ int16_t prepareBufferForAdvShiftout(const uint8_t _bitOrder, const uint8_t compr
       // Data will 
       case 0:
       default:
-        dataBufferReadPosition = 0;
+        dataBufferReadPosition = dataBufferWritePosition=0x00;
         while (dataBufferReadPosition < lenOfBuffer)  {
           // On case of one nibble found at forward - just move nibble to high, correct the buffer length and jump out
           if ((dataBufferReadPosition + 2) > lenOfBuffer) {
