@@ -117,7 +117,10 @@
 
 #define CMD_VEML6070_UV                                         (0x4F)
 
-#define CMD_SERVO_TURN                                          (0x50)
+#define CMD_RELAY                                               (0x50)
+#define CMD_PULSE                                               (0x51)
+
+#define CMD_SERVO_TURN                                          (0x52)
 
 // add new command as "const char command_<COMMAND_MACRO> PROGMEM". Only 'const' push string to PROGMEM. Tanx, Arduino & AVR.
 // command_* values must be in lower case due analyze sub convert all chars to lower
@@ -236,6 +239,8 @@ const char command_CMD_USER_RUN[]                               PROGMEM = "user.
 
 const char command_CMD_VEML6070_UV[]                            PROGMEM = "veml6070.uv";
 
+const char command_CMD_RELAY[]                                  PROGMEM = "relay";
+const char command_CMD_PULSE[]                                  PROGMEM = "pulse";
 const char command_CMD_SERVO_TURN[]                             PROGMEM = "servo.turn";
 
 // do not insert new command to any position without syncing indexes. Tanx, Arduino and AVR, for this method of string array pushing to PROGMEM
@@ -532,9 +537,16 @@ const char* const commands[] PROGMEM = {
   command_CMD_ZBX_NOPE,
 #endif
 
+#ifdef FEATURE_RELAY_ENABLE
+  command_CMD_RELAY,
+  command_CMD_PULSE,
+#else
+  command_CMD_ZBX_NOPE,
+  command_CMD_ZBX_NOPE,
+#endif
 
 #ifdef FEATURE_SERVO_ENABLE
-   command_CMD_SERVO_TURN,
+  command_CMD_SERVO_TURN,
 #else
   command_CMD_ZBX_NOPE,
 #endif

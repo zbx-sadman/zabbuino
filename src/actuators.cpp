@@ -40,7 +40,7 @@ int8_t servoTurn(const uint8_t _servoPin, const uint16_t _targetPulseWidth, cons
     //     for _turnTime and _holdTime to stay on position
     //
     // Work cycle = pulse_width_in_uS + (20 ms - pulse_width_in_ms)
-    idleTime = PULSE_INTERVAL - (_targetPulseWidth / 1000UL);
+    idleTime = SERVO_PULSE_INTERVAL - (_targetPulseWidth / 1000UL);
     turnTime = _turnTime + _holdTime;
 
     startHolding = millis();
@@ -61,7 +61,7 @@ int8_t servoTurn(const uint8_t _servoPin, const uint16_t _targetPulseWidth, cons
     // if return angle (thru _returnPulseWidth) is specified - servo must get pulses every PULSE_INTERVAL (usually 20) ms 
     //     for _turnTime
     //
-    idleTime = PULSE_INTERVAL - (_returnPulseWidth / 1000UL);
+    idleTime = SERVO_PULSE_INTERVAL - (_returnPulseWidth / 1000UL);
 
     startHolding = millis();
     do {
@@ -84,3 +84,61 @@ finish:
   return rc;
 }
         
+
+/*****************************************************************************************************************************
+*
+*  
+*
+*   Returns: 
+*     - RESULT_IS_OK
+*
+*****************************************************************************************************************************/
+int8_t pulse(const uint8_t _targetPin, const uint8_t _targetState, const uint32_t _holdTime, const uint8_t _returnState)
+{
+  pinMode(_targetPin, OUTPUT);
+  digitalWrite(_targetPin, _targetState);
+  delay(_holdTime);
+  digitalWrite(_targetPin, _returnState);
+
+  gatherSystemMetrics(); 
+  return RESULT_IS_OK;
+}
+        
+
+/*****************************************************************************************************************************
+*
+*  Send command to Servo to make turn it an turn back
+*
+*   Returns: 
+*     - RESULT_IS_OK
+*
+*****************************************************************************************************************************/
+int8_t relay(const uint8_t _targetPin, const uint8_t _targetState, const int8_t _testPin = -1, const int8_t _testState = -1,  uint8_t _testPinMode = INPUT)
+{
+
+  int8_t rc = RESULT_IS_OK;
+  uint8_t t;
+
+  pinMode(_targetPin, OUTPUT);
+  digitalWrite(_targetPin, _targetState);
+
+  if (0 > _testPin || 0 > _testState) {
+     goto finish;
+  }
+  
+  pinMode(_testPin, _testPinMode);
+  delay(10);
+  t = digitalRead(_testPin);
+  Serial.print("Test state: "); Serial.println(_testState);
+  Serial.print("Real state: "); Serial.println(t);
+
+  if (_testState != t) { rc = RESULT_IS_FAIL; 
+   Serial.println("FAIL");
+  }else {
+   Serial.println("OK");
+  }
+
+finish:
+  gatherSystemMetrics(); 
+  return rc;
+}

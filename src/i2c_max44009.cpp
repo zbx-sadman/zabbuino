@@ -105,10 +105,10 @@ int8_t getMAX44009Metric(SoftwareWire* _softTWI, uint8_t _i2cAddress, uint8_t _m
   }
 
 
-  if (0x00 != writeByteToI2C(_softTWI, _i2cAddress, MAX44009_REG_CONFIGURATION, _mode)) { goto finish; }
+  if (0x01 != writeByteToI2C(_softTWI, _i2cAddress, MAX44009_REG_CONFIGURATION, _mode)) { goto finish; }
   
   delay(waitTime);
-  if (0x00 != readBytesFromI2C(_softTWI, _i2cAddress, MAX44009_REG_LUXREADING, value, 2)) { goto finish; }
+  if (0x02 != readBytesFromI2C(_softTWI, _i2cAddress, MAX44009_REG_LUXREADING, value, 0x02)) { goto finish; }
 
 
   luxExponent = ((value[0] >> 4) & 0x0F);

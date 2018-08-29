@@ -20,12 +20,12 @@ int8_t shiftOutAdvanced(const uint8_t _dataPin, const uint8_t _clockPin, const u
   uint8_t dataPinBit, clockPinBit;
   volatile uint8_t *dataPortOutputRegister, *clockPortOutputRegister;
   uint8_t i;
-
+  pinMode(_dataPin,OUTPUT);
+  pinMode(_clockPin,OUTPUT);
   // Prepare the buffer for burst bit-banging
   lenOfBuffer = prepareBufferForAdvShiftout(_bitOrder, _compressionType, _src);
   if (lenOfBuffer <= 0) { return RESULT_IS_FAIL; }
-/*
-  Serial.print("*** lenOfBuffer: "); Serial.println(lenOfBuffer);
+/*  Serial.print("*** lenOfBuffer: "); Serial.println(lenOfBuffer);
   Serial.println("*** Prepared\n------------");
   for (i = 0; i < lenOfBuffer; i++) { Serial.println(_src[i], HEX); }
   Serial.println("------------");
@@ -43,7 +43,7 @@ int8_t shiftOutAdvanced(const uint8_t _dataPin, const uint8_t _clockPin, const u
   */
 
   // Focus on bit-banging
-  noInterrupts();
+  //noInterrupts();
   // Walk over the buffer 
   while (lenOfBuffer) {
      // Push 8 bit to Shift Register using direct port manipulation.
@@ -51,7 +51,7 @@ int8_t shiftOutAdvanced(const uint8_t _dataPin, const uint8_t _clockPin, const u
      while (i)   {
        // Test 4-th but for HIGH/LOW state
        // if (*_src & 0x08) {
-       if (*_src & 0x08) {
+       if (*_src & 0x80) {
          // Set _dataPin to HIGH
          *dataPortOutputRegister |= dataPinBit;
        } else  {
@@ -65,13 +65,13 @@ int8_t shiftOutAdvanced(const uint8_t _dataPin, const uint8_t _clockPin, const u
        // *_src = *_src << 1;
        *_src = *_src << 1;
        // bit counter increase
-       --i;
+       i--;
      }        
-     ++_src;
-     --lenOfBuffer;
+     _src++;
+     lenOfBuffer--;
   }
 
-  interrupts();
+  //interrupts();
   gatherSystemMetrics(); // Measure memory consumption
   return RESULT_IS_OK;
 }
@@ -213,7 +213,7 @@ int16_t prepareBufferForAdvShiftout(const uint8_t _bitOrder, const uint8_t compr
      // Walk over buffer, convert HEX do DEC and shift data to the left (destroy '0x' gap)
      while (_src[dataBufferReadPosition]) {
         _src[dataBufferReadPosition - 2] = htod(_src[dataBufferReadPosition]);
-        ++dataBufferReadPosition;
+        dataBufferReadPosition++;
      }
      // Correct position to prefix length for taking buffer new lenght
      dataBufferReadPosition -= 2;
@@ -249,9 +249,9 @@ int16_t prepareBufferForAdvShiftout(const uint8_t _bitOrder, const uint8_t compr
        _src[dataBufferSwapPosition] = _src[dataBufferReadPosition];
        _src[dataBufferReadPosition] = tmpVal;
        // shrink swapping area
-       --dataBufferReadPosition;
-       ++dataBufferSwapPosition;
-       --halfLenOfBuffer;
+       dataBufferReadPosition--;
+       dataBufferSwapPosition++;
+       halfLenOfBuffer--;
      } 
      // Make fast bit reversing for all items
      // That procedure is stand separately because one central item not processeed on previous stage if buffer length is odd
@@ -279,13 +279,14 @@ int16_t prepareBufferForAdvShiftout(const uint8_t _bitOrder, const uint8_t compr
           // On case of one nibble found at forward - just move nibble to high, correct the buffer length and jump out
           if ((dataBufferReadPosition + 2) > lenOfBuffer) {
              _src[dataBufferWritePosition] = (_src[dataBufferReadPosition] << 4);
-             ++lenOfBuffer; break;
+             lenOfBuffer++; 
+             break;
           // Two nibble available - make one byte
           } else {
              _src[dataBufferWritePosition] = ((_src[dataBufferReadPosition] << 4) | _src[dataBufferReadPosition + 1]);
           }
           dataBufferReadPosition += 2;
-          ++dataBufferWritePosition;
+          dataBufferWritePosition++;
         }
         // after nibbles joining length of array is the half 
         lenOfBuffer = lenOfBuffer >> 1;  

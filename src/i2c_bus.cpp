@@ -36,26 +36,26 @@ uint8_t writeBytesToI2C(SoftwareWire* _softTWI, const uint8_t _i2cAddress, const
 
   // Do nothing if no lenght
   if (!_len) { goto finish; }
-  Serial.println(" -- 1 --");
+//  Serial.println(" -- 1 --");
 
   _softTWI->beginTransmission(_i2cAddress); // start transmission to device 
   // registerAddress is 0x00 and above ?
   if (I2C_NO_REG_SPECIFIED < _registerAddress) {
-  Serial.println(" -- 2 --");
+//  Serial.println(" -- 2 --");
      _softTWI->write((uint8_t) _registerAddress); // sends register address to be written
   }
 
   // Make bulk write to device
   writtenBytes = _softTWI->write(_src, _len);
-  Serial.print("writtenBytes: "); Serial.println(writtenBytes);
+//  Serial.print("writtenBytes: "); Serial.println(writtenBytes);
 
   // on any error return Zero as written bytes count
   if (SOFTWAREWIRE_NO_ERROR != _softTWI->endTransmission(true)) {
-     Serial.println(" -- 3 --");
+//     Serial.println(" -- 3 --");
      writtenBytes = 0x00;
   } 
 
-  Serial.println(" -- 4 --");
+//  Serial.println(" -- 4 --");
 
   finish:
   return writtenBytes;

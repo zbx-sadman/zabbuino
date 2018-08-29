@@ -39,6 +39,27 @@ Implemented:
 
 Zabbuino 1.3.x branch started.
 
+New features:
+  - _FEATURE\_RELAY\_ENABLE_ enables some commands which force relay clicks. 
+  - Command ``relay[relayPin, relayState, testPin, testState, testPinMode]`` is added:
+    - _relayPin_ - pin to which relay connected;
+    - _relayState_ - state in which you need to set the relay pin (1 - HIGH / 0 - LOW);
+    - _testPin_ - pin to which test contact group connected. If state of _testPin_ is equal to _testState_ , Zabbuino returns 1, otherwize returns 0;
+    - _testState_ - see description above;
+    - _testPinMode_ - _testPin_ pin input pullup mode (1 - pullup enabled, 0 - pullup disabled). Note: _testPin_ must be shorted to GND, and _testState_ must be 0 if _testPinMode_ = 1 (INPUT_PULLUP'ed);
+    Example: ``relay[4,1,2,0,1]`` - turn on relay (pin 4), and test normal open contact group to shorting on GND after setting INPUT_PULLUP mode for pin 2.
+  - Command ``pulse[targetPin, targetState, holdTime, returnState]`` is added and can be used for restart external timer or reset any device:
+    - _targetPin_ - pin to which relay or MOSFET gate or something else connected;
+    - _targetState_ - state in which you need to set the _targetPin_ (1 - HIGH / 0 - LOW);
+    - _holdTime_ - how much time (in ms) Zabbuino will be wait before set _targetPin_ to the _returnState_ ;
+    - _returnState_ - see description above;
+    Example: ``relay[4,1,200,0]`` - turn on MOSFET gate for 200ms and turn off then.
+
+
+#### 22 Aug 2018
+
+Zabbuino 1.3.x branch started.
+
 Fixes:
   - DS18x20 procedures had some silly errors;
   - _sys.vcc_ brought wrong results on Arduino Mega2560.
@@ -48,7 +69,7 @@ New features:
   - Arduino Mega2560 is used for testing from now;
   - User plugin function's can be omitted now, and system will not call its (weak linking used);
   - _FEATURE\_SERVO\_ENABLE_ enables simple digital servo turning feature. Command (unfortunately it block runtime) ``servo.turn[servoPin, targetAnglePulseWidth, turnTime, holdTime, returnAnglePulseWidth]`` is added:
-    - _servoPin_ - pin to which servo connected, 
+    - _servoPin_ - pin to which servo connected; 
     - _targetAnglePulseWidth_ - duration of pulse (in ms) that will be "send" to Servo for moving it to destination;
     - _turnTime_ - time (in ms) to finish turning servo on desired angle with;
     - _holdTime_ - time (in ms) of pause before return back servo to start (or other) position;

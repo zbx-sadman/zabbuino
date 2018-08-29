@@ -79,6 +79,8 @@ int8_t getSHT2XMetric(SoftwareWire* _softTWI, uint8_t _i2cAddress, const uint8_t
   
   if (!isI2CDeviceReady(_softTWI, _i2cAddress)) { rc = DEVICE_ERROR_CONNECT; goto finish; }
 
+  *_value = 0x00;
+
   switch (_metric) {
     case SENS_READ_TEMP:
       rawData = getRawDataFromSHT2X(_softTWI, _i2cAddress, SHT2X_CMD_GETTEMP_HOLD);

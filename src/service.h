@@ -1,5 +1,7 @@
 #pragma once
 
+uint8_t flushStreamRXBuffer(Stream*, const uint32_t, const uint8_t);
+
 /*****************************************************************************************************************************
 *
 *   Return number of millis() rollovers every UINT32_MAX ms (~50days)

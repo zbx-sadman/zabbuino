@@ -15,8 +15,8 @@ I2C.Write[20,21,0x48,0x40,16,1]
 *     digitalwrite
 *     digitalread 
     
-     tone
-     notone
+*     tone
+*     notone
     
 *     randomseed
 *     random
@@ -29,12 +29,12 @@ I2C.Write[20,21,0x48,0x40,16,1]
     
      portwrite
     
-     shiftout
+*     shiftout (add compression option in the wiki)
     
 *     reboot              
     
 *     system.localtime
-     system.run
+*     system.run
     
 *     system.hw.chassis
 *     system.hw.cpu
@@ -53,8 +53,8 @@ I2C.Write[20,21,0x48,0x40,16,1]
 *     sys.vccmin
 *     sys.vccmax
     
-     extint.count
-     incenc.value
+*     extint.count
+*     incenc.value (change command name in the wiki)
     
 *     ow.scan
     
@@ -66,37 +66,37 @@ I2C.Write[20,21,0x48,0x40,16,1]
     
 *     ds18x20.temperature
     
-     dht.humidity
-     dht.temperature
+*     dht.humidity
+*     dht.temperature
     
-     bmp.pressure
-     bmp.temperature
-     bme.humidity
+*     bmp.pressure
+*     bmp.temperature
+*     bme.humidity
     
-     bh1750.light
+*     bh1750.light
     
-     max7219.write
+*     max7219.write
     
-     pcf8574.lcdprint
+*     pcf8574.lcdprint
     
-     sht2x.humidity
-     sht2x.temperature
+*     sht2x.humidity
+*     sht2x.temperature
     
      acs7xx.zc
      acs7xx.ac
      acs7xx.dc
     
-     ultrasonic.distance
+?     ultrasonic.distance (something wrong with 1-st reading - it returns 0 w/o delay after pinmode changing)
      ir.send
      ir.sendraw
     
-     ws2812.sendraw
+*     ws2812.sendraw (add compression opt in the wiki)
     
-     pzem004.current
-     pzem004.voltage
-     pzem004.power
-     pzem004.energy
-     pzem004.setaddr
+*     pzem004.current
+*     pzem004.voltage
+*     pzem004.power
+*     pzem004.energy
+*     pzem004.setaddr
     
      ups.apcsmart
      ups.megatec
@@ -108,14 +108,14 @@ I2C.Write[20,21,0x48,0x40,16,1]
      at24cxx.write
      at24cxx.read
     
-     max44009.light
+*     max44009.light
     
      mhzxx.pwm.co2
      mhzxx.uart.co2
     
      user.run
     
-     veml6070.uv
+*     veml6070.uv
     
-     servo.turn
+*     servo.turn
     

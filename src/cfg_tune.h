@@ -189,7 +189,7 @@ const uint32_t constSysMetricGatherPeriod                       = 1000UL;
 const uint8_t constArgC                                         = 6;
 // Size of buffer's argument part. All separators and delimiters must be taken into account. See note to constBufferSize macro too
 //const uint16_t constArgsPartSize                               = 163;
-const uint16_t constArgsPartSize                                = 100;
+const uint16_t constArgsPartSize                                = 150;
 // Size of buffer's command part
 const uint8_t constCmdPartSize                                  = 25;
 

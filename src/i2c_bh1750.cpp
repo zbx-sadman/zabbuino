@@ -79,10 +79,10 @@ int8_t getBH1750Metric(SoftwareWire* _softTWI, uint8_t _i2cAddress, uint8_t _mod
     --readingNum;
     // Wake up, sensor!
     // It going sleep after One-Time measurement 
-    if (0x00 != writeByteToI2C(_softTWI, _i2cAddress, I2C_NO_REG_SPECIFIED, BH1750_CMD_POWERON)) { goto finish; }
+    if (0x01 != writeByteToI2C(_softTWI, _i2cAddress, I2C_NO_REG_SPECIFIED, BH1750_CMD_POWERON)) { goto finish; }
     //delay(10);
     // Start convertation
-    if (0x00 != writeByteToI2C(_softTWI, _i2cAddress, I2C_NO_REG_SPECIFIED, _mode)) { goto finish; }
+    if (0x01 != writeByteToI2C(_softTWI, _i2cAddress, I2C_NO_REG_SPECIFIED, _mode)) { goto finish; }
     // Wait to complete covertation round
     delay(convertTime);
     // Read data

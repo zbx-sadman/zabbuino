@@ -99,7 +99,9 @@ int8_t getAPCSmartUPSMetric(const uint8_t _rxPin, const uint8_t _txPin, uint8_t*
   //
   // Flush all device's transmitted data to avoid get excess data in recieve buffer
   // APC UPS can be flushed in slow mode
-  serialRXFlush(&swSerial, UART_SLOW_MODE);
+  //serialRXFlush(&swSerial, UART_SLOW_MODE);
+  flushStreamRXBuffer(&swSerial, APC_DEFAULT_READ_TIMEOUT, UART_SLOW_MODE);
+
   command = 'Y';
   serialSend(&swSerial, &command, 1, true);
   DTSD( SerialPrintln_P(PSTR("Recieving from UPS")); )
@@ -116,7 +118,8 @@ int8_t getAPCSmartUPSMetric(const uint8_t _rxPin, const uint8_t _txPin, uint8_t*
   //  Step #2. Send user's command & recieve answer
   //
   // If not all data is recieved from talking device on step #1 - its RX buffer must be cleared 
-  serialRXFlush(&swSerial, true);
+  //serialRXFlush(&swSerial, true);
+  flushStreamRXBuffer(&swSerial, APC_DEFAULT_READ_TIMEOUT, UART_SLOW_MODE);
   sendTimes = sendCommandTwice ? 2 : 1;
 
   while (sendTimes) {
@@ -149,7 +152,8 @@ int8_t getAPCSmartUPSMetric(const uint8_t _rxPin, const uint8_t _txPin, uint8_t*
   // 
   command = 'R';
   serialSend(&swSerial, &command, 1, true);
-  serialRXFlush(&swSerial, true);
+  //serialRXFlush(&swSerial, true);
+  flushStreamRXBuffer(&swSerial, APC_DEFAULT_READ_TIMEOUT, UART_SLOW_MODE);
   //Serial.println("Destroy current SoftwareSerial instance");
  
   rc = RESULT_IS_BUFFERED;

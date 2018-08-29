@@ -78,11 +78,14 @@ int8_t getMHZxxMetricUART(const uint8_t _rxPin, const uint8_t _txPin, uint8_t* _
      _dst[MH_ZXX_CRC] = 0x79;                                     // Check value
 
      // Flush all device's transmitted data to avoid get excess data in recieve buffer
-     serialRXFlush(&swSerial, !UART_SLOW_MODE);
+     //serialRXFlush(&swSerial, !UART_SLOW_MODE);
+     flushStreamRXBuffer(&swSerial, MH_ZXX_DEFAULT_READ_TIMEOUT, !UART_SLOW_MODE);
+
 
      // The serial stream can get out of sync. The response starts with 0xff, try to resync : https://github.com/jehy/arduino-esp8266-mh-z19-serial/blob/master/arduino-esp8266-mhz-19-serial.ino
      //  Send command to MH-Zxx
      serialSend(&swSerial, _dst, MH_ZXX_PACKET_SIZE, !UART_SLOW_MODE);
+
      
      //  Recieve from MH-Zxx
      //  It actually do not use '\r', '\n', '\0' to terminate string

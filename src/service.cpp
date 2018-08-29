@@ -11,6 +11,28 @@
 
 /*****************************************************************************************************************************
 *
+*   
+*   
+*
+*****************************************************************************************************************************/
+uint8_t flushStreamRXBuffer(Stream* _stream, const uint32_t _timeout, const uint8_t _slowMode = false) {
+ //int16_t incomingData;
+ uint32_t startTime = millis();
+
+ do { 
+    //incomingData = 
+    _stream->read();
+    if (millis() - startTime > _timeout) {return false; }
+    if (_slowMode) { delay(10); }
+
+ } while (0 > _stream->available());
+
+ return true;
+}
+
+
+/*****************************************************************************************************************************
+*
 *   Return number of millis() rollovers every UINT32_MAX ms (~50days)
 *   Must be called every (UINT32_MAX / 2) - 1 ms at least
 *

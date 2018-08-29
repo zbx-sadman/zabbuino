@@ -50,7 +50,6 @@ int8_t getPZEM004Metric(const uint8_t _rxPin, const uint8_t _txPin, uint8_t _met
   uint32_t waitTime;
   static uint32_t lastReadTime = 0x00;
 
-
   SoftwareSerial swSerial(_rxPin, _txPin);
 
   swSerial.begin(PZEM_UART_SPEED);
@@ -98,16 +97,15 @@ int8_t getPZEM004Metric(const uint8_t _rxPin, const uint8_t _txPin, uint8_t _met
   _dst[5] = 0x00; 
   // 7-th byte - CRC
   _dst[6] = crcPZEM004(_dst, PZEM_PACKET_SIZE - 1); 
-  // Serial.println("Send: ");  for(int i=0; i < PZEM_PACKET_SIZE; i++) { Serial.print("Byte# "); Serial.print(i); Serial.print(" => "); Serial.println(_dst[i], HEX);  }
   // Flush all device's transmitted data to avoid get excess data in recieve buffer
-  serialRXFlush(&swSerial, !UART_SLOW_MODE);
+  flushStreamRXBuffer(&swSerial, PZEM_DEFAULT_READ_TIMEOUT, !UART_SLOW_MODE);
+
   serialSend(&swSerial, _dst, PZEM_PACKET_SIZE, !UART_SLOW_MODE);
 
   //  Recieve from PZEM004
   //  It actually do not use '\r', '\n', '\0' to terminate string
   len = serialRecive(&swSerial, _dst, PZEM_PACKET_SIZE, PZEM_DEFAULT_READ_TIMEOUT, !UART_STOP_ON_CHAR, '\r', !UART_SLOW_MODE);
 
-  //Serial.println("Recieve: "); for(int i=0; i < len; i++) { Serial.print("Byte# "); Serial.print(i); Serial.print(" => "); Serial.println(_dst[i], HEX);  }
   // Connection timeout occurs
   // if (len != PZEM_PACKET_SIZE) { return DEVICE_ERROR_TIMEOUT; }
   if (len < PZEM_PACKET_SIZE) { rc = DEVICE_ERROR_TIMEOUT; goto finish; }

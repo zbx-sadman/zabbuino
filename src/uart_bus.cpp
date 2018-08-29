@@ -19,17 +19,17 @@
 *     - always true
 *
 *****************************************************************************************************************************/
-uint8_t serialRXFlush(SoftwareSerial *_swSerial, const uint8_t _slowMode)
+/*uint8_t serialRXFlush(Stream *_stream, const uint8_t _slowMode)
 {
-  while (0 < _swSerial->available()) {
+  while (0 < _stream->available()) {
     // Seems that APC UPS's slow a bit and need to wait some time before check recieve buffer. 
     // Otherwise - after (0 == swSerial->available()) a few bytes can be found on input
     if (_slowMode) { delay(10); }
-    _swSerial->read();
+    _stream->read();
   }
   return true;
 }
-
+*/
 /*****************************************************************************************************************************
 *
 *   Read data from the SoftSerial's buffer
@@ -38,18 +38,18 @@ uint8_t serialRXFlush(SoftwareSerial *_swSerial, const uint8_t _slowMode)
 *     - The number of the readed bytes
 *
 *****************************************************************************************************************************/
-uint8_t serialRecive(SoftwareSerial *_swSerial, uint8_t *_src, const uint8_t _size, const uint32_t _readTimeout, const uint8_t _stopOnChar, const uint8_t _stopChar, const uint8_t _slowMode)
+uint8_t serialRecive(Stream* _stream, uint8_t* _src, const uint8_t _size, const uint32_t _readTimeout, const uint8_t _stopOnChar, const uint8_t _stopChar, const uint8_t _slowMode)
 {
-  unsigned long startTime = millis();
+  uint32_t startTime = millis();
   uint8_t len = 0;
   //  while ((len <  _size) && (millis() - startTime < _readTimeout)) {
   while (millis() - startTime < _readTimeout) {
     if (len >=  _size) { break; }
-    if (_swSerial) {
+    if (_stream) {
        // Slow talk with APC UPC'es
        if (_slowMode) { delay(10); }
-       if (_swSerial->available() > 0) {
-          uint8_t c = (uint8_t) _swSerial->read();
+       if (_stream->available() > 0) {
+          uint8_t c = (uint8_t) _stream->read();
           if (!c && !len) {
              continue; // skip 0 at startup
           }
@@ -72,27 +72,11 @@ uint8_t serialRecive(SoftwareSerial *_swSerial, uint8_t *_src, const uint8_t _si
 *     - always true
 *
 *****************************************************************************************************************************/
-void serialSend(SoftwareSerial *_swSerial, uint8_t *_src, uint8_t _size, const uint8_t _slowMode)
+void serialSend(Stream* _stream, uint8_t* _src, uint8_t _size, const uint8_t _slowMode)
 {
    DTSD( uint8_t i = 0; )
 
-  if (_swSerial) {
-     // Send data
-/*
-     for (i = 0; i < _size; i++) {
-       // do not rush when work with APC UPS's
-       if (_slowMode) { delay(10); }
-       DTSD( Serial.print("send byte# "); 
-             Serial.print(i); 
-             Serial.print(" => "); 
-             Serial.print(_src[i], HEX);  
-             Serial.print(" '"); 
-             Serial.print((char) _src[i]); Serial.println("' "); 
-       )
-       // HardwareSerial::write() always return 1
-       _swSerial->write(_src[i]);
-    }
-*/
+  if (_stream) {
      while (_size) {
        // do not rush when work with APC UPS's
        if (_slowMode) { delay(10); }
@@ -106,8 +90,9 @@ void serialSend(SoftwareSerial *_swSerial, uint8_t *_src, uint8_t _size, const u
              ++i;
        )
        // HardwareSerial::write() always return 1
-       _swSerial->write(*_src);
-       ++_src;
+       _stream->write(*_src);
+       _src++;
+       _size--;
     }
 
 

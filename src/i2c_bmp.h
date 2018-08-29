@@ -167,7 +167,7 @@ int8_t getBMPMetric(SoftwareWire*, uint8_t, const uint8_t, const uint8_t, const 
 *     - DEVICE_ERROR_TIMEOUT if sensor do not ready to work
 *
 *****************************************************************************************************************************/
-int8_t getBMP280Metric(SoftwareWire*, uint8_t, const uint8_t, uint8_t, const uint8_t, char* _dst, int32_t*, const uint8_t);
+int8_t getBME280Metric(SoftwareWire*, uint8_t, const uint8_t, uint8_t, const uint8_t, char* _dst, int32_t*, const uint8_t);
 
 /*****************************************************************************************************************************
 *

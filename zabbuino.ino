@@ -168,7 +168,7 @@ void loop() {
   // I/O ports initialization. Refer to "I/O PORTS SETTING SECTION" in src\cfg_tune.h
   i = PORTS_NUM;
   while (i) {
-    --i;
+    i--;
     setPortMode(i, (uint8_t) pgm_read_word(&(port_mode[i])), (uint8_t) pgm_read_word(&(port_pullup[i])));
   }
 
@@ -176,7 +176,7 @@ void loop() {
   // Init external interrupts info structure
   i = EXTERNAL_NUM_INTERRUPTS;
   while (i) {
-    --i;
+    i--;
     // -1 - interrupt is detached
     // just use NOT_AN_INTERRUPT = -1 macro from Arduino.h
     extInterrupt[i].mode = NOT_AN_INTERRUPT;
@@ -207,6 +207,7 @@ void loop() {
   //
   // if no exist while() here - netProblemTime must be global or static - its will be 0 every loop() and time-related cases will be processeed abnormally
   // ...and while save some cpu ticks because do not call everytime from "hidden main()" subroutine, and do not init var, and so.
+  //*****************************************************************************************************************************************************
   while (true) {
 #ifdef FEATURE_WATCHDOG_ENABLE
     // reset watchdog every loop
@@ -296,6 +297,10 @@ void loop() {
 #endif
     } // if (ERROR_NONE == errorCode) ... else
 
+
+    //*********************************************
+
+
 #ifdef FEATURE_SERIAL_LISTEN_TOO
     // Network connections will processed if no data in Serial buffer exist
     if (Serial.available() <= 0) {
@@ -363,6 +368,7 @@ void loop() {
     //DTSL( Serial.print(cBuffer); PRINT_PSTR(" => "); ) // zbxd\1 is broke this output
 
     sysMetrics.sysCmdLast = executeCommand(cBuffer, &netConfig, &packetInfo);
+
 #ifdef FEATURE_REMOTE_COMMANDS_ENABLE
     // When system.run[] command is recieved, need to run another command, which taken from option #0 by cmdIdx() sub
     if (RESULT_IS_NEW_COMMAND == sysMetrics.sysCmdLast) {
@@ -383,7 +389,7 @@ void loop() {
           PRINT_PSTR(" ms, "); Serial.print((ramBefore - getRamFree()));
           PRINTLN_PSTR(" memory bytes");
         )
-    // Cjrrect internal runtime metrics if need
+    // Correct internal runtime metrics if need
     if (sysMetrics.sysCmdTimeMax < processEndTime) {
       sysMetrics.sysCmdTimeMax = processEndTime;
       sysMetrics.sysCmdTimeMaxN = sysMetrics.sysCmdLast;
@@ -394,11 +400,10 @@ void loop() {
     // Actually Ethernet lib's flush() do nothing, but UIPEthernet flush() free ENC28J60 memory blocks where incoming (?) data stored
     Network.client.flush();
     Network.stopClient();
+    //Serial.println("------ 1 ------");
 #ifdef FEATURE_SERIAL_LISTEN_TOO
     // Flush the incoming Serial buffer by reading because Serial object have no clear procedure.
-    while (0 < Serial.available()) {
-      Serial.read();
-    }
+    flushStreamRXBuffer(&Serial, 1000, false);
 #endif
     sysMetrics.sysCmdLastExecTime = prevPHYCheckTime = prevNetProblemTime = millis();
     blinkType = constBlinkNope;
@@ -710,32 +715,41 @@ static int16_t executeCommand(char* _dst, netconfig_t* _netConfig, packetInfo_t*
       //  digitalWrite[pin, value, testPin, testValue]
       //
       // if testPin defined - check both pin to safety
-      i = ('\0' == *_optarg[2]) ? isSafePin(argv[0]) : (isSafePin(argv[0]) && isSafePin(argv[2]));
-      if (!i) {
-        goto finish;
+      /*      i = ('\0' == *_optarg[2]) ? isSafePin(argv[0]) : (isSafePin(argv[0]) && isSafePin(argv[2]));
+            if (!i) {
+              goto finish;
+            }
+      */
+      if (isSafePin(argv[0])) {
+        // turn on or turn off logic on pin
+        pinMode(argv[0], OUTPUT);
+        digitalWrite(argv[0], argv[1]);
+        rc = RESULT_IS_OK;
       }
-      // turn on or turn off logic on pin
-      digitalWrite(argv[0], argv[1]);
-      rc = RESULT_IS_OK;
-      if ('\0' == *_optarg[2]) {
+      /*
+        if ('\0' == *_optarg[2]) {
         goto finish;
-      }
-      // when testPin defined - switch testPin mode to input, wait a lot, and check testPin state.
-      // if readed value not equal testValue - return FAIL
-      //      pinMode(argv[2], INPUT_PULLUP);
-      pinMode(argv[2], INPUT);
-      delay(10);
-      if ((uint32_t) digitalRead(argv[2]) != (uint32_t) argv[3]) {
+        }
+        // when testPin defined - switch testPin mode to input, wait a lot, and check testPin state.
+        // if readed value not equal testValue - return FAIL
+        //      pinMode(argv[2], INPUT_PULLUP);
+        pinMode(argv[2], INPUT);
+        delay(10);
+        if ((uint32_t) digitalRead(argv[2]) != (uint32_t) argv[3]) {
         rc = RESULT_IS_FAIL;
-      }
+        }
+      */
       goto finish;
 
     case CMD_ARDUINO_DIGITALREAD:
       //
       //  digitalRead[pin]
       //
-      value = digitalRead(argv[0]);
-      rc = RESULT_IS_UNSIGNED_VALUE;
+      if (isSafePin(argv[0])) {
+        pinMode(argv[0], INPUT);
+        value = digitalRead(argv[0]);
+        rc = RESULT_IS_UNSIGNED_VALUE;
+      }
       goto finish;
 
 #ifdef FEATURE_TONE_ENABLE
@@ -898,6 +912,7 @@ static int16_t executeCommand(char* _dst, netconfig_t* _netConfig, packetInfo_t*
       //
       //  shiftOut[dataPin, clockPin, latchPin, bitOrder, compressionType, data]
       //
+      
       // i variable used as latchPinDefined
       i = ('\0' != argv[2]) && isSafePin(argv[2]);
       if (isSafePin(argv[0]) &&  isSafePin(argv[1])) {
@@ -985,13 +1000,16 @@ static int16_t executeCommand(char* _dst, netconfig_t* _netConfig, packetInfo_t*
     case CMD_EXTINT_COUNT:
       //
       //  extInt.count[intPin, mode]
+      //  extInt.count[3,1]
       //
       //  Unfortunately, (rc == RESULT_IS_UNSIGNED_VALUE && value == 0) and (rc == RESULT_IS_FAIL) are looks equal for zabbix -> '0'
       //
       if (isSafePin(argv[0])) {
         rc = manageExtInt((uint32_t*) &value, argv[0], argv[1]);
+        rc = RESULT_IS_UNSIGNED_VALUE;
       }
       goto finish;
+
 #endif // FEATURE_EXTERNAL_INTERRUPT_ENABLE
 
 #ifdef FEATURE_OW_ENABLE
@@ -1016,7 +1034,7 @@ static int16_t executeCommand(char* _dst, netconfig_t* _netConfig, packetInfo_t*
       //
       //  DS18x20.temperature[pin, resolution, id]
       //
-      if (! isSafePin(argv[0])) {
+      if (!isSafePin(argv[0])) {
         goto finish;
       }
 
@@ -1072,7 +1090,7 @@ static int16_t executeCommand(char* _dst, netconfig_t* _netConfig, packetInfo_t*
       //
       //  DHT.temperature[pin, model]
       //
-      if (! isSafePin(argv[0])) {
+      if (isSafePin(argv[0])) {
         rc = getDHTMetric(argv[0], argv[1], SENS_READ_TEMP, payload);
       } else {
         rc = DEVICE_ERROR_CONNECT;
@@ -1088,8 +1106,8 @@ static int16_t executeCommand(char* _dst, netconfig_t* _netConfig, packetInfo_t*
       //
       if (isSafePin(argv[0]) && isSafePin(argv[1]) && isSafePin(argv[2])) {
         writeToMAX7219(argv[0], argv[1], argv[2], argv[3], _optarg[4]);
+        rc = RESULT_IS_OK;
       }
-      rc = RESULT_IS_OK;
       goto finish;
 #endif // FEATURE_MAX7219_ENABLE
 
@@ -1198,6 +1216,63 @@ static int16_t executeCommand(char* _dst, netconfig_t* _netConfig, packetInfo_t*
       goto finish;
 #endif // FEATURE_SERVO_ENABLE
 
+#ifdef FEATURE_RELAY_ENABLE
+    case CMD_PULSE:
+      //
+      //  pulse[targetPin, targetState, holdTime, returnState]
+      //
+      // targetPin is safe?
+      if (!isSafePin(argv[0])) {
+        goto finish;
+      }
+      // make targetState boolean
+      argv[1] = argv[1] ? 1 : 0;
+
+      // if no returnState is specified: returnState = !targetState
+      if ('\0' == *_optarg[3]) {
+        argv[3] = ! argv[1];
+      }
+
+      // holdTime is specified?
+      if ('\0' == *_optarg[2]) {
+        argv[2] = 0;
+      }
+      rc = pulse(argv[0], argv[1], argv[2], argv[3]);
+      goto finish;
+
+    case CMD_RELAY:
+      //
+      //  relay[relayPin, relayState, testPin, testState]
+      //  relay[4,1,2,1]
+      //  relay[4,0,2,0]
+
+      // relayPin is safe?
+      if (!isSafePin(argv[0])) {
+        goto finish;
+      }
+
+      // testPin is specified?
+      if ('\0' == *_optarg[2]) {
+        argv[2] = -1;
+        // testPin is safe?
+      } else if (!isSafePin(argv[2])) {
+        goto finish;
+      }
+      // testState is specified?
+      if ('\0' == *_optarg[3]) {
+        argv[3] = -1;
+      }
+      // pullup is need?
+      if ('\0' != *_optarg[4] && argv[4] != 0) {
+        argv[4] = INPUT_PULLUP;
+      } else {
+        argv[4] = INPUT;
+      }
+      rc = relay(argv[0], argv[1], argv[2], argv[3], argv[4]);
+      goto finish;
+#endif // FEATURE_RELAY_ENABLE
+
+
     default:
       // ************************************************************************************************************************************
       // Following commands use <argv[0]> or <argv[1]> pins for sensor handling (UART, I2C, etc) and these pins can be disabled in port_protect[] array
@@ -1210,7 +1285,6 @@ static int16_t executeCommand(char* _dst, netconfig_t* _netConfig, packetInfo_t*
       // ************************************************************************************************************************************
       // Non-I2C related commands block
       //
-      Serial.println("Non-I2C related commands block");
       switch (cmdIdx) {
 #ifdef FEATURE_INCREMENTAL_ENCODER_ENABLE
         case CMD_INCENC_VALUE:
@@ -1331,8 +1405,6 @@ static int16_t executeCommand(char* _dst, netconfig_t* _netConfig, packetInfo_t*
           //
           // i2c.write(sdaPin, sclPin, i2cAddress, register, data, length)
           //
-          Serial.print("i2CAddress: "); Serial.println(i2CAddress, HEX);
-          Serial.print("i2CRegister: "); Serial.println(i2CRegister, HEX);
           rc = writeValueToI2C(&SoftTWI, i2CAddress, i2CRegister, (uint32_t) argv[4], (uint8_t) argv[5]);
           goto finish;
 
@@ -1707,7 +1779,6 @@ finish:
   }
 
   DTSL( Serial.println(); )
-
   return cmdIdx;
 }
 

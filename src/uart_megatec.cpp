@@ -81,7 +81,8 @@ int8_t getMegatecUPSMetric(const uint8_t _rxPin, const uint8_t _txPin, char* _co
   //
   // Flush all device's transmitted data to avoid get excess data in recieve buffer
   //DTSD ( Serial.println("Step #1 - communicate to UPS.\n\tFlush Buffer"); )
-  serialRXFlush(&swSerial, false);
+  //serialRXFlush(&swSerial, false);
+  flushStreamRXBuffer(&swSerial, MEGATEC_DEFAULT_READ_TIMEOUT, !UART_SLOW_MODE);
 
   DTSD ( PRINTLN_PSTR("Send command"); )
   serialSend(&swSerial, (uint8_t*) _command, len , !UART_SLOW_MODE);

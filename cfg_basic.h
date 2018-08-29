@@ -39,6 +39,11 @@
 
 //#define FEATURE_VEML6070_ENABLE
 //#define FEATURE_SERVO_ENABLE
+//#define FEATURE_RELAY_ENABLE
+      //  4 -> High , 2 -> Input Pullup & test // Need to test with pullup/pushdown resistor
+      //  relay[4,1,2,1,1]
+      //  relay[4,0,2,0,1]
+      //  pulse[4,1,1000,0]
 
 /****       Network              ****/
 /*/ 
@@ -46,12 +51,12 @@
 /=/      
 /=/      Note: Do not forget to enable UDP prototol support for network module driver.
 /*/
-//#define FEATURE_NET_DHCP_ENABLE
+#define FEATURE_NET_DHCP_ENABLE
 
 /*/ 
 /=/      Force obtain IP-address using DHCP even netConfig.useDHCP = false
 /*/
-//#define FEATURE_NET_DHCP_FORCE
+#define FEATURE_NET_DHCP_FORCE
 
 /*/ 
 /=/      MCU ID (in HEX) used as hostname, and last byte of MCU ID as IP's 4-th octet, and last 3 byte as MAC`s NIC speciific part (4,5,6 octets) 
@@ -106,14 +111,14 @@
 /=/     Enable 1-Wire processing and command:
 /=/       - OW.Scan[]
 /*/
-#define FEATURE_OW_ENABLE
+//#define FEATURE_OW_ENABLE
 
 /*/ 
 /=/     Enable Dallas DS18x20 sensors handling and command:
 /=/       - DS18x20.Temperature[]
 /*/
 
-#define FEATURE_DS18X20_ENABLE
+//#define FEATURE_DS18X20_ENABLE
 
 /****       I2C bus        ****/
 
@@ -128,7 +133,7 @@
 /=/ Note #1: I2C library (Wire.h) takes at least 32bytes of memory for internal buffers
 /=/ Note #2: I2C library (Wire.h) activate internal pullups for SDA & SCL pins when Wire.begin() called
 /*/
-#define FEATURE_I2C_ENABLE
+//#define FEATURE_I2C_ENABLE
 
 /*/ 
 /=/     Enable BOSCH BMP180 sensors handling and commands:
@@ -212,7 +217,7 @@
 /=/       - pzem004.power[]  
 /=/       - pzem004.energy[] 
 /*/
-//#define FEATURE_PZEM004_ENABLE
+#define FEATURE_PZEM004_ENABLE
 
 /*/ 
 /=/     Enable APC SmartUPS protocol support and command:
@@ -235,7 +240,7 @@
 /=/       - DHT.Humidity[];
 /=/       - DHT.Temperature[]
 /*/
-//#define FEATURE_DHT_ENABLE
+#define FEATURE_DHT_ENABLE
 
 /****       Ultrasonic    ****/
 
@@ -281,7 +286,6 @@
 /*/
 //#define FEATURE_WS2812_ENABLE
 
-
 /****       System        ****/
 /*/ 
 /=/      Enable calling user functions on device start and every _constUserFunctionCallInterval_ if no active network session exist
@@ -317,7 +321,7 @@
 /*/
 /=/     Store runtime settings in EEPROM and use its on start
 /*/
-#define FEATURE_EEPROM_ENABLE
+//#define FEATURE_EEPROM_ENABLE
 
 /*/
 /=/     Force protect (enable even netConfig.useProtection is false) your system from illegal access for change runtime settings and reboots 
@@ -344,7 +348,7 @@
 /=/      
 /=/      Refer to SYSTEM HARDWARE SECTION in src\tune.h
 /*/
-#define FEATURE_SYSTEM_RTC_DS3231_ENABLE
+//#define FEATURE_SYSTEM_RTC_DS3231_ENABLE
 //#define FEATURE_SYSTEM_RTC_PCF8563_ENABLE
 //#define FEATURE_SYSTEM_RTC_ENABLE
 
@@ -356,6 +360,8 @@
 //#define FEATURE_DEBUG_TO_SERIAL_HIGH
 //#define FEATURE_DEBUG_TO_SERIAL_DEV
 
+
+
 /*/
 /=/     Let Zabbuino to detect network module errors, and try to fix it.
 /*/
@@ -363,6 +369,8 @@
 
 /*/
 /=/     Recieve command from Serial Monitor too. Do not forget to enable one of FEATURE_DEBUG_TO_SERIAL_* macro 
+/=/     
+/=/     Note that 64 bytes buffer reserved for Serial (refer to HardwareSerial.h) and long commands like ws2812.sendraw[5,1,over9000chars] can be processed uncorrectly
 /*/
 #define FEATURE_SERIAL_LISTEN_TOO
 
@@ -374,7 +382,7 @@
 /*/
 /=/     Use interrupt on Timer1 for internal metric gathering
 /*/
-#define GATHER_METRIC_USING_TIMER_INTERRUPT
+//#define GATHER_METRIC_USING_TIMER_INTERRUPT
 
 /* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
                                                             NETWORK MODULE SECTION 
@@ -419,13 +427,14 @@ const uint8_t constStateLedPin                                 = 0x09;
 */
 
 // Debug serial port speed in baud
-const uint32_t constSerialMonitorSpeed                         = 9600; 
+const uint32_t constSerialMonitorSpeed                         = 115200UL; 
+//const uint32_t constSerialMonitorSpeed                         = 2400UL; 
 
 // Access password must be used anytime.
 const uint8_t constSysDefaultProtection                        = true; 
 
 // It's just number of "long int" type. Surprise!
-const uint32_t constSysDefaultPassword                         = 0x000; 
+const uint32_t constSysDefaultPassword                         = 0x00UL; 
 
 // Digital pin which must shorted on the GND for constHoldTimeToFactoryReset time to copy default system setting into EEPROM
 const uint8_t constFactoryResetButtonPin                       = 0x08; 
