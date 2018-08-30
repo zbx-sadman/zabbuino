@@ -381,7 +381,8 @@ uint8_t analyzeStream(char _charFromClient, char* _dst, uint8_t doReInit, packet
   uint8_t static allowAnalyze          = true, 
                  cmdSliceNumber        = 0,
                  isEscapedChar         = 0,
-                 doubleQuotedString    = false;
+                 doubleQuotedString    = false,
+                 packetRecieved        = false;
   uint16_t static bufferWritePosition  = 0;
 
   // Jump into reInitStage procedure. This is a bad programming style, but the subroutine must be lightweight.
@@ -418,7 +419,11 @@ uint8_t analyzeStream(char _charFromClient, char* _dst, uint8_t doReInit, packet
     //bufferWritePosition = 0;
     //needSkipZabbix2Header = false;
     allowAnalyze = true;
-    _packetInfo->dataLength = 0;
+    _packetInfo->dataLength = 0x00;
+    memcpy(&(_packetInfo->expectedDataLength), &_dst[ZBX_HEADER_PREFIX_LENGTH], sizeof(_packetInfo->expectedDataLength));
+
+//    Serial.print("Expected DataLength:"); Serial.println(_packetInfo->expectedDataLength); 
+
     //DTSD( Serial.println("ZBX header dropped"); )
     DTSD( Serial.println("ZBX header passed"); )
     // Return 'Need next char' and save a lot cpu time
@@ -492,6 +497,7 @@ uint8_t analyzeStream(char _charFromClient, char* _dst, uint8_t doReInit, packet
         DTSH( PRINTLN_PSTR("NEWLINE"); )
         // Save last argIndex that pointed to <null> item. All unused _argOffset[] items must be pointed to this <null> item too.
         _dst[bufferWritePosition] = '\0';
+        packetRecieved = true;
         //while (constArgC > cmdSliceNumber) { _argOffset[cmdSliceNumber++] = bufferWritePosition;}
         while (constArgC > cmdSliceNumber) {
           _packetInfo->optarg[cmdSliceNumber++] = &_dst[bufferWritePosition];
@@ -505,6 +511,24 @@ uint8_t analyzeStream(char _charFromClient, char* _dst, uint8_t doReInit, packet
         isEscapedChar = false;
     }
     _packetInfo->dataLength++;
+
+    if ((_packetInfo->dataLength >= _packetInfo->expectedDataLength) && (PACKET_TYPE_ZABBIX == _packetInfo->type)) {
+        packetRecieved = true;
+        // !!! potential break
+        _dst[bufferWritePosition+1] = '\0';
+    }   
+
+    // Rework need
+    if (packetRecieved) {
+  //    Serial.println("Packet finished"); 
+        //while (constArgC > cmdSliceNumber) { _argOffset[cmdSliceNumber++] = bufferWritePosition;}
+        while (constArgC > cmdSliceNumber) {
+          _packetInfo->optarg[cmdSliceNumber++] = &_dst[bufferWritePosition];
+        }
+        // Change argIndex value to pass (constArgC < argIndex) condition
+        cmdSliceNumber = constArgC + 1;
+    }
+
     // EOL reached or there is not room to store args. Stop stream analyzing and do command executing
     if (constArgC < cmdSliceNumber) {
 reInitStage:
@@ -512,6 +536,7 @@ reInitStage:
       // Clear vars for next round, and return false as 'Do not need next char'
       bufferWritePosition = cmdSliceNumber = isEscapedChar = doubleQuotedString = 0;
       doubleQuotedString = false;
+      packetRecieved = false;
       allowAnalyze = true;
       return false;
     }

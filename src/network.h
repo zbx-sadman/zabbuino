@@ -72,6 +72,7 @@ class NetworkClass
     uint8_t checkPHY();
     inline void checkClient() { client = server.available(); }
     inline void stopClient() { client.stop(); }
+    inline uint8_t isDHCPUsed() { return useDHCP; }
     inline IPAddress localIP() { return UIPEthernet.localIP(); }
     inline IPAddress defaultIP() { return (IPAddress) netDefaultIP; }
     inline void tick() { UIPEthernet.tick(); }

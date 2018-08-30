@@ -50,7 +50,7 @@ void loop() {
   char cBuffer[constBufferSize + 1]; // +1 for trailing \0
   // Last idx is not the same that array size
   char* optarg[constArgC];
-  packetInfo_t packetInfo = {PACKET_TYPE_NONE, 0x00, optarg};
+  packetInfo_t packetInfo = {PACKET_TYPE_NONE, 0x00, 0x00, optarg};
 
 #ifdef FEATURE_USER_FUNCTION_PROCESSING
   uint32_t prevUserFuncCall;
@@ -420,7 +420,7 @@ static int16_t executeCommand(char* _dst, netconfig_t* _netConfig, packetInfo_t*
 
   char* payload;
   int8_t rc;
-  uint8_t accessGranted = false, zabbixPacketType = false;
+  uint8_t accessGranted = false;//, zabbixPacketType = false;
   uint16_t i;
   uint8_t cmdIdx;
   // duration option in the tone[] command is ulong
@@ -912,7 +912,7 @@ static int16_t executeCommand(char* _dst, netconfig_t* _netConfig, packetInfo_t*
       //
       //  shiftOut[dataPin, clockPin, latchPin, bitOrder, compressionType, data]
       //
-      
+
       // i variable used as latchPinDefined
       i = ('\0' != argv[2]) && isSafePin(argv[2]);
       if (isSafePin(argv[0]) &&  isSafePin(argv[1])) {
@@ -1242,9 +1242,9 @@ static int16_t executeCommand(char* _dst, netconfig_t* _netConfig, packetInfo_t*
 
     case CMD_RELAY:
       //
-      //  relay[relayPin, relayState, testPin, testState]
+      //  relay[relayPin, relayState, testPin, testState, testPinMode]
       //  relay[4,1,2,1]
-      //  relay[4,0,2,0]
+      //  relay[4,1,2,0,1]
 
       // relayPin is safe?
       if (!isSafePin(argv[0])) {
@@ -1745,8 +1745,11 @@ finish:
     // Plain tex output for other
     default:
       if (Network.client.connected()) {
-        Network.client.print(payload);
-        if (!zabbixPacketType) {
+        //Network.client.print(payload);
+        //DTSL( Serial.print("payloadLenght:"); Serial.println(payloadLenght); )
+
+        Network.client.write(payload, payloadLenght);
+        if (PACKET_TYPE_ZABBIX != _packetInfo->type) {
           Network.client.print('\n');
         }
       }

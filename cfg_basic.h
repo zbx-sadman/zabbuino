@@ -51,12 +51,12 @@
 /=/      
 /=/      Note: Do not forget to enable UDP prototol support for network module driver.
 /*/
-#define FEATURE_NET_DHCP_ENABLE
+//#define FEATURE_NET_DHCP_ENABLE
 
 /*/ 
 /=/      Force obtain IP-address using DHCP even netConfig.useDHCP = false
 /*/
-#define FEATURE_NET_DHCP_FORCE
+//#define FEATURE_NET_DHCP_FORCE
 
 /*/ 
 /=/      MCU ID (in HEX) used as hostname, and last byte of MCU ID as IP's 4-th octet, and last 3 byte as MAC`s NIC speciific part (4,5,6 octets) 
@@ -217,7 +217,7 @@
 /=/       - pzem004.power[]  
 /=/       - pzem004.energy[] 
 /*/
-#define FEATURE_PZEM004_ENABLE
+//#define FEATURE_PZEM004_ENABLE
 
 /*/ 
 /=/     Enable APC SmartUPS protocol support and command:

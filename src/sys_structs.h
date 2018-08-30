@@ -57,6 +57,7 @@ typedef struct {                                  // 9 bytes:
 typedef struct {                                  
   uint8_t type;
   uint16_t dataLength;
+  uint16_t expectedDataLength;
   char** optarg;
 } packetInfo_t ;
 
