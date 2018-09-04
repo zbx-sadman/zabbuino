@@ -35,7 +35,7 @@ Implemented:
 - Simulate varuious vendor's IR transmitters.
 -----------------------------
 
-#### 30 Aug 2018
+#### 04 Sep 2018
 
 New features:
   - Command ``user.run[option#0, option#1, option#2, option#3, option#4, option#5]`` is added. Just write your own code to plugin.ino -> executeCommandUserFunction(), and add more power to Zabbuino.
