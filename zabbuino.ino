@@ -18,6 +18,7 @@
 /*-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
                                                            STARTUP SECTION
 */
+
 void setup() {
 #ifdef SERIAL_USE
   Serial.begin(constSerialMonitorSpeed);
@@ -31,6 +32,7 @@ void setup() {
 
   pinMode(constFactoryResetButtonPin, INPUT_PULLUP);
   pinMode(constStateLedPin, OUTPUT);
+
 
 #ifdef ADVANCED_BLINKING
   // blink on start
@@ -53,7 +55,7 @@ void loop() {
   packetInfo_t packetInfo = {PACKET_TYPE_NONE, 0x00, 0x00, optarg};
 
 #ifdef FEATURE_USER_FUNCTION_PROCESSING
-  uint32_t prevUserFuncCall;
+  uint32_t prevUserFuncCall = 0x00;
 #endif
 
   // 0. Init some libs to make system screen works if it enabled
@@ -208,6 +210,8 @@ void loop() {
   // if no exist while() here - netProblemTime must be global or static - its will be 0 every loop() and time-related cases will be processeed abnormally
   // ...and while save some cpu ticks because do not call everytime from "hidden main()" subroutine, and do not init var, and so.
   //*****************************************************************************************************************************************************
+  // Call user function
+  preLoopStageUserFunction(cBuffer);
   while (true) {
 #ifdef FEATURE_WATCHDOG_ENABLE
     // reset watchdog every loop
@@ -430,7 +434,7 @@ static int16_t executeCommand(char* _dst, netconfig_t* _netConfig, packetInfo_t*
   NetworkAddress tmpAddress;
   uint32_t payloadLenght;
 
-  char** _optarg = _packetInfo->optarg;
+  char** optarg = _packetInfo->optarg;
 
   // what about PACKET_TYPE_NONE ?
   payload = (PACKET_TYPE_ZABBIX == _packetInfo->type) ? &_dst[ZBX_HEADER_LENGTH] : &_dst[0];
@@ -607,14 +611,14 @@ static int16_t executeCommand(char* _dst, netconfig_t* _netConfig, packetInfo_t*
   i = constArgC;
   while (i) {
     --i;
-    argv[i] = strtol((char*) _optarg[i], NULL, 0);
+    argv[i] = strtol((char*) optarg[i], NULL, 0);
 
     DTSH(
       PRINT_PSTR("argv["); Serial.print(i); PRINT_PSTR("] => \"");
-    if ('\0' == *_optarg[i]) {
+    if ('\0' == *optarg[i]) {
     PRINT_PSTR("<null>");
     } else {
-      Serial.print((char*) _optarg[i]);
+      Serial.print((char*) optarg[i]);
     }
     PRINT_PSTR("\" => "); Serial.println(argv[i]);
     )
@@ -633,7 +637,14 @@ static int16_t executeCommand(char* _dst, netconfig_t* _netConfig, packetInfo_t*
       //
       //  user.run[option#0, option#1, option#2, option#3, option#4, option#5]
       //
-      rc = executeCommandUserFunction(payload, _optarg, argv);
+      /*
+            while (1) {
+              executeCommandUserFunction(payload, optarg, argv, &value);
+              //executeCommandUserFunction(cBuffer, optarg, (uint32_t*) cBuffer, &netDebugPrintTime);
+            }
+      */
+
+      rc = executeCommandUserFunction(payload, optarg, argv, &value);
       goto finish;
 
 #endif // FEATURE_USER_FUNCTION_PROCESSING
@@ -644,14 +655,14 @@ static int16_t executeCommand(char* _dst, netconfig_t* _netConfig, packetInfo_t*
         //
         //  system.run["newCommand"]
         //
-        if ('\0' == *_optarg[0]) {
+        if ('\0' == *optarg[0]) {
           goto finish;
         }
         // take length of 0-th arg + 1 byte for '\0'
-        i = strlen((char*) _optarg[0]) + 1;
+        i = strlen((char*) optarg[0]) + 1;
         // move it to begin of buffer to using as new incoming command
         // Note: ~8bytes can be saved with copying bytes in while() cycle. But source code will not beauty
-        memmove(payload, _optarg[0], i);
+        memmove(payload, optarg[0], i);
         payload[i] = '\n';
         //      payload[len+1] = '\0';
         // immediately return RESULT_IS_NEW_COMMAND to re-run executeCommand() with new command
@@ -677,7 +688,7 @@ static int16_t executeCommand(char* _dst, netconfig_t* _netConfig, packetInfo_t*
       //
 #ifdef FEATURE_AREF_ENABLE
       // change source of the reference voltage if its given
-      if ('\0' != *_optarg[1]) {
+      if ('\0' != *optarg[1]) {
         analogReference(argv[1]);
         delayMicroseconds(2000);
       }
@@ -686,7 +697,7 @@ static int16_t executeCommand(char* _dst, netconfig_t* _netConfig, packetInfo_t*
         goto finish;
       }
       value = analogRead(argv[0]);
-      if ('\0' != *_optarg[2] && '\0' != *_optarg[3]) {
+      if ('\0' != *optarg[2] && '\0' != *optarg[3]) {
         value = map(value, constAnalogReadMappingLowValue, constAnalogReadMappingHighValue, argv[2], argv[3]);
       }
       rc = RESULT_IS_UNSIGNED_VALUE;
@@ -715,7 +726,7 @@ static int16_t executeCommand(char* _dst, netconfig_t* _netConfig, packetInfo_t*
       //  digitalWrite[pin, value, testPin, testValue]
       //
       // if testPin defined - check both pin to safety
-      /*      i = ('\0' == *_optarg[2]) ? isSafePin(argv[0]) : (isSafePin(argv[0]) && isSafePin(argv[2]));
+      /*      i = ('\0' == *optarg[2]) ? isSafePin(argv[0]) : (isSafePin(argv[0]) && isSafePin(argv[2]));
             if (!i) {
               goto finish;
             }
@@ -727,7 +738,7 @@ static int16_t executeCommand(char* _dst, netconfig_t* _netConfig, packetInfo_t*
         rc = RESULT_IS_OK;
       }
       /*
-        if ('\0' == *_optarg[2]) {
+        if ('\0' == *optarg[2]) {
         goto finish;
         }
         // when testPin defined - switch testPin mode to input, wait a lot, and check testPin state.
@@ -761,7 +772,7 @@ static int16_t executeCommand(char* _dst, netconfig_t* _netConfig, packetInfo_t*
         goto finish;
       }
       rc = RESULT_IS_OK;
-      if ('\0' != *_optarg[2]) {
+      if ('\0' != *optarg[2]) {
         tone(argv[0], argv[1], argv[2]);
         goto finish;
       }
@@ -795,7 +806,7 @@ static int16_t executeCommand(char* _dst, netconfig_t* _netConfig, packetInfo_t*
       //  random[min, max]
       //
       //  !! random return long
-      value = ('\0' == *_optarg[1]) ? random(argv[0]) : random(argv[0], argv[1]);
+      value = ('\0' == *optarg[1]) ? random(argv[0]) : random(argv[0], argv[1]);
       rc = RESULT_IS_UNSIGNED_VALUE;
       goto finish;
 #endif // FEATURE_RANDOM_ENABLE
@@ -806,8 +817,8 @@ static int16_t executeCommand(char* _dst, netconfig_t* _netConfig, packetInfo_t*
       //  set.hostname[password, hostname]
       //
       // payload[_argOffset[1]] != \0 if argument #2 given
-      if (!accessGranted || '0' != *_optarg[1]) {
-        strncpy(_netConfig->hostname, _optarg[1], constAgentHostnameMaxLength);
+      if (!accessGranted || '0' != *optarg[1]) {
+        strncpy(_netConfig->hostname, optarg[1], constAgentHostnameMaxLength);
         rc = RESULT_IS_UNSTORED_IN_EEPROM;
       }
       goto finish;
@@ -816,7 +827,7 @@ static int16_t executeCommand(char* _dst, netconfig_t* _netConfig, packetInfo_t*
       //
       //  set.password[oldPassword, newPassword]
       //
-      if (accessGranted && '\0' != *_optarg[1]) {
+      if (accessGranted && '\0' != *optarg[1]) {
         // take new password from argument #2
         _netConfig->password = argv[1];
         rc = RESULT_IS_UNSTORED_IN_EEPROM;
@@ -827,7 +838,7 @@ static int16_t executeCommand(char* _dst, netconfig_t* _netConfig, packetInfo_t*
       //
       //  set.sysprotect[password, protection]
       //
-      if (accessGranted && '\0' != *_optarg[1]) {
+      if (accessGranted && '\0' != *optarg[1]) {
         _netConfig->useProtection = (1 == argv[1]) ? true : false;
         rc = RESULT_IS_UNSTORED_IN_EEPROM;
       }
@@ -848,12 +859,12 @@ static int16_t executeCommand(char* _dst, netconfig_t* _netConfig, packetInfo_t*
       // ip, netmask and gateway have one structure - 4 byte
       // take 6 bytes from second argument of command and use as new MAC-address
       // if convertation is failed (sub return -1) variable must be falsed too via logic & operator
-      i = i ? (6 == hstoba((uint8_t *) &_netConfig->macAddress, _optarg[2])) : false;
-      // If string to which point _optarg[3] can be converted to valid NetworkAddress - just do it.
+      i = i ? (6 == hstoba((uint8_t *) &_netConfig->macAddress, optarg[2])) : false;
+      // If string to which point optarg[3] can be converted to valid NetworkAddress - just do it.
       // Otherwize (string can not be converted) _netConfig->ipAddress will stay untouched;
-      i = (i) ? (strToNetworkAddress((char*) _optarg[3], &_netConfig->ipAddress)) : false;
-      i = (i) ? (strToNetworkAddress((char*) _optarg[4], &_netConfig->ipNetmask)) : false;
-      i = (i) ? (strToNetworkAddress((char*) _optarg[5], &_netConfig->ipGateway)) : false;
+      i = (i) ? (strToNetworkAddress((char*) optarg[3], &_netConfig->ipAddress)) : false;
+      i = (i) ? (strToNetworkAddress((char*) optarg[4], &_netConfig->ipNetmask)) : false;
+      i = (i) ? (strToNetworkAddress((char*) optarg[5], &_netConfig->ipGateway)) : false;
       // if any convert operation failed - just do not return "need to eeprom write" return code
       if (i) {
         rc = RESULT_IS_UNSTORED_IN_EEPROM;
@@ -875,7 +886,7 @@ static int16_t executeCommand(char* _dst, netconfig_t* _netConfig, packetInfo_t*
       i = true;
 #ifdef FEATURE_EEPROM_ENABLE
       // tzOffset is defined?
-      if ('\0' != *_optarg[2]) {
+      if ('\0' != *optarg[2]) {
         _netConfig->tzOffset = (int16_t) argv[2];
         // Save config to EEPROM
         i = saveConfigToEEPROM(_netConfig);
@@ -887,7 +898,7 @@ static int16_t executeCommand(char* _dst, netconfig_t* _netConfig, packetInfo_t*
 #endif // FEATURE_EEPROM_ENABLE
 
       // unixTimestamp option is given?
-      if ('\0' != *_optarg[1] && i) {
+      if ('\0' != *optarg[1] && i) {
         // tzOffset is defined and stored sucesfully
         if (setUnixTime(&SoftTWI, argv[1])) {
           rc = RESULT_IS_OK;
@@ -919,7 +930,7 @@ static int16_t executeCommand(char* _dst, netconfig_t* _netConfig, packetInfo_t*
         if (i) {
           digitalWrite(argv[2], LOW);
         }
-        rc = shiftOutAdvanced(argv[0], argv[1], argv[3], argv[4], (uint8_t*) _optarg[5]);
+        rc = shiftOutAdvanced(argv[0], argv[1], argv[3], argv[4], (uint8_t*) optarg[5]);
         if (i) {
           digitalWrite(argv[2], HIGH);
         }
@@ -936,7 +947,7 @@ static int16_t executeCommand(char* _dst, netconfig_t* _netConfig, packetInfo_t*
       // Tested on ATmega328@16 and 8 pcs WS2812 5050 RGB LED bar
       if (isSafePin(argv[0])) {
         // 4-th param equal 0x00 mean that buffer not contain raw color bytes and must be prepared (converted from "0xABCDEF.." string)
-        rc = WS2812Out(argv[0], argv[1], (uint8_t*) _optarg[2], 0x00);
+        rc = WS2812Out(argv[0], argv[1], (uint8_t*) optarg[2], 0x00);
       }
       goto finish;
 #endif // FEATURE_WS2812_ENABLE
@@ -956,14 +967,14 @@ static int16_t executeCommand(char* _dst, netconfig_t* _netConfig, packetInfo_t*
       //  system.hw.cpu[metric]
       //
       rc = RESULT_IS_BUFFERED;
-      if (0 == strcmp_P(_optarg[0], PSTR("id"))) {
+      if (0 == strcmp_P(optarg[0], PSTR("id"))) {
         // Read 10 bytes with step 1 (0x0E..0x17) of the signature row <= http://www.avrfreaks.net/forum/unique-id-atmega328pb
         getBootSignatureBytes(payload, 0x0E, 10, 1);
-      } else if (0 == strcmp_P(_optarg[0], PSTR("freq"))) {
+      } else if (0 == strcmp_P(optarg[0], PSTR("freq"))) {
         // Return back CPU frequency
         value = F_CPU;
         rc = RESULT_IS_UNSIGNED_VALUE;
-      } else if (0 == strcmp_P(_optarg[0], PSTR("model"))) {
+      } else if (0 == strcmp_P(optarg[0], PSTR("model"))) {
         // Read 3 bytes with step 2 (0x00, 0x02, 0x04) of the signature row <= http://www.avrfreaks.net/forum/device-signatures
         getBootSignatureBytes(payload, 0x00, 3, 2);
       } else {
@@ -987,7 +998,7 @@ static int16_t executeCommand(char* _dst, netconfig_t* _netConfig, packetInfo_t*
       //
       //  sys.cmd.timemax[resetCounter]
       //
-      if (*_optarg[0]) {
+      if (*optarg[0]) {
         sysMetrics.sysCmdTimeMax = sysMetrics.sysCmdTimeMaxN = 0;
       }
       value = sysMetrics.sysCmdTimeMax;
@@ -1043,7 +1054,7 @@ static int16_t executeCommand(char* _dst, netconfig_t* _netConfig, packetInfo_t*
       // Convert sensor ID (if its given) from HEX string to byte array (DeviceAddress structure) and validate (sub not finished) it.
       // Sensor ID is equal DeviceAddress.
       // if convertation not successfull or ID not valid - return DEVICE_ERROR_WRONG_ID
-      if (('\0' != *_optarg[2]) && (8 != hstoba(dsAddr, _optarg[2]))) {
+      if (('\0' != *optarg[2]) && (8 != hstoba(dsAddr, optarg[2]))) {
         rc = DEVICE_ERROR_WRONG_ID;
       } else {
         rc = getDS18X20Metric(argv[0], argv[1], dsAddr, payload);
@@ -1105,7 +1116,7 @@ static int16_t executeCommand(char* _dst, netconfig_t* _netConfig, packetInfo_t*
       //  MAX7219.write[dataPin, clockPin, loadPin, intensity, data]
       //
       if (isSafePin(argv[0]) && isSafePin(argv[1]) && isSafePin(argv[2])) {
-        writeToMAX7219(argv[0], argv[1], argv[2], argv[3], _optarg[4]);
+        writeToMAX7219(argv[0], argv[1], argv[2], argv[3], optarg[4]);
         rc = RESULT_IS_OK;
       }
       goto finish;
@@ -1130,7 +1141,7 @@ static int16_t executeCommand(char* _dst, netconfig_t* _netConfig, packetInfo_t*
       //      EXTERNAL   0  - AREF << mV on AREF, more than '3'
 
       // if refVoltage skipped - use DEFAULT source
-      if ('\0' != *_optarg[1]) {
+      if ('\0' != *optarg[1]) {
         argv[1] = DEFAULT;
       }
       rc = getACS7XXMetric(argv[0], argv[1], SENS_READ_ZC, 0, 0, payload);
@@ -1144,7 +1155,7 @@ static int16_t executeCommand(char* _dst, netconfig_t* _netConfig, packetInfo_t*
         goto finish;
       }
       // if refVoltage skipped - use DEFAULT source
-      if ('\0' != *_optarg[1]) {
+      if ('\0' != *optarg[1]) {
         argv[1] = DEFAULT;
       }
       rc = getACS7XXMetric(argv[0], argv[1], SENS_READ_AC, argv[2], (int32_t) argv[3], payload);
@@ -1158,7 +1169,7 @@ static int16_t executeCommand(char* _dst, netconfig_t* _netConfig, packetInfo_t*
         goto finish;
       }
       // if refVoltage skipped - use DEFAULT source
-      if ('\0' != *_optarg[1]) {
+      if ('\0' != *optarg[1]) {
         argv[1] = DEFAULT;
       }
       rc = getACS7XXMetric(argv[0], argv[1], SENS_READ_DC, argv[2], (int32_t) argv[3], payload);
@@ -1190,7 +1201,7 @@ static int16_t executeCommand(char* _dst, netconfig_t* _netConfig, packetInfo_t*
       //     if (isSafePin(argv[0]) && TIMER2B == digitalPinToTimer(argv[0])) {
       // irPWMPin - global wariable that replace IRremote's TIMER_PWM_PIN
       //         irPWMPin = argv[0];
-      rc = sendRawByIR(argv[1], argv[2], _optarg[3]);
+      rc = sendRawByIR(argv[1], argv[2], optarg[3]);
       //     }
       goto finish;
 #endif // FEATURE_IR_ENABLE
@@ -1207,10 +1218,10 @@ static int16_t executeCommand(char* _dst, netconfig_t* _netConfig, packetInfo_t*
       if (isSafePin(argv[0])) {
         uint16_t targetAnglePulseWidth, returnAnglePulseWidth;
         uint32_t holdTime, turnTime;
-        turnTime = ('\0' != *_optarg[2] && argv[2] > 0) ? argv[2] : 0;
-        holdTime = ('\0' != *_optarg[3] && argv[3] > 0) ? argv[3] : 0;
-        targetAnglePulseWidth = ('\0' != *_optarg[1] && argv[1] > 0) ? argv[1] : 0;
-        returnAnglePulseWidth = ('\0' != *_optarg[4] && argv[4] > 0) ? argv[4] : 0;
+        turnTime = ('\0' != *optarg[2] && argv[2] > 0) ? argv[2] : 0;
+        holdTime = ('\0' != *optarg[3] && argv[3] > 0) ? argv[3] : 0;
+        targetAnglePulseWidth = ('\0' != *optarg[1] && argv[1] > 0) ? argv[1] : 0;
+        returnAnglePulseWidth = ('\0' != *optarg[4] && argv[4] > 0) ? argv[4] : 0;
         rc = servoTurn(argv[0], targetAnglePulseWidth, turnTime, holdTime, returnAnglePulseWidth);
       }
       goto finish;
@@ -1229,12 +1240,12 @@ static int16_t executeCommand(char* _dst, netconfig_t* _netConfig, packetInfo_t*
       argv[1] = argv[1] ? 1 : 0;
 
       // if no returnState is specified: returnState = !targetState
-      if ('\0' == *_optarg[3]) {
+      if ('\0' == *optarg[3]) {
         argv[3] = ! argv[1];
       }
 
       // holdTime is specified?
-      if ('\0' == *_optarg[2]) {
+      if ('\0' == *optarg[2]) {
         argv[2] = 0;
       }
       rc = pulse(argv[0], argv[1], argv[2], argv[3]);
@@ -1252,18 +1263,18 @@ static int16_t executeCommand(char* _dst, netconfig_t* _netConfig, packetInfo_t*
       }
 
       // testPin is specified?
-      if ('\0' == *_optarg[2]) {
+      if ('\0' == *optarg[2]) {
         argv[2] = -1;
         // testPin is safe?
       } else if (!isSafePin(argv[2])) {
         goto finish;
       }
       // testState is specified?
-      if ('\0' == *_optarg[3]) {
+      if ('\0' == *optarg[3]) {
         argv[3] = -1;
       }
       // pullup is need?
-      if ('\0' != *_optarg[4] && argv[4] != 0) {
+      if ('\0' != *optarg[4] && argv[4] != 0) {
         argv[4] = INPUT_PULLUP;
       } else {
         argv[4] = INPUT;
@@ -1277,7 +1288,7 @@ static int16_t executeCommand(char* _dst, netconfig_t* _netConfig, packetInfo_t*
       // ************************************************************************************************************************************
       // Following commands use <argv[0]> or <argv[1]> pins for sensor handling (UART, I2C, etc) and these pins can be disabled in port_protect[] array
       //  Otherwise - processing is failed
-      if ('\0' == *_optarg[0] || '\0' == *_optarg[1] ||  !isSafePin(argv[0]) || !isSafePin(argv[1])) {
+      if ('\0' == *optarg[0] || '\0' == *optarg[1] ||  !isSafePin(argv[0]) || !isSafePin(argv[1])) {
         rc = RESULT_IS_FAIL;
         goto finish;
       }
@@ -1316,35 +1327,35 @@ static int16_t executeCommand(char* _dst, netconfig_t* _netConfig, packetInfo_t*
           //
           // payload cast to (uint8_t*) to use with subroutine math and SoftwareSerial subs, because used instead sub's internal buffer and save a little RAM size.
           // Its will be casted to char* inside at moment when its need
-          rc = getPZEM004Metric(argv[0], argv[1], SENS_READ_AC, _optarg[2], (uint8_t*) payload);
+          rc = getPZEM004Metric(argv[0], argv[1], SENS_READ_AC, optarg[2], (uint8_t*) payload);
           goto finish;
 
         case CMD_PZEM004_VOLTAGE:
           //
           //  pzem004.voltage[rxPin, txPin, addr]
           //
-          rc = getPZEM004Metric(argv[0], argv[1], SENS_READ_VOLTAGE, _optarg[2], (uint8_t*) payload);
+          rc = getPZEM004Metric(argv[0], argv[1], SENS_READ_VOLTAGE, optarg[2], (uint8_t*) payload);
           goto finish;
 
         case CMD_PZEM004_POWER:
           //
           //  pzem004.power[rxPin, txPin, addr]
           //
-          rc = getPZEM004Metric(argv[0], argv[1], SENS_READ_POWER, _optarg[2], (uint8_t*) payload);
+          rc = getPZEM004Metric(argv[0], argv[1], SENS_READ_POWER, optarg[2], (uint8_t*) payload);
           goto finish;
 
         case CMD_PZEM004_ENERGY:
           //
           //  pzem004.energy[rxPin, txPin, addr]
           //
-          rc = getPZEM004Metric(argv[0], argv[1], SENS_READ_ENERGY, _optarg[2], (uint8_t*) payload);
+          rc = getPZEM004Metric(argv[0], argv[1], SENS_READ_ENERGY, optarg[2], (uint8_t*) payload);
           goto finish;
 
         case CMD_PZEM004_SETADDR:
           //
           //  pzem004.setAddr[rxPin, txPin, addr]
           //
-          rc = getPZEM004Metric(argv[0], argv[1], SENS_CHANGE_ADDRESS, _optarg[2], (uint8_t*) payload);
+          rc = getPZEM004Metric(argv[0], argv[1], SENS_CHANGE_ADDRESS, optarg[2], (uint8_t*) payload);
           goto finish;
 #endif // FEATURE_PZEM004_ENABLE
 
@@ -1355,7 +1366,7 @@ static int16_t executeCommand(char* _dst, netconfig_t* _netConfig, packetInfo_t*
           //  ups.apcsmart[rxPin, txPin, command]
           //    command - HEX or ASCII
           //
-          rc = getAPCSmartUPSMetric(argv[0], argv[1], (uint8_t*) _optarg[2], (uint8_t*) payload);
+          rc = getAPCSmartUPSMetric(argv[0], argv[1], (uint8_t*) optarg[2], (uint8_t*) payload);
           goto finish;
 #endif // FEATURE_UPS_APCSMART_ENABLE
 
@@ -1365,7 +1376,7 @@ static int16_t executeCommand(char* _dst, netconfig_t* _netConfig, packetInfo_t*
           //  ups.megatec[rxPin, txPin, command, fieldNumber]
           //    command - HEX or ASCII
           //
-          rc = getMegatecUPSMetric(argv[0], argv[1], _optarg[2], argv[3], (uint8_t*) payload);
+          rc = getMegatecUPSMetric(argv[0], argv[1], optarg[2], argv[3], (uint8_t*) payload);
           goto finish;
 #endif // FEATURE_UPS_APCSMART_ENABLE
           // default:
@@ -1385,7 +1396,7 @@ static int16_t executeCommand(char* _dst, netconfig_t* _netConfig, packetInfo_t*
 #ifdef FEATURE_I2C_ENABLE
       // this war is used only in FEATURE_I2C_ENABLE blocks
       int16_t i2CRegister;
-      i2CRegister = ('\0' != *_optarg[3]) ? (int16_t) argv[3] : I2C_NO_REG_SPECIFIED;
+      i2CRegister = ('\0' != *optarg[3]) ? (int16_t) argv[3] : I2C_NO_REG_SPECIFIED;
 #endif // FEATURE_I2C_ENABLE
 
 
@@ -1412,7 +1423,7 @@ static int16_t executeCommand(char* _dst, netconfig_t* _netConfig, packetInfo_t*
           //
           // i2c.read(sdaPin, sclPin, i2cAddress, register, length, numberOfReadings)
           //
-          rc = readValueFromI2C(&SoftTWI, i2CAddress, i2CRegister, (uint32_t*) &value, argv[4], (('\0' != *_optarg[5]) ? argv[5] : 0x00));
+          rc = readValueFromI2C(&SoftTWI, i2CAddress, i2CRegister, (uint32_t*) &value, argv[4], (('\0' != *optarg[5]) ? argv[5] : 0x00));
           goto finish;
 
         case CMD_I2C_BITWRITE:
@@ -1498,7 +1509,7 @@ static int16_t executeCommand(char* _dst, netconfig_t* _netConfig, packetInfo_t*
           //
           //  PCF8574.LCDPrint[sdaPin, sclPin, i2cAddress, lcdBacklight, lcdType, data]
           //
-          rc = printToPCF8574LCD(&SoftTWI, i2CAddress, argv[3], argv[4], _optarg[5]);
+          rc = printToPCF8574LCD(&SoftTWI, i2CAddress, argv[3], argv[4], optarg[5]);
           // Store current time when on LCD was printed something to calculation in loopStageUserFunction() (for example) 'no refresh timeout' properly
           sysMetrics.sysLCDLastUsedTime = millis();
           goto finish;
@@ -1529,8 +1540,8 @@ static int16_t executeCommand(char* _dst, netconfig_t* _netConfig, packetInfo_t*
           // AT24CXX.write[sdaPin, sclPin, i2cAddress, cellAddress, data]
           //
           // i is half length of decoded byte array
-          //i = (strlen(_optarg[4]) - 2) / 2;
-          i = hstoba((uint8_t*) payload, _optarg[4]);
+          //i = (strlen(optarg[4]) - 2) / 2;
+          i = hstoba((uint8_t*) payload, optarg[4]);
           if (0 < i) {
             if (AT24CXXWrite(&SoftTWI, i2CAddress, argv[3], i, (uint8_t*) payload)) {
               rc =  RESULT_IS_OK;
@@ -1572,7 +1583,7 @@ static int16_t executeCommand(char* _dst, netconfig_t* _netConfig, packetInfo_t*
           //
           // 0x08 == MAX44009_INTEGRATION_TIME_6MS+1 - put it to integrationTime parameter if no arg#4 given
           // to kick getMAX44009Metric() to use auto measurement time
-          rc = getMAX44009Metric(&SoftTWI, i2CAddress, argv[3], (('\0' == *_optarg[4]) ? 0x08 : argv[4]), SENS_READ_LUX, payload);
+          rc = getMAX44009Metric(&SoftTWI, i2CAddress, argv[3], (('\0' == *optarg[4]) ? 0x08 : argv[4]), SENS_READ_LUX, payload);
           goto finish;
 #endif // FEATURE_MAX44009_ENABLE
 
@@ -1583,7 +1594,7 @@ static int16_t executeCommand(char* _dst, netconfig_t* _netConfig, packetInfo_t*
           //  VEML6070.uv[18, 19, 3]
           // 0x01 == VEML6070 integrationTime default value - put it to integrationTime parameter if no arg#3 given
           // argv[4] & 0x03 operation need to take right integrationTime - 0x00...0x03
-          rc = getVEML6070Metric(&SoftTWI, (('\0' == *_optarg[2]) ? 0x01 : argv[2] & 0x03), SENS_READ_UV, payload);
+          rc = getVEML6070Metric(&SoftTWI, (('\0' == *optarg[2]) ? 0x01 : argv[2] & 0x03), SENS_READ_UV, payload);
           goto finish;
 #endif // FEATURE_VEML6070_ENABLE
 

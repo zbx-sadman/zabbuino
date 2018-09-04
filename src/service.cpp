@@ -360,11 +360,11 @@ void blinkMore(const uint8_t _times, const uint16_t _onTime, const uint16_t _off
     delay(_offTime);              // wait for a second
   }
 }
-
+/*
 uint8_t validateNetworkAddress(const NetworkAddress _address) {
   return true;
 }
-
+*/
 uint8_t strToNetworkAddress(const char* _src, NetworkAddress* _dstAddress) {
   if ('\0' == *_src) { return false; }
   *_dstAddress = NetworkAddress(htonl(strtoul(_src, NULL, 0)));

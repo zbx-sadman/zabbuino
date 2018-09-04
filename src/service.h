@@ -82,7 +82,7 @@ void blinkMore(const uint8_t _times, const uint16_t _onTime, const uint16_t _off
 *  
 *
 *****************************************************************************************************************************/
-uint8_t validateNetworkAddress(const NetworkAddress);
+//uint8_t validateNetworkAddress(const NetworkAddress);
 uint8_t strToNetworkAddress(const char*, NetworkAddress*);
 uint8_t analyzeStream(char _charFromClient, char* _dst, uint8_t doReInit, packetInfo_t* _packetInfo);
 
