@@ -1,10 +1,14 @@
 // Config & common included files
 #include "sys_includes.h"
 
-
 #include "SoftwareWire/SoftwareWire.h"
 
 #include "i2c_bus.h"
+
+void U16ToWire(uint8_t* _dst, uint16_t _value) {
+  _dst[0] = ((_value >> 8) & 0xFF); 
+  _dst[1] = (_value & 0xFF);
+}
 
 /*****************************************************************************************************************************
 *

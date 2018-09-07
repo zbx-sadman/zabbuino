@@ -2,18 +2,21 @@
 
 #define I2C_NO_REG_SPECIFIED                                    (-0x01) //
 
-#define WireToU8(_source)  ((uint8_t) _source[0])
-#define WireToS8(_source)  ((int8_t) _source[0])
+#define WireToU8(_src)  ((uint8_t) _src[0])
+#define WireToS8(_src)  ((int8_t) _src[0])
 
-//#define WireToU16(_source)  ((uint16_t) ( ((uint16_t) _source[0] << 8)| (uint16_t) _source[1]))
-#define WireToU16(_source)  ((uint16_t) ( ((uint16_t) _source[0] << 8)| (uint8_t) _source[1]))
-#define WireToS16(_source)  ((int16_t)  ( ((uint16_t) _source[0] << 8)| (uint8_t) _source[1]))
+//#define WireToU16(_src)  ((uint16_t) ( ((uint16_t) _src[0] << 8)| (uint16_t) _src[1]))
+#define WireToU16(_src)  ((uint16_t) ( ((uint16_t) _src[0] << 8)| (uint8_t) _src[1]))
+#define WireToS16(_src)  ((int16_t)  ( ((uint16_t) _src[0] << 8)| (uint8_t) _src[1]))
 
-#define WireToU16LE(_source)  ((uint16_t) ( ((uint16_t) _source[1] << 8)| _source[0]))
-#define WireToS16LE(_source)  ((int16_t) ( ((uint16_t) _source[1] << 8)| _source[0]))
+#define WireToU16LE(_src)  ((uint16_t) ( ((uint16_t) _src[1] << 8)| _src[0]))
+#define WireToS16LE(_src)  ((int16_t) ( ((uint16_t) _src[1] << 8)| _src[0]))
 
-#define WireToU24(_source)  ((uint32_t) ( ((uint32_t) _source[0] << 16) | (_source[1] << 8) | _source[2]))
-#define WireToS24(_source)  ((int32_t) ( ((uint32_t) _source[0] << 16) | (_source[1] << 8) | _source[2]))
+#define WireToU24(_src)  ((uint32_t) ( ((uint32_t) _src[0] << 16) | (_src[1] << 8) | _src[2]))
+#define WireToS24(_src)  ((int32_t) ( ((uint32_t) _src[0] << 16) | (_src[1] << 8) | _src[2]))
+
+
+void U16ToWire(uint8_t*, uint16_t);
 
 /*****************************************************************************************************************************
 *

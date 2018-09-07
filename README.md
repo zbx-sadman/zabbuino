@@ -35,6 +35,12 @@ Implemented:
 - Simulate varuious vendor's IR transmitters.
 -----------------------------
 
+#### 07 Sep 2018
+
+Fixes:
+  - INA219.* commands works wrong. Tested with new equipment: GOPHERT-3205 II & UT61E;
+
+
 #### 04 Sep 2018
 
 New features:
