@@ -35,6 +35,17 @@ Implemented:
 - Simulate varuious vendor's IR transmitters.
 -----------------------------
 
+#### 10 Sep 2018
+
+New features:
+  - _FEATURE\_MAX6675\_ENABLE_ enables MAX6675 chip support. 
+  - Command ``max6675.temperature[dataPin, clockPin, csPin]`` is added:
+    - _dataPin_ - pin to which \[MI\]SO output of MAX6675 connected;
+    - _clockPin_ - pin to which SCK input of MAX6675 connected;
+    - _clockPin_ - pin to which CS input of MAX6675 connected.
+    Example: ``max6675.temperature[4, 6, 5]`` - returns temperature of K-type termocouple connected to the MAX6675.
+
+
 #### 07 Sep 2018
 
 Fixes:

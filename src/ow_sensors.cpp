@@ -91,7 +91,7 @@ int8_t getDS18X20Metric(const uint8_t _pin, uint8_t _resolution, uint8_t* _id, c
   int8_t rc = DEVICE_ERROR_CONNECT;
   uint8_t signBit, parasitePowerUsed, busReady, resolutionIdx;
   uint8_t* scratchPad;
-  int16_t conversionTimeout;
+  int16_t conversionTime;
   int32_t tRaw;
   uint8_t resolutionCodes[] = {DS18X20_MODE_9_BIT, DS18X20_MODE_10_BIT, DS18X20_MODE_11_BIT, DS18X20_MODE_12_BIT};
   uint8_t noiseBits[] = {7, 3, 1, 0};
@@ -182,9 +182,9 @@ int8_t getDS18X20Metric(const uint8_t _pin, uint8_t _resolution, uint8_t* _id, c
   //        11 bit res, 375 ms
   //        10 bit res, 187.5 ms
   //        09 bit res, 93.75 ms
-  // conversionTimeout = (tCONV + 10%) / (2 ^ (12 [bit resolution]- N [bit resolution])). 12bit => 750ms+10%, 11bit => 375ms+10% ...
+  // conversionTime = (tCONV + 10%) / (2 ^ (12 [bit resolution]- N [bit resolution])). 12bit => 750ms+10%, 11bit => 375ms+10% ...
   // For some DS sensors you may need increase tCONV to 1250ms or more
-  conversionTimeout = 825 / (1 << (12 - _resolution));
+  conversionTime = 825 / (1 << (12 - _resolution));
 
   // Temperature read begin
   owDevice.reset();
@@ -192,7 +192,7 @@ int8_t getDS18X20Metric(const uint8_t _pin, uint8_t _resolution, uint8_t* _id, c
   // start conversion, with parasite power on at the end
   owDevice.write(DS18X20_CMD_STARTCONVO, 1);
   // Wait to end conversion
-  delay(conversionTimeout);
+  delay(conversionTime);
 
   // Read data from DS's ScratchPad or return 'Error' on failure
   // DEVICE_ERROR_CHECKSUM instead DEVICE_ERROR_CONNECT returned because sensor is probaly presented on 1-Wire bus (already tested early)

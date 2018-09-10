@@ -1,5 +1,7 @@
 /*
 
+Todo: https://github.com/ToniA/arduino-heatpumpir
+
 Based on: https://github.com/z3t0/Arduino-IRremote
 version 2.2.1 is used
 

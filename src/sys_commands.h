@@ -117,10 +117,12 @@
 
 #define CMD_VEML6070_UV                                         (0x4F)
 
-#define CMD_RELAY                                               (0x50)
-#define CMD_PULSE                                               (0x51)
+#define CMD_MAX6675_TEMPERATURE                                 (0x50)
 
-#define CMD_SERVO_TURN                                          (0x52)
+#define CMD_RELAY                                               (0x51)
+#define CMD_PULSE                                               (0x52)
+
+#define CMD_SERVO_TURN                                          (0x53)
 
 // add new command as "const char command_<COMMAND_MACRO> PROGMEM". Only 'const' push string to PROGMEM. Tanx, Arduino & AVR.
 // command_* values must be in lower case due analyze sub convert all chars to lower
@@ -238,6 +240,8 @@ const char command_CMD_MHZXX_UART_CO2[]                         PROGMEM = "mhzxx
 const char command_CMD_USER_RUN[]                               PROGMEM = "user.run";
 
 const char command_CMD_VEML6070_UV[]                            PROGMEM = "veml6070.uv";
+
+const char command_CMD_MAX6675_TEMPERATURE[]                    PROGMEM = "max6675.temperature";
 
 const char command_CMD_RELAY[]                                  PROGMEM = "relay";
 const char command_CMD_PULSE[]                                  PROGMEM = "pulse";
@@ -533,6 +537,12 @@ const char* const commands[] PROGMEM = {
 
 #ifdef FEATURE_VEML6070_ENABLE
    command_CMD_VEML6070_UV,
+#else
+  command_CMD_ZBX_NOPE,
+#endif
+
+#ifdef FEATURE_MAX6675_ENABLE
+   command_CMD_MAX6675_TEMPERATURE,
 #else
   command_CMD_ZBX_NOPE,
 #endif

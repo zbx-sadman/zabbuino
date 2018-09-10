@@ -63,6 +63,10 @@
 #include "uart_megatec.h"
 #include "uart_pzem.h"
 
+// SPI-compatible devices 
+#include "spi_bus.h"
+#include "spi_max6675.h"
+
 // Other devices //
 #include "dht.h"
 #include "ir.h"

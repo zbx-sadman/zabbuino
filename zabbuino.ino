@@ -1122,6 +1122,19 @@ static int16_t executeCommand(char* _dst, netconfig_t* _netConfig, packetInfo_t*
       goto finish;
 #endif // FEATURE_MAX7219_ENABLE
 
+#ifdef FEATURE_MAX6675_ENABLE
+    case CMD_MAX6675_TEMPERATURE:
+      //
+      //  max6675.temperature[dataPin, clockPin, csPin]
+      // max6675.temperature[4,6,5]
+      //
+      if (isSafePin(argv[0]) && isSafePin(argv[1]) && isSafePin(argv[2])) {
+        rc = getMAX6675Metric(argv[0], argv[1], argv[2], SENS_READ_TEMP, payload);
+      }
+      goto finish;
+
+#endif // FEATURE_MAX6675_ENABLE
+
 #ifdef FEATURE_ACS7XX_ENABLE
     case CMD_ACS7XX_ZC:
       //
@@ -1586,6 +1599,8 @@ static int16_t executeCommand(char* _dst, netconfig_t* _netConfig, packetInfo_t*
           rc = getMAX44009Metric(&SoftTWI, i2CAddress, argv[3], (('\0' == *optarg[4]) ? 0x08 : argv[4]), SENS_READ_LUX, payload);
           goto finish;
 #endif // FEATURE_MAX44009_ENABLE
+
+          //  PCA[sdaPin, sclPin, addr, idx, onTime, offTime]
 
 #ifdef FEATURE_VEML6070_ENABLE
         case CMD_VEML6070_UV:

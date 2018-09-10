@@ -225,7 +225,7 @@ int8_t getINA219Metric(SoftwareWire* _softTWI, const uint8_t _i2cAddress, uint8_
   rc = RESULT_IS_BUFFERED;
 
   finish:
-//  gatherSystemMetrics(); // Measure memory consumption
+  gatherSystemMetrics(); // Measure memory consumption
   return rc;
 
 }
