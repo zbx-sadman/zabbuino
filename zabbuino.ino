@@ -1613,6 +1613,17 @@ static int16_t executeCommand(char* _dst, netconfig_t* _netConfig, packetInfo_t*
           goto finish;
 #endif // FEATURE_VEML6070_ENABLE
 
+
+#ifdef FEATURE_PCA9685_ENABLE
+        case CMD_PCA9685_WRITE:
+          //
+          //  PCA9685.write[sdaPin, sclPin, i2cAddress, outputIdx, onTime, offTime]
+          //  PCA9685.write[18, 19, 0x40, -1, 499, 1288]
+          rc = writePCA9685(&SoftTWI, i2CAddress, argv[3], argv[4], argv[5]);
+          goto finish;
+#endif // FEATURE_PCA9685_ENABLE
+
+
       }  // switch (cmdIdx), I2C block
 #endif // TWI_USE
 

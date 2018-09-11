@@ -43,6 +43,7 @@
     defined (FEATURE_SYSTEM_RTC_ENABLE)  || \
     defined (FEATURE_MAX44009_ENABLE)    || \
     defined (FEATURE_VEML6070_ENABLE)    || \
+    defined (FEATURE_PCA9685_ENABLE)     || \
     defined (FEATURE_INA219_ENABLE)
     #define TWI_USE
 #endif

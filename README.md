@@ -35,6 +35,19 @@ Implemented:
 - Simulate varuious vendor's IR transmitters.
 -----------------------------
 
+#### 11 Sep 2018
+
+New features:
+  - _FEATURE\_PCA9685\_ENABLE_ enables PCA9685 chip support. 
+  - Command ``PCA9685.write[sdaPin, sclPin, i2cAddress, channel, onTime, offTime]`` is added:
+    - _sdaPin_, _sclPin_ - I2C pins to which PCA9685 connected;
+    - _i2cAddress_ - I2C address of PCA9685;
+    - _channel_ - channel whose settings will be changed. value '-1' mean all channels;
+    - _onTime_ - time in the internal ticks (0...4095) of PCA9685 when channel will be turned on, use 4096 to make the channel completely on;
+    - _offTime_ - time in the internal ticks (0...4095) of PCA9685 when channel will be turned off, use 4096 to make the channel completely off.
+    Note: _onTime_, _offTime_ can't be set to 4096 at the same time.
+    Example: ``PCA9685.write[18, 19, 0x40, -1, 4096, 0]`` Completely turn on all channels on PCA9685 with 0x40 address.
+
 #### 10 Sep 2018
 
 New features:

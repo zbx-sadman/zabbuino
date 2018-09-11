@@ -36,8 +36,8 @@
 */
 
 /****       New              ****/
-
-#define FEATURE_MAX6675_ENABLE
+//#define FEATURE_MAX6675_ENABLE
+#define FEATURE_PCA9685_ENABLE
 //#define FEATURE_VEML6070_ENABLE
 //#define FEATURE_SERVO_ENABLE
 //#define FEATURE_RELAY_ENABLE

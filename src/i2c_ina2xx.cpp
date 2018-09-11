@@ -162,15 +162,15 @@ int8_t getINA219Metric(SoftwareWire* _softTWI, const uint8_t _i2cAddress, uint8_
 
 
   U16ToWire(value, configValue);
-  if (0x02 != writeBytesToI2C(_softTWI, INA219_I2C_ADDRESS, INA219_REG_CONFIGURATION, value, 0x02)) { goto finish; }
+  if (0x02 != writeBytesToI2C(_softTWI, _i2cAddress, INA219_REG_CONFIGURATION, value, 0x02)) { goto finish; }
 
   U16ToWire(value, calValue);
-  if (0x02 != writeBytesToI2C(_softTWI, INA219_I2C_ADDRESS, INA219_REG_CALIBRATION, value, 0x02)) { goto finish; }
+  if (0x02 != writeBytesToI2C(_softTWI, _i2cAddress, INA219_REG_CALIBRATION, value, 0x02)) { goto finish; }
 
   // Wait ready bit - CNVR == 1 in Bus Voltage Register
   do {
      delay(10);
-     if (0x02 != readBytesFromI2C(_softTWI, INA219_I2C_ADDRESS, INA219_REG_BUS_VOLTAGE, value, 0x02)) { goto finish; }
+     if (0x02 != readBytesFromI2C(_softTWI, _i2cAddress, INA219_REG_BUS_VOLTAGE, value, 0x02)) { goto finish; }
   } while (!(value[1] & B00000010)); 
 
 
@@ -194,7 +194,7 @@ int8_t getINA219Metric(SoftwareWire* _softTWI, const uint8_t _i2cAddress, uint8_
    }
 
 
-  if (0x02 != readBytesFromI2C(_softTWI, INA219_I2C_ADDRESS, i2cReg, value, 0x02)) { goto finish; }
+  if (0x02 != readBytesFromI2C(_softTWI, _i2cAddress, i2cReg, value, 0x02)) { goto finish; }
 //  Serial.print("Register: 0x"); Serial.println(i2cReg, HEX);
 //  Serial.print("uC register content: "); Serial.print("0x"); Serial.print(value[0], HEX);  Serial.print(" 0x"); Serial.print(value[1], HEX); Serial.println();
   result = WireToU16(value);

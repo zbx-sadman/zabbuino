@@ -48,6 +48,7 @@
 #include "i2c_sht.h"
 #include "i2c_bmp.h"
 #include "i2c_ds3231.h"
+#include "i2c_pca9685.h"
 #include "i2c_pcf8563.h"
 #include "i2c_at24cxx.h"
 #include "i2c_max44009.h"
