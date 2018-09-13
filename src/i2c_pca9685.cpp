@@ -31,7 +31,8 @@ int8_t writePCA9685(SoftwareWire* _softTWI, const uint8_t _i2cAddress, const int
   if (PCA9685_CHANNEL_FULL_STATE == _onTime && PCA9685_CHANNEL_FULL_STATE == _offTime) { goto finish; }
 
   // LED_ON and LED_OFF values can't be more than 4096 
-  if (PCA9685_CHANNEL_FULL_STATE < _onTime || 0x00 > _onTime || PCA9685_CHANNEL_FULL_STATE < _offTime || 0x00 > _offTime) { goto finish; }
+  // if (PCA9685_CHANNEL_FULL_STATE < _onTime || 0x00 > _onTime || PCA9685_CHANNEL_FULL_STATE < _offTime || 0x00 > _offTime) { goto finish; }
+  if (PCA9685_CHANNEL_FULL_STATE < _onTime || PCA9685_CHANNEL_FULL_STATE < _offTime ) { goto finish; }
 
   // Channel Idx can't be equal or more than PCA9685_CHANNEL_COUNT or less than PCA9685_CHANNEL_ALL_LEDS (All leds Idx)
   if (PCA9685_CHANNEL_COUNT <= _outputIdx || PCA9685_CHANNEL_LEDS_ALL > _outputIdx ) { goto finish; }

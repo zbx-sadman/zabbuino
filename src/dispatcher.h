@@ -53,6 +53,7 @@
 #include "i2c_at24cxx.h"
 #include "i2c_max44009.h"
 #include "i2c_veml6070.h"
+#include "i2c_tsl2561.h"
 
 // 1-Wire devices 
 #include "ow_bus.h"

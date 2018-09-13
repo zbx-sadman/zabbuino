@@ -13,16 +13,16 @@
 *   Overloads of main subroutine. Used to get numeric metric's value or it's char presentation only
 *
 *****************************************************************************************************************************/
-int8_t getMAX44009Metric(SoftwareWire* _softTWI, uint8_t _i2cAddress, uint8_t _mode, const uint8_t _integration_time, const uint8_t _metric, uint32_t* _value)
+int8_t getMAX44009Metric(SoftwareWire* _softTWI, uint8_t _i2cAddress, uint8_t _mode, const uint8_t _integrationTime, const uint8_t _metric, uint32_t* _value)
 {
   char stubBuffer;
-  return getMAX44009Metric(_softTWI, _i2cAddress, _mode, _integration_time, _metric, &stubBuffer, _value, true);
+  return getMAX44009Metric(_softTWI, _i2cAddress, _mode, _integrationTime, _metric, &stubBuffer, _value, true);
 }
 
-int8_t getMAX44009Metric(SoftwareWire* _softTWI, uint8_t _i2cAddress, uint8_t _mode, const uint8_t _integration_time, const uint8_t _metric, char* _dst)
+int8_t getMAX44009Metric(SoftwareWire* _softTWI, uint8_t _i2cAddress, uint8_t _mode, const uint8_t _integrationTime, const uint8_t _metric, char* _dst)
 {
   uint32_t stubValue;
-  return getMAX44009Metric(_softTWI, _i2cAddress, _mode, _integration_time, _metric, _dst, &stubValue, false);
+  return getMAX44009Metric(_softTWI, _i2cAddress, _mode, _integrationTime, _metric, _dst, &stubValue, false);
 }
 
 /*****************************************************************************************************************************
@@ -38,7 +38,7 @@ int8_t getMAX44009Metric(SoftwareWire* _softTWI, uint8_t _i2cAddress, uint8_t _m
 *
 *
 *****************************************************************************************************************************/
-int8_t getMAX44009Metric(SoftwareWire* _softTWI, uint8_t _i2cAddress, uint8_t _mode, const uint8_t _integration_time, const uint8_t _metric, char *_dst, uint32_t* _value, const uint8_t _wantsNumber)
+int8_t getMAX44009Metric(SoftwareWire* _softTWI, uint8_t _i2cAddress, uint8_t _mode, const uint8_t _integrationTime, const uint8_t _metric, char *_dst, uint32_t* _value, const uint8_t _wantsNumber)
 {
   int8_t rc = RESULT_IS_FAIL;
   uint8_t autoTIM = false,
@@ -51,51 +51,51 @@ int8_t getMAX44009Metric(SoftwareWire* _softTWI, uint8_t _i2cAddress, uint8_t _m
   if (!isI2CDeviceReady(_softTWI, _i2cAddress)) { rc = DEVICE_ERROR_CONNECT; goto finish; }
 
   // _mode must be 0x80 or 0x00
-  // invalid _integration_time cause switching sensor to auto measure mode
+  // invalid _integrationTime cause switching sensor to auto measure mode
   if (MAX44009_CONTINUOUS_MODE == _mode) {
-     if (MAX44009_INTEGRATION_TIME_100MS < _integration_time) { autoTIM = true; }
+     if (MAX44009_INTEGRATION_TIME_100MS < _integrationTime) { autoTIM = true; }
   } else {
      _mode = MAX44009_800MS_CYCLE_MODE;
-     // MAX44009_INTEGRATION_TIME_6MS is latest mode (idx = 0x07)
-     if (MAX44009_INTEGRATION_TIME_6MS < _integration_time) { autoTIM = true; }
+     // MAX44009_integrationTime_6MS is latest mode (idx = 0x07)
+     if (MAX44009_INTEGRATION_TIME_6MS < _integrationTime) { autoTIM = true; }
   }
 
   // Manual mode choosed
   if (! autoTIM) {
-/*     switch (_integration_time) {
-       case MAX44009_INTEGRATION_TIME_800MS:
+/*     switch (_integrationTime) {
+       case MAX44009_integrationTime_800MS:
          waitTime = 800;
          break;
-       case MAX44009_INTEGRATION_TIME_400MS:
+       case MAX44009_integrationTime_400MS:
          waitTime = 400;
          break;
-       case MAX44009_INTEGRATION_TIME_200MS:
+       case MAX44009_integrationTime_200MS:
          waitTime = 200;
          break;
-       case MAX44009_INTEGRATION_TIME_100MS:
+       case MAX44009_integrationTime_100MS:
          waitTime = 100;
          break;
-       case MAX44009_INTEGRATION_TIME_50MS:
+       case MAX44009_integrationTime_50MS:
          waitTime = 50;
          break;
-       case MAX44009_INTEGRATION_TIME_25MS:
+       case MAX44009_integrationTime_25MS:
          waitTime = 25;
          break;
-       case MAX44009_INTEGRATION_TIME_12MS:
+       case MAX44009_integrationTime_12MS:
          waitTime = 13; // Must be 12.5, but i do not use float
          break;
-       case MAX44009_INTEGRATION_TIME_6MS:
+       case MAX44009_integrationTime_6MS:
          waitTime = 7;  // Must be 6.25, but i do not use float
          break;
      }
 */
-     waitTime = integrationTime[_integration_time];
+     waitTime = integrationTime[_integrationTime];
 
      // "Manual" mode, bit 6 must be 1
      _mode |= 0x40;
      // Set integration time 
      // CDR byte is dropped, current not divided. All of the photodiode current goes to the ADC.
-     _mode |= _integration_time;
+     _mode |= _integrationTime;
      // Seems that need wait max integration time (800ms) on first reading after configuration byte changing to avoid get wrong values
      if (0x01 != readBytesFromI2C(_softTWI, _i2cAddress, MAX44009_REG_CONFIGURATION, value, 0x01)) { goto finish; }
      if (value[0] != _mode) { waitTime = 800; }

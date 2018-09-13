@@ -13,17 +13,17 @@
 *   Overloads of main subroutine. Used to get numeric metric's value or it's char presentation only
 *
 *****************************************************************************************************************************/
-int8_t getINA219Metric(SoftwareWire* _softTWI, const uint8_t _i2cAddress, uint8_t _maxVoltage, uint16_t _maxCurrent, const uint8_t _metric, uint32_t* _value)
+int8_t getINA219Metric(SoftwareWire* _softTWI, const uint8_t _i2cAddress, uint8_t _voltageRange, uint16_t _maxExpectedCurrent, const uint8_t _metric, uint32_t* _value)
 {
   char stubBuffer;
-  return getINA219Metric(_softTWI, _i2cAddress, _maxVoltage, _maxCurrent, _metric, &stubBuffer, _value, true);
+  return getINA219Metric(_softTWI, _i2cAddress, _voltageRange, _maxExpectedCurrent, _metric, &stubBuffer, _value, true);
 
 }
 
-int8_t getINA219Metric(SoftwareWire* _softTWI, const uint8_t _i2cAddress, uint8_t _maxVoltage, uint16_t _maxCurrent, const uint8_t _metric, char* _dst)
+int8_t getINA219Metric(SoftwareWire* _softTWI, const uint8_t _i2cAddress, uint8_t _voltageRange, uint16_t _maxExpectedCurrent, const uint8_t _metric, char* _dst)
 {
   uint32_t stubValue = 0x00;
-  return getINA219Metric(_softTWI, _i2cAddress, _maxVoltage, _maxCurrent, _metric, _dst, &stubValue, false);
+  return getINA219Metric(_softTWI, _i2cAddress, _voltageRange, _maxExpectedCurrent, _metric, _dst, &stubValue, false);
 }
 
 
@@ -37,7 +37,7 @@ int8_t getINA219Metric(SoftwareWire* _softTWI, const uint8_t _i2cAddress, uint8_
 *     - RESULT_IS_FAIL - on other fails
 *
 *****************************************************************************************************************************/
-int8_t getINA219Metric(SoftwareWire* _softTWI, const uint8_t _i2cAddress, uint8_t _maxVoltage, uint16_t _maxCurrent, const uint8_t _metric, char* _dst, uint32_t* _value, const uint8_t _wantsNumber)
+int8_t getINA219Metric(SoftwareWire* _softTWI, const uint8_t _i2cAddress, uint8_t _voltageRange, uint16_t _maxExpectedCurrent, const uint8_t _metric, char* _dst, uint32_t* _value, const uint8_t _wantsNumber)
 {
   int8_t rc = RESULT_IS_FAIL;
   uint16_t result, calValue, configValue;
@@ -85,9 +85,9 @@ int8_t getINA219Metric(SoftwareWire* _softTWI, const uint8_t _i2cAddress, uint8_
 
   // !!! Used shunt is R100 (0.1Ohm) !!!
 
-  switch (_maxVoltage) {
+  switch (_voltageRange) {
     case 16: //16V 
-      switch (_maxCurrent) {
+      switch (_maxExpectedCurrent) {
         // 16V, 400mA
         case 400:                    
           calValue = 8192;
@@ -128,7 +128,7 @@ int8_t getINA219Metric(SoftwareWire* _softTWI, const uint8_t _i2cAddress, uint8_
   
     case 32: // 32V 
     default: 
-      switch (_maxCurrent) {
+      switch (_maxExpectedCurrent) {
         // 32V, 1A
         case 1000:                 
           calValue = 8192;

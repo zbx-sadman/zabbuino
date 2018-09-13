@@ -24,4 +24,4 @@ uint16_t getADCVoltage(const uint8_t);
 *  Note: code is not tested in production
 *
 *****************************************************************************************************************************/
-int8_t getACS7XXMetric(const uint8_t, uint32_t, const uint8_t, const uint8_t, const int32_t, char*);
+int8_t getACS7XXMetric(const uint8_t, uint32_t, uint32_t, const uint8_t, const uint8_t, const int32_t, char*);

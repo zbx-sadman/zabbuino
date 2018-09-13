@@ -1138,7 +1138,7 @@ static int16_t executeCommand(char* _dst, netconfig_t* _netConfig, packetInfo_t*
 #ifdef FEATURE_ACS7XX_ENABLE
     case CMD_ACS7XX_ZC:
       //
-      //  acs7xx.zc[sensorPin, refVoltage]
+      //  acs7xx.zc[sensorPin, sampleTime, refVoltage]
       //
       if (!isSafePin(argv[0])) {
         goto finish;
@@ -1153,39 +1153,48 @@ static int16_t executeCommand(char* _dst, netconfig_t* _netConfig, packetInfo_t*
       //      DEFAULT          1  - VCC
       //      EXTERNAL   0  - AREF << mV on AREF, more than '3'
 
-      // if refVoltage skipped - use DEFAULT source
       if ('\0' != *optarg[1]) {
-        argv[1] = DEFAULT;
+        argv[1] = 10000UL;
       }
-      rc = getACS7XXMetric(argv[0], argv[1], SENS_READ_ZC, 0, 0, payload);
+      // if refVoltage skipped - use DEFAULT source
+      if ('\0' != *optarg[2]) {
+        argv[2] = DEFAULT;
+      }
+      rc = getACS7XXMetric(argv[0], argv[1], argv[2], SENS_READ_ZC, 0x00, 0x00, payload);
       goto finish;
 
     case CMD_ACS7XX_AC:
       //
-      //  acs7xx.ac[sensorPin, refVoltage, sensitivity, zeroPoint]
+      //  acs7xx.ac[sensorPin, sampleTime, refVoltage, sensitivity, zeroPoint]
       //
       if (!isSafePin(argv[0])) {
         goto finish;
       }
-      // if refVoltage skipped - use DEFAULT source
       if ('\0' != *optarg[1]) {
-        argv[1] = DEFAULT;
+        argv[1] = 10000UL;
       }
-      rc = getACS7XXMetric(argv[0], argv[1], SENS_READ_AC, argv[2], (int32_t) argv[3], payload);
+      // if refVoltage skipped - use DEFAULT source
+      if ('\0' != *optarg[2]) {
+        argv[2] = DEFAULT;
+      }
+      rc = getACS7XXMetric(argv[0], argv[1], argv[2], SENS_READ_AC, argv[3], argv[4], payload);
       goto finish;
 
     case CMD_ACS7XX_DC:
       //
-      //  acs7xx.dc[sensorPin, refVoltage, sensitivity, zeroPoint]
+      //  acs7xx.dc[sensorPin, sampleTime, refVoltage, sensitivity, zeroPoint]
       //
       if (!isSafePin(argv[0])) {
         goto finish;
       }
-      // if refVoltage skipped - use DEFAULT source
       if ('\0' != *optarg[1]) {
-        argv[1] = DEFAULT;
+        argv[1] = 10000UL;
       }
-      rc = getACS7XXMetric(argv[0], argv[1], SENS_READ_DC, argv[2], (int32_t) argv[3], payload);
+      // if refVoltage skipped - use DEFAULT source
+      if ('\0' != *optarg[2]) {
+        argv[2] = DEFAULT;
+      }
+      rc = getACS7XXMetric(argv[0], argv[1], argv[2], SENS_READ_DC, argv[3], argv[4], payload);
       goto finish;
 
 #endif // FEATURE_ACS7XX_ENABLE
@@ -1618,11 +1627,19 @@ static int16_t executeCommand(char* _dst, netconfig_t* _netConfig, packetInfo_t*
         case CMD_PCA9685_WRITE:
           //
           //  PCA9685.write[sdaPin, sclPin, i2cAddress, outputIdx, onTime, offTime]
-          //  PCA9685.write[18, 19, 0x40, -1, 499, 1288]
+          //  PCA9685.write[18, 19, 0x40, -1, 4096, 0]
           rc = writePCA9685(&SoftTWI, i2CAddress, argv[3], argv[4], argv[5]);
           goto finish;
 #endif // FEATURE_PCA9685_ENABLE
 
+#ifdef FEATURE_TSL2561_ENABLE
+        case CMD_TSL2561_LIGHT:
+          //
+          //  TSL2561.light[sdaPin, sclPin, i2cAddress, integrationTime, gain]
+          //  TSL2561.light[18, 19, 0x39, 402, 1]
+          rc = getTSL2561Metric(&SoftTWI, i2CAddress, argv[3], argv[4], SENS_READ_LUX, payload);
+          goto finish;
+#endif // FEATURE_TSL2561_ENABLE
 
       }  // switch (cmdIdx), I2C block
 #endif // TWI_USE

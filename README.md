@@ -11,16 +11,16 @@ Implemented:
 - MCU and runtime metrics (current/min/max VCC, current/min RAM, uptime, MCU name) obtaining;
 - Support W5100 and ENC28J60 network modules, drivers is implemented to source code;
 - Support one or more DS18X20 thermometer;
+- Support MAX6675 termocoupler ADC;
 - Support DHT11/21/22/33/44 or AM2301/2302 humidity and temperature sensors;
 - Support SHT2X humidity and temperature sensors serie;
 - Support BMP180/085, BMP280/BME280 pressure and temperature sensors;
-- Support BH1750, MAX44009 light sensors;
+- Support BH1750, MAX44009, TSL2561 light sensors;
 - Support VEML6070 ultraviolet sensors;
 - Support DS3231 RTC I2C module;
 - Support incremental encoder (on interrupt's pin);
 - Support any devices that need to use hardware interrupt - tilt switches, dry contacts, water flow sensor, and so;
 - Support INA219 power/current monitor;
-- Support ACS7xx sensors;
 - Support HC-SR04 ultrasonic ranging module;
 - Support any other analog or digital sensor via `analogread` /`digitalread` commands;
 - Support indicators, that connected to MAX7219, 8x8 Led matrix for example;
@@ -28,12 +28,24 @@ Implemented:
 - Support One- or Two- (and maybe Four-) lines LCD Character displays with PC8574 I2C expander;
 - Support any actuators or indicators via `digitalwrite` command;
 - Support simple way of digital servo manipulating;
+- Support PCA9685 16 channel PWM controller;
 - Support WS2801 Led stripe and any indicators on shift registers via extended `shiftout` command;
 - Support WS2812 Led stripe;
 - Support PZEM-004 energy meter;
 - Support APC Smart UPS (with RS232 interface);
 - Simulate varuious vendor's IR transmitters.
 -----------------------------
+
+#### 13 Sep 2018
+
+New features:
+  - _FEATURE\_TSL2561\_ENABLE_ enables TSL2561 sensor support. 
+  - Command ``TSL2561.light[sdaPin, sclPin, i2cAddress, integrationTime, gain]`` is added:
+    - _sdaPin_, _sclPin_ - I2C pins to which TSL2561 connected;
+    - _i2cAddress_ - I2C address of TSL2561;
+    - _integrationTime_ - how much long make converison: 13, 101 or 402 ms;
+    - _gain_ - sensor gain: 1 for 1x, 16 for 16x.
+    Example: ``TSL2561.light[18, 19, 0x39, 402, 1]`` Returns light strenght in lux after 402ms conversion on 1x gain.
 
 #### 11 Sep 2018
 

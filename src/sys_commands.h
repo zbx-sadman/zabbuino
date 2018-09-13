@@ -125,6 +125,8 @@
 
 #define CMD_SERVO_TURN                                          (0x54)
 
+#define CMD_TSL2561_LIGHT                                       (0x55)
+
 // add new command as "const char command_<COMMAND_MACRO> PROGMEM". Only 'const' push string to PROGMEM. Tanx, Arduino & AVR.
 // command_* values must be in lower case due analyze sub convert all chars to lower
 const char command_CMD_ZBX_NOPE[]                               PROGMEM = "\1";
@@ -248,6 +250,8 @@ const char command_CMD_PCA9685_WRITE[]                          PROGMEM = "pca96
 const char command_CMD_RELAY[]                                  PROGMEM = "relay";
 const char command_CMD_PULSE[]                                  PROGMEM = "pulse";
 const char command_CMD_SERVO_TURN[]                             PROGMEM = "servo.turn";
+
+const char command_CMD_TSL2561_LIGHT[]                          PROGMEM = "tsl2561.light";
 
 // do not insert new command to any position without syncing indexes. Tanx, Arduino and AVR, for this method of string array pushing to PROGMEM
 // ~300 bytes of PROGMEM space can be saved with crazy "#ifdef-#else-#endif" dance
@@ -568,5 +572,12 @@ const char* const commands[] PROGMEM = {
 #else
   command_CMD_ZBX_NOPE,
 #endif
+
+#ifdef FEATURE_TSL2561_ENABLE
+  command_CMD_TSL2561_LIGHT,
+#else
+  command_CMD_ZBX_NOPE,
+#endif
+
 
 };
