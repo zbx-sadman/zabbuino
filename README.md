@@ -36,6 +36,17 @@ Implemented:
 - Simulate varuious vendor's IR transmitters.
 -----------------------------
 
+#### 17 Sep 2018
+
+New features:
+  - _FEATURE\_DFPLAYER\_ENABLE_ enables DFPlayer Mini sensor support via Software Serial connection. 
+  - Command ``dfplayer.run[rxPin, txPin, command, option, volume]`` is added:
+    - _rxPin_, _txPin_ - Software Serial pins to which DFPlayer Mini connected;
+    - _command_ - command code of DFPlayer from the datasheet. Only 0..1A codes allowed;
+    - _option_ - command's option (track number, for example);
+    - _volume_ - optional volume level. Changed before _command_ is sended to player;
+    Example: ``dfplayer.run[4, 5, 0x03, 0x02, 30]`` Send to DFPlayer, which connected via Software Serial pins D4/D5, command (03) for track #2 playback on volume level 30.
+
 #### 13 Sep 2018
 
 New features:

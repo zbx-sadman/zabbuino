@@ -1310,7 +1310,7 @@ static int16_t executeCommand(char* _dst, netconfig_t* _netConfig, packetInfo_t*
       // ************************************************************************************************************************************
       // Following commands use <argv[0]> or <argv[1]> pins for sensor handling (UART, I2C, etc) and these pins can be disabled in port_protect[] array
       //  Otherwise - processing is failed
-      if ('\0' == *optarg[0] || '\0' == *optarg[1] ||  !isSafePin(argv[0]) || !isSafePin(argv[1])) {
+      if ('\0' == *optarg[0] || '\0' == *optarg[1] || !isSafePin(argv[0]) || !isSafePin(argv[1])) {
         rc = RESULT_IS_FAIL;
         goto finish;
       }
@@ -1382,7 +1382,6 @@ static int16_t executeCommand(char* _dst, netconfig_t* _netConfig, packetInfo_t*
 #endif // FEATURE_PZEM004_ENABLE
 
 #ifdef FEATURE_UPS_APCSMART_ENABLE
-
         case CMD_UPS_APCSMART:
           //
           //  ups.apcsmart[rxPin, txPin, command]
@@ -1401,6 +1400,18 @@ static int16_t executeCommand(char* _dst, netconfig_t* _netConfig, packetInfo_t*
           rc = getMegatecUPSMetric(argv[0], argv[1], optarg[2], argv[3], (uint8_t*) payload);
           goto finish;
 #endif // FEATURE_UPS_APCSMART_ENABLE
+
+#ifdef FEATURE_DFPLAYER_ENABLE
+        case CMD_DFPLAYER_RUN:
+          //
+          //  dfplayer.run[rxPin, txPin, command, option, volume]
+          //  dfplayer.run[4, 5, 0x03, 0x02, 30]
+          //          
+          // use -1 if no volume specified. Otherwize - volume will be corrected.
+          rc = runDFPlayerMini(argv[0], argv[1], argv[2], argv[3], (('\0' == *optarg[4]) ? -0x01 : argv[4]), (uint8_t*) payload);
+          goto finish;         
+#endif // FEATURE_DFPLAYER_ENABLE
+
           // default:
           //  goto finish;
       } // switch (cmdIdx) Non-I2C related commands block
@@ -1502,7 +1513,7 @@ static int16_t executeCommand(char* _dst, netconfig_t* _netConfig, packetInfo_t*
           goto finish;
 #endif // FEATURE_BH1750_ENABLE
 
-#ifdef FEATURE_INA219_ENABLE
+#ifdefGktt FEATURE_INA219_ENABLE
         case CMD_INA219_BUSVOLTAGE:
           //
           //  INA219.BusVoltage[sdaPin, sclPin, i2cAddress, maxVoltage, maxCurrent]

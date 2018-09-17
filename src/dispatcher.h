@@ -63,6 +63,7 @@
 #include "uart_bus.h"
 #include "uart_apcsmart.h"
 #include "uart_megatec.h"
+#include "uart_player.h"
 #include "uart_pzem.h"
 
 // SPI-compatible devices 
