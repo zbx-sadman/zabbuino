@@ -6,7 +6,6 @@ uint8_t alarmLedPin = 0;
 uint8_t alarmLedPinDefaultState = LOW;
 uint8_t alarmLedPinWorkState = HIGH;
 
-
 void preLoopStageUserFunction(char* _dst) {
   DTSM( PRINTLN_PSTR("preLoopStageUserFunction"); )
   //  commandUserFunctionStartTime = millis();

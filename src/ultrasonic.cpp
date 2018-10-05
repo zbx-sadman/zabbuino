@@ -42,7 +42,7 @@ uint32_t getUltrasonicMetric(const uint8_t _triggerPin, const uint8_t _echoPin) 
     digitalWrite(_triggerPin, LOW);
     // how much is the result if no obstacle exists ?
     pulseTime = pulseIn(_echoPin, HIGH, ULTRASONIC_TIMEOUT);
-    Serial.println(pulseTime);
+//    Serial.println(pulseTime);
     if (ULTRASONIC_TIMEOUT <= pulseTime || 0x00 == pulseTime) {
       result = ULTRASONIC_TIMEOUT;
       Serial.println("jump out");

@@ -36,6 +36,17 @@ Implemented:
 - Simulate varuious vendor's IR transmitters.
 -----------------------------
 
+#### 05 Oct 2018
+Changes: 
+  - Commands internal storing structure/methods is changed. May be it give more Progmem space and add a little speed to search algoritm.
+
+New features:
+  - _FEATURE\_ADPS9960\_ENABLE_ enables ADPS9960 color/proximity sensor support. Unfortunately one predefined gain/integration time/etc setting used at this time.
+  - Command ``ADPS9960.ambient[sdaPin, sclPin, i2cAddress]`` /  ``ADPS9960.red[...]`` / ``ADPS9960.green[...]`` /  ``ADPS9960.blue[...]`` is added:
+    - _sdaPin_, _sclPin_ - I2C pins to which TSL2561 connected;
+    - _i2cAddress_ - I2C address of TSL2561;
+    Example: ``ADPS9960.green[18, 19, 0x39]`` returns Green part in the light (some unknow units).
+
 #### 17 Sep 2018
 
 New features:

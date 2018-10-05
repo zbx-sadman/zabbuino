@@ -1,4 +1,5 @@
 #pragma once
+#include "sys_structs.h"
 
 /* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
                                                             COMMAND NAMES SECTION 
@@ -129,8 +130,12 @@
 
 #define CMD_DFPLAYER_RUN                                        (0x56)
 
+#define CMD_ADPS9960_AMBIENT                                    (0x57)
+#define CMD_ADPS9960_RED                                        (0x58)
+#define CMD_ADPS9960_GREEN                                      (0x59)
+#define CMD_ADPS9960_BLUE                                       (0x5A)
 
-// add new command as "const char command_<COMMAND_MACRO> PROGMEM". Only 'const' push string to PROGMEM. Tanx, Arduino & AVR.
+// add new command as "const char command_<COMMAND_MACRO> PROGMEM". Only 'const' push string to PROGMEM.
 // command_* values must be in lower case due analyze sub convert all chars to lower
 const char command_CMD_ZBX_NOPE[]                               PROGMEM = "\1";
 const char command_CMD_ZBX_AGENT_PING[]                         PROGMEM = "agent.ping";
@@ -258,337 +263,227 @@ const char command_CMD_TSL2561_LIGHT[]                          PROGMEM = "tsl25
 
 const char command_CMD_DFPLAYER_RUN[]                           PROGMEM = "dfplayer.run";
 
-// do not insert new command to any position without syncing indexes. Tanx, Arduino and AVR, for this method of string array pushing to PROGMEM
-// ~300 bytes of PROGMEM space can be saved with crazy "#ifdef-#else-#endif" dance
-const char* const commands[] PROGMEM = {
-  command_CMD_ZBX_NOPE,
+const char command_CMD_ADPS9960_AMBIENT[]                       PROGMEM = "adps9960.ambient";
+const char command_CMD_ADPS9960_RED[]                           PROGMEM = "adps9960.red";
+const char command_CMD_ADPS9960_GREEN[]                         PROGMEM = "adps9960.green";
+const char command_CMD_ADPS9960_BLUE[]                          PROGMEM = "adps9960.blue";
 
-  command_CMD_ZBX_AGENT_PING,
-  command_CMD_ZBX_AGENT_HOSTNAME,
-  command_CMD_ZBX_AGENT_VERSION,
-  command_CMD_SYSTEM_UPTIME,
 
-  command_CMD_ARDUINO_ANALOGWRITE,
-  command_CMD_ARDUINO_ANALOGREAD,
+//
+const command_t PROGMEM commands[] = {
+    { CMD_ZBX_NOPE                , command_CMD_ZBX_NOPE},               
+    { CMD_ZBX_AGENT_PING          , command_CMD_ZBX_AGENT_PING},         
+    { CMD_ZBX_AGENT_HOSTNAME      , command_CMD_ZBX_AGENT_HOSTNAME},     
+    { CMD_ZBX_AGENT_VERSION       , command_CMD_ZBX_AGENT_VERSION},      
+    { CMD_SYSTEM_UPTIME           , command_CMD_SYSTEM_UPTIME},                                             
+    { CMD_ARDUINO_ANALOGWRITE     , command_CMD_ARDUINO_ANALOGWRITE},    
+    { CMD_ARDUINO_ANALOGREAD      , command_CMD_ARDUINO_ANALOGREAD},     
 
 #ifdef FEATURE_AREF_ENABLE
-  command_CMD_ARDUINO_ANALOGREFERENCE,
-#else
-  command_CMD_ZBX_NOPE,
+    { CMD_ARDUINO_ANALOGREFERENCE , command_CMD_ARDUINO_ANALOGREFERENCE},
 #endif
 
-  command_CMD_ARDUINO_DELAY,
-  command_CMD_ARDUINO_DIGITALWRITE,
-  command_CMD_ARDUINO_DIGITALREAD,
+    { CMD_ARDUINO_DELAY           , command_CMD_ARDUINO_DELAY},          
+    { CMD_ARDUINO_DIGITALWRITE    , command_CMD_ARDUINO_DIGITALWRITE},   
+    { CMD_ARDUINO_DIGITALREAD     , command_CMD_ARDUINO_DIGITALREAD},                                        
 
 #ifdef FEATURE_TONE_ENABLE
-  command_CMD_ARDUINO_TONE,
-  command_CMD_ARDUINO_NOTONE,
-#else
-  command_CMD_ZBX_NOPE,
-  command_CMD_ZBX_NOPE,
+    { CMD_ARDUINO_TONE            , command_CMD_ARDUINO_TONE},           
+    { CMD_ARDUINO_NOTONE          , command_CMD_ARDUINO_NOTONE},                                              
 #endif
 
 #ifdef FEATURE_RANDOM_ENABLE
-  command_CMD_ARDUINO_RANDOMSEED,
-  command_CMD_ARDUINO_RANDOM,
-#else
-  command_CMD_ZBX_NOPE,
-  command_CMD_ZBX_NOPE,
+    { CMD_ARDUINO_RANDOMSEED      , command_CMD_ARDUINO_RANDOMSEED},     
+    { CMD_ARDUINO_RANDOM          , command_CMD_ARDUINO_RANDOM},         
 #endif
 
 #ifdef FEATURE_EEPROM_ENABLE
-  command_CMD_SET_HOSTNAME,
-  command_CMD_SET_NETWORK,
-  command_CMD_SET_PASSWORD,
-  command_CMD_SET_SYSPROTECT,
-#else
-  command_CMD_ZBX_NOPE,
-  command_CMD_ZBX_NOPE,
-  command_CMD_ZBX_NOPE,
-  command_CMD_ZBX_NOPE,
+    { CMD_SET_HOSTNAME            , command_CMD_SET_HOSTNAME},           
+    { CMD_SET_NETWORK             , command_CMD_SET_NETWORK},            
+    { CMD_SET_PASSWORD            , command_CMD_SET_PASSWORD},           
+    { CMD_SET_SYSPROTECT          , command_CMD_SET_SYSPROTECT},         
 #endif
 
 #ifdef FEATURE_SYSTEM_RTC_ENABLE
-  command_CMD_SET_LOCALTIME,
-#else
-  command_CMD_ZBX_NOPE,
+    { CMD_SET_LOCALTIME           , command_CMD_SET_LOCALTIME},          
+    { CMD_SYSTEM_LOCALTIME        , command_CMD_SYSTEM_LOCALTIME},       
 #endif
 
-  command_CMD_SYS_PORTWRITE,
+    { CMD_SYS_PORTWRITE           , command_CMD_SYS_PORTWRITE},          
 
 #ifdef FEATURE_SHIFTOUT_ENABLE 
-  command_CMD_SYS_SHIFTOUT,
-#else
-  command_CMD_ZBX_NOPE,
-#endif
-
-  command_CMD_SYS_REBOOT,
-
-#ifdef FEATURE_SYSTEM_RTC_ENABLE
-  command_CMD_SYSTEM_LOCALTIME,
-#else
-  command_CMD_ZBX_NOPE,
+    { CMD_SYS_SHIFTOUT            , command_CMD_SYS_SHIFTOUT},           
+    { CMD_SYS_REBOOT              , command_CMD_SYS_REBOOT},             
 #endif
 
 #ifdef FEATURE_REMOTE_COMMANDS_ENABLE
-  command_CMD_SYSTEM_RUN,
-#else
-  command_CMD_ZBX_NOPE,
+    { CMD_SYSTEM_RUN              , command_CMD_SYSTEM_RUN},             
 #endif
 
 #ifdef FEATURE_SYSINFO_ENABLE
-  command_CMD_SYSTEM_HW_CHASSIS,
-  command_CMD_SYSTEM_HW_CPU,
-  command_CMD_NET_PHY_NAME,
-  command_CMD_NET_PHY_REINITS,
-  command_CMD_SYS_CMD_COUNT,
-  command_CMD_SYS_CMD_TIMEMAX,
-  command_CMD_SYS_CMD_TIMEMAX_N,
-  command_CMD_SYS_RAM_FREE,
-  command_CMD_SYS_RAM_FREEMIN,
-#else 
-  command_CMD_ZBX_NOPE,
-  command_CMD_ZBX_NOPE,
-  command_CMD_ZBX_NOPE,
-  command_CMD_ZBX_NOPE,
-  command_CMD_ZBX_NOPE,
-  command_CMD_ZBX_NOPE,
-  command_CMD_ZBX_NOPE,
-  command_CMD_ZBX_NOPE,
-  command_CMD_ZBX_NOPE,
+    { CMD_SYSTEM_HW_CHASSIS       , command_CMD_SYSTEM_HW_CHASSIS},      
+    { CMD_SYSTEM_HW_CPU           , command_CMD_SYSTEM_HW_CPU},          
+    { CMD_NET_PHY_NAME            , command_CMD_NET_PHY_NAME},           
+    { CMD_NET_PHY_REINITS         , command_CMD_NET_PHY_REINITS},        
+    { CMD_SYS_CMD_COUNT           , command_CMD_SYS_CMD_COUNT},          
+    { CMD_SYS_CMD_TIMEMAX         , command_CMD_SYS_CMD_TIMEMAX},        
+    { CMD_SYS_CMD_TIMEMAX_N       , command_CMD_SYS_CMD_TIMEMAX_N},      
+    { CMD_SYS_RAM_FREE            , command_CMD_SYS_RAM_FREE},           
+    { CMD_SYS_RAM_FREEMIN         , command_CMD_SYS_RAM_FREEMIN},        
 #endif
-  
-  command_CMD_SYS_VCC,
-  command_CMD_SYS_VCCMIN,
-  command_CMD_SYS_VCCMAX,
+
+    { CMD_SYS_VCC                 , command_CMD_SYS_VCC},                
+    { CMD_SYS_VCCMIN              , command_CMD_SYS_VCCMIN},             
+    { CMD_SYS_VCCMAX              , command_CMD_SYS_VCCMAX},             
 
 #ifdef FEATURE_EXTERNAL_INTERRUPT_ENABLE
-  command_CMD_EXTINT_COUNT,
-#else
-  command_CMD_ZBX_NOPE,
+    { CMD_EXTINT_COUNT            , command_CMD_EXTINT_COUNT},           
 #endif
 
 #ifdef FEATURE_INCREMENTAL_ENCODER_ENABLE
-  command_CMD_INCENC_VALUE,
-#else
-  command_CMD_ZBX_NOPE,
+    { CMD_INCENC_VALUE            , command_CMD_INCENC_VALUE},           
 #endif
-
+ 
 #ifdef FEATURE_OW_ENABLE
-  command_CMD_OW_SCAN,
-#else
-  command_CMD_ZBX_NOPE,
+    { CMD_OW_SCAN                 , command_CMD_OW_SCAN},                
 #endif
 
 #ifdef FEATURE_I2C_ENABLE
-  command_CMD_I2C_SCAN,
-  command_CMD_I2C_WRITE,
-  command_CMD_I2C_READ,
-  command_CMD_I2C_BITWRITE,
-  command_CMD_I2C_BITREAD,
-#else
-  command_CMD_ZBX_NOPE,
-  command_CMD_ZBX_NOPE,
-  command_CMD_ZBX_NOPE,
-  command_CMD_ZBX_NOPE,
-  command_CMD_ZBX_NOPE,
+    { CMD_I2C_SCAN                , command_CMD_I2C_SCAN},               
+    { CMD_I2C_WRITE               , command_CMD_I2C_WRITE},              
+    { CMD_I2C_READ                , command_CMD_I2C_READ},               
+    { CMD_I2C_BITWRITE            , command_CMD_I2C_BITWRITE},           
+    { CMD_I2C_BITREAD             , command_CMD_I2C_BITREAD},            
 #endif
 
 #ifdef FEATURE_DS18X20_ENABLE
-  command_CMD_DS18X20_TEMPERATURE,
-#else
-  command_CMD_ZBX_NOPE,
+    { CMD_DS18X20_TEMPERATURE     , command_CMD_DS18X20_TEMPERATURE},    
 #endif
 
 #ifdef FEATURE_DHT_ENABLE
-  command_CMD_DHT_HUMIDITY,
-  command_CMD_DHT_TEMPERATURE,
-#else
-  command_CMD_ZBX_NOPE,
-  command_CMD_ZBX_NOPE,
+    { CMD_DHT_HUMIDITY            , command_CMD_DHT_HUMIDITY},           
+    { CMD_DHT_TEMPERATURE         , command_CMD_DHT_TEMPERATURE},        
 #endif
 
 #ifdef FEATURE_BMP_ENABLE
-  command_CMD_BMP_PRESSURE,
-  command_CMD_BMP_TEMPERATURE,
-#else
-  command_CMD_ZBX_NOPE,
-  command_CMD_ZBX_NOPE,
+    { CMD_BMP_PRESSURE            , command_CMD_BMP_PRESSURE},           
+    { CMD_BMP_TEMPERATURE         , command_CMD_BMP_TEMPERATURE},        
 #endif
 
 #ifdef SUPPORT_BME280_INCLUDE
-  command_CMD_BME_HUMIDITY,
-#else
-  command_CMD_ZBX_NOPE,
+    { CMD_BME_HUMIDITY            , command_CMD_BME_HUMIDITY},           
 #endif
 
 #ifdef FEATURE_BH1750_ENABLE
-  command_CMD_BH1750_LIGHT,
-#else
-  command_CMD_ZBX_NOPE,
+    { CMD_BH1750_LIGHT            , command_CMD_BH1750_LIGHT},           
 #endif
 
 #ifdef FEATURE_MAX7219_ENABLE
-  command_CMD_MAX7219_WRITE,
-#else
-  command_CMD_ZBX_NOPE,
+    { CMD_MAX7219_WRITE           , command_CMD_MAX7219_WRITE},          
 #endif
 
 #ifdef FEATURE_PCF8574_LCD_ENABLE
-  command_CMD_PCF8574_LCDPRINT,
-#else
-  command_CMD_ZBX_NOPE,
+    { CMD_PCF8574_LCDPRINT        , command_CMD_PCF8574_LCDPRINT},       
 #endif
-  
+
 #ifdef FEATURE_SHT2X_ENABLE
-  command_CMD_SHT2X_HUMIDITY,
-  command_CMD_SHT2X_TEMPERATURE,
-#else
-  command_CMD_ZBX_NOPE,
-  command_CMD_ZBX_NOPE,
+    { CMD_SHT2X_HUMIDITY          , command_CMD_SHT2X_HUMIDITY},         
+    { CMD_SHT2X_TEMPERATURE       , command_CMD_SHT2X_TEMPERATURE},      
 #endif
-  
+
 #ifdef FEATURE_ACS7XX_ENABLE
-  command_CMD_ACS7XX_ZC,
-  command_CMD_ACS7XX_AC,
-  command_CMD_ACS7XX_DC,
-#else
-  command_CMD_ZBX_NOPE,
-  command_CMD_ZBX_NOPE,
-  command_CMD_ZBX_NOPE,
+    { CMD_ACS7XX_ZC               , command_CMD_ACS7XX_ZC},              
+    { CMD_ACS7XX_AC               , command_CMD_ACS7XX_AC},              
+    { CMD_ACS7XX_DC               , command_CMD_ACS7XX_DC},              
 #endif
 
 #ifdef FEATURE_ULTRASONIC_ENABLE
-  command_CMD_ULTRASONIC_DISTANCE,
-#else
-  command_CMD_ZBX_NOPE,
+    { CMD_ULTRASONIC_DISTANCE     , command_CMD_ULTRASONIC_DISTANCE},    
 #endif
-
+    
 #ifdef FEATURE_IR_ENABLE
-  command_CMD_IR_SEND,
-  command_CMD_IR_SENDRAW,
-#else
-  command_CMD_ZBX_NOPE,
-  command_CMD_ZBX_NOPE,
+    { CMD_IR_SEND                 , command_CMD_IR_SEND},                
+    { CMD_IR_SENDRAW              , command_CMD_IR_SENDRAW},             
 #endif
 
 #ifdef FEATURE_WS2812_ENABLE
-  command_CMD_WS2812_SENDRAW,
-#else
-  command_CMD_ZBX_NOPE,
+    { CMD_WS2812_SENDRAW          , command_CMD_WS2812_SENDRAW},         
 #endif
 
 #ifdef FEATURE_PZEM004_ENABLE
-  command_CMD_PZEM004_CURRENT,
-  command_CMD_PZEM004_VOLTAGE,
-  command_CMD_PZEM004_POWER,
-  command_CMD_PZEM004_ENERGY,
-  command_CMD_PZEM004_SETADDR,
-#else
-  command_CMD_ZBX_NOPE,
-  command_CMD_ZBX_NOPE,
-  command_CMD_ZBX_NOPE,
-  command_CMD_ZBX_NOPE,
-  command_CMD_ZBX_NOPE,
+    { CMD_PZEM004_CURRENT         , command_CMD_PZEM004_CURRENT},        
+    { CMD_PZEM004_VOLTAGE         , command_CMD_PZEM004_VOLTAGE},        
+    { CMD_PZEM004_POWER           , command_CMD_PZEM004_POWER},          
+    { CMD_PZEM004_ENERGY          , command_CMD_PZEM004_ENERGY},         
+    { CMD_PZEM004_SETADDR         , command_CMD_PZEM004_SETADDR},        
 #endif
 
 #ifdef FEATURE_UPS_APCSMART_ENABLE
-  command_CMD_UPS_APCSMART,
-#else
-  command_CMD_ZBX_NOPE,
+    { CMD_UPS_APCSMART            , command_CMD_UPS_APCSMART},           
 #endif
 
 #ifdef FEATURE_UPS_MEGATEC_ENABLE
-  command_CMD_UPS_MEGATEC,
-#else
-  command_CMD_ZBX_NOPE,
+    { CMD_UPS_MEGATEC             , command_CMD_UPS_MEGATEC},            
 #endif
 
 #ifdef FEATURE_INA219_ENABLE
-  command_CMD_INA219_BUSVOLTAGE,
-  command_CMD_INA219_CURRENT,
-  command_CMD_INA219_POWER,
-#else
-  command_CMD_ZBX_NOPE,
-  command_CMD_ZBX_NOPE,
-  command_CMD_ZBX_NOPE,
+    { CMD_INA219_BUSVOLTAGE       , command_CMD_INA219_BUSVOLTAGE},      
+    { CMD_INA219_CURRENT          , command_CMD_INA219_CURRENT},         
+    { CMD_INA219_POWER            , command_CMD_INA219_POWER},           
 #endif
 
 #ifdef FEATURE_AT24CXX_ENABLE
-  command_CMD_AT24CXX_WRITE,
-  command_CMD_AT24CXX_READ,
-#else
-  command_CMD_ZBX_NOPE,
-  command_CMD_ZBX_NOPE,
+    { CMD_AT24CXX_WRITE           , command_CMD_AT24CXX_WRITE},          
+    { CMD_AT24CXX_READ            , command_CMD_AT24CXX_READ},           
 #endif
-
+    
 #ifdef FEATURE_MAX44009_ENABLE
-  command_CMD_MAX44009_LIGHT,
-#else
-  command_CMD_ZBX_NOPE,
+    { CMD_MAX44009_LIGHT          , command_CMD_MAX44009_LIGHT},         
 #endif
 
 #ifdef FEATURE_MHZXX_PWM_ENABLE
-  command_CMD_MHZXX_PWM_CO2,
-#else
-  command_CMD_ZBX_NOPE,
-#endif
-#ifdef FEATURE_MHZXX_UART_ENABLE
-  command_CMD_MHZXX_UART_CO2,
-#else
-  command_CMD_ZBX_NOPE,
+    { CMD_MHZXX_PWM_CO2           , command_CMD_MHZXX_PWM_CO2},          
+    { CMD_MHZXX_UART_CO2          , command_CMD_MHZXX_UART_CO2},         
 #endif
 
 #ifdef FEATURE_USER_FUNCTION_PROCESSING
-  command_CMD_USER_RUN,
-#else
-  command_CMD_ZBX_NOPE,
+    { CMD_USER_RUN                , command_CMD_USER_RUN},               
 #endif
 
 #ifdef FEATURE_VEML6070_ENABLE
-   command_CMD_VEML6070_UV,
-#else
-  command_CMD_ZBX_NOPE,
+    { CMD_VEML6070_UV             , command_CMD_VEML6070_UV},            
 #endif
 
 #ifdef FEATURE_MAX6675_ENABLE
-   command_CMD_MAX6675_TEMPERATURE,
-#else
-  command_CMD_ZBX_NOPE,
+    { CMD_MAX6675_TEMPERATURE     , command_CMD_MAX6675_TEMPERATURE},    
 #endif
 
 #ifdef FEATURE_PCA9685_ENABLE
-   command_CMD_PCA9685_WRITE,
-#else
-  command_CMD_ZBX_NOPE,
+    { CMD_PCA9685_WRITE           , command_CMD_PCA9685_WRITE},          
 #endif
 
 #ifdef FEATURE_RELAY_ENABLE
-  command_CMD_RELAY,
-  command_CMD_PULSE,
-#else
-  command_CMD_ZBX_NOPE,
-  command_CMD_ZBX_NOPE,
+    { CMD_RELAY                   , command_CMD_RELAY},                  
+    { CMD_PULSE                   , command_CMD_PULSE},                  
 #endif
 
 #ifdef FEATURE_SERVO_ENABLE
-  command_CMD_SERVO_TURN,
-#else
-  command_CMD_ZBX_NOPE,
+    { CMD_SERVO_TURN              , command_CMD_SERVO_TURN},             
 #endif
 
 #ifdef FEATURE_TSL2561_ENABLE
-  command_CMD_TSL2561_LIGHT,
-#else
-  command_CMD_ZBX_NOPE,
+    { CMD_TSL2561_LIGHT           , command_CMD_TSL2561_LIGHT},          
 #endif
 
 #ifdef FEATURE_DFPLAYER_ENABLE
-  command_CMD_DFPLAYER_RUN,
-#else
-  command_CMD_ZBX_NOPE,
+    { CMD_DFPLAYER_RUN            , command_CMD_DFPLAYER_RUN},
 #endif
 
+#ifdef FEATURE_ADPS9960_ENABLE
+    { CMD_ADPS9960_AMBIENT        , command_CMD_ADPS9960_AMBIENT},
+    { CMD_ADPS9960_RED            , command_CMD_ADPS9960_RED},
+    { CMD_ADPS9960_GREEN          , command_CMD_ADPS9960_GREEN},
+    { CMD_ADPS9960_BLUE           , command_CMD_ADPS9960_BLUE},
+#endif
 
 };

@@ -271,8 +271,9 @@ uint8_t dallas_crc8(uint8_t *_src, uint8_t _len)
 *****************************************************************************************************************************/
 void SerialPrint_P (const char *_src) {
   char currChar;
-  while ((currChar = pgm_read_byte(_src++)) != 0)
-  Serial.print(currChar);
+  while ((currChar = pgm_read_byte(_src++)) != '\0') {
+    Serial.print(currChar);
+  }
 }
 /*****************************************************************************************************************************
 *
@@ -289,7 +290,6 @@ void SerialPrintln_P (const char *_src) {
 *  Print array to Serial as MAC or IP or other string with sign-separated parts
 *
 *****************************************************************************************************************************/
-
 void printArray(uint8_t *_src, const uint8_t _len, Stream* _stream, const uint8_t _type)
 {
   char separator;

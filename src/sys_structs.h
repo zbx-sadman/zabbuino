@@ -61,5 +61,11 @@ typedef struct {
   char** optarg;
 } packetInfo_t ;
 
+
+struct command_t {
+  uint8_t idx;
+  PGM_P name;
+};
+
 #pragma pack(pop)
 

@@ -1,3 +1,12 @@
+/*
+  old pgm
+  Sketch uses 16,478 bytes (51%) of program storage space. Maximum is 32,256 bytes.
+  Global variables use 918 bytes (44%) of dynamic memory, leaving 1,130 bytes for local variables. Maximum is 2,048 bytes.
+
+
+  Sketch uses 16,564 bytes (51%) of program storage space. Maximum is 32,256 bytes.
+  Global variables use 918 bytes (44%) of dynamic memory, leaving 1,130 bytes for local variables. Maximum is 2,048 bytes.
+*/
 /*-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
 
                             To avoid compilation errors use proper release Arduino IDE, please.
@@ -32,7 +41,6 @@ void setup() {
 
   pinMode(constFactoryResetButtonPin, INPUT_PULLUP);
   pinMode(constStateLedPin, OUTPUT);
-
 
 #ifdef ADVANCED_BLINKING
   // blink on start
@@ -210,8 +218,11 @@ void loop() {
   // if no exist while() here - netProblemTime must be global or static - its will be 0 every loop() and time-related cases will be processeed abnormally
   // ...and while save some cpu ticks because do not call everytime from "hidden main()" subroutine, and do not init var, and so.
   //*****************************************************************************************************************************************************
+#ifdef FEATURE_USER_FUNCTION_PROCESSING
   // Call user function
   preLoopStageUserFunction(cBuffer);
+#endif
+
   while (true) {
 #ifdef FEATURE_WATCHDOG_ENABLE
     // reset watchdog every loop
@@ -445,11 +456,13 @@ static int16_t executeCommand(char* _dst, netconfig_t* _netConfig, packetInfo_t*
 
   // Search specified command index in the list of implemented functions
   rc = 0x01;
+
   while (cmdIdx && (0 != rc)) {
     cmdIdx--;
-    rc = strcmp_P(payload, (char*)pgm_read_word(&(commands[cmdIdx])));
-    DTSD( Serial.print("# ");  Serial.print(cmdIdx , HEX); PRINT_PSTR(" => "); SerialPrintln_P((char*)pgm_read_word(&(commands[cmdIdx]))); )
+    rc = strcmp_P(payload, (const char*) pgm_read_word(&(commands[cmdIdx].name)));
+    DTSD( Serial.print("# 0x"); Serial.print(cmdIdx , HEX); PRINT_PSTR(" => "); SerialPrintln_P((const char*) pgm_read_word(&(commands[cmdIdx].name))); )
   }
+  cmdIdx = pgm_read_byte(&(commands[cmdIdx].idx));
 
   // If no suitable command found - do nothing, jump to the finish where show result ZBX_NOTSUPPORTED
   if (0x00 >= cmdIdx) {
@@ -495,7 +508,10 @@ static int16_t executeCommand(char* _dst, netconfig_t* _netConfig, packetInfo_t*
       //
       //  system.uptime
       //
-      value  = ((uint32_t) millisRollover() * (UINT32_MAX / 1000) + (millis() / 1000UL));
+      // Returns uptime in seconds
+      //  value  = ((uint32_t) millisRollover() * (UINT32_MAX / 1000UL) + (millis() / 1000UL));
+      value  = ((uint32_t) millisRollover() * UINT32_MAX + millis()) / 1000UL;
+
 #ifdef FEATURE_SYSTEM_RTC_ENABLE
       // Just rewrite millises uptime by another, which taken from system RTC
       if (0x00 != sysMetrics.sysStartTimestamp) {
@@ -1406,10 +1422,10 @@ static int16_t executeCommand(char* _dst, netconfig_t* _netConfig, packetInfo_t*
           //
           //  dfplayer.run[rxPin, txPin, command, option, volume]
           //  dfplayer.run[4, 5, 0x03, 0x02, 30]
-          //          
+          //
           // use -1 if no volume specified. Otherwize - volume will be corrected.
           rc = runDFPlayerMini(argv[0], argv[1], argv[2], argv[3], (('\0' == *optarg[4]) ? -0x01 : argv[4]), (uint8_t*) payload);
-          goto finish;         
+          goto finish;
 #endif // FEATURE_DFPLAYER_ENABLE
 
           // default:
@@ -1513,7 +1529,7 @@ static int16_t executeCommand(char* _dst, netconfig_t* _netConfig, packetInfo_t*
           goto finish;
 #endif // FEATURE_BH1750_ENABLE
 
-#ifdefGktt FEATURE_INA219_ENABLE
+#ifdef FEATURE_INA219_ENABLE
         case CMD_INA219_BUSVOLTAGE:
           //
           //  INA219.BusVoltage[sdaPin, sclPin, i2cAddress, maxVoltage, maxCurrent]
@@ -1620,8 +1636,6 @@ static int16_t executeCommand(char* _dst, netconfig_t* _netConfig, packetInfo_t*
           goto finish;
 #endif // FEATURE_MAX44009_ENABLE
 
-          //  PCA[sdaPin, sclPin, addr, idx, onTime, offTime]
-
 #ifdef FEATURE_VEML6070_ENABLE
         case CMD_VEML6070_UV:
           //
@@ -1632,7 +1646,6 @@ static int16_t executeCommand(char* _dst, netconfig_t* _netConfig, packetInfo_t*
           rc = getVEML6070Metric(&SoftTWI, (('\0' == *optarg[2]) ? 0x01 : argv[2] & 0x03), SENS_READ_UV, payload);
           goto finish;
 #endif // FEATURE_VEML6070_ENABLE
-
 
 #ifdef FEATURE_PCA9685_ENABLE
         case CMD_PCA9685_WRITE:
@@ -1651,6 +1664,37 @@ static int16_t executeCommand(char* _dst, netconfig_t* _netConfig, packetInfo_t*
           rc = getTSL2561Metric(&SoftTWI, i2CAddress, argv[3], argv[4], SENS_READ_LUX, payload);
           goto finish;
 #endif // FEATURE_TSL2561_ENABLE
+
+
+#ifdef FEATURE_ADPS9960_ENABLE
+        case CMD_ADPS9960_AMBIENT:
+          //
+          //  ADPS9960.ambient[sdaPin, sclPin, i2cAddress]
+          //  ADPS9960.ambient[18, 19, 0x39]
+          rc = getADPS9960Metric(&SoftTWI, i2CAddress, SENS_READ_AMBIENT, payload);
+          goto finish;
+
+        case CMD_ADPS9960_RED:
+          //
+          //  ADPS9960.red[sdaPin, sclPin, i2cAddress]
+          //  ADPS9960.red[18, 19, 0x39]
+          rc = getADPS9960Metric(&SoftTWI, i2CAddress, SENS_READ_RED, payload);
+          goto finish;
+
+        case CMD_ADPS9960_GREEN:
+          //
+          //  ADPS9960.green[sdaPin, sclPin, i2cAddress]
+          //  ADPS9960.green[18, 19, 0x39]
+          rc = getADPS9960Metric(&SoftTWI, i2CAddress, SENS_READ_GREEN, payload);
+          goto finish;
+
+        case CMD_ADPS9960_BLUE:
+          //
+          //  ADPS9960.blue[sdaPin, sclPin, i2cAddress]
+          //  ADPS9960.blue[18, 19, 0x39]
+          rc = getADPS9960Metric(&SoftTWI, i2CAddress, SENS_READ_BLUE, payload);
+          goto finish;
+#endif // FEATURE_ADPS9960_ENABLE
 
       }  // switch (cmdIdx), I2C block
 #endif // TWI_USE

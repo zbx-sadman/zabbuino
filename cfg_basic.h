@@ -36,7 +36,8 @@
 */
 
 /****       New              ****/
-#define FEATURE_DFPLAYER_ENABLE
+#define FEATURE_ADPS9960_ENABLE
+//#define FEATURE_DFPLAYER_ENABLE
 //#define FEATURE_MAX6675_ENABLE
 //#define FEATURE_PCA9685_ENABLE
 //#define FEATURE_TSL2561_ENABLE

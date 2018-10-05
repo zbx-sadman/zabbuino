@@ -44,6 +44,7 @@
     defined (FEATURE_MAX44009_ENABLE)    || \
     defined (FEATURE_VEML6070_ENABLE)    || \
     defined (FEATURE_PCA9685_ENABLE)     || \
+    defined (FEATURE_ADPS9960_ENABLE)    || \
     defined (FEATURE_TSL2561_ENABLE)     || \
     defined (FEATURE_INA219_ENABLE)
 

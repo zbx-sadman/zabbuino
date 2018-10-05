@@ -18,54 +18,37 @@
 // Zabbix v2.x header prefix ('ZBXD\x01')
 #define ZBX_HEADER_PREFIX                                       "zbxd\1"
 // sizeof() returns wrong result -> 6
-#define ZBX_HEADER_PREFIX_LENGTH                                5
+#define ZBX_HEADER_PREFIX_LENGTH                                (5)
 // Zabbix v2.x header length
-#define ZBX_HEADER_LENGTH                                       13
+#define ZBX_HEADER_LENGTH                                       (13)
 
-#define PACKET_TYPE_NONE                                        0x00
-#define PACKET_TYPE_PLAIN                                       0x01
-#define PACKET_TYPE_ZABBIX                                      0x02
+#define PACKET_TYPE_NONE                                        (0x00)
+#define PACKET_TYPE_PLAIN                                       (0x01)
+#define PACKET_TYPE_ZABBIX                                      (0x02)
 
-/*
-
-Enum take more progspace on compilation that macro :(
-Why? All sources tell me thah enum is preprocessor feature. May be it use 16-bit width of ptr's or so?
-
-typedef enum {
-   SENS_READ_RAW,
-   SENS_READ_TEMP,
-   SENS_READ_HUMD,
-   SENS_READ_PRSS,
-   SENS_READ_LUX,
-   SENS_READ_ZC,
-   SENS_READ_AC,
-   SENS_READ_DC,
-   SENS_READ_VOLTAGE,
-   SENS_READ_POWER,
-   SENS_READ_ENERGY
-} sens_metrics_t;
-*/
 
 #define SENS_READ_TEMP                                          (0x01)
 #define SENS_READ_HUMD                                          (0x02)
 #define SENS_READ_PRSS                                          (0x03)
 #define SENS_READ_LUX                                           (0x04)
+#define SENS_READ_AMBIENT                                       (0x05)
+#define SENS_READ_RED                                           (0x06)
+#define SENS_READ_GREEN                                         (0x07)
+#define SENS_READ_BLUE                                          (0x08)
+#define SENS_READ_UV                                            (0x09)
                                                                     
-#define SENS_READ_ZC                                            (0x08)
-#define SENS_READ_AC                                            (0x09)
-#define SENS_READ_DC                                            (0x0A)
+#define SENS_READ_ZC                                            (0x0A)
+#define SENS_READ_AC                                            (0x0B)
+#define SENS_READ_DC                                            (0x0C)
                                                                     
-#define SENS_READ_VOLTAGE                                       (0x0B)
-#define SENS_READ_SHUNT_VOLTAGE                                 (0x0C)
-#define SENS_READ_BUS_VOLTAGE                                   (0x0D)
-#define SENS_READ_POWER                                         (0x0E)
-#define SENS_READ_ENERGY                                        (0x0F)                                                                   
-#define SENS_CHANGE_ADDRESS                                     (0x10)
-
-#define SENS_READ_UV                                            (0x20)
+#define SENS_READ_VOLTAGE                                       (0x0D)
+#define SENS_READ_SHUNT_VOLTAGE                                 (0x0E)
+#define SENS_READ_BUS_VOLTAGE                                   (0x0F)
+#define SENS_READ_POWER                                         (0x10)
+#define SENS_READ_ENERGY                                        (0x11)                                                                   
+#define SENS_CHANGE_ADDRESS                                     (0x12)
 
 #define SENS_READ_RAW                                           (0xFF)
-
 
 #define RESULT_IS_FAIL                                          false
 #define RESULT_IS_OK                                            true

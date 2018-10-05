@@ -113,7 +113,7 @@ int8_t runDFPlayerMini(const uint8_t _rxPin, const uint8_t _txPin, uint8_t _comm
 
   int8_t rc = DEVICE_ERROR_NOT_SUPPORTED;
   uint32_t waitTime;
-  static uint32_t lastReadTime = 0x00;
+  static uint32_t lastWorkTime = 0x00;
   SoftwareSerial swSerial(_rxPin, _txPin);
 
   if (DFPLAYER_CMD_SET_DAC < _command) {
@@ -122,7 +122,7 @@ int8_t runDFPlayerMini(const uint8_t _rxPin, const uint8_t _txPin, uint8_t _comm
 
   swSerial.begin(DFPLAYER_MINI_UART_SPEED);
 
-  waitTime = millis() - lastReadTime;
+  waitTime = millis() - lastWorkTime;
 
   // After the module is powered on, normally it needs about no more than 500ms to 1500ms(depending on the
   // actual track quantities in the storage device) initialization time.
@@ -141,9 +141,10 @@ int8_t runDFPlayerMini(const uint8_t _rxPin, const uint8_t _txPin, uint8_t _comm
 
   /*  Send to DFPlayer Mini */
   rc = sendToDFPlayerMini(&swSerial, _command, _option, _dst);
+  lastWorkTime = millis();
 
   finish:
-  //gatherSystemMetrics(); // Measure memory consumption
+  gatherSystemMetrics(); // Measure memory consumption
   swSerial.~SoftwareSerial(); 
   return rc;
 }
