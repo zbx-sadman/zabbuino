@@ -16,7 +16,8 @@ Implemented:
 - Support SHT2X humidity and temperature sensors serie;
 - Support BMP180/085, BMP280/BME280 pressure and temperature sensors;
 - Support BH1750, MAX44009, TSL2561 light sensors;
-- Support VEML6070 ultraviolet sensors;
+- Support ADPS9960 light/color sensor;
+- Support VEML6070 ultraviolet sensor;
 - Support DS3231 RTC I2C module;
 - Support incremental encoder (on interrupt's pin);
 - Support any devices that need to use hardware interrupt - tilt switches, dry contacts, water flow sensor, and so;
@@ -36,6 +37,15 @@ Implemented:
 - Simulate varuious vendor's IR transmitters.
 -----------------------------
 
+#### 10 Oct 2018
+
+Changes:
+  - Commands _ADPS9960.*[]_ have new optional parameters: _integrationTime_ & _gain_. 
+    - _integrationTime_ how long (in ms) coversion is maded;
+    - _gain_ - "digital ampifiler strengt" (x1, x4, x16, x64);
+  If no params specified integrationTime=103ms, gain=4;
+    Example: ``ADPS9960.green[18, 19, 0x39, 103, 4]`` returns Green part of the light with conversion in 103ms time and x4 gain.
+
 #### 05 Oct 2018
 Changes: 
   - Commands internal storing structure/methods is changed. May be it give more Progmem space and add a little speed to search algoritm.
@@ -45,7 +55,7 @@ New features:
   - Command ``ADPS9960.ambient[sdaPin, sclPin, i2cAddress]`` /  ``ADPS9960.red[...]`` / ``ADPS9960.green[...]`` /  ``ADPS9960.blue[...]`` is added:
     - _sdaPin_, _sclPin_ - I2C pins to which TSL2561 connected;
     - _i2cAddress_ - I2C address of TSL2561;
-    Example: ``ADPS9960.green[18, 19, 0x39]`` returns Green part in the light (some unknow units).
+    Example: ``ADPS9960.green[18, 19, 0x39]`` returns Green part of the light (some unknow units).
 
 #### 17 Sep 2018
 

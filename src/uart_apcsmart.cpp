@@ -120,7 +120,7 @@ int8_t getAPCSmartUPSMetric(const uint8_t _rxPin, const uint8_t _txPin, uint8_t*
   // If not all data is recieved from talking device on step #1 - its RX buffer must be cleared 
   //serialRXFlush(&swSerial, true);
   flushStreamRXBuffer(&swSerial, APC_DEFAULT_READ_TIMEOUT, UART_SLOW_MODE);
-  sendTimes = sendCommandTwice ? 2 : 1;
+  sendTimes = sendCommandTwice ? 0x02 : 0x01;
 
   while (sendTimes) {
      // All commands fits to 1 byte

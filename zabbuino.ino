@@ -1667,32 +1667,35 @@ static int16_t executeCommand(char* _dst, netconfig_t* _netConfig, packetInfo_t*
 
 
 #ifdef FEATURE_ADPS9960_ENABLE
+        // !!! IR Led not used for ALS conversion         
+        // RGBC results can be used to calculate ambient light levels
+        // (i.e. Lux) and color temperature (i.e. Kelvin).
         case CMD_ADPS9960_AMBIENT:
           //
-          //  ADPS9960.ambient[sdaPin, sclPin, i2cAddress]
-          //  ADPS9960.ambient[18, 19, 0x39]
-          rc = getADPS9960Metric(&SoftTWI, i2CAddress, SENS_READ_AMBIENT, payload);
+          //  ADPS9960.ambient[sdaPin, sclPin, i2cAddress, integrationTime, gain]
+          //  ADPS9960.ambient[18, 19, 0x39, 103, 4]
+          rc = getADPS9960Metric(&SoftTWI, i2CAddress, (('\0' == *optarg[3]) ? APDS9960_DEFAULT_ADC_INTEGRATION_TIME : argv[3]), (('\0' == *optarg[4]) ? APDS9960_DEFAULT_ALS_GAIN : argv[4]), APDS9960_DEFAULT_LED_DRIVE, SENS_READ_LIGHT_AMBIENT, payload);
           goto finish;
 
         case CMD_ADPS9960_RED:
           //
-          //  ADPS9960.red[sdaPin, sclPin, i2cAddress]
-          //  ADPS9960.red[18, 19, 0x39]
-          rc = getADPS9960Metric(&SoftTWI, i2CAddress, SENS_READ_RED, payload);
+          //  ADPS9960.red[sdaPin, sclPin, i2cAddress, integrationTime, gain]
+          //  ADPS9960.red[18, 19, 0x39, 103, 4]
+          rc = getADPS9960Metric(&SoftTWI, i2CAddress, (('\0' == *optarg[3]) ? APDS9960_DEFAULT_ADC_INTEGRATION_TIME : argv[3]), (('\0' == *optarg[4]) ? APDS9960_DEFAULT_ALS_GAIN : argv[4]), APDS9960_DEFAULT_LED_DRIVE, SENS_READ_LIGHT_RED, payload);
           goto finish;
 
         case CMD_ADPS9960_GREEN:
           //
-          //  ADPS9960.green[sdaPin, sclPin, i2cAddress]
-          //  ADPS9960.green[18, 19, 0x39]
-          rc = getADPS9960Metric(&SoftTWI, i2CAddress, SENS_READ_GREEN, payload);
+          //  ADPS9960.green[sdaPin, sclPin, i2cAddress, integrationTime, gain]
+          //  ADPS9960.green[18, 19, 0x39, 103, 4]
+          rc = getADPS9960Metric(&SoftTWI, i2CAddress, (('\0' == *optarg[3]) ? APDS9960_DEFAULT_ADC_INTEGRATION_TIME : argv[3]), (('\0' == *optarg[4]) ? APDS9960_DEFAULT_ALS_GAIN : argv[4]), APDS9960_DEFAULT_LED_DRIVE, SENS_READ_LIGHT_GREEN, payload);
           goto finish;
 
         case CMD_ADPS9960_BLUE:
           //
-          //  ADPS9960.blue[sdaPin, sclPin, i2cAddress]
-          //  ADPS9960.blue[18, 19, 0x39]
-          rc = getADPS9960Metric(&SoftTWI, i2CAddress, SENS_READ_BLUE, payload);
+          //  ADPS9960.blue[sdaPin, sclPin, i2cAddress, integrationTime, gain]
+          //  ADPS9960.blue[18, 19, 0x39, 103, 4]
+          rc = getADPS9960Metric(&SoftTWI, i2CAddress, (('\0' == *optarg[3]) ? APDS9960_DEFAULT_ADC_INTEGRATION_TIME : argv[3]), (('\0' == *optarg[4]) ? APDS9960_DEFAULT_ALS_GAIN : argv[4]), APDS9960_DEFAULT_LED_DRIVE, SENS_READ_LIGHT_BLUE, payload);
           goto finish;
 #endif // FEATURE_ADPS9960_ENABLE
 

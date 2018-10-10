@@ -195,7 +195,7 @@
   /=/        - INA219.Current[]
   /=/        - INA219.Power[]
   /*/
-#define FEATURE_INA219_ENABLE
+//#define FEATURE_INA219_ENABLE
 
 /*/
   /=/      Enable support external I2C EEPROM chip (AT24C family) and commands:
@@ -244,7 +244,7 @@
   /=/       - DHT.Humidity[];
   /=/       - DHT.Temperature[]
   /*/
-#define FEATURE_DHT_ENABLE
+//#define FEATURE_DHT_ENABLE
 
 /****       Ultrasonic    ****/
 
@@ -295,7 +295,7 @@
   /=/      Enable calling user functions on device start and every _constUserFunctionCallInterval_ if no active network session exist
   /=/      You can write to _plugin.ino_ your own code and use all Zabbuino's internal functions to query sensors and handle actuators
   /*/
-#define FEATURE_USER_FUNCTION_PROCESSING
+//#define FEATURE_USER_FUNCTION_PROCESSING
 
 /*/
   /=/      Support Zabbix's Action functionality and enable command:

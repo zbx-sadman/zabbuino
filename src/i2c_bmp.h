@@ -117,7 +117,7 @@
 #define BMP280_STANDBY_TIME_4000_MS                             (0x07)
 
 #define BMP280_READY_MASK                                       (0x09) // Byte 0 + Byte 3 must be equial 0 if BMP280 do not busy
-#define BMP280_READY_TIMEOUT                                    (100)  // ms
+#define BMP280_READY_TIMEOUT                                    (100UL)  // ms
 
 // BME280 additional registers and constants
 #define BME280_STANDARD_OVERSAMP_HUMIDITY 	                BMP280_OVERSAMP_1X
