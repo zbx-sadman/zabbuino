@@ -36,7 +36,7 @@
 */
 
 /****       New              ****/
-#define FEATURE_ADPS9960_ENABLE
+//#define FEATURE_ADPS9960_ENABLE
 //#define FEATURE_DFPLAYER_ENABLE
 //#define FEATURE_MAX6675_ENABLE
 //#define FEATURE_PCA9685_ENABLE
@@ -44,10 +44,6 @@
 //#define FEATURE_VEML6070_ENABLE
 //#define FEATURE_SERVO_ENABLE
 //#define FEATURE_RELAY_ENABLE
-//  4 -> High , 2 -> Input Pullup & test // Need to test with pullup/pushdown resistor
-//  relay[4,1,2,1,1]
-//  relay[4,0,2,0,1]
-//  pulse[4,1,1000,0]
 
 /****       Network              ****/
 /*/
@@ -80,7 +76,6 @@
   /=/
   /*/
 //#define FEATURE_TONE_ENABLE
-
 
 /*/
   /=/      Enable commands:
@@ -115,14 +110,14 @@
   /=/     Enable 1-Wire processing and command:
   /=/       - OW.Scan[]
   /*/
-//#define FEATURE_OW_ENABLE
+#define FEATURE_OW_ENABLE
 
 /*/
   /=/     Enable Dallas DS18x20 sensors handling and command:
   /=/       - DS18x20.Temperature[]
   /*/
 
-//#define FEATURE_DS18X20_ENABLE
+#define FEATURE_DS18X20_ENABLE
 
 /****       I2C bus        ****/
 
@@ -182,7 +177,7 @@
   /*/
 //#define FEATURE_PCF8574_LCD_ENABLE
 
-/*/
+  /*/
   /=/     Enable Sensirion SHT2x sensors handling and commands:
   /=/       - SHT2x.Humidity[];
   /=/       - SHT2x.Temperature[]
@@ -244,7 +239,7 @@
   /=/       - DHT.Humidity[];
   /=/       - DHT.Temperature[]
   /*/
-//#define FEATURE_DHT_ENABLE
+#define FEATURE_DHT_ENABLE
 
 /****       Ultrasonic    ****/
 
@@ -325,7 +320,7 @@
 /*/
   /=/     Store runtime settings in EEPROM and use its on start
   /*/
-//#define FEATURE_EEPROM_ENABLE
+#define FEATURE_EEPROM_ENABLE
 
 /*/
   /=/     Force protect (enable even netConfig.useProtection is false) your system from illegal access for change runtime settings and reboots
@@ -354,7 +349,6 @@
   /*/
 //#define FEATURE_SYSTEM_RTC_DS3231_ENABLE
 //#define FEATURE_SYSTEM_RTC_PCF8563_ENABLE
-//#define FEATURE_SYSTEM_RTC_ENABLE
 
 /*/
   /=/     View the more or less debug messages on the Serial Monitor. Choose one.
@@ -376,7 +370,7 @@
   /=/
   /=/     Note that 64 bytes buffer reserved for Serial (refer to HardwareSerial.h) and long commands like ws2812.sendraw[5,1,over9000chars] can be processed uncorrectly
   /*/
-#define FEATURE_SERIAL_LISTEN_TOO
+//#define FEATURE_SERIAL_LISTEN_TOO
 
 /*/
   /=/     Send back to user text messages if error is occurs. Otherwise - send numeric code
@@ -386,7 +380,7 @@
 /*/
   /=/     Use interrupt on Timer1 for internal metric gathering
   /*/
-//#define GATHER_METRIC_USING_TIMER_INTERRUPT
+#define GATHER_METRIC_USING_TIMER_INTERRUPT
 
 /* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
                                                             NETWORK MODULE SECTION
@@ -444,7 +438,7 @@ const uint32_t constSysDefaultPassword                         = 0x00UL;
 const uint8_t constFactoryResetButtonPin                       = 0x08;
 
 //
-const uint16_t constSysTZOffset                                = 0x2A30; //10800;
+const uint16_t constSysTZOffset                                = 0x2A30; // 10800 sec, 3h;
 
 /* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
                                                           AGENT CONFIGURATION SECTION

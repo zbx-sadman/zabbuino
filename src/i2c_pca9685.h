@@ -1,17 +1,19 @@
 #pragma once
 #include "SoftwareWire/SoftwareWire.h"
 
+#define PCA9685_I2C_ADDRESS                                      (0x40)
+
 // 1-st led register address
-#define PCA9685_LEDS_START_REG                            (0x06)
-
-// "Set all led registers" address
-#define PCA9685_LEDS_ALL_REG                              (0xFA)
-
-#define PCA9685_CHANNEL_COUNT                             (16)
-#define PCA9685_CHANNEL_LEDS_ALL                          (-0x01)
-
+#define PCA9685_LEDS_START_REG                                   (0x06)
+                                                               
+// "Set all led registers" address                             
+#define PCA9685_LEDS_ALL_REG                                     (0xFA)
+                                                               
+#define PCA9685_CHANNEL_COUNT                                    (16)
+#define PCA9685_CHANNEL_LEDS_ALL                                 (-0x01)
+                                                               
 // Register value that set FULL_ON or FULL_OFF state on led channel
-#define PCA9685_CHANNEL_FULL_STATE                        (4096)
+#define PCA9685_CHANNEL_FULL_STATE                               (4096)
 
 /*****************************************************************************************************************************
 *

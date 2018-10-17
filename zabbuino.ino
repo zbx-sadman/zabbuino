@@ -741,31 +741,12 @@ static int16_t executeCommand(char* _dst, netconfig_t* _netConfig, packetInfo_t*
       //
       //  digitalWrite[pin, value, testPin, testValue]
       //
-      // if testPin defined - check both pin to safety
-      /*      i = ('\0' == *optarg[2]) ? isSafePin(argv[0]) : (isSafePin(argv[0]) && isSafePin(argv[2]));
-            if (!i) {
-              goto finish;
-            }
-      */
       if (isSafePin(argv[0])) {
         // turn on or turn off logic on pin
         pinMode(argv[0], OUTPUT);
         digitalWrite(argv[0], argv[1]);
         rc = RESULT_IS_OK;
       }
-      /*
-        if ('\0' == *optarg[2]) {
-        goto finish;
-        }
-        // when testPin defined - switch testPin mode to input, wait a lot, and check testPin state.
-        // if readed value not equal testValue - return FAIL
-        //      pinMode(argv[2], INPUT_PULLUP);
-        pinMode(argv[2], INPUT);
-        delay(10);
-        if ((uint32_t) digitalRead(argv[2]) != (uint32_t) argv[3]) {
-        rc = RESULT_IS_FAIL;
-        }
-      */
       goto finish;
 
     case CMD_ARDUINO_DIGITALREAD:
@@ -800,11 +781,11 @@ static int16_t executeCommand(char* _dst, netconfig_t* _netConfig, packetInfo_t*
       //  noTone[pin]
       //
       if (! isSafePin(argv[0])) {
-        break;
+         goto finish;
       }
       noTone(argv[0]);
       rc = RESULT_IS_OK;
-      break;
+      goto finish;
 
 #endif
 
@@ -944,6 +925,7 @@ static int16_t executeCommand(char* _dst, netconfig_t* _netConfig, packetInfo_t*
       i = ('\0' != argv[2]) && isSafePin(argv[2]);
       if (isSafePin(argv[0]) &&  isSafePin(argv[1])) {
         if (i) {
+          pinMode(argv[2],OUTPUT);
           digitalWrite(argv[2], LOW);
         }
         rc = shiftOutAdvanced(argv[0], argv[1], argv[3], argv[4], (uint8_t*) optarg[5]);
@@ -1247,7 +1229,7 @@ static int16_t executeCommand(char* _dst, netconfig_t* _netConfig, packetInfo_t*
 #ifdef FEATURE_SERVO_ENABLE
     case CMD_SERVO_TURN:
       //
-      //  servo.turn[servoPin, targetAnglePulseWidth, turnTime, holdTime, returnAnglePulseWidth]
+      //  Servo.turn[servoPin, targetAnglePulseWidth, turnTime, holdTime, returnAnglePulseWidth]
       //
       //  Need to add updateFrequency as argv[5] ?
       //
@@ -1326,8 +1308,8 @@ static int16_t executeCommand(char* _dst, netconfig_t* _netConfig, packetInfo_t*
       // ************************************************************************************************************************************
       // Following commands use <argv[0]> or <argv[1]> pins for sensor handling (UART, I2C, etc) and these pins can be disabled in port_protect[] array
       //  Otherwise - processing is failed
+      rc = RESULT_IS_FAIL;
       if ('\0' == *optarg[0] || '\0' == *optarg[1] || !isSafePin(argv[0]) || !isSafePin(argv[1])) {
-        rc = RESULT_IS_FAIL;
         goto finish;
       }
 
@@ -1438,9 +1420,9 @@ static int16_t executeCommand(char* _dst, netconfig_t* _netConfig, packetInfo_t*
       // Otherwise - TWI interface can be reconfigured with new pins
       SoftTWI.reconfigure(argv[0], argv[1]);
 
-      uint8_t i2CAddress;
-
-      i2CAddress = (uint8_t) argv[2];
+      int8_t i2CAddress;
+      
+      i2CAddress = (('\0' != *optarg[2]) ? abs((int8_t) argv[2]) : I2C_NO_ADDR_SPECIFIED);
 
 #ifdef FEATURE_I2C_ENABLE
       // this war is used only in FEATURE_I2C_ENABLE blocks
@@ -1463,29 +1445,41 @@ static int16_t executeCommand(char* _dst, netconfig_t* _netConfig, packetInfo_t*
 
         case CMD_I2C_WRITE:
           //
-          // i2c.write(sdaPin, sclPin, i2cAddress, register, data, length)
+          // i2c.write(sdaPin, sclPin, i2cAddress, register, data, numBytes)
           //
+          if (I2C_NO_ADDR_SPECIFIED == i2CAddress) {
+             goto finish;
+          }
           rc = writeValueToI2C(&SoftTWI, i2CAddress, i2CRegister, (uint32_t) argv[4], (uint8_t) argv[5]);
           goto finish;
 
         case CMD_I2C_READ:
           //
-          // i2c.read(sdaPin, sclPin, i2cAddress, register, length, numberOfReadings)
+          // i2c.read(sdaPin, sclPin, i2cAddress, register, numBytes, numberOfReadings)
           //
+          if (I2C_NO_ADDR_SPECIFIED == i2CAddress) {
+             goto finish;
+          }
           rc = readValueFromI2C(&SoftTWI, i2CAddress, i2CRegister, (uint32_t*) &value, argv[4], (('\0' != *optarg[5]) ? argv[5] : 0x00));
           goto finish;
 
         case CMD_I2C_BITWRITE:
           //
-          //  i2c.bitWrite(sdaPin, sclPin, i2cAddress, register, bitNumber, value)
+          //  i2c.bitWrite(sdaPin, sclPin, i2cAddress, register, bitNo, value)
           //
+          if (I2C_NO_ADDR_SPECIFIED == i2CAddress) {
+             goto finish;
+          }
           rc = bitWriteToI2C(&SoftTWI, i2CAddress, i2CRegister, argv[4], argv[5]);
           goto finish;
 
         case CMD_I2C_BITREAD:
           //
-          //  i2c.bitRead(sdaPin, sclPin, i2cAddress, register, bit)
+          //  i2c.bitRead(sdaPin, sclPin, i2cAddress, register, bitNo)
           //
+          if (I2C_NO_ADDR_SPECIFIED == i2CAddress) {
+             goto finish;
+          }
           rc = bitReadFromI2C(&SoftTWI, i2CAddress, i2CRegister, argv[4], (uint8_t*) &value);
           goto finish;
 
@@ -1497,7 +1491,7 @@ static int16_t executeCommand(char* _dst, netconfig_t* _netConfig, packetInfo_t*
           //  BMP.Pressure[sdaPin, sclPin, i2cAddress, overSampling, filterCoef]
           //
           // (uint8_t) argv[2] is i2c address, 7 bytes size
-          rc = getBMPMetric(&SoftTWI, i2CAddress, argv[3], argv[4], SENS_READ_PRSS, payload);
+          rc = getBMPMetric(&SoftTWI, ((I2C_NO_ADDR_SPECIFIED != i2CAddress) ? i2CAddress : BMP180_I2C_ADDRESS), argv[3], argv[4], SENS_READ_PRSS, payload);
           goto finish;
 
         case CMD_BMP_TEMPERATURE:
@@ -1505,7 +1499,7 @@ static int16_t executeCommand(char* _dst, netconfig_t* _netConfig, packetInfo_t*
           // BMP.Temperature[sdaPin, sclPin, i2cAddress, overSampling]
           //
           // (uint8_t) argv[2] is i2c address, 7 bytes size
-          rc = getBMPMetric(&SoftTWI, i2CAddress, argv[3], argv[4], SENS_READ_TEMP, payload);
+          rc = getBMPMetric(&SoftTWI, ((I2C_NO_ADDR_SPECIFIED != i2CAddress) ? i2CAddress : BMP180_I2C_ADDRESS), argv[3], argv[4], SENS_READ_TEMP, payload);
           goto finish;
 
 #ifdef SUPPORT_BME280_INCLUDE
@@ -1514,7 +1508,7 @@ static int16_t executeCommand(char* _dst, netconfig_t* _netConfig, packetInfo_t*
           //  BME.Humidity[sdaPin, sclPin, i2cAddress, overSampling, filterCoef]
           //
           // (uint8_t) argv[2] is i2c address, 7 bytes size
-          rc = getBMPMetric(&SoftTWI, i2CAddress, argv[3], argv[4], SENS_READ_HUMD, payload);
+          rc = getBMPMetric(&SoftTWI, ((I2C_NO_ADDR_SPECIFIED != i2CAddress) ? i2CAddress : BME280_I2C_ADDRESS), argv[3], argv[4], SENS_READ_HUMD, payload);
           goto finish;
 #endif // SUPPORT_BME280_INCLUDE 
 #endif // FEATURE_BMP_ENABLE  
@@ -1525,30 +1519,30 @@ static int16_t executeCommand(char* _dst, netconfig_t* _netConfig, packetInfo_t*
           //  BH1750.light[sdaPin, sclPin, i2cAddress, mode]
           //
           // (uint8_t) argv[2] is i2c address, 7 bytes size
-          rc = getBH1750Metric(&SoftTWI, i2CAddress, argv[3], SENS_READ_LUX, payload);
+          rc = getBH1750Metric(&SoftTWI, ((I2C_NO_ADDR_SPECIFIED != i2CAddress) ? i2CAddress : BH1750_I2C_ADDRESS), argv[3], SENS_READ_LUX, payload);
           goto finish;
 #endif // FEATURE_BH1750_ENABLE
 
 #ifdef FEATURE_INA219_ENABLE
         case CMD_INA219_BUSVOLTAGE:
           //
-          //  INA219.BusVoltage[sdaPin, sclPin, i2cAddress, maxVoltage, maxCurrent]
+          //  INA219.BusVoltage[sdaPin, sclPin, i2cAddress, voltageRange, maxCurrent]
           //
-          rc = getINA219Metric(&SoftTWI, i2CAddress, argv[3], argv[4], SENS_READ_BUS_VOLTAGE, payload);
+          rc = getINA219Metric(&SoftTWI, ((I2C_NO_ADDR_SPECIFIED != i2CAddress) ? i2CAddress : INA219_I2C_ADDRESS), argv[3], argv[4], SENS_READ_BUS_VOLTAGE, payload);
           goto finish;
 
         case CMD_INA219_CURRENT:
           //
-          //  INA219.Current[sdaPin, sclPin, i2cAddress, maxVoltage, maxCurrent]
+          //  INA219.Current[sdaPin, sclPin, i2cAddress, voltageRange, maxCurrent]
           //
-          rc = getINA219Metric(&SoftTWI, i2CAddress, argv[3], argv[4], SENS_READ_DC, payload);
+          rc = getINA219Metric(&SoftTWI, ((I2C_NO_ADDR_SPECIFIED != i2CAddress) ? i2CAddress : INA219_I2C_ADDRESS), argv[3], argv[4], SENS_READ_DC, payload);
           goto finish;
 
         case CMD_INA219_POWER:
           //
-          //  INA219.Power[sdaPin, sclPin, i2cAddress, maxVoltage, maxCurrent]
+          //  INA219.Power[sdaPin, sclPin, i2cAddress, voltageRange, maxCurrent]
           //
-          rc = getINA219Metric(&SoftTWI, i2CAddress, argv[3], argv[4], SENS_READ_POWER, payload);
+          rc = getINA219Metric(&SoftTWI, ((I2C_NO_ADDR_SPECIFIED != i2CAddress) ? i2CAddress : INA219_I2C_ADDRESS), argv[3], argv[4], SENS_READ_POWER, payload);
           goto finish;
 
 #endif // FEATURE_INA219_ENABLE
@@ -1558,6 +1552,9 @@ static int16_t executeCommand(char* _dst, netconfig_t* _netConfig, packetInfo_t*
           //
           //  PCF8574.LCDPrint[sdaPin, sclPin, i2cAddress, lcdBacklight, lcdType, data]
           //
+          if (I2C_NO_ADDR_SPECIFIED == i2CAddress) {
+             goto finish;
+          }
           rc = printToPCF8574LCD(&SoftTWI, i2CAddress, argv[3], argv[4], optarg[5]);
           // Store current time when on LCD was printed something to calculation in loopStageUserFunction() (for example) 'no refresh timeout' properly
           sysMetrics.sysLCDLastUsedTime = millis();
@@ -1571,7 +1568,7 @@ static int16_t executeCommand(char* _dst, netconfig_t* _netConfig, packetInfo_t*
           //  SHT2X.Humidity[sdaPin, sclPin, i2cAddress]
           //
           // (uint8_t) argv[2] is i2c address, 7 bytes size
-          rc = getSHT2XMetric(&SoftTWI, i2CAddress, SENS_READ_HUMD, payload);
+          rc = getSHT2XMetric(&SoftTWI, ((I2C_NO_ADDR_SPECIFIED != i2CAddress) ? i2CAddress : SHT2X_I2C_ADDRESS), SENS_READ_HUMD, payload);
           goto finish;
 
         case CMD_SHT2X_TEMPERATURE:
@@ -1579,7 +1576,7 @@ static int16_t executeCommand(char* _dst, netconfig_t* _netConfig, packetInfo_t*
           //  SHT2X.Temperature[sdaPin, sclPin, i2cAddress]
           //
           // (uint8_t) argv[2] is i2c address, 7 bytes size
-          rc = getSHT2XMetric(&SoftTWI, i2CAddress, SENS_READ_TEMP, payload);
+          rc = getSHT2XMetric(&SoftTWI, ((I2C_NO_ADDR_SPECIFIED != i2CAddress) ? i2CAddress : SHT2X_I2C_ADDRESS), SENS_READ_TEMP, payload);
           goto finish;
 #endif // FEATURE_SHT2X_ENABLE  
 
@@ -1590,6 +1587,9 @@ static int16_t executeCommand(char* _dst, netconfig_t* _netConfig, packetInfo_t*
           //
           // i is half length of decoded byte array
           //i = (strlen(optarg[4]) - 2) / 2;
+          if (I2C_NO_ADDR_SPECIFIED == i2CAddress) {
+             goto finish;
+          }
           i = hstoba((uint8_t*) payload, optarg[4]);
           if (0 < i) {
             if (AT24CXXWrite(&SoftTWI, i2CAddress, argv[3], i, (uint8_t*) payload)) {
@@ -1632,7 +1632,7 @@ static int16_t executeCommand(char* _dst, netconfig_t* _netConfig, packetInfo_t*
           //
           // 0x08 == MAX44009_INTEGRATION_TIME_6MS+1 - put it to integrationTime parameter if no arg#4 given
           // to kick getMAX44009Metric() to use auto measurement time
-          rc = getMAX44009Metric(&SoftTWI, i2CAddress, argv[3], (('\0' == *optarg[4]) ? 0x08 : argv[4]), SENS_READ_LUX, payload);
+          rc = getMAX44009Metric(&SoftTWI, ((I2C_NO_ADDR_SPECIFIED != i2CAddress) ? i2CAddress : MAX44009_I2C_ADDRESS), argv[3], (('\0' == *optarg[4]) ? 0x08 : argv[4]), SENS_READ_LUX, payload);
           goto finish;
 #endif // FEATURE_MAX44009_ENABLE
 
@@ -1651,8 +1651,8 @@ static int16_t executeCommand(char* _dst, netconfig_t* _netConfig, packetInfo_t*
         case CMD_PCA9685_WRITE:
           //
           //  PCA9685.write[sdaPin, sclPin, i2cAddress, outputIdx, onTime, offTime]
-          //  PCA9685.write[18, 19, 0x40, -1, 4096, 0]
-          rc = writePCA9685(&SoftTWI, i2CAddress, argv[3], argv[4], argv[5]);
+          //  PCA9685.write[18, 19, 0x40,, 4096, 0]
+          rc = writePCA9685(&SoftTWI, ((I2C_NO_ADDR_SPECIFIED != i2CAddress) ? i2CAddress : PCA9685_I2C_ADDRESS), (('\0' == *optarg[3]) ? PCA9685_CHANNEL_LEDS_ALL : argv[3]), argv[4], argv[5]);
           goto finish;
 #endif // FEATURE_PCA9685_ENABLE
 
@@ -1661,41 +1661,40 @@ static int16_t executeCommand(char* _dst, netconfig_t* _netConfig, packetInfo_t*
           //
           //  TSL2561.light[sdaPin, sclPin, i2cAddress, integrationTime, gain]
           //  TSL2561.light[18, 19, 0x39, 402, 1]
-          rc = getTSL2561Metric(&SoftTWI, i2CAddress, argv[3], argv[4], SENS_READ_LUX, payload);
+          rc = getTSL2561Metric(&SoftTWI, ((I2C_NO_ADDR_SPECIFIED != i2CAddress) ? i2CAddress : TSL2561_I2C_ADDRESS), argv[3], argv[4], SENS_READ_LUX, payload);
           goto finish;
 #endif // FEATURE_TSL2561_ENABLE
 
 
 #ifdef FEATURE_ADPS9960_ENABLE
         // !!! IR Led not used for ALS conversion         
-        // RGBC results can be used to calculate ambient light levels
-        // (i.e. Lux) and color temperature (i.e. Kelvin).
+        // RGBC results can be used as light levels in Lux
         case CMD_ADPS9960_AMBIENT:
           //
           //  ADPS9960.ambient[sdaPin, sclPin, i2cAddress, integrationTime, gain]
           //  ADPS9960.ambient[18, 19, 0x39, 103, 4]
-          rc = getADPS9960Metric(&SoftTWI, i2CAddress, (('\0' == *optarg[3]) ? APDS9960_DEFAULT_ADC_INTEGRATION_TIME : argv[3]), (('\0' == *optarg[4]) ? APDS9960_DEFAULT_ALS_GAIN : argv[4]), APDS9960_DEFAULT_LED_DRIVE, SENS_READ_LIGHT_AMBIENT, payload);
+          rc = getADPS9960Metric(&SoftTWI, ((I2C_NO_ADDR_SPECIFIED != i2CAddress) ? i2CAddress : ADPS9960_I2C_ADDRESS), (('\0' == *optarg[3]) ? APDS9960_DEFAULT_ADC_INTEGRATION_TIME : argv[3]), (('\0' == *optarg[4]) ? APDS9960_DEFAULT_ALS_GAIN : argv[4]), APDS9960_DEFAULT_LED_DRIVE, SENS_READ_LIGHT_AMBIENT, payload);
           goto finish;
 
         case CMD_ADPS9960_RED:
           //
           //  ADPS9960.red[sdaPin, sclPin, i2cAddress, integrationTime, gain]
           //  ADPS9960.red[18, 19, 0x39, 103, 4]
-          rc = getADPS9960Metric(&SoftTWI, i2CAddress, (('\0' == *optarg[3]) ? APDS9960_DEFAULT_ADC_INTEGRATION_TIME : argv[3]), (('\0' == *optarg[4]) ? APDS9960_DEFAULT_ALS_GAIN : argv[4]), APDS9960_DEFAULT_LED_DRIVE, SENS_READ_LIGHT_RED, payload);
+          rc = getADPS9960Metric(&SoftTWI, ((I2C_NO_ADDR_SPECIFIED != i2CAddress) ? i2CAddress : ADPS9960_I2C_ADDRESS), (('\0' == *optarg[3]) ? APDS9960_DEFAULT_ADC_INTEGRATION_TIME : argv[3]), (('\0' == *optarg[4]) ? APDS9960_DEFAULT_ALS_GAIN : argv[4]), APDS9960_DEFAULT_LED_DRIVE, SENS_READ_LIGHT_RED, payload);
           goto finish;
 
         case CMD_ADPS9960_GREEN:
           //
           //  ADPS9960.green[sdaPin, sclPin, i2cAddress, integrationTime, gain]
           //  ADPS9960.green[18, 19, 0x39, 103, 4]
-          rc = getADPS9960Metric(&SoftTWI, i2CAddress, (('\0' == *optarg[3]) ? APDS9960_DEFAULT_ADC_INTEGRATION_TIME : argv[3]), (('\0' == *optarg[4]) ? APDS9960_DEFAULT_ALS_GAIN : argv[4]), APDS9960_DEFAULT_LED_DRIVE, SENS_READ_LIGHT_GREEN, payload);
+          rc = getADPS9960Metric(&SoftTWI, ((I2C_NO_ADDR_SPECIFIED != i2CAddress) ? i2CAddress : ADPS9960_I2C_ADDRESS), (('\0' == *optarg[3]) ? APDS9960_DEFAULT_ADC_INTEGRATION_TIME : argv[3]), (('\0' == *optarg[4]) ? APDS9960_DEFAULT_ALS_GAIN : argv[4]), APDS9960_DEFAULT_LED_DRIVE, SENS_READ_LIGHT_GREEN, payload);
           goto finish;
 
         case CMD_ADPS9960_BLUE:
           //
           //  ADPS9960.blue[sdaPin, sclPin, i2cAddress, integrationTime, gain]
           //  ADPS9960.blue[18, 19, 0x39, 103, 4]
-          rc = getADPS9960Metric(&SoftTWI, i2CAddress, (('\0' == *optarg[3]) ? APDS9960_DEFAULT_ADC_INTEGRATION_TIME : argv[3]), (('\0' == *optarg[4]) ? APDS9960_DEFAULT_ALS_GAIN : argv[4]), APDS9960_DEFAULT_LED_DRIVE, SENS_READ_LIGHT_BLUE, payload);
+          rc = getADPS9960Metric(&SoftTWI, ((I2C_NO_ADDR_SPECIFIED != i2CAddress) ? i2CAddress : ADPS9960_I2C_ADDRESS), (('\0' == *optarg[3]) ? APDS9960_DEFAULT_ADC_INTEGRATION_TIME : argv[3]), (('\0' == *optarg[4]) ? APDS9960_DEFAULT_ALS_GAIN : argv[4]), APDS9960_DEFAULT_LED_DRIVE, SENS_READ_LIGHT_BLUE, payload);
           goto finish;
 #endif // FEATURE_ADPS9960_ENABLE
 

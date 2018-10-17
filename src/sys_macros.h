@@ -35,6 +35,8 @@
 #define SENS_READ_LIGHT_RED                                     (0x06)
 #define SENS_READ_LIGHT_GREEN                                   (0x07)
 #define SENS_READ_LIGHT_BLUE                                    (0x08)
+#define SENS_READ_UV                                            (0x09)
+
                                                                     
 #define SENS_READ_ZC                                            (0x0A)
 #define SENS_READ_AC                                            (0x0B)
@@ -61,8 +63,6 @@
 #define RESULT_IS_NEW_COMMAND                                   (0xF9)
 
 // Error Codes
-//#define DEVICE_DISCONNECTED_C         	-127
-
 #define ZBX_NOTSUPPORTED                                        (-0x01)
 #define DEVICE_ERROR_CONNECT                                    (-0x02)
 #define DEVICE_ERROR_ACK_L                                      (-0x04)

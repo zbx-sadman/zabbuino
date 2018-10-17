@@ -5,6 +5,8 @@
   Datasheet: http://rohmfs.rohm.com/en/products/databook/datasheet/ic/sensor/light/bh1750fvi-e.pdf
 */
 
+#define BH1750_I2C_ADDRESS                                      (0x23)
+
 // No active state
 #define BH1750_CMD_POWERDOWN                                    (0x00)
 // Wating for measurment command

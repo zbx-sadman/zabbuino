@@ -5,9 +5,10 @@
 
 */
 
+#define MAX44009_I2C_ADDRESS                                    (0x4A)
+
 #define MAX44009_REG_CONFIGURATION                              (0x02)
 #define MAX44009_REG_LUXREADING                                 (0x03)
-
 
 #define MAX44009_800MS_CYCLE_MODE                               (0x00)
 #define MAX44009_CONTINUOUS_MODE                                (0x80)

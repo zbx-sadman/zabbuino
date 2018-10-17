@@ -20,8 +20,8 @@ int8_t executeCommandUserFunction(char* _dst, char** _optarg, int32_t* _argv, in
           newAlarmLedPinWorkState = _argv[4];
   uint32_t newCommandUserFunctionTimeout  = _argv[2];
 
-  newAlarmLedPinDefaultState = (0 == newAlarmLedPinDefaultState) ? LOW : HIGH;
-  newAlarmLedPinWorkState = (0 == newAlarmLedPinWorkState) ? LOW : HIGH;
+  newAlarmLedPinDefaultState = (0x00 == newAlarmLedPinDefaultState) ? LOW : HIGH;
+  newAlarmLedPinWorkState = (0x00 == newAlarmLedPinWorkState) ? LOW : HIGH;
 
   DTSM( PRINTLN_PSTR("executeCommandUserFunction"); )
 
@@ -30,7 +30,7 @@ int8_t executeCommandUserFunction(char* _dst, char** _optarg, int32_t* _argv, in
     if (! isSafePin(newAlarmLedPin)) {
       goto finish;
     }
-    if (! newCommandUserFunctionTimeout  < 0) {
+    if (! newCommandUserFunctionTimeout  < 0x00) {
       goto finish;
     }
     commandUserFunctionTimeout = newCommandUserFunctionTimeout;

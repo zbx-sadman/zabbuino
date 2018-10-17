@@ -1,10 +1,11 @@
 #pragma once
 
-//#define BMP180_I2C_ADDRESS                                      (0x77  // I2C address of BMP085/180 sensor
+#define BMP180_I2C_ADDRESS                                      (0x77)  // I2C address of BMP085/180 sensor
 
-//#define BMP280_I2C_ADDRESS_1                                    (0x76  // I2C address of BMP280/BME280 sensor
-//#define BMP280_I2C_ADDRESS_2                                    (0x77
+#define BMP280_I2C_ADDRESS_01                                   (0x77)
+#define BMP280_I2C_ADDRESS_02                                   (0x76)  // I2C address of BMP280/BME280 sensor
 
+#define BME280_I2C_ADDRESS                                      (0x76)
 
 #define BMP_REGISTER_CHIPID                                     (0xD0)
                                                                      

@@ -86,13 +86,11 @@ void NetworkClass::showPHYState() {
 }
 
 void NetworkClass::restart() {
-  uint8_t useDefaultIP;
+  uint8_t useDefaultIP = true;
 
 #ifdef FEATURE_NET_DHCP_ENABLE
   start:
   // User want to use DHCP with Zabbuino?
- //Serial.println("p3");
-
   if (useDHCP) {
      DTSM( PRINTLN_PSTR("Obtaining address from DHCP..."); )
      // Try to ask DHCP server & turn off DHCP feature for that session if no offer recieved

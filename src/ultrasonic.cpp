@@ -69,5 +69,5 @@ finish:
 
   // Resolution : 0.3 cm => 3mm. 
   // Return result in mm
-  return (result * 10  / 58 ) ;
+  return (result * 10  / 58 );
 }

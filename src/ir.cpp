@@ -115,11 +115,11 @@ uint8_t sendRawByIR(const uint16_t _frequency, unsigned int _nBits, const char* 
       // restore full int from HEX nibbles
       packet = htod(*_data);
       packet <<= 4;
-      packet = htod(*_data+1);
+      packet = htod(*(_data+1));
       packet <<= 4;
-      packet = htod(*_data+2);
+      packet = htod(*(_data+2));
       packet <<= 4;
-      packet = htod(*_data+3);
+      packet = htod(*(_data+3));
       if (i & 1)  space(packet) ;
       else        mark (packet) ;
       i++;

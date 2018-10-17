@@ -1,6 +1,7 @@
 #pragma once
 
 #define I2C_NO_REG_SPECIFIED                                    (-0x01) //
+#define I2C_NO_ADDR_SPECIFIED                                    (-0x01) //
 
 #define WireToU8(_src)  ((uint8_t) _src[0])
 #define WireToS8(_src)  ((int8_t) _src[0])

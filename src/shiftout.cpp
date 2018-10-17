@@ -25,11 +25,7 @@ int8_t shiftOutAdvanced(const uint8_t _dataPin, const uint8_t _clockPin, const u
   // Prepare the buffer for burst bit-banging
   lenOfBuffer = prepareBufferForAdvShiftout(_bitOrder, _compressionType, _src);
   if (lenOfBuffer <= 0) { return RESULT_IS_FAIL; }
-/*  Serial.print("*** lenOfBuffer: "); Serial.println(lenOfBuffer);
-  Serial.println("*** Prepared\n------------");
-  for (i = 0; i < lenOfBuffer; i++) { Serial.println(_src[i], HEX); }
-  Serial.println("------------");
-*/
+
   dataPinBit = digitalPinToBitMask(_dataPin);
   clockPinBit = digitalPinToBitMask(_clockPin);
   dataPortOutputRegister = portOutputRegister(digitalPinToPort(_dataPin));
@@ -99,28 +95,11 @@ int8_t WS2812Out(const uint8_t _dataPin, const uint8_t _compressionType, uint8_t
                    lo;             // PORT w/output bit set low
   volatile uint8_t next, bit;
 
-  // Prepare the buffer for burst bit-banging or just use array with raw color coding bytes if it _len> 0
-  //Serial.print("_len = ");Serial.println(_len);
-
   i = (0 >= _len) ? prepareBufferForAdvShiftout(MSBFIRST, _compressionType, _src) : _len; 
-/* 
- if (0 < _len) { 
-     Serial.println("raw");
-  i = _len;
-  }
-  else { 
-     Serial.println("prepare");
-    prepareBufferForAdvShiftout(MSBFIRST, _compressionType, _src); 
-} 
-*/
 
   if (i <= 0) {
-    //Serial.println("fail");
-
      return RESULT_IS_FAIL;
   }
-//  Serial.print("i = ");Serial.println(i);
-  //for (byte k=0; k < i; k++) { Serial.println(_src[k], HEX); } 
  
   pinMode(_dataPin, OUTPUT);
   digitalWrite(_dataPin, LOW);
@@ -265,14 +244,14 @@ int16_t prepareBufferForAdvShiftout(const uint8_t _bitOrder, const uint8_t compr
   switch (compressionType) {
       // Data will be 'decompressed' from HEX string by repeat every nibble twice: FD3 => FFDD33
       // This compression method allow to minimize len of recieved HEX-string when it used for color coding (RGB pixel leds and etc)
-      case 1:
+      case 0x01:
         DTSD ( SerialPrintln_P(PSTR("'repeat' type compression ")); )
         for (dataBufferReadPosition = 0; dataBufferReadPosition <= lenOfBuffer; dataBufferReadPosition++) {
             _src[dataBufferReadPosition] = (_src[dataBufferReadPosition] << 4) | _src[dataBufferReadPosition];
         }
         break;  
-      // Data will 
-      case 0:
+      // Data is not compressed
+      case 0x00:
       default:
         dataBufferReadPosition = dataBufferWritePosition=0x00;
         while (dataBufferReadPosition < lenOfBuffer)  {

@@ -7,7 +7,7 @@
 
 */
 
-#define APDS9960_I2C_ADDR                                       (0x39)
+#define ADPS9960_I2C_ADDRESS                                    (0x39)
 
 #define APDS9960_REG_ENABLE                                     (0x80)
 #define APDS9960_REG_ADC_INTEGRATION_TIME                       (0x81)

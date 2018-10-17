@@ -87,8 +87,6 @@ finish:
 
 /*****************************************************************************************************************************
 *
-*  
-*
 *   Returns: 
 *     - RESULT_IS_OK
 *
@@ -113,7 +111,7 @@ int8_t pulse(const uint8_t _targetPin, const uint8_t _targetState, const uint32_
 *     - RESULT_IS_OK
 *
 *****************************************************************************************************************************/
-int8_t relay(const uint8_t _targetPin, const uint8_t _targetState, const int8_t _testPin = -1, const int8_t _testState = -1,  uint8_t _testPinMode = INPUT)
+int8_t relay(const uint8_t _targetPin, const uint8_t _targetState, const int8_t _testPin = -1, const int8_t _testState = -0x01,  uint8_t _testPinMode = INPUT)
 {
 
   int8_t rc = RESULT_IS_OK;
@@ -126,16 +124,15 @@ int8_t relay(const uint8_t _targetPin, const uint8_t _targetState, const int8_t 
      goto finish;
   }
   
-  pinMode(_testPin, _testPinMode);
+  pinMode(_testPin, (INPUT_PULLUP == _testPinMode) ? INPUT_PULLUP : INPUT);
   delay(10);
   t = digitalRead(_testPin);
-  Serial.print("Test state: "); Serial.println(_testState);
-  Serial.print("Real state: "); Serial.println(t);
 
-  if (_testState != t) { rc = RESULT_IS_FAIL; 
-   Serial.println("FAIL");
+  if (_testState != t) { 
+   rc = RESULT_IS_FAIL; 
+//   Serial.println("FAIL");
   }else {
-   Serial.println("OK");
+//   Serial.println("OK");
   }
 
 finish:
