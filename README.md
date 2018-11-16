@@ -33,9 +33,19 @@ Implemented:
 - Support WS2801 Led stripe and any indicators on shift registers via extended `shiftout` command;
 - Support WS2812 Led stripe;
 - Support PZEM-004 energy meter;
+- Support Plantower PMS-A003 (and similar) sensors;
 - Support APC Smart UPS (with RS232 interface);
+- Support Megatec UPS's (with RS232 interface);
 - Simulate varuious vendor's IR transmitters.
 -----------------------------
+
+#### 16 Nov 2018
+
+New features:
+  - _FEATURE\_PLANTOWER\_PMS\_ALL\_ENABLE_ enables Plantower PMS-xxxx sensors support. 
+  - Command ``PMS.all[rxPin, txPin]`` is added:
+    - _rxPin_, _txPin_ - SoftwareSerial's pins to which TSL2561 connected. Only _rxPin_ is used now, you can use the same pin for _txPin_ at this time. Note: command returns JSON string for Zabbix 3.4 and above.
+    Example: ``PMS.all[3, 3]`` returns all metric values as one JSON-string.
 
 #### 10 Oct 2018
 

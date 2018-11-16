@@ -49,7 +49,25 @@
 #define SENS_READ_ENERGY                                        (0x11)                                                                   
 #define SENS_CHANGE_ADDRESS                                     (0x12)
 
+#define SENS_READ_STANDART_PM10                                 (0x20)
+#define SENS_READ_STANDART_PM25                                 (0x21)
+#define SENS_READ_STANDART_PM100                                (0x22)
+#define SENS_READ_ENVIRONMENT_PM10                              (0x23)
+#define SENS_READ_ENVIRONMENT_PM25                              (0x24)
+#define SENS_READ_ENVIRONMENT_PM100                             (0x25)
+#define SENS_READ_PARTICLES_03_UM                               (0x26)
+#define SENS_READ_PARTICLES_05_UM                               (0x27)
+#define SENS_READ_PARTICLES_10_UM                               (0x28)
+#define SENS_READ_PARTICLES_25_UM                               (0x29)
+#define SENS_READ_PARTICLES_50_UM                               (0x2A)
+#define SENS_READ_PARTICLES_100_UM                              (0x2B)
+
+#define SENS_READ_ALL                                           (0xFE)
 #define SENS_READ_RAW                                           (0xFF)
+
+#define OUTPUT_NUMBER                                           (0x01)
+#define OUTPUT_STRING                                           (0x02)
+#define OUTPUT_JSON                                             (0x03)
 
 #define RESULT_IS_FAIL                                          false
 #define RESULT_IS_OK                                            true

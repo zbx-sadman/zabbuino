@@ -66,6 +66,8 @@
 #include "uart_megatec.h"
 #include "uart_player.h"
 #include "uart_pzem.h"
+#include "uart_plantower.h"
+
 
 // SPI-compatible devices 
 #include "spi_bus.h"

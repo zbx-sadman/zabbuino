@@ -86,8 +86,10 @@ void loop() {
   DTSM( PRINTLN_PSTR("succesfull"); )
 #endif
 
+#ifdef FEATURE_USER_FUNCTION_PROCESSING
   // Run user function
   initStageUserFunction(cBuffer);
+#endif
 
   // System load procedure
 
@@ -159,8 +161,10 @@ void loop() {
 #endif
   Network.init(&netConfig);
 
+#ifdef FEATURE_USER_FUNCTION_PROCESSING
   // Call user function
   netPrepareStageUserFunction(cBuffer);
+#endif
 
   Network.restart();
 
@@ -302,8 +306,10 @@ void loop() {
         sysMetrics.sysAlarmRisedTime = millis();
         //  alarmTimeSaved = true;
       }
+#ifdef FEATURE_USER_FUNCTION_PROCESSING
       // Call user function
       alarmStageUserFunction(cBuffer, errorCode);
+#endif
 
 #ifdef ON_ALARM_STATE_BLINK
       digitalWrite(constStateLedPin, millis() % 1000 < blinkType);
@@ -687,6 +693,7 @@ static int16_t executeCommand(char* _dst, netconfig_t* _netConfig, packetInfo_t*
       }
 #endif // FEATURE_REMOTE_COMMANDS_ENABLE
 
+#ifdef FEATURE_ARDUINO_BASIC_ENABLE
     case CMD_ARDUINO_ANALOGWRITE:
       //
       //  analogWrite[pin, value]
@@ -719,6 +726,8 @@ static int16_t executeCommand(char* _dst, netconfig_t* _netConfig, packetInfo_t*
       rc = RESULT_IS_UNSIGNED_VALUE;
       goto finish;
 
+#endif // FEATURE_ARDUINO_BASIC_ENABLE
+
 #ifdef FEATURE_AREF_ENABLE
     case CMD_ARDUINO_ANALOGREFERENCE:
       //
@@ -729,6 +738,7 @@ static int16_t executeCommand(char* _dst, netconfig_t* _netConfig, packetInfo_t*
       goto finish;
 #endif
 
+#ifdef FEATURE_ARDUINO_BASIC_ENABLE
     case CMD_ARDUINO_DELAY:
       //
       //  delay[time]
@@ -760,6 +770,8 @@ static int16_t executeCommand(char* _dst, netconfig_t* _netConfig, packetInfo_t*
       }
       goto finish;
 
+#endif // FEATURE_ARDUINO_BASIC_ENABLE
+
 #ifdef FEATURE_TONE_ENABLE
     case CMD_ARDUINO_TONE:
       //
@@ -781,7 +793,7 @@ static int16_t executeCommand(char* _dst, netconfig_t* _netConfig, packetInfo_t*
       //  noTone[pin]
       //
       if (! isSafePin(argv[0])) {
-         goto finish;
+        goto finish;
       }
       noTone(argv[0]);
       rc = RESULT_IS_OK;
@@ -925,7 +937,7 @@ static int16_t executeCommand(char* _dst, netconfig_t* _netConfig, packetInfo_t*
       i = ('\0' != argv[2]) && isSafePin(argv[2]);
       if (isSafePin(argv[0]) &&  isSafePin(argv[1])) {
         if (i) {
-          pinMode(argv[2],OUTPUT);
+          pinMode(argv[2], OUTPUT);
           digitalWrite(argv[2], LOW);
         }
         rc = shiftOutAdvanced(argv[0], argv[1], argv[3], argv[4], (uint8_t*) optarg[5]);
@@ -1410,6 +1422,15 @@ static int16_t executeCommand(char* _dst, netconfig_t* _netConfig, packetInfo_t*
           goto finish;
 #endif // FEATURE_DFPLAYER_ENABLE
 
+#ifdef FEATURE_PLANTOWER_PMS_ALL_ENABLE
+        case CMD_PLANTOWER_PMS_ALL:
+          //
+          //  PMS.All[rxPin, txPin]
+          //
+          rc = getPlantowerPM25AllMetrics(argv[0], argv[1], payload);
+          goto finish;
+#endif // FEATURE_PLANTOWER_PMS_ALL_ENABLE
+
           // default:
           //  goto finish;
       } // switch (cmdIdx) Non-I2C related commands block
@@ -1421,7 +1442,7 @@ static int16_t executeCommand(char* _dst, netconfig_t* _netConfig, packetInfo_t*
       SoftTWI.reconfigure(argv[0], argv[1]);
 
       int8_t i2CAddress;
-      
+
       i2CAddress = (('\0' != *optarg[2]) ? abs((int8_t) argv[2]) : I2C_NO_ADDR_SPECIFIED);
 
 #ifdef FEATURE_I2C_ENABLE
@@ -1448,7 +1469,7 @@ static int16_t executeCommand(char* _dst, netconfig_t* _netConfig, packetInfo_t*
           // i2c.write(sdaPin, sclPin, i2cAddress, register, data, numBytes)
           //
           if (I2C_NO_ADDR_SPECIFIED == i2CAddress) {
-             goto finish;
+            goto finish;
           }
           rc = writeValueToI2C(&SoftTWI, i2CAddress, i2CRegister, (uint32_t) argv[4], (uint8_t) argv[5]);
           goto finish;
@@ -1458,7 +1479,7 @@ static int16_t executeCommand(char* _dst, netconfig_t* _netConfig, packetInfo_t*
           // i2c.read(sdaPin, sclPin, i2cAddress, register, numBytes, numberOfReadings)
           //
           if (I2C_NO_ADDR_SPECIFIED == i2CAddress) {
-             goto finish;
+            goto finish;
           }
           rc = readValueFromI2C(&SoftTWI, i2CAddress, i2CRegister, (uint32_t*) &value, argv[4], (('\0' != *optarg[5]) ? argv[5] : 0x00));
           goto finish;
@@ -1468,7 +1489,7 @@ static int16_t executeCommand(char* _dst, netconfig_t* _netConfig, packetInfo_t*
           //  i2c.bitWrite(sdaPin, sclPin, i2cAddress, register, bitNo, value)
           //
           if (I2C_NO_ADDR_SPECIFIED == i2CAddress) {
-             goto finish;
+            goto finish;
           }
           rc = bitWriteToI2C(&SoftTWI, i2CAddress, i2CRegister, argv[4], argv[5]);
           goto finish;
@@ -1478,7 +1499,7 @@ static int16_t executeCommand(char* _dst, netconfig_t* _netConfig, packetInfo_t*
           //  i2c.bitRead(sdaPin, sclPin, i2cAddress, register, bitNo)
           //
           if (I2C_NO_ADDR_SPECIFIED == i2CAddress) {
-             goto finish;
+            goto finish;
           }
           rc = bitReadFromI2C(&SoftTWI, i2CAddress, i2CRegister, argv[4], (uint8_t*) &value);
           goto finish;
@@ -1553,7 +1574,7 @@ static int16_t executeCommand(char* _dst, netconfig_t* _netConfig, packetInfo_t*
           //  PCF8574.LCDPrint[sdaPin, sclPin, i2cAddress, lcdBacklight, lcdType, data]
           //
           if (I2C_NO_ADDR_SPECIFIED == i2CAddress) {
-             goto finish;
+            goto finish;
           }
           rc = printToPCF8574LCD(&SoftTWI, i2CAddress, argv[3], argv[4], optarg[5]);
           // Store current time when on LCD was printed something to calculation in loopStageUserFunction() (for example) 'no refresh timeout' properly
@@ -1588,7 +1609,7 @@ static int16_t executeCommand(char* _dst, netconfig_t* _netConfig, packetInfo_t*
           // i is half length of decoded byte array
           //i = (strlen(optarg[4]) - 2) / 2;
           if (I2C_NO_ADDR_SPECIFIED == i2CAddress) {
-             goto finish;
+            goto finish;
           }
           i = hstoba((uint8_t*) payload, optarg[4]);
           if (0 < i) {
@@ -1667,7 +1688,7 @@ static int16_t executeCommand(char* _dst, netconfig_t* _netConfig, packetInfo_t*
 
 
 #ifdef FEATURE_ADPS9960_ENABLE
-        // !!! IR Led not used for ALS conversion         
+        // !!! IR Led not used for ALS conversion
         // RGBC results can be used as light levels in Lux
         case CMD_ADPS9960_AMBIENT:
           //

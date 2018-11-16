@@ -36,14 +36,6 @@
 */
 
 /****       New              ****/
-//#define FEATURE_ADPS9960_ENABLE
-//#define FEATURE_DFPLAYER_ENABLE
-//#define FEATURE_MAX6675_ENABLE
-//#define FEATURE_PCA9685_ENABLE
-//#define FEATURE_TSL2561_ENABLE
-//#define FEATURE_VEML6070_ENABLE
-//#define FEATURE_SERVO_ENABLE
-//#define FEATURE_RELAY_ENABLE
 
 /****       Network              ****/
 /*/
@@ -68,6 +60,16 @@
 //#define FEATURE_NET_USE_MCUID
 
 /****       Arduino wrappers     ****/
+/*/
+  /=/      Enable commands:
+  /=/        - analogWrite[];
+  /=/        - digitalWrite[]
+  /=/        - analogRead[];
+  /=/        - digitalRead[]
+  /=/        - delay[]
+  /=/
+  /*/
+#define FEATURE_ARDUINO_BASIC_ENABLE
 
 /*/
   /=/      Enable commands:
@@ -98,7 +100,7 @@
   /*/
 //#define FEATURE_EXTERNAL_INTERRUPT_ENABLE
 
-/*
+/*/
   /=/     Handle incremental encoder that connected to interrupt-pin and enable command:
   /=/     - IncEnc.Value[]
   /*/
@@ -110,14 +112,14 @@
   /=/     Enable 1-Wire processing and command:
   /=/       - OW.Scan[]
   /*/
-#define FEATURE_OW_ENABLE
+//#define FEATURE_OW_ENABLE
 
 /*/
   /=/     Enable Dallas DS18x20 sensors handling and command:
   /=/       - DS18x20.Temperature[]
   /*/
 
-#define FEATURE_DS18X20_ENABLE
+//#define FEATURE_DS18X20_ENABLE
 
 /****       I2C bus        ****/
 
@@ -145,7 +147,7 @@
 /*/
   /=/     Enable BOSCH BMP280 sensors handling
   /*/
-//#define FEATURE_BMP280_ENABLE
+#define FEATURE_BMP280_ENABLE
 
 /*/
   /=/     Enable BOSCH BME280 sensors handling and enable additional command
@@ -171,13 +173,34 @@
 //#define FEATURE_MAX44009_ENABLE
 
 /*/
+  /=/      Enable TSL2561 support and commands:
+  /=/        - TSL2561.light[]
+  /*/
+//#define FEATURE_TSL2561_ENABLE
+
+/*/
+  /=/      Enable VEML6070 support and commands:
+  /=/        - VEML6070.uv[]
+  /*/
+//#define FEATURE_VEML6070_ENABLE
+
+/*/
+  /=/      Enable ADPS9960 support and commands:
+  /=/        - ADPS9960.ambient[]
+  /=/        - ADPS9960.red[]
+  /=/        - ADPS9960.green[]
+  /=/        - ADPS9960.blue[]
+  /*/
+//#define FEATURE_ADPS9960_ENABLE
+
+/*/
   /=/     Enable LCD that connected via PCF8574(A)-based I2C expander and command:
   /=/       - PCF8574.LCDPrint[]
   /=/
   /*/
-//#define FEATURE_PCF8574_LCD_ENABLE
+#define FEATURE_PCF8574_LCD_ENABLE
 
-  /*/
+/*/
   /=/     Enable Sensirion SHT2x sensors handling and commands:
   /=/       - SHT2x.Humidity[];
   /=/       - SHT2x.Temperature[]
@@ -200,6 +223,12 @@
   /*/
 //#define FEATURE_AT24CXX_ENABLE
 
+/*/
+  /=/      Enable PCA9685 support and commands:
+  /=/        - PCA9685.write[]
+  /*/
+//#define FEATURE_PCA9685_ENABLE
+
 /****       MicroWire bus       ****/
 /*/
   /=/     Enable MAX7219 with 8x8 LED matrix handling and command:
@@ -219,6 +248,20 @@
 //#define FEATURE_PZEM004_ENABLE
 
 /*/
+  /=/     Enable MH-Zxx family PWM/UART protocol support and command:
+  /=/       - mhzxx.pwm.co2[]
+  /=/       - mhzxx.uart.co2[]
+  /*/
+#define FEATURE_MHZXX_PWM_ENABLE
+//#define FEATURE_MHZXX_UART_ENABLE
+
+/*/
+  /=/     Enable DFPlayer Mini support and command:
+  /=/       - DFPlayer.run[]
+  /*/
+//#define FEATURE_DFPLAYER_ENABLE
+
+/*/
   /=/     Enable APC SmartUPS protocol support and command:
   /=/       - ups.apcsmart[]
   /*/
@@ -231,6 +274,14 @@
   /=/     Note: command is not tested on real hardware. Please, send report to me.
   /*/
 //#define FEATURE_UPS_MEGATEC_ENABLE
+
+/*/
+  /=/     Enable Plantower PMS-xxxx sensors support and command:
+  /=/       - PMS.all[]
+  /=/
+  /=/     Note: PMS.all command output is JSON (for Zabbix v3.4 and above)
+  /*/
+#define FEATURE_PLANTOWER_PMS_ALL_ENABLE
 
 /****       DHT/AM family    ****/
 
@@ -283,14 +334,36 @@
   /=/     Enable WS2812 led chip support and command:
   /=/       - ws2812.sendraw[]
   /*/
-//#define FEATURE_WS2812_ENABLE
+#define FEATURE_WS2812_ENABLE
+
+
+/****      Unsorted features     ****/
+/*/
+  /=/     Enable MAX6675 support and command:
+  /=/       - MAX6675.temperature[]
+  /*/
+//#define FEATURE_MAX6675_ENABLE
+
+
+/*/
+  /=/     Enable digital Servo's (like SG-90) support and command:
+  /=/       - Servo.turn[]
+  /*/
+//#define FEATURE_SERVO_ENABLE
+
+/*/
+  /=/     Enable various turn on / turn off tricks support and command:
+  /=/       - relay[]
+  /=/       - pulse[]
+  /*/
+//#define FEATURE_RELAY_ENABLE
 
 /****       System        ****/
 /*/
   /=/      Enable calling user functions on device start and every _constUserFunctionCallInterval_ if no active network session exist
   /=/      You can write to _plugin.ino_ your own code and use all Zabbuino's internal functions to query sensors and handle actuators
   /*/
-//#define FEATURE_USER_FUNCTION_PROCESSING
+#define FEATURE_USER_FUNCTION_PROCESSING
 
 /*/
   /=/      Support Zabbix's Action functionality and enable command:
@@ -320,7 +393,7 @@
 /*/
   /=/     Store runtime settings in EEPROM and use its on start
   /*/
-#define FEATURE_EEPROM_ENABLE
+//#define FEATURE_EEPROM_ENABLE
 
 /*/
   /=/     Force protect (enable even netConfig.useProtection is false) your system from illegal access for change runtime settings and reboots
@@ -338,7 +411,7 @@
   /=/       - Sys.RAM.Free[];
   /=/       - Sys.RAM.FreeMin[]
   /*/
-#define FEATURE_SYSINFO_ENABLE
+//#define FEATURE_SYSINFO_ENABLE
 
 /*/
   /=/      Enable support the system RTC (DS3231 or PCF8563 RTC chip which connected via I2C interface) and commands:
@@ -370,7 +443,7 @@
   /=/
   /=/     Note that 64 bytes buffer reserved for Serial (refer to HardwareSerial.h) and long commands like ws2812.sendraw[5,1,over9000chars] can be processed uncorrectly
   /*/
-//#define FEATURE_SERIAL_LISTEN_TOO
+#define FEATURE_SERIAL_LISTEN_TOO
 
 /*/
   /=/     Send back to user text messages if error is occurs. Otherwise - send numeric code

@@ -140,7 +140,10 @@ int8_t getMHZxxMetricPWM(uint8_t _pin, uint16_t _range, uint8_t* _dst, int32_t* 
           pinState, // pinBit, pinPort,
           rc = DEVICE_ERROR_ACK_L;
           
-  uint32_t startTime, highTime, lowTime, nowTime;
+  uint32_t startTime, 
+           nowTime,
+           highTime = 0x00,
+           lowTime = 0x00;
 
   
   /* 

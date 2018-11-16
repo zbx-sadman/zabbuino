@@ -1,3 +1,4 @@
+
 #define USER_FUNCTION_SUBCOMMAND_DROP_ALARM_TIMEOUT           (0x13)
 
 uint32_t commandUserFunctionTimeout = 60000UL;
@@ -11,7 +12,6 @@ void preLoopStageUserFunction(char* _dst) {
   //  commandUserFunctionStartTime = millis();
 }
 
-// user.run[0x13,7,5000,0,1]
 int8_t executeCommandUserFunction(char* _dst, char** _optarg, int32_t* _argv, int32_t* value) {
   int8_t rc = RESULT_IS_FAIL;
   uint8_t userFunctionSubcommandCode = _argv[0],

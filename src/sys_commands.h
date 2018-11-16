@@ -135,6 +135,9 @@
 #define CMD_ADPS9960_GREEN                                      (0x59)
 #define CMD_ADPS9960_BLUE                                       (0x5A)
 
+#define CMD_PLANTOWER_PMS_ALL                                   (0x5B)
+#define CMD_PLANTOWER_PMS_EPM25                                 (0x5C)
+
 // add new command as "const char command_<COMMAND_MACRO> PROGMEM". Only 'const' push string to PROGMEM.
 // command_* values must be in lower case due analyze sub convert all chars to lower
 const char command_CMD_ZBX_NOPE[]                               PROGMEM = "\1";
@@ -268,6 +271,9 @@ const char command_CMD_ADPS9960_RED[]                           PROGMEM = "adps9
 const char command_CMD_ADPS9960_GREEN[]                         PROGMEM = "adps9960.green";
 const char command_CMD_ADPS9960_BLUE[]                          PROGMEM = "adps9960.blue";
 
+const char command_CMD_PLANTOWER_PMS_ALL[]                      PROGMEM = "pms.all";
+const char command_CMD_PLANTOWER_PMS_EPM25[]                    PROGMEM = "pms.epm25";
+
 
 //
 const command_t PROGMEM commands[] = {
@@ -276,16 +282,21 @@ const command_t PROGMEM commands[] = {
     { CMD_ZBX_AGENT_HOSTNAME      , command_CMD_ZBX_AGENT_HOSTNAME},     
     { CMD_ZBX_AGENT_VERSION       , command_CMD_ZBX_AGENT_VERSION},      
     { CMD_SYSTEM_UPTIME           , command_CMD_SYSTEM_UPTIME},                                             
+
+#ifdef FEATURE_ARDUINO_BASIC_ENABLE
     { CMD_ARDUINO_ANALOGWRITE     , command_CMD_ARDUINO_ANALOGWRITE},    
     { CMD_ARDUINO_ANALOGREAD      , command_CMD_ARDUINO_ANALOGREAD},     
+#endif
 
 #ifdef FEATURE_AREF_ENABLE
     { CMD_ARDUINO_ANALOGREFERENCE , command_CMD_ARDUINO_ANALOGREFERENCE},
 #endif
 
+#ifdef FEATURE_ARDUINO_BASIC_ENABLE
     { CMD_ARDUINO_DELAY           , command_CMD_ARDUINO_DELAY},          
     { CMD_ARDUINO_DIGITALWRITE    , command_CMD_ARDUINO_DIGITALWRITE},   
     { CMD_ARDUINO_DIGITALREAD     , command_CMD_ARDUINO_DIGITALREAD},                                        
+#endif
 
 #ifdef FEATURE_TONE_ENABLE
     { CMD_ARDUINO_TONE            , command_CMD_ARDUINO_TONE},           
@@ -484,6 +495,14 @@ const command_t PROGMEM commands[] = {
     { CMD_ADPS9960_RED            , command_CMD_ADPS9960_RED},
     { CMD_ADPS9960_GREEN          , command_CMD_ADPS9960_GREEN},
     { CMD_ADPS9960_BLUE           , command_CMD_ADPS9960_BLUE},
+#endif
+
+#ifdef FEATURE_PLANTOWER_PMS_SEPARATE_ENABLE
+    { CMD_PLANTOWER_PMS_EPM25     , command_CMD_PLANTOWER_PMS_EPM25},
+#endif
+
+#ifdef FEATURE_PLANTOWER_PMS_ALL_ENABLE
+    { CMD_PLANTOWER_PMS_ALL       , command_CMD_PLANTOWER_PMS_ALL},
 #endif
 
 };
