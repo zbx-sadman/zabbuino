@@ -158,7 +158,7 @@ int8_t getPlantowerPM25Metric(const uint8_t _rxPin, const uint8_t _txPin, const 
      case OUTPUT_NUMBER:
        break;
      case OUTPUT_JSON:
-       snprintf_P(_dst, 250, PSTR("{\"SPM10\":%u,\"SPM25\":%u,\"SPM100\":%u,\"EPM10\":%u,\"EPM25\":%u,\"EPM100\":%u,\"PRT03\":%u,\"PRT05\":%u,\"PRT10\":%u,\"PRT25\":%u,\"PRT50\":%u,\"PRT100\":%u}"),
+       snprintf_P(_dst, constBufferSize, PSTR("{\"SPM10\":%u,\"SPM25\":%u,\"SPM100\":%u,\"EPM10\":%u,\"EPM25\":%u,\"EPM100\":%u,\"PRT03\":%u,\"PRT05\":%u,\"PRT10\":%u,\"PRT25\":%u,\"PRT50\":%u,\"PRT100\":%u}"),
                 ptrDataStructured->standartPM10, ptrDataStructured->standartPM25, ptrDataStructured->standartPM100,
                 ptrDataStructured->environmentPM10, ptrDataStructured->environmentPM25, ptrDataStructured->environmentPM100, 
                 ptrDataStructured->particles03um, ptrDataStructured->particles05um, ptrDataStructured->particles10um, 

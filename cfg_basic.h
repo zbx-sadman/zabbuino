@@ -279,7 +279,7 @@
   /=/     Enable Plantower PMS-xxxx sensors support and command:
   /=/       - PMS.all[]
   /=/
-  /=/     Note: PMS.all command output is JSON (for Zabbix v3.4 and above)
+  /=/     Note: PMS.all command output is JSON (for Zabbix v3.4 and above) and constBufferSize must 175 char lenght at least
   /*/
 #define FEATURE_PLANTOWER_PMS_ALL_ENABLE
 

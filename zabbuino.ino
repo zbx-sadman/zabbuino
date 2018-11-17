@@ -1,12 +1,3 @@
-/*
-  old pgm
-  Sketch uses 16,478 bytes (51%) of program storage space. Maximum is 32,256 bytes.
-  Global variables use 918 bytes (44%) of dynamic memory, leaving 1,130 bytes for local variables. Maximum is 2,048 bytes.
-
-
-  Sketch uses 16,564 bytes (51%) of program storage space. Maximum is 32,256 bytes.
-  Global variables use 918 bytes (44%) of dynamic memory, leaving 1,130 bytes for local variables. Maximum is 2,048 bytes.
-*/
 /*-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
 
                             To avoid compilation errors use proper release Arduino IDE, please.
@@ -57,7 +48,7 @@ void loop() {
   char incomingData;
   uint16_t blinkType = constBlinkNope;
   uint32_t processStartTime, processEndTime, prevPHYCheckTime, prevNetProblemTime, prevSysMetricGatherTime, clientConnectTime, netDebugPrintTime;
-  char cBuffer[constBufferSize + 1]; // +1 for trailing \0
+  char cBuffer[ZBX_HEADER_LENGTH + constBufferSize + 1]; // +1 for trailing \0
   // Last idx is not the same that array size
   char* optarg[constArgC];
   packetInfo_t packetInfo = {PACKET_TYPE_NONE, 0x00, 0x00, optarg};
@@ -1421,6 +1412,15 @@ static int16_t executeCommand(char* _dst, netconfig_t* _netConfig, packetInfo_t*
           rc = runDFPlayerMini(argv[0], argv[1], argv[2], argv[3], (('\0' == *optarg[4]) ? -0x01 : argv[4]), (uint8_t*) payload);
           goto finish;
 #endif // FEATURE_DFPLAYER_ENABLE
+
+#ifdef FEATURE_PLANTOWER_PMS_SEPARATE_ENABLE
+        case CMD_PLANTOWER_PMS_EPM25:
+          //
+          //  PMS.epm25[rxPin, txPin]
+          //
+          rc = getPlantowerPM25Metric(argv[0], argv[1], SENS_READ_ENVIRONMENT_PM25, payload);
+          goto finish;
+#endif // FEATURE_PLANTOWER_PMS_SEPARATE_ENABLE
 
 #ifdef FEATURE_PLANTOWER_PMS_ALL_ENABLE
         case CMD_PLANTOWER_PMS_ALL:
