@@ -3,6 +3,8 @@ An Zabbix agent firmware for Arduino (**AVR only**)
 
 Actual release is v1.2.1. Compilation tested on Arduino IDE 1.6.11 (from https://www.arduino.cc/) and above.
 
+**Zabbix v4 protocol changes supports since Zabbuino v1.3 (still placed into [experimental](https://github.com/zbx-sadman/Zabbuino/tree/experimental) branch at this time).**
+
 All new features can be found on [experimental](https://github.com/zbx-sadman/Zabbuino/tree/experimental) branch. Old releases placed in [old_releases](https://github.com/zbx-sadman/Zabbuino/tree/old_releases) branch.
 
 See [change log](https://github.com/zbx-sadman/Zabbuino/blob/master/ChangeLog.md) before update.
