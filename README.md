@@ -11,6 +11,7 @@ Implemented:
 - MCU and runtime metrics (current/min/max VCC, current/min RAM, uptime, MCU name) obtaining;
 - Support W5100 and ENC28J60 network modules, drivers is implemented to source code;
 - Support one or more DS18X20 thermometer;
+- Support MLX90614 infrared thermometer;
 - Support MAX6675 termocoupler ADC;
 - Support DHT11/21/22/33/44 or AM2301/2302 humidity and temperature sensors;
 - Support SHT2X humidity and temperature sensors serie;
@@ -38,6 +39,23 @@ Implemented:
 - Support Megatec UPS's (with RS232 interface);
 - Simulate varuious vendor's IR transmitters.
 -----------------------------
+
+#### 06 Dec 2018
+
+Changes:
+  - OneWire library is included in sources;
+  - SoftwareWire library updated because it have a little bug and did not work with MLX90614 sensor;
+
+
+New features:
+  - _FEATURE\_MLX90614\_ENABLE_ Melexis MLX90614 sensors support (I2C mode only).
+  - Command ``mlx90614.temperature[sdaPin, sclPin, i2cAddress, zone]`` is added:
+    - _sdaPin_, _sclPin_ - I2C pins to which MLX90614 connected;
+    - _i2cAddress_ - I2C address of MLX90614;
+    - _zone_ - Sensor's zone what value need to read: 0 - Ambient, 1 - Zone #1, 2 - Zone #2 (for Dual Zone modifications only).
+    Example: ``mlx90614.temperature[18, 19, 0x5A, 1]`` returns temperature of Zone #1 from sensor with 0x5A address.
+ 
+    Note: please read FAQ in the "MLX90614 family Single and Dual Zone Infra Red Thermometer" dataheet if you wonder measurement result.
 
 #### 16 Nov 2018
 

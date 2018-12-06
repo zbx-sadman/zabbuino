@@ -39,7 +39,7 @@ uint8_t saveConfigToEEPROM(netconfig_t *_configStruct)
   // if (0 != index) - corrupted cells is detected (or just first write loop executed) and need to restart config write procedure
   while (index) {
      // Writing procedure must be stopped by return operator if EEPROM space is not enought to save sizeof() bytes of config
-     if (startAddress > (LAST_EEPROM_CELL_ADDRESS - sizeof(netconfig_t))) { 
+     if (startAddress > (EEPROM.length() - sizeof(netconfig_t))) { 
         DTSM ( SerialPrintln_P(PSTR("There is not room to save config")); )
         return false;
      }
@@ -97,7 +97,7 @@ uint8_t loadConfigFromEEPROM(netconfig_t *_configStruct)
   // Read the pointer of config store start address and validate it: default_start_address < startAddress < (last_eeprom_cell_address - config_structure_size) 
   // On error - stop working
   startAddress = EEPROM[CONFIG_STORE_PTR_ADDRESS];
-  if ((LAST_EEPROM_CELL_ADDRESS - sizeof(netconfig_t)) < startAddress || CONFIG_STORE_DEFAULT_START_ADDRESS > startAddress) { 
+  if ((EEPROM.length()  - sizeof(netconfig_t)) < startAddress || CONFIG_STORE_DEFAULT_START_ADDRESS > startAddress) { 
      return false; 
   }
 

@@ -138,6 +138,8 @@
 #define CMD_PLANTOWER_PMS_ALL                                   (0x5B)
 #define CMD_PLANTOWER_PMS_EPM25                                 (0x5C)
 
+#define CMD_MLX90614_TEMPERATURE                                (0x5D)
+
 // add new command as "const char command_<COMMAND_MACRO> PROGMEM". Only 'const' push string to PROGMEM.
 // command_* values must be in lower case due analyze sub convert all chars to lower
 const char command_CMD_ZBX_NOPE[]                               PROGMEM = "\1";
@@ -274,6 +276,7 @@ const char command_CMD_ADPS9960_BLUE[]                          PROGMEM = "adps9
 const char command_CMD_PLANTOWER_PMS_ALL[]                      PROGMEM = "pms.all";
 const char command_CMD_PLANTOWER_PMS_EPM25[]                    PROGMEM = "pms.epm25";
 
+const char command_CMD_MLX90614_TEMPERATURE[]                   PROGMEM = "mlx90614.temperature";
 
 //
 const command_t PROGMEM commands[] = {
@@ -503,6 +506,10 @@ const command_t PROGMEM commands[] = {
 
 #ifdef FEATURE_PLANTOWER_PMS_ALL_ENABLE
     { CMD_PLANTOWER_PMS_ALL       , command_CMD_PLANTOWER_PMS_ALL},
+#endif
+
+#ifdef FEATURE_MLX90614_ENABLE
+    { CMD_MLX90614_TEMPERATURE    , command_CMD_MLX90614_TEMPERATURE},
 #endif
 
 };

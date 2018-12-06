@@ -1,6 +1,5 @@
 #pragma once
 
-#include <OneWire.h>
 
 /*-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
 
@@ -71,4 +70,3 @@ int8_t getDS18X20Metric(const uint8_t, uint8_t, uint8_t*, char*);
 *
 *****************************************************************************************************************************/
 int8_t getDS18X20Metric(const uint8_t, uint8_t, uint8_t*, char*, int32_t*, const uint8_t _wantsNumber = false);
-//int8_t getDS18X20Metric(const uint8_t, uint8_t, char*, char*);

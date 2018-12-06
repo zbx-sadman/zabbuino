@@ -2,7 +2,7 @@
 #include "sys_includes.h"
 
 // OneWire lib for Dallas sensors
-#include <OneWire.h>
+#include "OneWire\OneWire.h"
 
 #include "service.h"
 #include "system.h"

@@ -26,7 +26,6 @@
 #define PACKET_TYPE_PLAIN                                       (0x01)
 #define PACKET_TYPE_ZABBIX                                      (0x02)
 
-
 #define SENS_READ_TEMP                                          (0x01)
 #define SENS_READ_HUMD                                          (0x02)
 #define SENS_READ_PRSS                                          (0x03)
@@ -36,7 +35,6 @@
 #define SENS_READ_LIGHT_GREEN                                   (0x07)
 #define SENS_READ_LIGHT_BLUE                                    (0x08)
 #define SENS_READ_UV                                            (0x09)
-
                                                                     
 #define SENS_READ_ZC                                            (0x0A)
 #define SENS_READ_AC                                            (0x0B)
@@ -62,6 +60,7 @@
 #define SENS_READ_PARTICLES_50_UM                               (0x2A)
 #define SENS_READ_PARTICLES_100_UM                              (0x2B)
 
+#define SENS_READ_ID                                            (0xFD)
 #define SENS_READ_ALL                                           (0xFE)
 #define SENS_READ_RAW                                           (0xFF)
 

@@ -36,6 +36,7 @@
 */
 
 /****       New              ****/
+#define FEATURE_MLX90614_ENABLE
 
 /****       Network              ****/
 /*/
@@ -131,8 +132,6 @@
   /=/       - I2C.BitWrite[];
   /=/       - I2C.BitRead[]
   /=/
-  /=/ Note #1: I2C library (Wire.h) takes at least 32bytes of memory for internal buffers
-  /=/ Note #2: I2C library (Wire.h) activate internal pullups for SDA & SCL pins when Wire.begin() called
   /*/
 //#define FEATURE_I2C_ENABLE
 

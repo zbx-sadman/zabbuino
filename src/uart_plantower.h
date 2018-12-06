@@ -4,6 +4,7 @@
 
 */
 
+
 #define PLANTOWER_UART_SPEED                                    (9600)
 #define PLANTOWER_DEFAULT_READ_TIMEOUT                          (2500UL)
 
@@ -26,7 +27,6 @@ int8_t getPlantowerPM25Metric(const uint8_t _rxPin, const uint8_t _txPin, const 
 int8_t getPlantowerPM25Metric(const uint8_t _rxPin, const uint8_t _txPin, const uint8_t _metric, char* _dst);
 
 int8_t getPlantowerPM25AllMetrics(const uint8_t _rxPin, const uint8_t _txPin, char* _dst);
-
 
 /*****************************************************************************************************************************
 *

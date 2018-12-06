@@ -1,3 +1,12 @@
+/*
+  old pgm
+  Sketch uses 16,478 bytes (51%) of program storage space. Maximum is 32,256 bytes.
+  Global variables use 918 bytes (44%) of dynamic memory, leaving 1,130 bytes for local variables. Maximum is 2,048 bytes.
+
+
+  Sketch uses 16,564 bytes (51%) of program storage space. Maximum is 32,256 bytes.
+  Global variables use 918 bytes (44%) of dynamic memory, leaving 1,130 bytes for local variables. Maximum is 2,048 bytes.
+*/
 /*-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
 
                             To avoid compilation errors use proper release Arduino IDE, please.
@@ -48,7 +57,7 @@ void loop() {
   char incomingData;
   uint16_t blinkType = constBlinkNope;
   uint32_t processStartTime, processEndTime, prevPHYCheckTime, prevNetProblemTime, prevSysMetricGatherTime, clientConnectTime, netDebugPrintTime;
-  char cBuffer[ZBX_HEADER_LENGTH + constBufferSize + 1]; // +1 for trailing \0
+  char cBuffer[constBufferSize + 1]; // +1 for trailing \0
   // Last idx is not the same that array size
   char* optarg[constArgC];
   packetInfo_t packetInfo = {PACKET_TYPE_NONE, 0x00, 0x00, optarg};
@@ -1413,15 +1422,6 @@ static int16_t executeCommand(char* _dst, netconfig_t* _netConfig, packetInfo_t*
           goto finish;
 #endif // FEATURE_DFPLAYER_ENABLE
 
-#ifdef FEATURE_PLANTOWER_PMS_SEPARATE_ENABLE
-        case CMD_PLANTOWER_PMS_EPM25:
-          //
-          //  PMS.epm25[rxPin, txPin]
-          //
-          rc = getPlantowerPM25Metric(argv[0], argv[1], SENS_READ_ENVIRONMENT_PM25, payload);
-          goto finish;
-#endif // FEATURE_PLANTOWER_PMS_SEPARATE_ENABLE
-
 #ifdef FEATURE_PLANTOWER_PMS_ALL_ENABLE
         case CMD_PLANTOWER_PMS_ALL:
           //
@@ -1718,6 +1718,19 @@ static int16_t executeCommand(char* _dst, netconfig_t* _netConfig, packetInfo_t*
           rc = getADPS9960Metric(&SoftTWI, ((I2C_NO_ADDR_SPECIFIED != i2CAddress) ? i2CAddress : ADPS9960_I2C_ADDRESS), (('\0' == *optarg[3]) ? APDS9960_DEFAULT_ADC_INTEGRATION_TIME : argv[3]), (('\0' == *optarg[4]) ? APDS9960_DEFAULT_ALS_GAIN : argv[4]), APDS9960_DEFAULT_LED_DRIVE, SENS_READ_LIGHT_BLUE, payload);
           goto finish;
 #endif // FEATURE_ADPS9960_ENABLE
+
+
+#ifdef FEATURE_MLX90614_ENABLE
+        case CMD_MLX90614_TEMPERATURE:
+          //
+          //  mlx90614.temperature[sdaPin, sclPin, i2cAddress, zone]
+          //  mlx90614.temperature[18, 19, 0x5A, 1]
+          rc = getMLX90614Metric(&SoftTWI, (I2C_NO_ADDR_SPECIFIED != i2CAddress) ? i2CAddress : MLX90614_I2C_ADDR, (('\0' == *optarg[3]) ? MLX90614_TEMPERATURE_ZONE_01 : argv[3]), SENS_READ_TEMP, payload);
+          //rc = getMLX90614Metric(&SoftTWI, i2CAddress, argv[3], SENS_READ_TEMP, payload);
+        goto finish;
+#endif
+
+
 
       }  // switch (cmdIdx), I2C block
 #endif // TWI_USE

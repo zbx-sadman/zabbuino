@@ -55,6 +55,7 @@
 #include "i2c_veml6070.h"
 #include "i2c_tsl2561.h"
 #include "i2c_adps9960.h"
+#include "i2c_mlx90614.h"
 
 // 1-Wire devices 
 #include "ow_bus.h"

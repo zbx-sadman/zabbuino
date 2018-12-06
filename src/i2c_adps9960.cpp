@@ -53,7 +53,7 @@ int8_t getADPS9960Metric(SoftwareWire* _softTWI, const uint8_t _i2cAddress, cons
 
 /*****************************************************************************************************************************
 *
-*   Read specified metric's value of the TSL2561 sensor, put it to output buffer on success. 
+*   Read specified metric's value of the ADPS9960 sensor, put it to output buffer on success. 
 *
 *   Returns: 
 *     - RESULT_IS_BUFFERED on success
