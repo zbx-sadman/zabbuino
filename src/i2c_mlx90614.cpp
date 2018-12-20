@@ -22,7 +22,7 @@ static uint8_t mlx90614crc8 (uint8_t inCrc, uint8_t inData) {
   }
   return data;
 }
-
+/*
 static uint8_t makePecWrite(const uint8_t _i2cAddress, const uint8_t _i2cRegister, const uint8_t _dataByteLow, const uint8_t _dataByteHigh) {
   uint8_t pec;
 
