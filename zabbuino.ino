@@ -1,12 +1,3 @@
-/*
-  old pgm
-  Sketch uses 16,478 bytes (51%) of program storage space. Maximum is 32,256 bytes.
-  Global variables use 918 bytes (44%) of dynamic memory, leaving 1,130 bytes for local variables. Maximum is 2,048 bytes.
-
-
-  Sketch uses 16,564 bytes (51%) of program storage space. Maximum is 32,256 bytes.
-  Global variables use 918 bytes (44%) of dynamic memory, leaving 1,130 bytes for local variables. Maximum is 2,048 bytes.
-*/
 /*-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
 
                             To avoid compilation errors use proper release Arduino IDE, please.
