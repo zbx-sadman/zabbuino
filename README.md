@@ -62,7 +62,7 @@ New features:
 New features:
   - _FEATURE\_PLANTOWER\_PMS\_ALL\_ENABLE_ enables Plantower PMS-xxxx sensors support. 
   - Command ``PMS.all[rxPin, txPin]`` is added:
-    - _rxPin_, _txPin_ - SoftwareSerial's pins to which TSL2561 connected. Only _rxPin_ is used now, you can use the same pin for _txPin_ at this time. Note: command returns JSON string for Zabbix 3.4 and above.
+    - _rxPin_, _txPin_ - SoftwareSerial's pins to which PMS-xxxx connected. Only _rxPin_ is used now, you can use the same pin for _txPin_ at this time. Note: command returns JSON string for Zabbix 3.4 and above.
     Example: ``PMS.all[3, 3]`` returns all metric values as one JSON-string.
 
 #### 10 Oct 2018
@@ -81,8 +81,8 @@ Changes:
 New features:
   - _FEATURE\_ADPS9960\_ENABLE_ enables ADPS9960 color/proximity sensor support. Unfortunately one predefined gain/integration time/etc setting used at this time.
   - Command ``ADPS9960.ambient[sdaPin, sclPin, i2cAddress]`` /  ``ADPS9960.red[...]`` / ``ADPS9960.green[...]`` /  ``ADPS9960.blue[...]`` is added:
-    - _sdaPin_, _sclPin_ - I2C pins to which TSL2561 connected;
-    - _i2cAddress_ - I2C address of TSL2561;
+    - _sdaPin_, _sclPin_ - I2C pins to which ADPS9960 connected;
+    - _i2cAddress_ - I2C address of ADPS9960;
     Example: ``ADPS9960.green[18, 19, 0x39]`` returns Green part of the light (some unknow units).
 
 #### 17 Sep 2018
