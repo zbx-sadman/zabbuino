@@ -14,6 +14,8 @@ See [change log](https://github.com/zbx-sadman/Zabbuino/blob/master/ChangeLog.md
 
 ![Zabbuino: example of chart](https://cloud.githubusercontent.com/assets/12827470/20768231/30de116a-b74e-11e6-932f-09eb6f7712e3.png)
 
+![Zabbuino: example of chart](https://user-images.githubusercontent.com/12827470/53301400-748fa700-3863-11e9-96c4-f8c5ae47c08d.png)
+
 Implemented:
 - A few Zabbix agent commands;
 - Wraps a lot of Arduino Language functions;
