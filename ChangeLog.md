@@ -2,7 +2,19 @@
 
 ### v1.3.0 (24 Feb 2019)
 
-In progress
+Added:
+- Zabbix v4, ATMega2560 compability;
+- Zabbuino pluginization improved;
+- MELT LCD displays support;
+- Compression for WS2812.sendRaw[] and shiftOut[] commands;
+- New sensors, drivers and devices support: Winsen MH-Z19, Melexis MLX90614, Plantower PMS-A003 (and similar), ADPS9960, TSL2561, PCA9685, MAX6675, DFPlayer Mini
+- Relays and Servos operations;
+- OneWire library to src tree.
+
+Fixed: 
+- INA219.* commands wrong work;
+- Silly errors in DS18x20 function code;
+- SoftwareWire libreary errors (moved to actual release).
 
 ### v1.2.0 (18 Apr 2017)
 
