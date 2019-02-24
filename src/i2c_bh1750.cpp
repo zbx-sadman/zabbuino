@@ -1,3 +1,10 @@
+// Config & common included files
+#include "sys_includes.h"
+
+#include "SoftwareWire/SoftwareWire.h"
+#include "service.h"
+#include "system.h"
+
 #include "i2c_bus.h"
 #include "i2c_bh1750.h"
 
@@ -27,7 +34,7 @@ int8_t getBH1750Metric(SoftwareWire* _softTWI, uint8_t _i2cAddress, uint8_t _mod
 *   Read specified metric's value of the BH1750 sensor, put it to output buffer on success. 
 *
 *   Returns: 
-*     - RESULT_IN_BUFFER on success
+*     - RESULT_IS_BUFFERED on success
 *     - DEVICE_ERROR_CONNECT on test connection error
 *     - RESULT_IS_FAIL - on other fails
 *
@@ -69,17 +76,17 @@ int8_t getBH1750Metric(SoftwareWire* _softTWI, uint8_t _i2cAddress, uint8_t _mod
 
   // Make some readings - 1 or 3 and get latest result
   while (readingNum) {
-    readingNum--;
+    --readingNum;
     // Wake up, sensor!
     // It going sleep after One-Time measurement 
-    if (0x00 != writeByteToI2C(_softTWI, _i2cAddress, I2C_NO_REG_SPECIFIED, BH1750_CMD_POWERON)) { goto finish; }
+    if (0x01 != writeByteToI2C(_softTWI, _i2cAddress, I2C_NO_REG_SPECIFIED, BH1750_CMD_POWERON)) { goto finish; }
     //delay(10);
     // Start convertation
-    if (0x00 != writeByteToI2C(_softTWI, _i2cAddress, I2C_NO_REG_SPECIFIED, _mode)) { goto finish; }
+    if (0x01 != writeByteToI2C(_softTWI, _i2cAddress, I2C_NO_REG_SPECIFIED, _mode)) { goto finish; }
     // Wait to complete covertation round
     delay(convertTime);
     // Read data
-    if (0x00 != readBytesFromI2C(_softTWI, _i2cAddress, I2C_NO_REG_SPECIFIED, value, 2)) { goto finish; }
+    if (0x02 != readBytesFromI2C(_softTWI, _i2cAddress, I2C_NO_REG_SPECIFIED, value, 0x02)) { goto finish; }
   }
 
   *_value = (((int32_t) value[0]) << 8) | value[1];
@@ -98,7 +105,7 @@ int8_t getBH1750Metric(SoftwareWire* _softTWI, uint8_t _i2cAddress, uint8_t _mod
        ltoaf(*_value, _dst, 2);
     }
   }
-  rc = RESULT_IN_BUFFER;
+  rc = RESULT_IS_BUFFERED;
   finish:
   return rc;
 }

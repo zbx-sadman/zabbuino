@@ -1,86 +1,6 @@
-#ifndef _ZABBUINO_STRUCTS_H_
-#define _ZABBUINO_STRUCTS_H_
+#pragma once
+#include "sys_structs.h"
 
-#include <IPAddress.h>
-#include <Arduino.h>
-#include "NetworkAddress.h"
-#include "../basic.h"
-#include "tune.h"
-
-/* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
-                                                            ALARM SECTION 
-*/
-
-// "No error detected" code
-#define ERROR_NONE                 	                        (0x00)
-// "No network activity" error code
-#define ERROR_NET                 	                        (0x01)
-// "DHCP problem" error code
-#define ERROR_DHCP                 	                        (0x02)
-
-/* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
-                                                        NETWORK MODULE SECTION 
-
-   Note, that changing MAC or IP-address separately may cause "strange" network errors until the moment when the router delete old ARP-records from the cache.
-
-   // Microchip forgot to step the number on the silcon when they released the revision B7. 6 is now rev B7. We still have
-   // to see what they do when they release B8. At the moment there is no B8 out yet
-
-*/
-
-/* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
-                                                         PROGRAMM STRUCTURES SECTION 
-*/
-
-// Note: netconfig_t size must be no more ___uint8_t___ bytes, because readConfig()'s read cycle use uint8_t counter. 
-// Change the index's variable type if bigger size need
-#pragma pack(push,1)
-typedef struct {
-  uint8_t CRC;                                    // 1 byte, CRC stores first, due it's EEPROM cell rewrites everytime on config saving if it changed. 
-                                                  //         When the cell was broken, we just shift start config store address to next cell.
-  // struct {
-  // uint8_t useProtection: 1;                    // 1 bit
-  // uint8_t useDHCP: 1;         	 	  // 1 bit
-  // }
-  uint8_t useProtection;                          // 1 byte
-  uint8_t useDHCP;         	 		  // 1 byte
-  uint8_t macAddress[6];                          // 6 byte 
-  NetworkAddress ipAddress;     		  // 4 byte (uint8_t[])
-  NetworkAddress ipNetmask;     		  // 4 byte (uint8_t[])
-  NetworkAddress ipGateway;     	          // 4 byte (uint8_t[])
-  char hostname[constAgentHostnameMaxLength+1];     // +1 for '\0', 255 - (1 + 1 + 1 + 6 + 4*4 + 1) = 229 bytes max
-  // #ifdef ... #elif ... #endif does not work with struct operator
-  uint32_t password;                              // 4 byte
-  int16_t tzOffset;                               // 2 byte
-} netconfig_t ;
-
-
-typedef struct {
-  uint32_t sysCmdCount;                           // Number of executed commands 
-  uint8_t  sysCmdLast;                            // Index of last executed command
-  uint32_t sysCmdLastExecTime;                    // End time of last executed command
-  uint32_t sysCmdTimeMax;                         // Maximum spend time for command execution
-  uint8_t  sysCmdTimeMaxN;                        // Index of the slowest command
-//  uint16_t sysVCC;
-  uint16_t sysVCCMin;                             // Maximum VCC (in mV) from MCU powering on
-  uint16_t sysVCCMax;                             // Minimum VCC (in mV) from MCU powering on
-  uint32_t sysRamFree;                            // "Current" free memory (in bytes).
-  uint32_t sysRamFreeMin;                         // Minimum free memory (in bytes) from MCU powering on
-  uint32_t netPHYReinits;                         // PHY reinits number (restarts of network module)
-} sysmetrics_t;
-
-
-typedef struct {                                  // 9 bytes: 
-  uint32_t value;        			  
-  uint8_t owner;                                  // 1 byte 
-  // mode == -1 => Interrupt is not attached
-  int8_t mode;                                    // 1 byte 
-  volatile uint8_t *encTerminalAPIR;              // 1 byte
-  volatile uint8_t *encTerminalBPIR;              // 1 byte
-  uint8_t encTerminalAPinBit;                     // 1 byte
-  uint8_t encTerminalBPinBit;                     // 1 byte
-} extInterrupt_t ;
-#pragma pack(pop) 
 /* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
                                                             COMMAND NAMES SECTION 
 */
@@ -191,8 +111,36 @@ typedef struct {                                  // 9 bytes:
 
 #define CMD_MAX44009_LIGHT                                      (0x4B)
 
+#define CMD_MHZXX_PWM_CO2                                       (0x4C)
+#define CMD_MHZXX_UART_CO2                                      (0x4D)
 
-// add new command as "const char command_<COMMAND_MACRO> PROGMEM". Only 'const' push string to PROGMEM. Tanx, Arduino & AVR.
+#define CMD_USER_RUN                                            (0x4E)
+
+#define CMD_VEML6070_UV                                         (0x4F)
+
+#define CMD_MAX6675_TEMPERATURE                                 (0x50)
+#define CMD_PCA9685_WRITE                                       (0x51)
+
+#define CMD_RELAY                                               (0x52)
+#define CMD_PULSE                                               (0x53)
+
+#define CMD_SERVO_TURN                                          (0x54)
+
+#define CMD_TSL2561_LIGHT                                       (0x55)
+
+#define CMD_DFPLAYER_RUN                                        (0x56)
+
+#define CMD_ADPS9960_AMBIENT                                    (0x57)
+#define CMD_ADPS9960_RED                                        (0x58)
+#define CMD_ADPS9960_GREEN                                      (0x59)
+#define CMD_ADPS9960_BLUE                                       (0x5A)
+
+#define CMD_PLANTOWER_PMS_ALL                                   (0x5B)
+#define CMD_PLANTOWER_PMS_EPM25                                 (0x5C)
+
+#define CMD_MLX90614_TEMPERATURE                                (0x5D)
+
+// add new command as "const char command_<COMMAND_MACRO> PROGMEM". Only 'const' push string to PROGMEM.
 // command_* values must be in lower case due analyze sub convert all chars to lower
 const char command_CMD_ZBX_NOPE[]                               PROGMEM = "\1";
 const char command_CMD_ZBX_AGENT_PING[]                         PROGMEM = "agent.ping";
@@ -302,393 +250,266 @@ const char command_CMD_AT24CXX_READ[]                           PROGMEM = "at24c
 
 const char command_CMD_MAX44009_LIGHT[]                         PROGMEM = "max44009.light";
 
+const char command_CMD_MHZXX_PWM_CO2[]                          PROGMEM = "mhzxx.pwm.co2";
+const char command_CMD_MHZXX_UART_CO2[]                         PROGMEM = "mhzxx.uart.co2";
 
-// do not insert new command to any position without syncing indexes. Tanx, Arduino and AVR, for this method of string array pushing to PROGMEM
-// ~300 bytes of PROGMEM space can be saved with crazy "#ifdef-#else-#endif" dance
-const char* const commands[] PROGMEM = {
-  command_CMD_ZBX_NOPE,
+const char command_CMD_USER_RUN[]                               PROGMEM = "user.run";
 
-  command_CMD_ZBX_AGENT_PING,
-  command_CMD_ZBX_AGENT_HOSTNAME,
-  command_CMD_ZBX_AGENT_VERSION,
-  command_CMD_SYSTEM_UPTIME,
+const char command_CMD_VEML6070_UV[]                            PROGMEM = "veml6070.uv";
 
-  command_CMD_ARDUINO_ANALOGWRITE,
-  command_CMD_ARDUINO_ANALOGREAD,
+const char command_CMD_MAX6675_TEMPERATURE[]                    PROGMEM = "max6675.temperature";
+const char command_CMD_PCA9685_WRITE[]                          PROGMEM = "pca9685.write";
 
-#ifdef FEATURE_AREF_ENABLE
-  command_CMD_ARDUINO_ANALOGREFERENCE,
-#else
-  command_CMD_ZBX_NOPE,
+const char command_CMD_RELAY[]                                  PROGMEM = "relay";
+const char command_CMD_PULSE[]                                  PROGMEM = "pulse";
+const char command_CMD_SERVO_TURN[]                             PROGMEM = "servo.turn";
+
+const char command_CMD_TSL2561_LIGHT[]                          PROGMEM = "tsl2561.light";
+
+const char command_CMD_DFPLAYER_RUN[]                           PROGMEM = "dfplayer.run";
+
+const char command_CMD_ADPS9960_AMBIENT[]                       PROGMEM = "adps9960.ambient";
+const char command_CMD_ADPS9960_RED[]                           PROGMEM = "adps9960.red";
+const char command_CMD_ADPS9960_GREEN[]                         PROGMEM = "adps9960.green";
+const char command_CMD_ADPS9960_BLUE[]                          PROGMEM = "adps9960.blue";
+
+const char command_CMD_PLANTOWER_PMS_ALL[]                      PROGMEM = "pms.all";
+const char command_CMD_PLANTOWER_PMS_EPM25[]                    PROGMEM = "pms.epm25";
+
+const char command_CMD_MLX90614_TEMPERATURE[]                   PROGMEM = "mlx90614.temperature";
+
+//
+const command_t PROGMEM commands[] = {
+    { CMD_ZBX_NOPE                , command_CMD_ZBX_NOPE},               
+    { CMD_ZBX_AGENT_PING          , command_CMD_ZBX_AGENT_PING},         
+    { CMD_ZBX_AGENT_HOSTNAME      , command_CMD_ZBX_AGENT_HOSTNAME},     
+    { CMD_ZBX_AGENT_VERSION       , command_CMD_ZBX_AGENT_VERSION},      
+    { CMD_SYSTEM_UPTIME           , command_CMD_SYSTEM_UPTIME},                                             
+
+#ifdef FEATURE_ARDUINO_BASIC_ENABLE
+    { CMD_ARDUINO_ANALOGWRITE     , command_CMD_ARDUINO_ANALOGWRITE},    
+    { CMD_ARDUINO_ANALOGREAD      , command_CMD_ARDUINO_ANALOGREAD},     
 #endif
 
-  command_CMD_ARDUINO_DELAY,
-  command_CMD_ARDUINO_DIGITALWRITE,
-  command_CMD_ARDUINO_DIGITALREAD,
+#ifdef FEATURE_AREF_ENABLE
+    { CMD_ARDUINO_ANALOGREFERENCE , command_CMD_ARDUINO_ANALOGREFERENCE},
+#endif
+
+#ifdef FEATURE_ARDUINO_BASIC_ENABLE
+    { CMD_ARDUINO_DELAY           , command_CMD_ARDUINO_DELAY},          
+    { CMD_ARDUINO_DIGITALWRITE    , command_CMD_ARDUINO_DIGITALWRITE},   
+    { CMD_ARDUINO_DIGITALREAD     , command_CMD_ARDUINO_DIGITALREAD},                                        
+#endif
 
 #ifdef FEATURE_TONE_ENABLE
-  command_CMD_ARDUINO_TONE,
-  command_CMD_ARDUINO_NOTONE,
-#else
-  command_CMD_ZBX_NOPE,
-  command_CMD_ZBX_NOPE,
+    { CMD_ARDUINO_TONE            , command_CMD_ARDUINO_TONE},           
+    { CMD_ARDUINO_NOTONE          , command_CMD_ARDUINO_NOTONE},                                              
 #endif
 
 #ifdef FEATURE_RANDOM_ENABLE
-  command_CMD_ARDUINO_RANDOMSEED,
-  command_CMD_ARDUINO_RANDOM,
-#else
-  command_CMD_ZBX_NOPE,
-  command_CMD_ZBX_NOPE,
+    { CMD_ARDUINO_RANDOMSEED      , command_CMD_ARDUINO_RANDOMSEED},     
+    { CMD_ARDUINO_RANDOM          , command_CMD_ARDUINO_RANDOM},         
 #endif
 
 #ifdef FEATURE_EEPROM_ENABLE
-  command_CMD_SET_HOSTNAME,
-  command_CMD_SET_NETWORK,
-  command_CMD_SET_PASSWORD,
-  command_CMD_SET_SYSPROTECT,
-#else
-  command_CMD_ZBX_NOPE,
-  command_CMD_ZBX_NOPE,
-  command_CMD_ZBX_NOPE,
-  command_CMD_ZBX_NOPE,
+    { CMD_SET_HOSTNAME            , command_CMD_SET_HOSTNAME},           
+    { CMD_SET_NETWORK             , command_CMD_SET_NETWORK},            
+    { CMD_SET_PASSWORD            , command_CMD_SET_PASSWORD},           
+    { CMD_SET_SYSPROTECT          , command_CMD_SET_SYSPROTECT},         
 #endif
 
 #ifdef FEATURE_SYSTEM_RTC_ENABLE
-  command_CMD_SET_LOCALTIME,
-#else
-  command_CMD_ZBX_NOPE,
+    { CMD_SET_LOCALTIME           , command_CMD_SET_LOCALTIME},          
+    { CMD_SYSTEM_LOCALTIME        , command_CMD_SYSTEM_LOCALTIME},       
 #endif
 
-  command_CMD_SYS_PORTWRITE,
+    { CMD_SYS_PORTWRITE           , command_CMD_SYS_PORTWRITE},          
 
 #ifdef FEATURE_SHIFTOUT_ENABLE 
-  command_CMD_SYS_SHIFTOUT,
-#else
-  command_CMD_ZBX_NOPE,
-#endif
-
-  command_CMD_SYS_REBOOT,
-
-#ifdef FEATURE_SYSTEM_RTC_ENABLE
-  command_CMD_SYSTEM_LOCALTIME,
-#else
-  command_CMD_ZBX_NOPE,
+    { CMD_SYS_SHIFTOUT            , command_CMD_SYS_SHIFTOUT},           
+    { CMD_SYS_REBOOT              , command_CMD_SYS_REBOOT},             
 #endif
 
 #ifdef FEATURE_REMOTE_COMMANDS_ENABLE
-  command_CMD_SYSTEM_RUN,
-#else
-  command_CMD_ZBX_NOPE,
+    { CMD_SYSTEM_RUN              , command_CMD_SYSTEM_RUN},             
 #endif
 
 #ifdef FEATURE_SYSINFO_ENABLE
-  command_CMD_SYSTEM_HW_CHASSIS,
-  command_CMD_SYSTEM_HW_CPU,
-  command_CMD_NET_PHY_NAME,
-  command_CMD_NET_PHY_REINITS,
-  command_CMD_SYS_CMD_COUNT,
-  command_CMD_SYS_CMD_TIMEMAX,
-  command_CMD_SYS_CMD_TIMEMAX_N,
-  command_CMD_SYS_RAM_FREE,
-  command_CMD_SYS_RAM_FREEMIN,
-#else 
-  command_CMD_ZBX_NOPE,
-  command_CMD_ZBX_NOPE,
-  command_CMD_ZBX_NOPE,
-  command_CMD_ZBX_NOPE,
-  command_CMD_ZBX_NOPE,
-  command_CMD_ZBX_NOPE,
-  command_CMD_ZBX_NOPE,
-  command_CMD_ZBX_NOPE,
-  command_CMD_ZBX_NOPE,
+    { CMD_SYSTEM_HW_CHASSIS       , command_CMD_SYSTEM_HW_CHASSIS},      
+    { CMD_SYSTEM_HW_CPU           , command_CMD_SYSTEM_HW_CPU},          
+    { CMD_NET_PHY_NAME            , command_CMD_NET_PHY_NAME},           
+    { CMD_NET_PHY_REINITS         , command_CMD_NET_PHY_REINITS},        
+    { CMD_SYS_CMD_COUNT           , command_CMD_SYS_CMD_COUNT},          
+    { CMD_SYS_CMD_TIMEMAX         , command_CMD_SYS_CMD_TIMEMAX},        
+    { CMD_SYS_CMD_TIMEMAX_N       , command_CMD_SYS_CMD_TIMEMAX_N},      
+    { CMD_SYS_RAM_FREE            , command_CMD_SYS_RAM_FREE},           
+    { CMD_SYS_RAM_FREEMIN         , command_CMD_SYS_RAM_FREEMIN},        
 #endif
-  
-  command_CMD_SYS_VCC,
-  command_CMD_SYS_VCCMIN,
-  command_CMD_SYS_VCCMAX,
+
+    { CMD_SYS_VCC                 , command_CMD_SYS_VCC},                
+    { CMD_SYS_VCCMIN              , command_CMD_SYS_VCCMIN},             
+    { CMD_SYS_VCCMAX              , command_CMD_SYS_VCCMAX},             
 
 #ifdef FEATURE_EXTERNAL_INTERRUPT_ENABLE
-  command_CMD_EXTINT_COUNT,
-#else
-  command_CMD_ZBX_NOPE,
+    { CMD_EXTINT_COUNT            , command_CMD_EXTINT_COUNT},           
 #endif
 
 #ifdef FEATURE_INCREMENTAL_ENCODER_ENABLE
-  command_CMD_INCENC_VALUE,
-#else
-  command_CMD_ZBX_NOPE,
+    { CMD_INCENC_VALUE            , command_CMD_INCENC_VALUE},           
 #endif
-
+ 
 #ifdef FEATURE_OW_ENABLE
-  command_CMD_OW_SCAN,
-#else
-  command_CMD_ZBX_NOPE,
+    { CMD_OW_SCAN                 , command_CMD_OW_SCAN},                
 #endif
 
 #ifdef FEATURE_I2C_ENABLE
-  command_CMD_I2C_SCAN,
-  command_CMD_I2C_WRITE,
-  command_CMD_I2C_READ,
-  command_CMD_I2C_BITWRITE,
-  command_CMD_I2C_BITREAD,
-#else
-  command_CMD_ZBX_NOPE,
-  command_CMD_ZBX_NOPE,
-  command_CMD_ZBX_NOPE,
-  command_CMD_ZBX_NOPE,
-  command_CMD_ZBX_NOPE,
+    { CMD_I2C_SCAN                , command_CMD_I2C_SCAN},               
+    { CMD_I2C_WRITE               , command_CMD_I2C_WRITE},              
+    { CMD_I2C_READ                , command_CMD_I2C_READ},               
+    { CMD_I2C_BITWRITE            , command_CMD_I2C_BITWRITE},           
+    { CMD_I2C_BITREAD             , command_CMD_I2C_BITREAD},            
 #endif
 
 #ifdef FEATURE_DS18X20_ENABLE
-  command_CMD_DS18X20_TEMPERATURE,
-#else
-  command_CMD_ZBX_NOPE,
+    { CMD_DS18X20_TEMPERATURE     , command_CMD_DS18X20_TEMPERATURE},    
 #endif
 
 #ifdef FEATURE_DHT_ENABLE
-  command_CMD_DHT_HUMIDITY,
-  command_CMD_DHT_TEMPERATURE,
-#else
-  command_CMD_ZBX_NOPE,
-  command_CMD_ZBX_NOPE,
+    { CMD_DHT_HUMIDITY            , command_CMD_DHT_HUMIDITY},           
+    { CMD_DHT_TEMPERATURE         , command_CMD_DHT_TEMPERATURE},        
 #endif
 
 #ifdef FEATURE_BMP_ENABLE
-  command_CMD_BMP_PRESSURE,
-  command_CMD_BMP_TEMPERATURE,
-#else
-  command_CMD_ZBX_NOPE,
-  command_CMD_ZBX_NOPE,
+    { CMD_BMP_PRESSURE            , command_CMD_BMP_PRESSURE},           
+    { CMD_BMP_TEMPERATURE         , command_CMD_BMP_TEMPERATURE},        
 #endif
 
 #ifdef SUPPORT_BME280_INCLUDE
-  command_CMD_BME_HUMIDITY,
-#else
-  command_CMD_ZBX_NOPE,
+    { CMD_BME_HUMIDITY            , command_CMD_BME_HUMIDITY},           
 #endif
 
 #ifdef FEATURE_BH1750_ENABLE
-  command_CMD_BH1750_LIGHT,
-#else
-  command_CMD_ZBX_NOPE,
+    { CMD_BH1750_LIGHT            , command_CMD_BH1750_LIGHT},           
 #endif
 
 #ifdef FEATURE_MAX7219_ENABLE
-  command_CMD_MAX7219_WRITE,
-#else
-  command_CMD_ZBX_NOPE,
+    { CMD_MAX7219_WRITE           , command_CMD_MAX7219_WRITE},          
 #endif
 
 #ifdef FEATURE_PCF8574_LCD_ENABLE
-  command_CMD_PCF8574_LCDPRINT,
-#else
-  command_CMD_ZBX_NOPE,
+    { CMD_PCF8574_LCDPRINT        , command_CMD_PCF8574_LCDPRINT},       
 #endif
-  
+
 #ifdef FEATURE_SHT2X_ENABLE
-  command_CMD_SHT2X_HUMIDITY,
-  command_CMD_SHT2X_TEMPERATURE,
-#else
-  command_CMD_ZBX_NOPE,
-  command_CMD_ZBX_NOPE,
+    { CMD_SHT2X_HUMIDITY          , command_CMD_SHT2X_HUMIDITY},         
+    { CMD_SHT2X_TEMPERATURE       , command_CMD_SHT2X_TEMPERATURE},      
 #endif
-  
+
 #ifdef FEATURE_ACS7XX_ENABLE
-  command_CMD_ACS7XX_ZC,
-  command_CMD_ACS7XX_AC,
-  command_CMD_ACS7XX_DC,
-#else
-  command_CMD_ZBX_NOPE,
-  command_CMD_ZBX_NOPE,
-  command_CMD_ZBX_NOPE,
+    { CMD_ACS7XX_ZC               , command_CMD_ACS7XX_ZC},              
+    { CMD_ACS7XX_AC               , command_CMD_ACS7XX_AC},              
+    { CMD_ACS7XX_DC               , command_CMD_ACS7XX_DC},              
 #endif
 
 #ifdef FEATURE_ULTRASONIC_ENABLE
-  command_CMD_ULTRASONIC_DISTANCE,
-#else
-  command_CMD_ZBX_NOPE,
+    { CMD_ULTRASONIC_DISTANCE     , command_CMD_ULTRASONIC_DISTANCE},    
 #endif
-
+    
 #ifdef FEATURE_IR_ENABLE
-  command_CMD_IR_SEND,
-  command_CMD_IR_SENDRAW,
-#else
-  command_CMD_ZBX_NOPE,
-  command_CMD_ZBX_NOPE,
+    { CMD_IR_SEND                 , command_CMD_IR_SEND},                
+    { CMD_IR_SENDRAW              , command_CMD_IR_SENDRAW},             
 #endif
 
 #ifdef FEATURE_WS2812_ENABLE
-  command_CMD_WS2812_SENDRAW,
-#else
-  command_CMD_ZBX_NOPE,
+    { CMD_WS2812_SENDRAW          , command_CMD_WS2812_SENDRAW},         
 #endif
 
 #ifdef FEATURE_PZEM004_ENABLE
-  command_CMD_PZEM004_CURRENT,
-  command_CMD_PZEM004_VOLTAGE,
-  command_CMD_PZEM004_POWER,
-  command_CMD_PZEM004_ENERGY,
-  command_CMD_PZEM004_SETADDR,
-#else
-  command_CMD_ZBX_NOPE,
-  command_CMD_ZBX_NOPE,
-  command_CMD_ZBX_NOPE,
-  command_CMD_ZBX_NOPE,
-  command_CMD_ZBX_NOPE,
+    { CMD_PZEM004_CURRENT         , command_CMD_PZEM004_CURRENT},        
+    { CMD_PZEM004_VOLTAGE         , command_CMD_PZEM004_VOLTAGE},        
+    { CMD_PZEM004_POWER           , command_CMD_PZEM004_POWER},          
+    { CMD_PZEM004_ENERGY          , command_CMD_PZEM004_ENERGY},         
+    { CMD_PZEM004_SETADDR         , command_CMD_PZEM004_SETADDR},        
 #endif
 
 #ifdef FEATURE_UPS_APCSMART_ENABLE
-  command_CMD_UPS_APCSMART,
-#else
-  command_CMD_ZBX_NOPE,
+    { CMD_UPS_APCSMART            , command_CMD_UPS_APCSMART},           
 #endif
 
 #ifdef FEATURE_UPS_MEGATEC_ENABLE
-  command_CMD_UPS_MEGATEC,
-#else
-  command_CMD_ZBX_NOPE,
+    { CMD_UPS_MEGATEC             , command_CMD_UPS_MEGATEC},            
 #endif
 
 #ifdef FEATURE_INA219_ENABLE
-  command_CMD_INA219_BUSVOLTAGE,
-  command_CMD_INA219_CURRENT,
-  command_CMD_INA219_POWER,
-#else
-  command_CMD_ZBX_NOPE,
-  command_CMD_ZBX_NOPE,
-  command_CMD_ZBX_NOPE,
+    { CMD_INA219_BUSVOLTAGE       , command_CMD_INA219_BUSVOLTAGE},      
+    { CMD_INA219_CURRENT          , command_CMD_INA219_CURRENT},         
+    { CMD_INA219_POWER            , command_CMD_INA219_POWER},           
 #endif
 
 #ifdef FEATURE_AT24CXX_ENABLE
-  command_CMD_AT24CXX_WRITE,
-  command_CMD_AT24CXX_READ,
-#else
-  command_CMD_ZBX_NOPE,
-  command_CMD_ZBX_NOPE,
+    { CMD_AT24CXX_WRITE           , command_CMD_AT24CXX_WRITE},          
+    { CMD_AT24CXX_READ            , command_CMD_AT24CXX_READ},           
+#endif
+    
+#ifdef FEATURE_MAX44009_ENABLE
+    { CMD_MAX44009_LIGHT          , command_CMD_MAX44009_LIGHT},         
 #endif
 
-#ifdef FEATURE_MAX44009_ENABLE
-  command_CMD_MAX44009_LIGHT,
-#else
-  command_CMD_ZBX_NOPE,
+#ifdef FEATURE_MHZXX_PWM_ENABLE
+    { CMD_MHZXX_PWM_CO2           , command_CMD_MHZXX_PWM_CO2},          
+    { CMD_MHZXX_UART_CO2          , command_CMD_MHZXX_UART_CO2},         
+#endif
+
+#ifdef FEATURE_USER_FUNCTION_PROCESSING
+    { CMD_USER_RUN                , command_CMD_USER_RUN},               
+#endif
+
+#ifdef FEATURE_VEML6070_ENABLE
+    { CMD_VEML6070_UV             , command_CMD_VEML6070_UV},            
+#endif
+
+#ifdef FEATURE_MAX6675_ENABLE
+    { CMD_MAX6675_TEMPERATURE     , command_CMD_MAX6675_TEMPERATURE},    
+#endif
+
+#ifdef FEATURE_PCA9685_ENABLE
+    { CMD_PCA9685_WRITE           , command_CMD_PCA9685_WRITE},          
+#endif
+
+#ifdef FEATURE_RELAY_ENABLE
+    { CMD_RELAY                   , command_CMD_RELAY},                  
+    { CMD_PULSE                   , command_CMD_PULSE},                  
+#endif
+
+#ifdef FEATURE_SERVO_ENABLE
+    { CMD_SERVO_TURN              , command_CMD_SERVO_TURN},             
+#endif
+
+#ifdef FEATURE_TSL2561_ENABLE
+    { CMD_TSL2561_LIGHT           , command_CMD_TSL2561_LIGHT},          
+#endif
+
+#ifdef FEATURE_DFPLAYER_ENABLE
+    { CMD_DFPLAYER_RUN            , command_CMD_DFPLAYER_RUN},
+#endif
+
+#ifdef FEATURE_ADPS9960_ENABLE
+    { CMD_ADPS9960_AMBIENT        , command_CMD_ADPS9960_AMBIENT},
+    { CMD_ADPS9960_RED            , command_CMD_ADPS9960_RED},
+    { CMD_ADPS9960_GREEN          , command_CMD_ADPS9960_GREEN},
+    { CMD_ADPS9960_BLUE           , command_CMD_ADPS9960_BLUE},
+#endif
+
+#ifdef FEATURE_PLANTOWER_PMS_SEPARATE_ENABLE
+    { CMD_PLANTOWER_PMS_EPM25     , command_CMD_PLANTOWER_PMS_EPM25},
+#endif
+
+#ifdef FEATURE_PLANTOWER_PMS_ALL_ENABLE
+    { CMD_PLANTOWER_PMS_ALL       , command_CMD_PLANTOWER_PMS_ALL},
+#endif
+
+#ifdef FEATURE_MLX90614_ENABLE
+    { CMD_MLX90614_TEMPERATURE    , command_CMD_MLX90614_TEMPERATURE},
 #endif
 
 };
-
-/* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
-                                                           VARIOUS DEFINES SECTION 
-*/
-
-// Zabbix v2.x header prefix ('ZBXD\x01')
-#define ZBX_HEADER_PREFIX                                       "zbxd\1"
-// sizeof() returns wrong result -> 6
-#define ZBX_HEADER_PREFIX_LENGTH                                4
-// Zabbix v2.x header length
-#define ZBX_HEADER_LENGTH                                       12
-
-/*
-
-Enum take more progspace on compilation that macro :(
-Why? All sources tell me thah enum is preprocessor feature. May be it use 16-bit width of ptr's or so?
-
-typedef enum {
-   SENS_READ_RAW,
-   SENS_READ_TEMP,
-   SENS_READ_HUMD,
-   SENS_READ_PRSS,
-   SENS_READ_LUX,
-   SENS_READ_ZC,
-   SENS_READ_AC,
-   SENS_READ_DC,
-   SENS_READ_VOLTAGE,
-   SENS_READ_POWER,
-   SENS_READ_ENERGY
-} sens_metrics_t;
-*/
-
-#define SENS_READ_TEMP                                          (0x01)
-#define SENS_READ_HUMD                                          (0x02)
-#define SENS_READ_PRSS                                          (0x03)
-#define SENS_READ_LUX                                           (0x04)
-                                                                    
-#define SENS_READ_ZC                                            (0x08)
-#define SENS_READ_AC                                            (0x09)
-#define SENS_READ_DC                                            (0x0A)
-                                                                    
-#define SENS_READ_VOLTAGE                                       (0x0B)
-#define SENS_READ_SHUNT_VOLTAGE                                 (0x0C)
-#define SENS_READ_BUS_VOLTAGE                                   (0x0D)
-#define SENS_READ_POWER                                         (0x0E)
-#define SENS_READ_ENERGY                                        (0x0F)                                                                   
-#define SENS_CHANGE_ADDRESS                                     (0x10)
-
-#define SENS_READ_RAW                                           (0xFF)
-
-
-#define RESULT_IS_FAIL                                          false
-#define RESULT_IS_OK                                            true
-#define RESULT_IN_BUFFER                                        (0x02)
-#define RESULT_IS_PRINTED                                       (0x04)
-#define RESULT_IS_SIGNED_VALUE                                  (0x08)
-#define RESULT_IS_UNSIGNED_VALUE                                (0x10)
-// RESULT_IS_NEW_COMMAND's value must not equal any command index to avoid incorrect processing
-#define RESULT_IS_NEW_COMMAND                                   (0xF5)
-
-// Error Codes
-//#define DEVICE_DISCONNECTED_C         	-127
-
-#define ZBX_NOTSUPPORTED                                        (-0x01)
-#define DEVICE_ERROR_CONNECT                                    (-0x02)
-#define DEVICE_ERROR_ACK_L                                      (-0x04)
-#define DEVICE_ERROR_ACK_H                                      (-0x08)
-#define DEVICE_ERROR_CHECKSUM                                   (-0x10)
-#define DEVICE_ERROR_TIMEOUT                                    (-0x20)
-#define DEVICE_ERROR_WRONG_ID                                   (-0x30)
-#define DEVICE_ERROR_NOT_SUPPORTED                              (-0x40)
-#define DEVICE_ERROR_WRONG_ANSWER                               (-0x50)
-#define DEVICE_ERROR_EEPROM_CORRUPTED                           (-0x60)
-/*
-ADC channels 
-
-     • Bits 3:0 – MUX[3:0]: Analog Channel Selection Bits
-       The value of these bits selects which analog inputs are connected to the ADC. See Table 24-4 for details. If
-       these bits are changed during a conversion, the change will not go in effect until this conversion is complete
-       (ADIF in ADCSRA is set).
-
-       Table 24-4. Input Channel Selections
-       MUX3..0  Single Ended Input
-       1110     1.1V (VBG)
-       1111     0V (GND)       - noise level measurement possible
-*/
-#define ANALOG_CHAN_VBG 		                        (0x0E) // B1110
-#define ANALOG_CHAN_GND 		                        (0x0F) // B1111
-                                                                    
-#define DBG_PRINT_AS_MAC 		                        (0x01)
-#define DBG_PRINT_AS_IP  		                        (0x02)
-
-#define I2C_NO_REG_SPECIFIED                                    (-0x01) //
-
-// Length of netconfig_t's CRC field
-#define CONFIG_CRC_LEN                                          (0x01)
-// PoConfig will be stored or loaded on ...                         
-#define CONFIG_STORE_PTR_ADDRESS                                (0x01)
-#define CONFIG_STORE_DEFAULT_START_ADDRESS                      (0x02)
-// one byte used to pointer to EEPROM's start address from which config will saved, max stored pointer value is 255
-#define LAST_EEPROM_CELL_ADDRESS                                (0xFF) 
-
-// Who is use interrupt pin
-#define OWNER_IS_NOBODY                                         (0x00)
-#define OWNER_IS_EXTINT                                         (0x01)
-#define OWNER_IS_INCENC                                         (0x02)
-                                                                    
-#define NO_REINIT_ANALYZER                                      false
-#define REINIT_ANALYZER                                         true
-
-#define WANTS_VALUE_NONE                                        (0x00)
-#define WANTS_VALUE_WHOLE                                       (0x01)
-#define WANTS_VALUE_SCALED                                      (0x0F)
-                                                                    
-                                                                    
-#endif // _ZABBUINO_STRUCTS_H_
-

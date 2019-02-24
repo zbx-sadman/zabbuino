@@ -1,3 +1,12 @@
+// Config & common included files
+#include "sys_includes.h"
+
+#include <SoftwareSerial.h>
+
+#include "service.h"
+#include "system.h"
+
+#include "uart_bus.h"
 #include "uart_megatec.h"
 
 /*-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
@@ -15,88 +24,90 @@
 *   Not tested yet.
 *
 *   Returns: 
-*     - RESULT_IN_BUFFER on success
+*     - RESULT_IS_BUFFERED on success
 *     - DEVICE_ERROR_TIMEOUT if device stop talking
 *
 *****************************************************************************************************************************/
-int8_t getMegatecUPSMetric(const uint8_t _rxPin, const uint8_t _txPin, uint8_t *_command, uint8_t _fieldNumber, uint8_t *_dst) {
+
+int8_t getMegatecUPSMetric(const uint8_t _rxPin, const uint8_t _txPin, char* _command, uint8_t _fieldNumber, uint8_t* _dst) {
   int8_t rc = DEVICE_ERROR_TIMEOUT;
-  uint8_t command, len, srcPos, dstPos, fileldNumber;
+  uint8_t srcPos, dstPos, fileldNumber, expectedStartByte;
+  int16_t len;
   SoftwareSerial swSerial(_rxPin, _txPin);
+  swSerial.begin(MEGATEC_UPS_UART_SPEED);
 
-  if (hstoba(_command, (char*) _command, 1)) { _command[1] = '\0'; } ;
-  command = _command[0];
-  // Serial.print("command: "); Serial.println(command, HEX);
-  len = 1; // default length
-
-  switch (command) {
-     case 'F':   // UPS Rating Information
-     case 'I':   // UPS Information Command
-       break;
-     case 'Q':   // Q1 in real. Status Inquiry
-       len = 2;
-       break;
-     default:
-//       return RESULT_IS_FAIL;
-       return 0;
+  len = hstoba((uint8_t*) _command, _command);
+  // Probaly _command is ASCII=string
+  if (0 > len) { 
+     // How much butes need to processing
+     len = strlen(_command);
   }
 
-/*
-     case 0x01:  // ^A,  Model string
-          command = 'I';
-          fieldNumber = 0x01;
-          break;
-     case 'B':   // Battery voltage, V
-          command = "Q1";
-          fieldNumber = 0x05;
-          break;
-     case 'C':   // Internal temperature, C
-          command = "Q1";
-          fieldNumber = 0x06;
-          break;
-     case 'F':   // Line frequency, Hz
-          command = "Q1";
-          fieldNumber = 0x04;
-          break;
-     case 'L':   // Input line voltage, V
-          command = "Q1";
-          fieldNumber = 0x00;
-          break;     
-     case 'O':   // Output voltage, V
-          command = "Q1";
-          fieldNumber = 0x02;
-          break;
-     case 'P':   // Power load, %
-          command = "Q1";
-          fieldNumber = 0x03;
-          break;
-     case 'l':   // Low transfer voltage, V
-          command = "Q1";
-          fieldNumber = 0x01;
-          break;
-*/
+  // Convert command to UPPERCASE in accordance with the requirements (i'm do not sure that is strict) of the Megatec protocol  
+  strupr(_command);
+  // add <CR> to the end of command
+  _command[len] = '\r'; 
+  len++;
+  
+  DTSD ( PRINT_PSTR("Command for UPS: "); Serial.println(_command); )
 
+  // Expected nothing on default
+  expectedStartByte = 0x00; // 
+
+  // Note that not all Megatec-"compatible" UPS runs all command and its returns the same as expected from proctocol
+  // Some Ippon's ignore I command, for example
+  switch (_command[0]) {
+     case 'F':   // F - UPS Rating Information
+     case 'I':   // I - UPS Information request
+       expectedStartByte = '#'; 
+       break;
+     case 'Q':   
+       // Q1 - Status Inquiry request?..
+       if ('1' == _command[1]) {
+          expectedStartByte = '('; 
+       }
+       // ... or just Q - Toggle the UPS beeper command 
+       break;
+     case 'S':   // S - Shut UPS output off in <n> minutes.
+     case 'C':   // C - Cancel Shutdown Command & CT - Cancel Test Command
+       break;
+     default:
+       rc = RESULT_IS_FAIL;
+       goto finish; 
+  }
+  
   swSerial.begin(MEGATEC_UPS_UART_SPEED);
   //  Step #1. Send user's command & recieve answer
   //
   // Flush all device's transmitted data to avoid get excess data in recieve buffer
-  serialRXFlush(&swSerial, false);
+  //DTSD ( Serial.println("Step #1 - communicate to UPS.\n\tFlush Buffer"); )
+  //serialRXFlush(&swSerial, false);
+  flushStreamRXBuffer(&swSerial, MEGATEC_DEFAULT_READ_TIMEOUT, !UART_SLOW_MODE);
 
-  serialSend(&swSerial, _command, len , false);
+  DTSD ( PRINTLN_PSTR("Send command"); )
+  serialSend(&swSerial, (uint8_t*) _command, len , !UART_SLOW_MODE);
+  // Do not expect the answer? Just go out
+  if (! expectedStartByte) { rc = RESULT_IS_OK; goto finish; }
   // Recieve answer from UPS. Answer placed to buffer directly for additional processing 
+  DTSD ( PRINT_PSTR("Recieve answer"); )
+  // We will expect to income no more MEGATEC_MAX_ANSWER_LENGTH bytes for MEGATEC_DEFAULT_READ_TIMEOUT milliseconds
+  // Recieving can be stopped when '\r' char taken.
+  // Need to use UART_SLOW_MODE with Megatec UPS?
   len = serialRecive(&swSerial, _dst, MEGATEC_MAX_ANSWER_LENGTH, MEGATEC_DEFAULT_READ_TIMEOUT, UART_STOP_ON_CHAR, '\r', !UART_SLOW_MODE);
-  // Answer will start with '('
-  if ('(' != _dst[0]) { rc = DEVICE_ERROR_WRONG_ANSWER; goto finish; }
+  // DTSD ( Serial.print("Recieved "); Serial.print(len); Serial.println(" chars"); )
+  // Answer must start with '(' or '#'
+  if (expectedStartByte != _dst[0]) { rc = DEVICE_ERROR_WRONG_ANSWER; goto finish; }
   len--;
   // probaly recieve timeout occurs if packet do not finished by <CR>
   if ('\r' != _dst[len])  { goto finish; } // rc inited with DEVICE_ERROR_TIMEOUT value
   _dst[len] = '\0';
 
-//  if (0 == fileldNumber) { rc = RESULT_IN_BUFFER; }
+  //  if (0 == fileldNumber) { rc = RESULT_IS_BUFFERED; }
   
   //  Step #2. Search the field that specified by number & move data to the output buffer begin
   //           If the field number is greater than the available, then use the data from the last field.
   //
+  // DTSD ( Serial.println("Step #2 - taking data from UPS answer"); )
   srcPos = 1; // start from 1-th byte to skip '(' prefix
   fileldNumber = dstPos = 0;
   // Walk over the recieved string while no EOL reached
@@ -118,12 +129,10 @@ int8_t getMegatecUPSMetric(const uint8_t _rxPin, const uint8_t _txPin, uint8_t *
   // make C-string
   _dst[dstPos] = '\0';
 
-  rc = RESULT_IN_BUFFER;
+  rc = RESULT_IS_BUFFERED;
 
   finish:
   swSerial.~SoftwareSerial(); 
   return rc;
 }
-
-
 

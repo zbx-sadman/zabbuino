@@ -1,5 +1,9 @@
 ## Zabbuino change log 
 
+### v1.3.0 (24 Feb 2019)
+
+In progress
+
 ### v1.2.0 (18 Apr 2017)
 
 New release with:

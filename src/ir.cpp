@@ -1,5 +1,7 @@
 /*
 
+Todo: https://github.com/ToniA/arduino-heatpumpir
+
 Based on: https://github.com/z3t0/Arduino-IRremote
 version 2.2.1 is used
 
@@ -8,6 +10,12 @@ version 2.2.1 is used
  #define's for Timer2 & Timer4  are included only to this .ino file. 
 
 */
+
+// Config & common included files
+#include "sys_includes.h"
+
+#include "service.h"
+
 #include "ir.h"
 
 static void mark (unsigned int time);
@@ -107,11 +115,11 @@ uint8_t sendRawByIR(const uint16_t _frequency, unsigned int _nBits, const char* 
       // restore full int from HEX nibbles
       packet = htod(*_data);
       packet <<= 4;
-      packet = htod(*_data+1);
+      packet = htod(*(_data+1));
       packet <<= 4;
-      packet = htod(*_data+2);
+      packet = htod(*(_data+2));
       packet <<= 4;
-      packet = htod(*_data+3);
+      packet = htod(*(_data+3));
       if (i & 1)  space(packet) ;
       else        mark (packet) ;
       i++;

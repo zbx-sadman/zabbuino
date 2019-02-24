@@ -1,13 +1,6 @@
-#ifndef _ZABBUINO_SERVICE_H_
-#define _ZABBUINO_SERVICE_H_
+#pragma once
 
-#include <Arduino.h>
-#include <avr/boot.h>
-#include <util/crc16.h>
-#include "../basic.h"
-#include "tune.h"
-#include "structs.h"
-#include "system.h"
+uint8_t flushStreamRXBuffer(Stream*, const uint32_t, const uint8_t);
 
 /*****************************************************************************************************************************
 *
@@ -50,7 +43,7 @@ void qtoaf(const int64_t _number, char *_dst, uint8_t _fracBits);
 *  Convert _len chars (exclude 0x prefix) of hex string to byte array
 *
 *****************************************************************************************************************************/
-uint8_t hstoba(uint8_t *_dst, const char* _src, uint8_t _len);
+int16_t hstoba(uint8_t*, const char*);
 
 /*****************************************************************************************************************************
 *
@@ -80,7 +73,7 @@ extern void SerialPrintln_P (const char *_src);
 *  Print array to Serial as MAC or IP or other string with sign-separated parts
 *
 *****************************************************************************************************************************/
-void printArray(uint8_t *_src, uint8_t _len, const uint8_t _type);
+void printArray(uint8_t *_src, const uint8_t _len, Stream* _stream, const uint8_t _type);
 
 void blinkMore(const uint8_t _times, const uint16_t _onTime, const uint16_t _offTime);
 
@@ -89,9 +82,9 @@ void blinkMore(const uint8_t _times, const uint16_t _onTime, const uint16_t _off
 *  
 *
 *****************************************************************************************************************************/
-uint8_t validateNetworkAddress(const NetworkAddress);
+//uint8_t validateNetworkAddress(const NetworkAddress);
 uint8_t strToNetworkAddress(const char*, NetworkAddress*);
-uint8_t analyzeStream(char, char*, char**, uint8_t);
+uint8_t analyzeStream(char _charFromClient, char* _dst, uint8_t doReInit, packetInfo_t* _packetInfo);
 
 /* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
                                                          INLINE AND "DEFINE" FUNCTIONS SECTION 
@@ -102,7 +95,8 @@ uint8_t analyzeStream(char, char*, char**, uint8_t);
 
 // HEX char to number
 //#define htod(_hex) ( (_hex >= 'a' && _hex <= 'f') ? (10 + _hex - 'a') : ( (_hex >= '0' && _hex <= '9') ? (_hex - '0') : 0) )
-inline uint8_t htod(const char _hex) { return (_hex >= 'a' && _hex <= 'f') ? (10 + _hex - 'a') : ( (_hex >= '0' && _hex <= '9') ? (_hex - '0') : 0); } 
+inline uint8_t htod(const char    _hex) { return (_hex >= 'a' && _hex <= 'f') ? (10 + _hex - 'a') : ( (_hex >= '0' && _hex <= '9') ? (_hex - '0') : 0); } 
+inline uint8_t htod(const uint8_t _hex) { return (_hex >= 'a' && _hex <= 'f') ? (10 + _hex - 'a') : ( (_hex >= '0' && _hex <= '9') ? (_hex - '0') : 0); } 
 
 // Convert dec number to hex char
 //#define dtoh(_dec) ( (_dec > 9) ? ('A' - 10 + _dec) : ('0' + _dec) )
@@ -110,7 +104,9 @@ inline char dtoh(const uint8_t _dec) { return (_dec > 9) ? ('A' - 10 + _dec) : (
 
 // if _source have hex prefix - return true
 //#define haveHexPrefix(_src) ( (_src[0] == '0' && _src[1] == 'x') )
-inline uint8_t haveHexPrefix(const char *_src) { return (_src[0] == '0' && _src[1] == 'x'); } 
+inline uint8_t haveHexPrefix(const char*    _src) { return (_src[0] == '0' && _src[1] == 'x'); } 
+inline uint8_t haveHexPrefix(const uint8_t* _src) { return (_src[0] == '0' && _src[1] == 'x'); } 
+
 
 #define arraySize(_array) ( sizeof(_array) / sizeof(*(_array)) )
 
@@ -139,47 +135,14 @@ inline void correctVCCMetrics(uint32_t _currVCC) {
   if (sysMetrics.sysVCCMax < _currVCC) { sysMetrics.sysVCCMax = _currVCC; }
 }
 
-#ifdef FEATURE_DEBUG_TO_SERIAL_HIGH
-    #define DTSL(x) x
-    #define DTSM(x) x
-    #define DTSH(x) x
-#else 
-    #ifdef FEATURE_DEBUG_TO_SERIAL_MIDDLE
-        #define DTSL(x) x
-        #define DTSM(x) x
-        #define DTSH(X) /* blank */
-    #else 
-        #ifdef FEATURE_DEBUG_TO_SERIAL_LOW
-            #define DTSL(x) x
-            #define DTSM(X) /* blank */
-            #define DTSH(X) /* blank */
-        #else 
-            #define DTSL(X) /* blank */
-            #define DTSM(X) /* blank */
-            #define DTSH(X) /* blank */
-        #endif 
-    #endif 
-#endif 
-
-
-#ifdef FEATURE_DEBUG_TO_SERIAL_DEV
- #define DTSD(x) x
-#else
- #define DTSD(X) /* blank */
-#endif 
-
-
-#ifdef FEATURE_NET_DEBUG_TO_SERIAL
- #define NDTS(x) x
-#else
- #define NDTS(X) /* blank */
-#endif 
-
-
 #define htonl(x) ( ((x)<<24 & 0xFF000000UL) | \
                    ((x)<< 8 & 0x00FF0000UL) | \
                    ((x)>> 8 & 0x0000FF00UL) | \
                    ((x)>>24 & 0x000000FFUL) )
 #define ntohl(x) htonl(x)
 
-#endif // #ifndef _ZABBUINO_SERVICE_H_
+#define PRINTLN_PSTR(str) ( SerialPrintln_P(PSTR(str)) )
+
+#define PRINT_PSTR(str) ( SerialPrint_P(PSTR(str)) )
+
+

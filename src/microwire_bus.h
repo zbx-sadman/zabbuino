@@ -1,9 +1,4 @@
-#ifndef _ZABBUINO_BUSMICROWIRE_H_
-#define _ZABBUINO_BUSMICROWIRE_H_
-
-#include "../basic.h"
-#include "tune.h"
-#include "system.h"
+#pragma once
 
 /* 
 
@@ -40,5 +35,3 @@ Second modification is by:
 *****************************************************************************************************************************/
 void writeToMAX7219(const uint8_t, const uint8_t, const uint8_t, const uint8_t, char*);
 
-
-#endif // #ifndef _ZABBUINO_BUSMICROWIRE_H_

@@ -1,13 +1,11 @@
-#ifndef _ZABBUINO_I2C_BMP_H_
-#define _ZABBUINO_I2C_BMP_H_
+#pragma once
 
-#include "i2c_bus.h"
+#define BMP180_I2C_ADDRESS                                      (0x77)  // I2C address of BMP085/180 sensor
 
-//#define BMP180_I2C_ADDRESS                                      (0x77  // I2C address of BMP085/180 sensor
+#define BMP280_I2C_ADDRESS_01                                   (0x77)
+#define BMP280_I2C_ADDRESS_02                                   (0x76)  // I2C address of BMP280/BME280 sensor
 
-//#define BMP280_I2C_ADDRESS_1                                    (0x76  // I2C address of BMP280/BME280 sensor
-//#define BMP280_I2C_ADDRESS_2                                    (0x77
-
+#define BME280_I2C_ADDRESS                                      (0x76)
 
 #define BMP_REGISTER_CHIPID                                     (0xD0)
                                                                      
@@ -120,7 +118,7 @@
 #define BMP280_STANDBY_TIME_4000_MS                             (0x07)
 
 #define BMP280_READY_MASK                                       (0x09) // Byte 0 + Byte 3 must be equial 0 if BMP280 do not busy
-#define BMP280_READY_TIMEOUT                                    (100)  // ms
+#define BMP280_READY_TIMEOUT                                    (100UL)  // ms
 
 // BME280 additional registers and constants
 #define BME280_STANDARD_OVERSAMP_HUMIDITY 	                BMP280_OVERSAMP_1X
@@ -146,7 +144,7 @@
 *   Overloads of main subroutine. Used to get numeric metric's value or it's char presentation only
 *
 *****************************************************************************************************************************/
-int8_t getBMPMetric(SoftwareWire*, uint8_t, const uint8_t, const uint8_t, const uint8_t, uint32_t*);
+int8_t getBMPMetric(SoftwareWire*, uint8_t, const uint8_t, const uint8_t, const uint8_t, int32_t*);
 int8_t getBMPMetric(SoftwareWire*, uint8_t, const uint8_t, const uint8_t, const uint8_t, char*);
 
 /*****************************************************************************************************************************
@@ -166,21 +164,21 @@ int8_t getBMPMetric(SoftwareWire*, uint8_t, const uint8_t, const uint8_t, const 
 *  Read specified metric's value of the BMP280/BME280 sensor, put it to output buffer on success. 
 *
 *   Returns: 
-*     - RESULT_IN_BUFFER on success
+*     - RESULT_IS_BUFFERED on success
 *     - DEVICE_ERROR_TIMEOUT if sensor do not ready to work
 *
 *****************************************************************************************************************************/
-int8_t getBMP280Metric(SoftwareWire*, uint8_t, const uint8_t, uint8_t, const uint8_t, char* _dst, int32_t*, const uint8_t);
+int8_t getBME280Metric(SoftwareWire*, uint8_t, const uint8_t, uint8_t, const uint8_t, char* _dst, int32_t*, const uint8_t);
 
 /*****************************************************************************************************************************
 *
 *   Read specified metric's value of the BMP180/BMP085 sensor, put it to output buffer on success. 
 *
 *   Returns: 
-*     - RESULT_IN_BUFFER on success
+*     - RESULT_IS_BUFFERED on success
 *     - DEVICE_ERROR_TIMEOUT if sensor do not ready to work
 *
 *****************************************************************************************************************************/
 int8_t getBMP180Metric(SoftwareWire*, uint8_t, uint8_t, const uint8_t, char*, int32_t*, const uint8_t);
 
-#endif // #ifndef _ZABBUINO_I2C_BMP_H_
+

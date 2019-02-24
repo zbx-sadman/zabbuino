@@ -1,10 +1,4 @@
-#ifndef _ZABBUINO_REGS_H_
-#define _ZABBUINO_REGS_H_
-
-#include <util/atomic.h>
-#include "../basic.h"
-#include "tune.h"
-
+#pragma once
 
 /*****************************************************************************************************************************
 *
@@ -14,7 +8,7 @@
 *     - none
 *
 **************************************************************************************************************************** */
-extern void setPortMode(const uint8_t _port, const uint8_t _mode, const uint8_t _pullup);
+int8_t setPortMode(const uint8_t, const uint8_t, const uint8_t);
 
 /*****************************************************************************************************************************
 *
@@ -24,7 +18,7 @@ extern void setPortMode(const uint8_t _port, const uint8_t _mode, const uint8_t 
 *     - none
 *
 **************************************************************************************************************************** */
-extern void writeToPort(const uint8_t _port, const uint8_t _value);
+int8_t writeToPort(const uint8_t, const uint8_t);
 
 
 /*****************************************************************************************************************************
@@ -36,6 +30,5 @@ extern void writeToPort(const uint8_t _port, const uint8_t _value);
 *     - false on fail (pin is unsafe)
 *
 **************************************************************************************************************************** */
-extern uint8_t isSafePin(const uint8_t _pin);
+uint8_t isSafePin(const uint8_t);
  
-#endif // #ifndef ZabbuinoIOREGS_h

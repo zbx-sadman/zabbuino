@@ -1,3 +1,9 @@
+// Config & common included files
+#include "sys_includes.h"
+
+#include "service.h"
+#include "system.h"
+
 #include "adc.h"
 
 /*****************************************************************************************************************************
@@ -13,7 +19,9 @@ uint16_t getADCVoltage(const uint8_t _analogChannel) {
   uint16_t i;
   uint32_t avgADC = 0;
   oldADMUX = ADMUX;
-  ADMUX = (0 << REFS1) | (1 << REFS0) | _analogChannel;
+
+  // ATmega328 /  ATmega2560 just used different _analogChannel to get 1.1V ref voltage value
+  ADMUX = _BV(REFS0) | _analogChannel;
 
   //  save ADCSRA register
   oldADCSRA = ADCSRA;
@@ -46,17 +54,20 @@ uint16_t getADCVoltage(const uint8_t _analogChannel) {
   return ((uint16_t) avgADC);
 }
 
+// Re: ACS712 Sensor
+// Its a Hall-sensor, it is very noisy, all hall-current sensors are very noisy.
+// I'd expect it to be accurate to 0.5A or so if its the +/-30A device.
 /*****************************************************************************************************************************
 *
 *  Read specified metric's value of the ACS712 sensor, put it to output buffer on success. 
 *
 *  Returns: 
-*    - always RESULT_IN_BUFFER 
+*    - always RESULT_IS_BUFFERED 
 *
 *  Note: code is not tested in production
 *
 *****************************************************************************************************************************/
-int8_t getACS7XXMetric(const uint8_t _sensorPin, uint32_t _aRefVoltage,  const uint8_t _metric, const uint8_t _sensitivity, const int32_t _ZeroCurrentPoint, char* _dst)
+int8_t getACS7XXMetric(const uint8_t _sensorPin, uint32_t _sampleTime, uint32_t _aRefVoltage, const uint8_t _metric, const uint8_t _sensitivity, const int32_t _ZeroCurrentPoint, char* _dst)
 {  
   uint32_t sampleInterval, mVperUnit, prevMicros = 0;
   int32_t result, adcValue, numUnits = 0;
@@ -147,6 +158,6 @@ int8_t getACS7XXMetric(const uint8_t _sensorPin, uint32_t _aRefVoltage,  const u
 
   ltoa(result, _dst, 10);
 
-  return RESULT_IN_BUFFER;
+  return RESULT_IS_BUFFERED;
 }
 

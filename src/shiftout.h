@@ -1,12 +1,4 @@
-#ifndef _ZABBUINO_SHIFTOUT_H_
-#define _ZABBUINO_SHIFTOUT_H_
-
-#include <util/atomic.h>
-#include "../basic.h"
-#include "tune.h"
-#include "service.h"
-#include "system.h"
-
+#pragma once
 
 /*****************************************************************************************************************************
 *
@@ -16,7 +8,7 @@
 *     - none
 *
 *****************************************************************************************************************************/
-void shiftOutAdvanced(const uint8_t _dataPin, const uint8_t _clockPin, const uint8_t _bitOrder, char *_src);
+int8_t shiftOutAdvanced(const uint8_t _dataPin, const uint8_t _clockPin, const uint8_t _bitOrder, const uint8_t _compressionType, uint8_t* _src);
 
 /*****************************************************************************************************************************
 *
@@ -26,7 +18,7 @@ void shiftOutAdvanced(const uint8_t _dataPin, const uint8_t _clockPin, const uin
 *     - none
 *
 *****************************************************************************************************************************/
-void WS2812Out(const uint8_t _dataPin, char *_src);
+int8_t WS2812Out(const uint8_t _dataPin, const uint8_t _compressionType, uint8_t* _src, uint16_t _len = 0);
 
 /*****************************************************************************************************************************
 *
@@ -37,7 +29,5 @@ void WS2812Out(const uint8_t _dataPin, char *_src);
 *    - number of bytes in the prepared data buffer
 *
 *****************************************************************************************************************************/
-uint16_t prepareBufferForAdvShiftout(const uint8_t _bitOrder, char *_src);
+int16_t prepareBufferForAdvShiftout(const uint8_t _bitOrder, const uint8_t _compressionType, uint8_t* _src);
 
-
-#endif // #ifndef _ZABBUINO_SHIFTOUT_H_

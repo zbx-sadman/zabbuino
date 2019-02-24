@@ -1,12 +1,4 @@
-#ifndef _ZABBUINO_SYSTEM_H_
-#define _ZABBUINO_SYSTEM_H_
-
-#include <Arduino.h>
-#include <avr/boot.h>
-#include <util/atomic.h>
-#include "../basic.h"
-#include "tune.h"
-#include "service.h"
+#pragma once
 
 /*****************************************************************************************************************************
 *
@@ -26,7 +18,7 @@ void getBootSignatureBytes(char* _dst, uint8_t _startByte, uint8_t _len, uint8_t
 *     - always true at this time
 *
 *****************************************************************************************************************************/
-extern uint8_t initTimerOne(const uint16_t _milliseconds);
+uint8_t initTimerOne(const uint16_t _milliseconds);
 
 /*****************************************************************************************************************************
 *
@@ -36,7 +28,7 @@ extern uint8_t initTimerOne(const uint16_t _milliseconds);
 *     - none
 *
 *****************************************************************************************************************************/
-extern void startTimerOne(void);
+void startTimerOne(void);
 
 
 /*****************************************************************************************************************************
@@ -57,7 +49,7 @@ ISR(TIMER1_COMPA_vect);
 *     - none
 *
 *****************************************************************************************************************************/
-extern void stopTimerOne(void);
+void stopTimerOne(void);
 
 /*****************************************************************************************************************************
 *
@@ -67,6 +59,4 @@ extern void stopTimerOne(void);
 *     - none
 *
 *****************************************************************************************************************************/
-extern void gatherSystemMetrics(void);
-
-#endif // #ifndef _ZABBUINO_SYSTEM_H_
+void gatherSystemMetrics(void);

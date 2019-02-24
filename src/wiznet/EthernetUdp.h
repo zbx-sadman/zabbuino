@@ -34,7 +34,7 @@
  * bjoern@cs.stanford.edu 12/30/2008
  */
 
-#include "../network_hlp.h"
+#include "../net_platforms.h"
 #ifdef NETWORK_ETH_WIZNET
 
 #ifndef _WIZNET_ETHERNETUDP_H_

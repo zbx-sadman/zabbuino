@@ -18,7 +18,7 @@
  Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
  */
 
-#include "../network_hlp.h"
+#include "../net_platforms.h"
 #ifdef NETWORK_ETH_ENC28J60
 
 #include "clock-arch.h"

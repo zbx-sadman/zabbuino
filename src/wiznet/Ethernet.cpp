@@ -3,7 +3,7 @@
  by Soohwan Kim (suhwan@wiznet.co.kr)
 */
 
-#include "../network_hlp.h"
+#include "../net_platforms.h"
 #ifdef NETWORK_ETH_WIZNET
 
 #include "Ethernet.h"

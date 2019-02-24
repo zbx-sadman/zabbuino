@@ -1,4 +1,4 @@
-#include "../network_hlp.h"
+#include "../net_platforms.h"
 #ifdef NETWORK_ETH_ENC28J60
 
 #define DEBUG_PRINTF(...) /*printf(__VA_ARGS__)*/

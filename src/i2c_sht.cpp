@@ -1,6 +1,12 @@
-#include "i2c_sht.h"
+// Config & common included files
+#include "sys_includes.h"
 
-static uint16_t getRawDataFromSHT2X(SoftwareWire*, const uint8_t, const uint8_t);
+#include "SoftwareWire/SoftwareWire.h"
+#include "service.h"
+#include "system.h"
+
+#include "i2c_bus.h"
+#include "i2c_sht.h"
 
 /*****************************************************************************************************************************
 *
@@ -29,7 +35,7 @@ int8_t getSHT2XMetric(SoftwareWire* _softTWI, uint8_t _i2cAddress, const uint8_t
 *     - 16-bit raw data on success
 *
 *****************************************************************************************************************************/
-uint16_t getRawDataFromSHT2X(SoftwareWire* _softTWI, const uint8_t _i2cAddress, const uint8_t _command)
+static uint16_t getRawDataFromSHT2X(SoftwareWire* _softTWI, const uint8_t _i2cAddress, const uint8_t _command)
 {
     uint16_t result;
 
@@ -61,7 +67,7 @@ uint16_t getRawDataFromSHT2X(SoftwareWire* _softTWI, const uint8_t _i2cAddress, 
 *   Read specified metric's value of the SHT2X sensor, put it to output buffer on success. 
 *
 *   Returns: 
-*     - RESULT_IN_BUFFER on success
+*     - RESULT_IS_BUFFERED on success
 *     - DEVICE_ERROR_CONNECT on test connection error
 *     - RESULT_IS_FAIL - on other fails
 *
@@ -73,6 +79,8 @@ int8_t getSHT2XMetric(SoftwareWire* _softTWI, uint8_t _i2cAddress, const uint8_t
   
   if (!isI2CDeviceReady(_softTWI, _i2cAddress)) { rc = DEVICE_ERROR_CONNECT; goto finish; }
 
+  *_value = 0x00;
+
   switch (_metric) {
     case SENS_READ_TEMP:
       rawData = getRawDataFromSHT2X(_softTWI, _i2cAddress, SHT2X_CMD_GETTEMP_HOLD);
@@ -80,7 +88,7 @@ int8_t getSHT2XMetric(SoftwareWire* _softTWI, uint8_t _i2cAddress, const uint8_t
       // all part of equation must be multiplied by 100 to get 2-digit fract part by ltoaf() 
       // H_real = 100 * -6 + (100 * 125 * H_raw) / (2^16)
       *_value = (((uint32_t) rawData * 17572) >> 16) - 4685;
-      rc = RESULT_IN_BUFFER;
+      rc = RESULT_IS_BUFFERED;
       break;
       
     case SENS_READ_HUMD:
@@ -90,7 +98,7 @@ int8_t getSHT2XMetric(SoftwareWire* _softTWI, uint8_t _i2cAddress, const uint8_t
       // H_real = 100 * -6 + (100 * 125 * H_raw) / (2^16)
       if (0 < rawData) { 
          *_value = (((uint32_t) rawData * 100 * 125) >> 16) - 600; 
-         rc = RESULT_IN_BUFFER;
+         rc = RESULT_IS_BUFFERED;
       }
       else {
          rc = DEVICE_ERROR_WRONG_ANSWER; 

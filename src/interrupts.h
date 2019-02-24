@@ -1,14 +1,5 @@
-#ifndef _ZABBUINO_INTERRUPTS_H_
-#define _ZABBUINO_INTERRUPTS_H_
+#pragma once
 
-#include <wiring_private.h>
-#include "../basic.h"
-#include "tune.h"
-#include "service.h"
-#include "system.h"
-
-
-extern volatile extInterrupt_t extInterrupt[];
 /*-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
 
                                                       EXTERNAL INTERRUPTS HANDLING SECTION
@@ -50,7 +41,7 @@ extern volatile extInterrupt_t extInterrupt[];
 */
 
 #define HANDLE_INT_N_FOR_EXTINT(_interrupt) \
-   void handleExt##_interrupt(void) { extInterrupt[_interrupt].value++; }
+   void handleExt##_interrupt(void) { ++extInterrupt[_interrupt].value; }
 
  
 #if (EXTERNAL_NUM_INTERRUPTS > 7)
@@ -122,7 +113,7 @@ extern volatile extInterrupt_t extInterrupt[];
          stateTerminalA = *extInterrupt[_interrupt].encTerminalAPIR & extInterrupt[_interrupt].encTerminalAPinBit;\
          if ((!stateTerminalA) && (statePrevTerminalA)) { \
            if (*extInterrupt[_interrupt].encTerminalBPIR & extInterrupt[_interrupt].encTerminalBPinBit) \
-              { extInterrupt[_interrupt].value++; } else { extInterrupt[_interrupt].value--; } \
+              { ++extInterrupt[_interrupt].value; } else { --extInterrupt[_interrupt].value; } \
          } statePrevTerminalA = stateTerminalA; }
 
 #if (EXTERNAL_NUM_INTERRUPTS > 7)
@@ -152,4 +143,3 @@ extern volatile extInterrupt_t extInterrupt[];
 
 #endif // FEATURE_INCREMENTAL_ENCODER_ENABLE
 
-#endif // #ifndef _ZABBUINO_INTERRUPTS_H_

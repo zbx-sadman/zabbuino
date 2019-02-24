@@ -12,10 +12,14 @@ Second modification is by:
  * http://design.fh-potsdam.de/
 
 */
-#include "busMicrowire.h"
 
-static void writeByteToMAX7219(const uint8_t, const uint8_t, const uint8_t);
-static void pushDataToMAX7219(const uint8_t, const uint8_t, const uint8_t, const uint8_t, const uint8_t);
+// Config & common included files
+#include "sys_includes.h"
+
+#include "service.h"
+#include "system.h"
+
+#include "microwire_bus.h"
 
 
 /*****************************************************************************************************************************
@@ -26,14 +30,15 @@ static void pushDataToMAX7219(const uint8_t, const uint8_t, const uint8_t, const
 *    - none
 *
 *****************************************************************************************************************************/
-void writeByteToMAX7219(const uint8_t _dataPin, const uint8_t _clockPin, const uint8_t _data) 
+static void writeByteToMAX7219(const uint8_t _dataPin, const uint8_t _clockPin, const uint8_t _data) 
 {
   int8_t i = 7;
   while(i >= 0) {
-    digitalWrite(_clockPin, LOW);                     // tick
-    digitalWrite(_dataPin, !!(_data & (0x01 << i)));  // send i-th bit value 
-    digitalWrite(_clockPin, HIGH);                    // tock
-    --i;                                              // move to lesser bit
+    digitalWrite(_clockPin, LOW);                             // tick
+//    digitalWrite(_dataPin, !!(_data & (0x01 << i)));        // send i-th bit value 
+    digitalWrite(_dataPin, ((_data & (0x01 << i)) ? 1 : 0));  // send i-th bit value 
+    digitalWrite(_clockPin, HIGH);                            // tock
+    i--;                                                      // move to lesser bit
   }
 }
 
@@ -45,7 +50,7 @@ void writeByteToMAX7219(const uint8_t _dataPin, const uint8_t _clockPin, const u
 *    - none
 *
 *****************************************************************************************************************************/
-void pushDataToMAX7219(const uint8_t _dataPin, const uint8_t _clockPin, const uint8_t _loadPin, const uint8_t _register, const uint8_t _data) {    
+static void pushDataToMAX7219(const uint8_t _dataPin, const uint8_t _clockPin, const uint8_t _loadPin, const uint8_t _register, const uint8_t _data) {    
   digitalWrite(_loadPin, LOW);
   // specify register or column
   writeByteToMAX7219(_dataPin, _clockPin, _register);   
@@ -66,6 +71,10 @@ void pushDataToMAX7219(const uint8_t _dataPin, const uint8_t _clockPin, const ui
 *****************************************************************************************************************************/
 void writeToMAX7219(const uint8_t _dataPin, const uint8_t _clockPin, const uint8_t _loadPin, const uint8_t _intensity, char* _src) {    
   uint8_t col, currByte = 0,  isHexString = false;
+  pinMode(_dataPin, OUTPUT);
+  pinMode(_clockPin, OUTPUT);
+  pinMode(_loadPin, OUTPUT);
+
   // Init the module 
   // Mark all columns as active
   pushDataToMAX7219(_dataPin, _clockPin, _loadPin, MAX7219_REGISTER_SCANLIMIT, 0x07);      
@@ -80,8 +89,8 @@ void writeToMAX7219(const uint8_t _dataPin, const uint8_t _clockPin, const uint8
 
   // Draw line by line from first column...
   col = 1;
-  // MAX7219.write[4,5,6,1,"1.2.3.4.5.6.7.8"]
-  // MAX7219.write[4,5,6,1,"    1.25"]
+  // MAX7219.write[5,6,7,1,"1.2.3.4.5.6.7.8"]
+  // MAX7219.write[5,6,7,1,"    1.25"]
   // MAX7219.write[15,16,17,1,"Hc  -1.25"]
   // HEX strings must be processeed specially
   if (haveHexPrefix(_src)) {
@@ -135,6 +144,102 @@ void writeToMAX7219(const uint8_t _dataPin, const uint8_t _clockPin, const uint8
       //    DDDD   DP
       //
       char currChar=(char) *_src;
+
+         if ('0' == currChar || 'O' == currChar) {
+            currByte = B1111110;
+         } else if ('1' == currChar) {
+            currByte = B0110000;
+
+         } else if ('2' == currChar) {
+            currByte = B1101101;
+
+         } else if ('3' == currChar) {
+            currByte = B1111001;
+
+         } else if ('4' == currChar) {
+            currByte = B0110011;
+
+         } else if ('5' == currChar) {
+            currByte = B1011011;
+
+         } else if ('6' == currChar) {
+            currByte = B1011111;
+
+         } else if ('7' == currChar) {
+            currByte = B1110000;
+
+         } else if ('8' == currChar) {
+            currByte = B1111111;
+
+         } else if ('9' == currChar) {
+            currByte = B1111011;
+
+         } else if ('-' == currChar) {
+            currByte = B0000001;
+
+         } else if ('_' == currChar) {
+            currByte = B0001000;
+
+         } else if ('A' == currChar) {
+            currByte = B1110111;
+
+         } else if ('b' == currChar) {
+            currByte = B0011111;
+
+         } else if ('C' == currChar) {
+            currByte = B1001110;
+
+         } else if ('c' == currChar) {
+            currByte = B0001101;
+
+         } else if ('d' == currChar) {
+            currByte = B0111101;
+
+         } else if ('H' == currChar) {
+            currByte = B0110111;
+
+         } else if ('h' == currChar) {
+            currByte = B0010111;
+
+         } else if ('E' == currChar) {
+            currByte = B1001111;
+
+         } else if ('L' == currChar) {
+            currByte = B0001110;
+
+         } else if ('l' == currChar) {
+            currByte = B0000110;
+
+         } else if ('P' == currChar) {
+            currByte = B1100111;
+
+         } else if ('n' == currChar) {
+            currByte = B0010101;
+
+         } else if ('o' == currChar) {
+            currByte = B0011101;
+
+         } else if ('r' == currChar) {
+            currByte = B0000101;
+
+         } else if ('t' == currChar) {
+            currByte = B0001111;
+
+         } else if ('u' == currChar) {
+            currByte = B0011100;
+
+         } else if ('U' == currChar) {
+            currByte = B0111110;
+
+         } else if ('.' == currChar) {
+            // dot just skipped and processed on next step
+            goto next;
+         } else  {
+         // if (0x20 == currChar || unknown == currChar)
+            currByte = B0000000;
+         } 
+/*
+
       switch (currChar) {
          case '0':
          case 'O':
@@ -233,6 +338,7 @@ void writeToMAX7219(const uint8_t _dataPin, const uint8_t _clockPin, const uint8
             currByte = B0000000;
             break;
      } // switch 
+*/
       // 'dot' sign is next? 
       if ('.' == ((char) *(_src-1))) {currByte |= 0x80; }
 #endif
@@ -240,10 +346,10 @@ void writeToMAX7219(const uint8_t _dataPin, const uint8_t _clockPin, const uint8
     // Pushing byte to column
     pushDataToMAX7219(_dataPin, _clockPin, _loadPin, col, currByte);
     // only 8 columns must be processeed, comment its if need more
-    col++;
+    ++col;
     if (0x08 < col) { break; }
     next:
-    _src++;
+    ++_src;
 
   }
   gatherSystemMetrics(); // Measure memory consumption

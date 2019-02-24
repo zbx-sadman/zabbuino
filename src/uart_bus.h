@@ -1,11 +1,4 @@
-#ifndef _ZABBUINO_UART_BUS_H_
-#define _ZABBUINO_UART_BUS_H_
-
-#include <SoftwareSerial.h>
-#include "../basic.h"
-#include "tune.h"
-#include "service.h"
-#include "system.h"
+#pragma once
 
 /*-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
 
@@ -24,7 +17,7 @@
 *     - always true
 *
 *****************************************************************************************************************************/
-uint8_t serialRXFlush(SoftwareSerial *_swSerial, const uint8_t _slowMode);
+//uint8_t serialRXFlush(Stream*, const uint8_t);
 
 /*****************************************************************************************************************************
 *
@@ -34,7 +27,7 @@ uint8_t serialRXFlush(SoftwareSerial *_swSerial, const uint8_t _slowMode);
 *     - The number of the readed bytes
 *
 *****************************************************************************************************************************/
-uint8_t serialRecive(SoftwareSerial *_swSerial, uint8_t *_src, const uint8_t _size, const uint32_t _readTimeout, const uint8_t _stopOnChar, const uint8_t _stopChar, const uint8_t _slowMode);
+uint8_t serialRecive(Stream*, uint8_t*, const uint8_t, const uint32_t, const uint8_t, const uint8_t, const uint8_t);
 
 /*****************************************************************************************************************************
 *
@@ -44,6 +37,5 @@ uint8_t serialRecive(SoftwareSerial *_swSerial, uint8_t *_src, const uint8_t _si
 *     - none, because wrapped SoftwareSerial(HardwareSerial)'s write() sub always return 1
 *
 *****************************************************************************************************************************/
-void serialSend(SoftwareSerial *_swSerial, const uint8_t *_src, const uint8_t _size, const uint8_t _slowMode);
+void serialSend(Stream*, uint8_t*, uint8_t, const uint8_t);
 
-#endif // #ifndef _ZABBUINO_UART_BUS_H_

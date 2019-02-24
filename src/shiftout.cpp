@@ -1,3 +1,9 @@
+// Config & common included files
+#include "sys_includes.h"
+
+#include "service.h"
+#include "system.h"
+
 #include "shiftout.h"
 
 /*****************************************************************************************************************************
@@ -8,15 +14,17 @@
 *     - none
 *
 *****************************************************************************************************************************/
-// Todo: need to rewrite code to use "uint8_t *_src" instead "char *_src" and remove cast to uint8_t
 // in prepareBufferForAdvShiftout => _src[dataBufferPosition] = bitReverseTable16[(uint8_t) _src[dataBufferPosition]];
-
-void shiftOutAdvanced(const uint8_t _dataPin, const uint8_t _clockPin, const uint8_t _bitOrder, char *_src)
-{
-  uint16_t lenOfBuffer = 0;
+int8_t shiftOutAdvanced(const uint8_t _dataPin, const uint8_t _clockPin, const uint8_t _bitOrder, const uint8_t _compressionType, uint8_t* _src) {
+  int16_t lenOfBuffer;
   uint8_t dataPinBit, clockPinBit;
   volatile uint8_t *dataPortOutputRegister, *clockPortOutputRegister;
   uint8_t i;
+  pinMode(_dataPin,OUTPUT);
+  pinMode(_clockPin,OUTPUT);
+  // Prepare the buffer for burst bit-banging
+  lenOfBuffer = prepareBufferForAdvShiftout(_bitOrder, _compressionType, _src);
+  if (lenOfBuffer <= 0) { return RESULT_IS_FAIL; }
 
   dataPinBit = digitalPinToBitMask(_dataPin);
   clockPinBit = digitalPinToBitMask(_clockPin);
@@ -30,17 +38,16 @@ void shiftOutAdvanced(const uint8_t _dataPin, const uint8_t _clockPin, const uin
   if (dataPinTimer != NOT_ON_TIMER) turnOffPWM(dataPinTimer);
   */
 
-  // Prepare the buffer for burst bit-banging
-  lenOfBuffer = prepareBufferForAdvShiftout(_bitOrder, _src);
   // Focus on bit-banging
-  noInterrupts();
+  //noInterrupts();
   // Walk over the buffer 
   while (lenOfBuffer) {
-     // Push 4 bit to Shift Register using direct port manipulation.
-     i = 4;    
+     // Push 8 bit to Shift Register using direct port manipulation.
+     i = 8;
      while (i)   {
        // Test 4-th but for HIGH/LOW state
-       if (*_src & 0x08) {
+       // if (*_src & 0x08) {
+       if (*_src & 0x80) {
          // Set _dataPin to HIGH
          *dataPortOutputRegister |= dataPinBit;
        } else  {
@@ -51,16 +58,18 @@ void shiftOutAdvanced(const uint8_t _dataPin, const uint8_t _clockPin, const uin
        *clockPortOutputRegister &= ~clockPinBit;
        *clockPortOutputRegister |= clockPinBit;
        // shift pushed value to left to test previous bit
+       // *_src = *_src << 1;
        *_src = *_src << 1;
        // bit counter increase
        i--;
-     }
-     // Move pointer to next value
+     }        
      _src++;
      lenOfBuffer--;
   }
-  interrupts();
+
+  //interrupts();
   gatherSystemMetrics(); // Measure memory consumption
+  return RESULT_IS_OK;
 }
 
 /*****************************************************************************************************************************
@@ -70,20 +79,28 @@ void shiftOutAdvanced(const uint8_t _dataPin, const uint8_t _clockPin, const uin
 *   Returns: 
 *     - none
 *
+* IMPORTANT: To reduce NeoPixel burnout risk, add 1000 uF capacitor across pixel power leads, add 300 - 500 Ohm resistor on 
+*            first pixel's data input and minimize distance between Arduino and first pixel.  
+*            Avoid connecting on a live circuit...if you must, connect GND first.
 *****************************************************************************************************************************/
-void WS2812Out(const uint8_t _dataPin, char *_src) 
+int8_t WS2812Out(const uint8_t _dataPin, const uint8_t _compressionType, uint8_t* _src, uint16_t _len) 
 {
   volatile uint8_t  *port;         // Output PORT register
-  uint8_t pinMask;       // Output PORT bitmask
-  volatile uint16_t i;  // = numBytes; // Loop counter
+  uint8_t pinMask;                 // Output PORT bitmask
+  volatile uint16_t i;             // Loop counter
   volatile uint8_t
-                   *ptr, // = pixels,   // Pointer to next byte
-                   b, //   = *ptr++,   // Current byte value
+                   *ptr,           // Pointer to next byte
+                   b,              // Current byte value
                    hi,             // PORT w/output bit set high
                    lo;             // PORT w/output bit set low
   volatile uint8_t next, bit;
-   
 
+  i = (0 >= _len) ? prepareBufferForAdvShiftout(MSBFIRST, _compressionType, _src) : _len; 
+
+  if (i <= 0) {
+     return RESULT_IS_FAIL;
+  }
+ 
   pinMode(_dataPin, OUTPUT);
   digitalWrite(_dataPin, LOW);
   port    = portOutputRegister(digitalPinToPort(_dataPin));
@@ -93,25 +110,28 @@ void WS2812Out(const uint8_t _dataPin, char *_src)
   lo   = *port & ~pinMask;
   next = lo;
   // push by nibbles (4 bits pieces)
-  bit  = 4;
-
-  // Prepare the buffer for burst bit-banging
-  i = prepareBufferForAdvShiftout(MSBFIRST, _src);
+  bit  = 8;
 
   ptr = (uint8_t *) _src;
   b = *ptr++;
 
   noInterrupts(); // Need 100% focus on instruction timing
+
+  // 16 MHz(ish) AVR ; (F_CPU >= 15400000UL) && (F_CPU <= 19000000L)
+
   // WS2811 and WS2812 have different hi/lo duty cycles; this is
   // similar but NOT an exact copy of the prior 400-on-8 code.
+  //   NEO_KHZ800  800 KHz bitstream (most NeoPixel products w/WS2812 LEDs)
+  //   NEO_KHZ400  400 KHz (classic 'v1' (not v2) FLORA pixels, WS2811 drivers)
 
+  //  
   // 20 inst. clocks per bit: HHHHHxxxxxxxxLLLLLLL
   // ST instructions:         ^   ^        ^       (T=0,5,13)
 
-    asm volatile(
+   asm volatile (
      "head20:"                   "\n\t" // Clk  Pseudocode    (T =  0)
       "st   %a[port],  %[hi]"    "\n\t" // 2    PORT = hi     (T =  2)
-      "sbrc %[byte],  3"         "\n\t" // 1-2  if(b & 8)
+      "sbrc %[byte],  7"         "\n\t" // 1-2  if(b & 128)
        "mov  %[next], %[hi]"     "\n\t" // 0-1   next = hi    (T =  4)
       "dec  %[bit]"              "\n\t" // 1    bit--         (T =  5)
       "st   %a[port],  %[next]"  "\n\t" // 2    PORT = next   (T =  7)
@@ -125,7 +145,7 @@ void WS2812Out(const uint8_t _dataPin, char *_src)
       "rjmp .+0"                 "\n\t" // 2    nop nop       (T = 18)
       "rjmp head20"              "\n\t" // 2    -> head20 (next bit out)
      "nextbyte20:"               "\n\t" //                    (T = 10)
-      "ldi  %[bit]  ,  4"        "\n\t" // 1    bit = 4       (T = 11)
+      "ldi  %[bit]  ,  8"        "\n\t" // 1    bit = 8       (T = 11)
       "ld   %[byte] ,  %a[ptr]+" "\n\t" // 2    b = *ptr++    (T = 13)
       "st   %a[port], %[lo]"     "\n\t" // 2    PORT = lo     (T = 15)
       "nop"                      "\n\t" // 1    nop           (T = 16)
@@ -139,9 +159,10 @@ void WS2812Out(const uint8_t _dataPin, char *_src)
       : [ptr]    "e" (ptr),
         [hi]     "r" (hi),
         [lo]     "r" (lo)
-    );
+   );
 
    interrupts(); 
+   return RESULT_IS_OK;
 }
 
 /*****************************************************************************************************************************
@@ -153,7 +174,7 @@ void WS2812Out(const uint8_t _dataPin, char *_src)
 *    - number of bytes in the prepared data buffer
 *
 *****************************************************************************************************************************/
-uint16_t prepareBufferForAdvShiftout(const uint8_t _bitOrder, char *_src)
+int16_t prepareBufferForAdvShiftout(const uint8_t _bitOrder, const uint8_t compressionType, uint8_t* _src)
 {
   static const uint8_t bitReverseTable16[] = {
    // 0x00  0x01  0x02  0x03  0x04  0x05  0x06  0x07  0x08  0x09  0x0A  0x0B  0x0C  0x0D  0x0E  0x0F       <- number
@@ -161,30 +182,31 @@ uint16_t prepareBufferForAdvShiftout(const uint8_t _bitOrder, char *_src)
    // B0000 B1000 B0100 B1100 B0010 B1010 B0110 B1110 B0001 B1001 B0101 B1101 B0011 B1011 B0111 B1111      <- number in binary reversed
       0x00, 0x08, 0x04, 0x0C, 0x02, 0x0A, 0x06, 0x0E, 0x01, 0x09, 0x05, 0x0D, 0x03, 0x0B, 0x07, 0x0F  //   <- number reversed
   };
-  uint16_t dataBufferPosition, dataBufferSwapPosition, halfLenOfBuffer, lenOfBuffer;
+  uint16_t dataBufferReadPosition, dataBufferWritePosition, dataBufferSwapPosition, halfLenOfBuffer, lenOfBuffer;
   uint8_t tmpVal;
   
-  dataBufferPosition = 2;
+  dataBufferReadPosition = 2;
   // Is HEX-string incoming?
   if (haveHexPrefix(_src)) {
      // Skip prefix
      // Walk over buffer, convert HEX do DEC and shift data to the left (destroy '0x' gap)
-     while (_src[dataBufferPosition]) {
-        _src[dataBufferPosition - 2] = htod(_src[dataBufferPosition]);
-        dataBufferPosition++;
+     while (_src[dataBufferReadPosition]) {
+        _src[dataBufferReadPosition - 2] = htod(_src[dataBufferReadPosition]);
+        dataBufferReadPosition++;
      }
      // Correct position to prefix length for taking buffer new lenght
-     dataBufferPosition -= 2;
+     dataBufferReadPosition -= 2;
   } else {
      // Is not HEX, probally its DEC
-     tmpVal = atoi(_src);
+     tmpVal = atoi((char*) _src);
      // Write first nibble to buffer[0]
-     _src[0] = tmpVal >> 4;
+     _src[0] = (tmpVal >> 4) & 0x0F;
      // Write last nibble to buffer[1] 
      _src[1] = tmpVal & 0x0F;
   }
   // lenght must be saved and used later because any HEX '0' will be converted to '\0' and stops while(*_src) processing 
-  lenOfBuffer = dataBufferPosition;
+  lenOfBuffer = dataBufferReadPosition;
+
   //    <---  LSB  ----
   //    0 0 0 1 0 0 1 0     <= 18 (0x12)
   //    ----  MSB  --->
@@ -198,24 +220,56 @@ uint16_t prepareBufferForAdvShiftout(const uint8_t _bitOrder, char *_src)
   if (LSBFIRST == _bitOrder) {
      halfLenOfBuffer = lenOfBuffer >> 1;
      dataBufferSwapPosition = 0;
-     dataBufferPosition--;
+     dataBufferReadPosition--;
      // Going over half of buffer
      while (halfLenOfBuffer){
        // swap buffer items 
        tmpVal = _src[dataBufferSwapPosition];
-       _src[dataBufferSwapPosition] = _src[dataBufferPosition];
-       _src[dataBufferPosition] = tmpVal;
+       _src[dataBufferSwapPosition] = _src[dataBufferReadPosition];
+       _src[dataBufferReadPosition] = tmpVal;
        // shrink swapping area
-       dataBufferPosition--;
+       dataBufferReadPosition--;
        dataBufferSwapPosition++;
        halfLenOfBuffer--;
      } 
      // Make fast bit reversing for all items
      // That procedure is stand separately because one central item not processeed on previous stage if buffer length is odd
-     // usung for() _here_ give more pgmspace that using while() 
-     for (dataBufferPosition = 0; dataBufferPosition <= lenOfBuffer; dataBufferPosition++){
-       _src[dataBufferPosition] = bitReverseTable16[(uint8_t) _src[dataBufferPosition]];
+     // Using for() _here_ spend more pgmspace that using while() 
+     for (dataBufferReadPosition = 0; dataBufferReadPosition < lenOfBuffer; dataBufferReadPosition++){
+       _src[dataBufferReadPosition] = bitReverseTable16[(uint8_t) _src[dataBufferReadPosition]];
      }
+  }
+
+  // Prepared byte array must be transformed from HEX-string: two HEX-nibble joined to one byte
+  switch (compressionType) {
+      // Data will be 'decompressed' from HEX string by repeat every nibble twice: FD3 => FFDD33
+      // This compression method allow to minimize len of recieved HEX-string when it used for color coding (RGB pixel leds and etc)
+      case 0x01:
+        DTSD ( SerialPrintln_P(PSTR("'repeat' type compression ")); )
+        for (dataBufferReadPosition = 0; dataBufferReadPosition <= lenOfBuffer; dataBufferReadPosition++) {
+            _src[dataBufferReadPosition] = (_src[dataBufferReadPosition] << 4) | _src[dataBufferReadPosition];
+        }
+        break;  
+      // Data is not compressed
+      case 0x00:
+      default:
+        dataBufferReadPosition = dataBufferWritePosition=0x00;
+        while (dataBufferReadPosition < lenOfBuffer)  {
+          // On case of one nibble found at forward - just move nibble to high, correct the buffer length and jump out
+          if ((dataBufferReadPosition + 2) > lenOfBuffer) {
+             _src[dataBufferWritePosition] = (_src[dataBufferReadPosition] << 4);
+             lenOfBuffer++; 
+             break;
+          // Two nibble available - make one byte
+          } else {
+             _src[dataBufferWritePosition] = ((_src[dataBufferReadPosition] << 4) | _src[dataBufferReadPosition + 1]);
+          }
+          dataBufferReadPosition += 2;
+          dataBufferWritePosition++;
+        }
+        // after nibbles joining length of array is the half 
+        lenOfBuffer = lenOfBuffer >> 1;  
+        break;  
   }
   return lenOfBuffer;
 }

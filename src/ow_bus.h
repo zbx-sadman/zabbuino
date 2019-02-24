@@ -1,12 +1,4 @@
-#ifndef _ZABBUINO_OWBUS_H_
-#define _ZABBUINO_OWBUS_H_
-
-// OneWire lib for Dallas sensors
-#include <OneWire.h>
-#include "../basic.h"
-#include "tune.h"
-#include "service.h"
-#include "network.h"
+#pragma once
 
 /*****************************************************************************************************************************
 *
@@ -17,7 +9,5 @@
 *     - RESULT_IS_FAIL of no devices found 
 *
 *****************************************************************************************************************************/
-int8_t scanOneWire(const uint8_t, NetworkClass*);
+int8_t scanOneWire(const uint8_t _pin, uint8_t* _dst);
 
-
-#endif // #ifndef _ZABBUINO_OWBUS_H_

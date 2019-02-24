@@ -1,32 +1,47 @@
-#ifndef _ZABBUINO_I2C_RTC_H_
-#define _ZABBUINO_I2C_RTC_H_
+#pragma once
 
-#include <time.h>
-#include "i2c_bus.h"
-#include "i2c_ds3231.h"
+/*****************************************************************************************************************************
+*
+*   Convert the number from uint8_t to BCD format
+*
+*   Returns: 
+*     - BCD value
+*
+*****************************************************************************************************************************/
+uint8_t Uint8ToBcd(uint8_t);
+
+/*****************************************************************************************************************************
+*
+*   Convert the number from BCD format to uint8_t
+*
+*   Returns: 
+*     - unit8_t value
+*
+*****************************************************************************************************************************/
+uint8_t BcdToUint8(uint8_t);
 
 /*****************************************************************************************************************************
 *
 *   Init RTC 
 *
 *   Returns: 
-*     - 
+*     - True on success
+*     - False otherwise  
 *
 *****************************************************************************************************************************/
-void initRTC(SoftwareWire*);
+int8_t initRTC(SoftwareWire*);
 
 /*****************************************************************************************************************************
 *
-*   Get UTC time as Unix timestamp
+*   Set UTC time using Y2K timestamp
 *
 *   Returns: 
-*     - RESULT_IS_SIGNED_VALUE on success
-*     - RESULT_IS_FAIL on read error
+*     - RESULT_IN_OK on success
+*     - RESULT_IS_FAIL on write error
 *     - DEVICE_ERROR_CONNECT on connection error
-*     - actual timestamp returns in _unixTimestamp
 *
 *****************************************************************************************************************************/
-int8_t getUnixTime(SoftwareWire*, uint32_t*);
+int8_t setY2KTime(SoftwareWire*, time_t);
 
 /*****************************************************************************************************************************
 *
@@ -43,7 +58,7 @@ int8_t getY2KTime(SoftwareWire*, time_t*);
 
 /*****************************************************************************************************************************
 *
-*   Set UTC time taking Unix timestamp
+*   Set UTC time using Unix timestamp
 *
 *   Returns: 
 *     - RESULT_IN_OK on success
@@ -55,15 +70,16 @@ int8_t setUnixTime(SoftwareWire*, uint32_t);
 
 /*****************************************************************************************************************************
 *
-*   Set UTC time taking Y2K timestamp
+*   Get UTC time as Unix timestamp
 *
 *   Returns: 
-*     - RESULT_IN_OK on success
-*     - RESULT_IS_FAIL on write error
+*     - RESULT_IS_SIGNED_VALUE on success
+*     - RESULT_IS_FAIL on read error
 *     - DEVICE_ERROR_CONNECT on connection error
+*     - actual timestamp returns in _unixTimestamp
 *
 *****************************************************************************************************************************/
-int8_t setY2KTime(SoftwareWire*, time_t);
+int8_t getUnixTime(SoftwareWire*, uint32_t*);
 
 /*****************************************************************************************************************************
 *
@@ -90,4 +106,3 @@ int8_t setY2KTime(SoftwareWire*, time_t);
 *****************************************************************************************************************************/
 //int8_t getTZOffset(const uint8_t, const uint8_t, uint8_t, int16_t*);
 
-#endif // _ZABBUINO_I2C_RTC_H_

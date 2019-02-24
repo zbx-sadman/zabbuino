@@ -1,5 +1,4 @@
-#ifndef platforms_h
-#define platforms_h
+#pragma once
 
 #if defined(TEENSYDUINO) 
 
@@ -268,4 +267,3 @@
 //	#define	_AVR_CPU_NAME_	"UNKNOWN"
 #endif
 
-#endif

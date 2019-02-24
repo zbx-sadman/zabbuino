@@ -58,7 +58,7 @@
  *
  */
 
-#include "../network_hlp.h"
+#include "../net_platforms.h"
 #ifdef NETWORK_ETH_ENC28J60
 
 #ifndef _UIP_UIP_ARCH_H_

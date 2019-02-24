@@ -1,3 +1,4 @@
+#pragma once
 /*
 
 Based on: https://github.com/z3t0/Arduino-IRremote
@@ -8,14 +9,6 @@ version 2.2.1 is used
  #define's for Timer2 & Timer4  are included only to this .ino file. 
 
 */
-
-#ifndef _ZABBUINO_IR_H_
-#define _ZABBUINO_IR_H_
-
-#include "../basic.h"
-#include "tune.h"
-#include "structs.h"
-#include "service.h"
 
 #define IR_UNKNOWN      -0x01
 #define IR_UNUSED       0x00
@@ -266,4 +259,3 @@ void enableIROut (int khz);
 
 
 
-#endif // #ifndef _ZABBUINO_IR_H_

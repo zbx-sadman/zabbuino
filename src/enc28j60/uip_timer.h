@@ -58,7 +58,7 @@
  *
  * $Id: timer.h,v 1.3 2006/06/11 21:46:39 adam Exp $
  */
-#include "../network_hlp.h"
+#include "../net_platforms.h"
 #ifdef NETWORK_ETH_ENC28J60
 
 #ifndef _UIP_UIP_TIMER_H_

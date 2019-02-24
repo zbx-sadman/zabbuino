@@ -1,14 +1,10 @@
+#pragma once
+
 /*
 
 Based on https://github.com/Makuna/Rtc/
 
 */
-
-#ifndef _ZABBUINO_I2C_DS3231_H_
-#define _ZABBUINO_I2C_DS3231_H_
-
-#include <time.h>
-
 
 //DS3231 Register Addresses
 #define DS3231_REG_TIMEDATE        0x00
@@ -48,6 +44,8 @@ Based on https://github.com/Makuna/Rtc/
 #define DS3231_OSF                 7
 #define DS3231_AIFMASK             (_BV(DS3231_A1F) | _BV(DS3231_A2F))
 
+#define DS3231_CENTURY_FLAG        (0x80)
+
 /*****************************************************************************************************************************
 *
 *   Init DS3231 RTC 
@@ -84,5 +82,4 @@ int8_t saveDS3231Time(SoftwareWire*, uint8_t, time_t);
 *****************************************************************************************************************************/
 int8_t readDS3231Time(SoftwareWire*, uint8_t, time_t*);
 
-
-#endif // #ifndef _ZABBUINO_I2C_DS3231_H_
+                                         
