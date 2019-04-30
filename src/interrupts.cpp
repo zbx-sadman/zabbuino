@@ -12,11 +12,25 @@
 // EXTERNAL_NUM_INTERRUPTS its a macro from <wiring_private.h>
 volatile extInterrupt_t extInterrupt[EXTERNAL_NUM_INTERRUPTS];
 
+
 /*-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
 
                                                       EXTERNAL INTERRUPTS HANDLING SECTION
 
 -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-*/
+
+void initExtInt() {
+  // Init external interrupts info structure
+  uint8_t extIntNo = EXTERNAL_NUM_INTERRUPTS;
+  while (extIntNo) {
+    extIntNo--;
+    // -1 - interrupt is detached
+    // just use NOT_AN_INTERRUPT = -1 macro from Arduino.h
+    extInterrupt[extIntNo].mode  = NOT_AN_INTERRUPT;
+    extInterrupt[extIntNo].owner = OWNER_IS_NOBODY;
+    extInterrupt[extIntNo].value = 0x00;
+  }
+}
 
 /*****************************************************************************************************************************
 *
@@ -51,6 +65,7 @@ volatile extInterrupt_t extInterrupt[EXTERNAL_NUM_INTERRUPTS];
 #if (EXTERNAL_NUM_INTERRUPTS > 0)
    HANDLE_INT_N_FOR_EXTINT(INT0)
 #endif
+
 
 
 /*****************************************************************************************************************************

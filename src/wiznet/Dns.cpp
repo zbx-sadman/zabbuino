@@ -1,9 +1,10 @@
+#include "../net_platforms.h"
+#ifdef NETWORK_ETH_WIZNET
+
 // Arduino DNS client for WizNet5100-based Ethernet shield
 // (c) Copyright 2009-2010 MCQN Ltd.
 // Released under Apache License, version 2.0
 
-#include "../net_platforms.h"
-#ifdef NETWORK_ETH_WIZNET
 
 #include "Dns.h"
 
@@ -262,7 +263,12 @@ uint16_t DNSClient::ProcessResponse(uint16_t aTimeout, IPAddress& aAddress)
 
     // We've had a reply!
     // Read the UDP header
-    uint8_t header[DNS_HEADER_SIZE]; // Enough space to reuse for the DNS header
+    //uint8_t header[DNS_HEADER_SIZE]; // Enough space to reuse for the DNS header
+    union {
+      uint8_t  byte[DNS_HEADER_SIZE]; // Enough space to reuse for the DNS header
+      uint16_t word[DNS_HEADER_SIZE/2];
+    } header;
+
     // Check that it's a response from the right server and the right port
     if ( (iDNSServer != iUdp.remoteIP()) || 
         (iUdp.remotePort() != DNS_PORT) )
@@ -276,11 +282,15 @@ uint16_t DNSClient::ProcessResponse(uint16_t aTimeout, IPAddress& aAddress)
     {
         return TRUNCATED;
     }
-    iUdp.read(header, DNS_HEADER_SIZE);
+    //iUdp.read(header, DNS_HEADER_SIZE);
+    iUdp.read(header.byte, DNS_HEADER_SIZE);
 
-    uint16_t header_flags = htons(*((uint16_t*)&header[2]));
+    //uint16_t header_flags = htons(*((uint16_t*)&header[2]));
+    uint16_t header_flags = htons(header.word[1]);
+
     // Check that it's a response to this request
-    if ( ( iRequestId != (*((uint16_t*)&header[0])) ) ||
+    //if ( ( iRequestId != (*((uint16_t*)&header[0])) ) ||
+    if ((iRequestId != header.word[0]) ||
         ((header_flags & QUERY_RESPONSE_MASK) != (uint16_t)RESPONSE_FLAG) )
     {
         // Mark the entire packet as read
@@ -297,7 +307,8 @@ uint16_t DNSClient::ProcessResponse(uint16_t aTimeout, IPAddress& aAddress)
     }
 
     // And make sure we've got (at least) one answer
-    uint16_t answerCount = htons(*((uint16_t*)&header[6]));
+    //uint16_t answerCount = htons(*((uint16_t*)&header[6]));
+    uint16_t answerCount = htons(header.word[3]);
     if (answerCount == 0 )
     {
         // Mark the entire packet as read
@@ -306,7 +317,8 @@ uint16_t DNSClient::ProcessResponse(uint16_t aTimeout, IPAddress& aAddress)
     }
 
     // Skip over any questions
-    for (uint16_t i =0; i < htons(*((uint16_t*)&header[4])); i++)
+    //for (uint16_t i =0; i < htons(*((uint16_t*)&header[4])); i++)
+    for (uint16_t i=0; i < htons(header.word[2]); i++) 
     {
         // Skip over the name
         uint8_t len;

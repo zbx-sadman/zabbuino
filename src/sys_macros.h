@@ -10,6 +10,8 @@
 #define ERROR_NET                 	                        (0x01)
 // "DHCP problem" error code
 #define ERROR_DHCP                 	                        (0x02)
+// "DHCP problem" error code
+#define ERROR_NO_NET_ACTIVITY                                   (0x03)
 
 /* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
                                                            VARIOUS DEFINES SECTION 

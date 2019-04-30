@@ -100,6 +100,7 @@ int8_t printToPCF8574LCD(SoftwareWire* _softTWI, uint8_t _i2cAddress, uint8_t _l
       // 0, 1 = 2 line
       lastLine = 1;
       break;
+
     case LCD_TYPE_1604:
     case LCD_TYPE_2004:               // Tested on generic 2004A LCD
     case LCD_TYPE_4004:
@@ -107,10 +108,11 @@ int8_t printToPCF8574LCD(SoftwareWire* _softTWI, uint8_t _i2cAddress, uint8_t _l
       // 0, 1, 2, 3 = 4 line
       lastLine = 3;
       break;
+
     default:
       return false;
   }
-      displayFunction = LCD_2LINE;
+  //displayFunction = LCD_2LINE;
 
   _lcdBacklight = _lcdBacklight ? _BV(LCD_BL) : 0;
 
@@ -145,12 +147,12 @@ int8_t printToPCF8574LCD(SoftwareWire* _softTWI, uint8_t _i2cAddress, uint8_t _l
      write4bitsToLCD(_softTWI, _i2cAddress, (0x02 << 4) | _lcdBacklight);
      
      // set # lines, font size, etc.
-     sendToLCD(_softTWI, _i2cAddress, (LCD_FUNCTIONSET | displayFunction), 0 | _lcdBacklight);
-     sendToLCD(_softTWI, _i2cAddress, (LCD_DISPLAYCONTROL | LCD_DISPLAYON | LCD_CURSOROFF | LCD_BLINKOFF), 0 | _lcdBacklight);
+     sendToLCD(_softTWI, _i2cAddress, (LCD_FUNCTIONSET | displayFunction), 0x00 | _lcdBacklight);
+     sendToLCD(_softTWI, _i2cAddress, (LCD_DISPLAYCONTROL | LCD_DISPLAYON | LCD_CURSOROFF | LCD_BLINKOFF), 0x00 | _lcdBacklight);
   
   }
   // Always begin from 0,0
-  currLine = 0; 
+  currLine = 0x00; 
    // HEX strings must be processeed specially
   isHexString = false;
 
@@ -235,7 +237,7 @@ int8_t printToPCF8574LCD(SoftwareWire* _softTWI, uint8_t _i2cAddress, uint8_t _l
            // for (i = 0; i < LCD_BLINK_TIMES; i++) {
            i = LCD_BLINK_TIMES;
            while (i) {
-              --i;
+              i--;
               // _lcdBacklight is not false/true, is 0x00 / 0x08
               _lcdBacklight = _lcdBacklight ? 0x00 : _BV(LCD_BL);
               writeByteToI2C(_softTWI, _i2cAddress, I2C_NO_REG_SPECIFIED, _lcdBacklight);
@@ -266,24 +268,24 @@ int8_t printToPCF8574LCD(SoftwareWire* _softTWI, uint8_t _i2cAddress, uint8_t _l
            // Space is 0x20 ASCII
            //for (i = 0; i < LCD_TAB_SIZE; i++) { sendToLCD(_softTWI, _i2cAddress, 0x20, 0 | _BV(LCD_RS) | _lcdBacklight); }
            i = LCD_TAB_SIZE;
-           while (i) { --i; sendToLCD(_softTWI, _i2cAddress, 0x20, 0 | _BV(LCD_RS) | _lcdBacklight); }
+           while (i) { i--; sendToLCD(_softTWI, _i2cAddress, 0x20, 0x00 | _BV(LCD_RS) | _lcdBacklight); }
            break;
        
          // Go to new line
          case LCD_CMD_LF:
            if (lastLine > currLine) { currLine++; }
-           sendToLCD(_softTWI, _i2cAddress, (LCD_SETDDRAMADDR | rowOffsets[currLine]), 0 | _lcdBacklight);
+           sendToLCD(_softTWI, _i2cAddress, (LCD_SETDDRAMADDR | rowOffsets[currLine]), 0x00 | _lcdBacklight);
            break;
 
          // Otherwise - print the char
          default:
-           sendToLCD(_softTWI, _i2cAddress, currChar , 0 | _BV(LCD_RS) | _lcdBacklight);    
+           sendToLCD(_softTWI, _i2cAddress, currChar , 0x00 | _BV(LCD_RS) | _lcdBacklight);    
        } //switch (currChar) {
 #ifndef LCD_MELT_CODEPAGE_COMPABILITY
     } // if (currChar > 0x7F && currChar < 0x9F) .. else 
 #endif
     // move pointer to next char
-    ++_src;
+    _src++;
   } // while(*_src)
   gatherSystemMetrics(); // Measure memory consumption
   return RESULT_IS_OK;

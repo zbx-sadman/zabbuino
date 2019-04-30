@@ -70,20 +70,12 @@ int8_t getPlantowerPM25Metric(const uint8_t _rxPin, const uint8_t _txPin, const 
 
       buffer[writePos]=swSerial.read();
 
-    // Header of packet: 0x42 0x4D
-    // On header waiting test first two byte every time when its in buffer (writePos == 0x01)
-    // if signature is detected - write real data from the start of buffer
-    // if not - just move second byte to first position and continue writing to the next cell of buffer
-    if (!headerDetected) {
-       if (0x01 == writePos) {
-          headerDetected = (0x4D == buffer[0x01] && 0x42 == buffer[0x00]);
-          if (headerDetected) {
-             continue;
-           } else {
-              buffer[0x00] = buffer[0x01];
-           }
-       }
-    }
+      // Header of packet: 0x42 0x4D
+     if (!headerDetected && 0x01 == writePos && 0x4D == buffer[0x01] && 0x42 == buffer[0x00]) {
+       headerDetected = true;
+       writePos = 0x00;
+       continue;
+     }
      writePos++;
   }
 

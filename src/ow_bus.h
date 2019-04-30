@@ -9,5 +9,5 @@
 *     - RESULT_IS_FAIL of no devices found 
 *
 *****************************************************************************************************************************/
-int8_t scanOneWire(const uint8_t _pin, uint8_t* _dst);
+int8_t scanOneWire(const uint8_t, uint8_t*, size_t);
 

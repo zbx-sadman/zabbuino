@@ -202,9 +202,11 @@ int8_t getMHZxxMetricPWM(uint8_t _pin, uint16_t _range, uint8_t* _dst, int32_t* 
      finish:
      *_value = 0;
      if (MH_ZXX_STAGE_CYCLE_FINISHED == stage) {
-        DTSH( PRINT_PSTR("High level time: ");  Serial.print(highTime);
-              PRINT_PSTR(", low level time: "); Serial.println(highTime);
-        ) 
+/*
+        DTSH( Serial.println(F("High level time: "));  Serial.print(highTime);
+              Serial.println(F(", low level time: ")); Serial.println(highTime);
+        )
+*/ 
         *_value = _range * (highTime - 2) / (highTime + lowTime - 4);
         rc = RESULT_IS_BUFFERED;
      } 

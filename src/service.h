@@ -1,13 +1,14 @@
 #pragma once
 
 uint8_t flushStreamRXBuffer(Stream*, const uint32_t, const uint8_t);
+uint8_t factoryReset(netconfig_t&);
 
 /*****************************************************************************************************************************
 *
 *   Return number of millis() rollovers every UINT32_MAX ms (~50days)
 *
 *****************************************************************************************************************************/
-uint8_t millisRollover(void);
+uint16_t millisRollover(void);
 
 /*****************************************************************************************************************************
 *
@@ -21,7 +22,7 @@ uint32_t uptime(void);
 *   Set default values of network configuration
 *
 *****************************************************************************************************************************/
-void setConfigDefaults(netconfig_t *_configStruct);
+void setConfigDefaults(netconfig_t&);
 
 /*****************************************************************************************************************************
 *
@@ -59,21 +60,21 @@ uint8_t dallas_crc8(uint8_t *addr, uint8_t len);
 *  Print string stored in PROGMEM to Serial 
 *
 *****************************************************************************************************************************/
-extern void SerialPrint_P (const char *_src);
+//extern void SerialPrint_P (const char *_src);
 
 /*****************************************************************************************************************************
 *
 *  Print string stored in PROGMEM to Serial + Line Feed
 *
 *****************************************************************************************************************************/
-extern void SerialPrintln_P (const char *_src);
+//extern void SerialPrintln_P (const char *_src);
 
 /*****************************************************************************************************************************
 *
 *  Print array to Serial as MAC or IP or other string with sign-separated parts
 *
 *****************************************************************************************************************************/
-void printArray(uint8_t *_src, const uint8_t _len, Stream* _stream, const uint8_t _type);
+void printArray(uint8_t* _src, const uint8_t _len, Stream& _stream, const uint8_t _type);
 
 void blinkMore(const uint8_t _times, const uint16_t _onTime, const uint16_t _offTime);
 
@@ -83,8 +84,8 @@ void blinkMore(const uint8_t _times, const uint16_t _onTime, const uint16_t _off
 *
 *****************************************************************************************************************************/
 //uint8_t validateNetworkAddress(const NetworkAddress);
-uint8_t strToNetworkAddress(const char*, NetworkAddress*);
-uint8_t analyzeStream(char _charFromClient, char* _dst, uint8_t doReInit, packetInfo_t* _packetInfo);
+uint8_t strToNetworkAddress(const char* _src, uint32_t& _dstAddress);
+uint8_t analyzeStream(char _charFromClient, char* _dst, const uint8_t doReInit, packetInfo_t& _packetInfo);
 
 /* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
                                                          INLINE AND "DEFINE" FUNCTIONS SECTION 
@@ -95,17 +96,25 @@ uint8_t analyzeStream(char _charFromClient, char* _dst, uint8_t doReInit, packet
 
 // HEX char to number
 //#define htod(_hex) ( (_hex >= 'a' && _hex <= 'f') ? (10 + _hex - 'a') : ( (_hex >= '0' && _hex <= '9') ? (_hex - '0') : 0) )
-inline uint8_t htod(const char    _hex) { return (_hex >= 'a' && _hex <= 'f') ? (10 + _hex - 'a') : ( (_hex >= '0' && _hex <= '9') ? (_hex - '0') : 0); } 
-inline uint8_t htod(const uint8_t _hex) { return (_hex >= 'a' && _hex <= 'f') ? (10 + _hex - 'a') : ( (_hex >= '0' && _hex <= '9') ? (_hex - '0') : 0); } 
+//inline uint8_t htod(const char    _hex) { return (_hex >= 'a' && _hex <= 'f') ? (10 + _hex - 'a') : ( (_hex >= '0' && _hex <= '9') ? (_hex - '0') : 0); } 
+//inline uint8_t htod(const uint8_t _hex) { return (_hex >= 'a' && _hex <= 'f') ? (10 + _hex - 'a') : ( (_hex >= '0' && _hex <= '9') ? (_hex - '0') : 0); } 
 
 // Convert dec number to hex char
 //#define dtoh(_dec) ( (_dec > 9) ? ('A' - 10 + _dec) : ('0' + _dec) )
-inline char dtoh(const uint8_t _dec) { return (_dec > 9) ? ('A' - 10 + _dec) : ('0' + _dec); } 
+inline char dtoh(const uint8_t  _dec) { return (_dec > 9) ? ('A' - 10 + _dec) : ('0' + _dec); } 
+//inline char dtoh(const uint16_t _dec) { return dtoh((uint8_t) _dec); } 
 
 // if _source have hex prefix - return true
 //#define haveHexPrefix(_src) ( (_src[0] == '0' && _src[1] == 'x') )
 inline uint8_t haveHexPrefix(const char*    _src) { return (_src[0] == '0' && _src[1] == 'x'); } 
-inline uint8_t haveHexPrefix(const uint8_t* _src) { return (_src[0] == '0' && _src[1] == 'x'); } 
+inline uint8_t haveHexPrefix(const uint8_t* _src) { return haveHexPrefix((const char*) _src ); } 
+
+
+inline uint8_t htod(const char   _hex) {
+  return (_hex >= 'a' && _hex <= 'f') ? (10 + _hex - 'a') : ( (_hex >= '0' && _hex <= '9') ? (_hex - '0') : 0);
+}
+inline uint8_t htod(const uint8_t _hex) { return htod((const char) _hex); }
+//inline uint8_t htod(const int16_t _hex) { return htod((const char) _hex); }
 
 
 #define arraySize(_array) ( sizeof(_array) / sizeof(*(_array)) )
@@ -141,8 +150,25 @@ inline void correctVCCMetrics(uint32_t _currVCC) {
                    ((x)>>24 & 0x000000FFUL) )
 #define ntohl(x) htonl(x)
 
-#define PRINTLN_PSTR(str) ( SerialPrintln_P(PSTR(str)) )
+// *** Helpers ***
 
-#define PRINT_PSTR(str) ( SerialPrint_P(PSTR(str)) )
+#define arraySize(_array) ( sizeof(_array) / sizeof(*(_array)) )
+#define FSH_P(p) (reinterpret_cast<const __FlashStringHelper *>(p))
 
 
+inline uint32_t octetsToIpAddress(const uint8_t octets[4]) {
+  return (((uint32_t) octets[3] << 24) | ((uint32_t) octets[2] << 16) | ((uint16_t) octets[1] << 8) |  octets[0]);
+}
+
+
+#ifdef FEATURE_USER_FUNCTION_PROCESSING
+ #define __USER_FUNCTION(_code) _code
+#else
+ #define __USER_FUNCTION(_code) /* blank */
+#endif 
+
+#ifdef FEATURE_WATCHDOG_ENABLE
+ #define __WATCHDOG(_code) _code
+#else
+ #define __WATCHDOG(_code) /* blank */
+#endif 

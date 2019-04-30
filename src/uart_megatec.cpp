@@ -49,7 +49,7 @@ int8_t getMegatecUPSMetric(const uint8_t _rxPin, const uint8_t _txPin, char* _co
   _command[len] = '\r'; 
   len++;
   
-  DTSD ( PRINT_PSTR("Command for UPS: "); Serial.println(_command); )
+  DTSD ( Serial.print(F("Command for UPS: ")); Serial.println(_command); )
 
   // Expected nothing on default
   expectedStartByte = 0x00; // 
@@ -84,12 +84,12 @@ int8_t getMegatecUPSMetric(const uint8_t _rxPin, const uint8_t _txPin, char* _co
   //serialRXFlush(&swSerial, false);
   flushStreamRXBuffer(&swSerial, MEGATEC_DEFAULT_READ_TIMEOUT, !UART_SLOW_MODE);
 
-  DTSD ( PRINTLN_PSTR("Send command"); )
+  DTSD ( Serial.println(F("Send command")); )
   serialSend(&swSerial, (uint8_t*) _command, len , !UART_SLOW_MODE);
   // Do not expect the answer? Just go out
   if (! expectedStartByte) { rc = RESULT_IS_OK; goto finish; }
   // Recieve answer from UPS. Answer placed to buffer directly for additional processing 
-  DTSD ( PRINT_PSTR("Recieve answer"); )
+  DTSD ( Serial.print(F("Recieve answer")); )
   // We will expect to income no more MEGATEC_MAX_ANSWER_LENGTH bytes for MEGATEC_DEFAULT_READ_TIMEOUT milliseconds
   // Recieving can be stopped when '\r' char taken.
   // Need to use UART_SLOW_MODE with Megatec UPS?

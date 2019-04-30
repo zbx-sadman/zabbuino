@@ -5,7 +5,7 @@
 
 uint16_t EthernetClient::_srcport = 1024;
 
-EthernetClient::EthernetClient() : _sock(MAX_SOCK_NUM) {
+EthernetClient::EthernetClient() : _sock(WIZNET_SOCKETS_USED) {
 }
 
 EthernetClient::EthernetClient(uint8_t sock) : _sock(sock) {
@@ -27,10 +27,10 @@ int EthernetClient::connect(const char* host, uint16_t port) {
 }
 
 int EthernetClient::connect(IPAddress ip, uint16_t port) {
-  if (_sock != MAX_SOCK_NUM)
+  if (_sock != WIZNET_SOCKETS_USED)
     return 0;
 
-  for (int i = 0; i < MAX_SOCK_NUM; i++) {
+  for (int i = 0; i < WIZNET_SOCKETS_USED; i++) {
     uint8_t s = W5100.readSnSR(i);
     if (s == SnSR::CLOSED || s == SnSR::FIN_WAIT || s == SnSR::CLOSE_WAIT) {
       _sock = i;
@@ -38,7 +38,7 @@ int EthernetClient::connect(IPAddress ip, uint16_t port) {
     }
   }
 
-  if (_sock == MAX_SOCK_NUM)
+  if (_sock == WIZNET_SOCKETS_USED)
     return 0;
 
   _srcport++;
@@ -46,14 +46,14 @@ int EthernetClient::connect(IPAddress ip, uint16_t port) {
   socket(_sock, SnMR::TCP, _srcport, 0);
 
   if (!::connect(_sock, rawIPAddress(ip), port)) {
-    _sock = MAX_SOCK_NUM;
+    _sock = WIZNET_SOCKETS_USED;
     return 0;
   }
 
   while (status() != SnSR::ESTABLISHED) {
     delay(1);
     if (status() == SnSR::CLOSED) {
-      _sock = MAX_SOCK_NUM;
+      _sock = WIZNET_SOCKETS_USED;
       return 0;
     }
   }
@@ -66,7 +66,7 @@ size_t EthernetClient::write(uint8_t b) {
 }
 
 size_t EthernetClient::write(const uint8_t *buf, size_t size) {
-  if (_sock == MAX_SOCK_NUM) {
+  if (_sock == WIZNET_SOCKETS_USED) {
     setWriteError();
     return 0;
   }
@@ -78,7 +78,7 @@ size_t EthernetClient::write(const uint8_t *buf, size_t size) {
 }
 
 int EthernetClient::available() {
-  if (_sock != MAX_SOCK_NUM)
+  if (_sock != WIZNET_SOCKETS_USED)
     return W5100.getRXReceivedSize(_sock);
   return 0;
 }
@@ -115,7 +115,7 @@ void EthernetClient::flush() {
 }
 
 void EthernetClient::stop() {
-  if (_sock == MAX_SOCK_NUM)
+  if (_sock == WIZNET_SOCKETS_USED)
     return;
 
   // attempt to close the connection gracefully (send a FIN to other side)
@@ -131,11 +131,11 @@ void EthernetClient::stop() {
     close(_sock);
 
   EthernetClass::_server_port[_sock] = 0;
-  _sock = MAX_SOCK_NUM;
+  _sock = WIZNET_SOCKETS_USED;
 }
 
 uint8_t EthernetClient::connected() {
-  if (_sock == MAX_SOCK_NUM) return 0;
+  if (_sock == WIZNET_SOCKETS_USED) return 0;
   
   uint8_t s = status();
   return !(s == SnSR::LISTEN || s == SnSR::CLOSED || s == SnSR::FIN_WAIT ||
@@ -143,7 +143,7 @@ uint8_t EthernetClient::connected() {
 }
 
 uint8_t EthernetClient::status() {
-  if (_sock == MAX_SOCK_NUM) return SnSR::CLOSED;
+  if (_sock == WIZNET_SOCKETS_USED) return SnSR::CLOSED;
   return W5100.readSnSR(_sock);
 }
 
@@ -151,26 +151,26 @@ uint8_t EthernetClient::status() {
 // EthernetServer::available() as the condition in an if-statement.
 
 EthernetClient::operator bool() {
-  return _sock != MAX_SOCK_NUM;
+  return _sock != WIZNET_SOCKETS_USED;
 }
 
 bool EthernetClient::operator==(const EthernetClient& rhs) {
-  return _sock == rhs._sock && _sock != MAX_SOCK_NUM && rhs._sock != MAX_SOCK_NUM;
+  return _sock == rhs._sock && _sock != WIZNET_SOCKETS_USED && rhs._sock != WIZNET_SOCKETS_USED;
 }
 
-IPAddress EthernetClient::getRemoteIP() {
+IPAddress EthernetClient::remoteIP() {
   // Remote port is destination host ip to which will be sended data
   uint8_t ret[4];
   W5100.readSnDIPR(_sock, ret);
-  return ret;
+  return IPAddress(ret);
 }
 
-uint16_t EthernetClient::getLocalPort() {
+uint16_t EthernetClient::localPort() {
   // Local port is source port from which will be sended data
   return W5100.readSnPORT(_sock);
 }
 
-uint16_t EthernetClient::getRemotePort() {
+uint16_t EthernetClient::remotePort() {
   // Remote port is destination port to which will be sended data
   return W5100.readSnDPORT(_sock);
 }

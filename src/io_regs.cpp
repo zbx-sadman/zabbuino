@@ -3,7 +3,20 @@
 
 #include <util/atomic.h>
 
+#include "service.h"
+
 #include "io_regs.h"
+
+int8_t initPortMode() {
+  if (arraySize(port_mode) != arraySize(port_pullup)) { return RESULT_IS_FAIL; }
+  uint8_t portNo = arraySize(port_mode);
+  while (portNo) {
+    portNo--;
+    // pgm_read_byte(port_mode+port) == pgm_read_byte(&port_mode[port])
+    setPortMode(portNo, pgm_read_byte(port_mode+portNo), pgm_read_byte(port_pullup+portNo));
+  }
+  return RESULT_IS_OK;
+}
 
 /*****************************************************************************************************************************
 *

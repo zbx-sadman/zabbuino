@@ -1,8 +1,7 @@
 #include "../net_platforms.h"
 #ifdef NETWORK_ETH_WIZNET
 
-#ifndef _WIZNET_ETHERNETCLIENT_H_
-#define _WIZNET_ETHERNETCLIENT_H_
+#pragma once
 
 //#include <Arduino.h>
 #include <Print.h>
@@ -35,9 +34,10 @@ public:
   virtual void stop();
 
   // added to stock lib by sadman
-  IPAddress getRemoteIP();
-  uint16_t getLocalPort();
-  uint16_t getRemotePort();
+  uint8_t getSocketNumber() const { return _sock; }
+  IPAddress remoteIP();
+  uint16_t localPort();
+  uint16_t remotePort();
   //
 
   virtual uint8_t connected();
@@ -54,5 +54,4 @@ private:
   uint8_t _sock;
 };
 
-#endif // _WIZNET_ETHERNETCLIENT_H_
 #endif // NETWORK_ETH_WIZNET

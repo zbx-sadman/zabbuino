@@ -7,87 +7,60 @@
 
 #include "net_platforms.h"
 #include "sys_structs.h"
+#include <SPI.h> 
+
+#define NET_OK                      (+0x01)
+#define NET_FAIL                    (+0x00)
+#define NET_DHCP_PROBLEM            (-0x01)
+#define NET_PHY_PROBLEM             (-0x02)
+
+#define NET_ZERO_IP_ADDRESS         (0x00UL)
+
+#define WIZNET_WARMING_UP_TIME      (300UL)
+
 
 // Include headers for an network module
 #if defined(NETWORK_ETH_WIZNET)
-#include <SPI.h> 
 #include "wiznet/Ethernet.h" 
-#include "wiznet/EthernetServer.h" 
-#include "wiznet/EthernetClient.h" 
-class NetworkClass
-{
-  private:
-    uint8_t useDHCP;
-    uint8_t macAddress[6];
-    NetworkAddress netDefaultIP;
-    NetworkAddress netDefaultGW;
-    NetworkAddress netDefaultNM;
+//typedef EthernetClass ParentEthernetClass;
+#define ParentEthernetClass EthernetClass
 
-  public:
-    EthernetServer server{ZBX_AGENT_TCP_PORT};  // NOTE: brace need when param is used
-    EthernetClient client;
-    NetworkClass() {}
-    ~NetworkClass() {}
-    inline IPAddress localIP() { return Ethernet.localIP(); }
-    inline IPAddress defaultIP() { return (IPAddress) netDefaultIP; }
-
-    uint8_t checkPHY();
-    inline void checkClient() { client = server.available(); }
-    inline void stopClient() { client.stop(); }
-    inline uint8_t isDHCPUsed() { return useDHCP; }
-    inline uint8_t getRCR() { return 0; }
-    inline uint16_t getRTR() { return 0; }
-    inline uint16_t getPHYCFG() { return 0; }
-    inline int maintain() {return Ethernet.maintain(); };
-    int begin(uint8_t *_mac) { return Ethernet.begin(_mac); }
-    void begin(uint8_t *_mac, NetworkAddress _ip, NetworkAddress _dns, NetworkAddress _gw, NetworkAddress _netmask) {
-         Ethernet.begin(_mac, IPAddress(_ip), IPAddress(_dns), IPAddress(_gw), IPAddress(_netmask));
-    }
-    void showNetworkState();
-    void showPHYState();
-    void restart();
-
-    void init(netconfig_t*);
-};
 
 #elif defined(NETWORK_ETH_ENC28J60) //NETWORK_ETH_WIZNET 
 #include "enc28j60/UIPEthernet.h"
-#include "enc28j60/enc28j60.h"
-class NetworkClass
-{
-  private:
-    uint8_t useDHCP;
-    uint8_t macAddress[6];
-    NetworkAddress netDefaultIP;
-    NetworkAddress netDefaultGW;
-    NetworkAddress netDefaultNM;
-
-  public:
-    // uint16_t phyReinits;
-
-    UIPServer server{ZBX_AGENT_TCP_PORT};
-    UIPClient client;
-    NetworkClass() {}
-    ~NetworkClass() {}
-    uint8_t checkPHY();
-    inline void checkClient() { client = server.available(); }
-    inline void stopClient() { client.stop(); }
-    inline uint8_t isDHCPUsed() { return useDHCP; }
-    inline IPAddress localIP() { return UIPEthernet.localIP(); }
-    inline IPAddress defaultIP() { return (IPAddress) netDefaultIP; }
-    inline void tick() { UIPEthernet.tick(); }
-    inline uint8_t getRCR() { return 0; }
-    inline uint16_t getRTR() { return 0; }
-    inline uint16_t getPHYCFG() { return 0; }
-    inline int maintain() {return UIPEthernet.maintain(); };
-    inline int begin(uint8_t *_mac) { return UIPEthernet.begin(_mac); }
-    inline void begin(uint8_t *_mac, NetworkAddress _ip, NetworkAddress _dns, NetworkAddress _gw, NetworkAddress _netmask) {
-         UIPEthernet.begin(_mac, IPAddress(_ip), IPAddress(_dns), IPAddress(_gw), IPAddress(_netmask));
-    }
-    void showNetworkState();
-    void showPHYState();
-    void restart();
-    void init(netconfig_t*);
-};
+//typedef UIPEthernetClass ParentEthernetClass;
+#define ParentEthernetClass UIPEthernetClass
 
 #endif // NETWORK_ETH_ENC28J60
+
+typedef EthernetClient NetworkClient;
+typedef EthernetServer NetworkServer;
+
+class NetworkClass : public ParentEthernetClass {
+  private:
+    uint8_t useDhcp;
+    uint8_t phyConfigured;
+    uint8_t macAddress[6];
+    uint32_t defaultIpAddress;
+    uint32_t defaultGateway;
+    uint32_t defaultNetmask;
+    uint32_t defaultDns;
+
+  public:
+    NetworkClass();
+    ~NetworkClass() {}
+    uint8_t isPhyOk(void);
+    uint8_t isPhyConfigured(void);
+    int16_t maintain(void);
+    void printNetworkInfo(void);
+    void printPHYState(void);
+//    void resetPhy(void);
+    inline uint8_t isDHCPUsed() { return useDhcp; }
+    void init(const uint8_t*, const uint32_t, const uint32_t, const uint32_t, const uint32_t, const uint8_t);
+    uint8_t relaunch(void);
+    void resetDefaults(const uint32_t, const uint32_t, const uint32_t, const uint32_t);
+    void tick();
+
+//    NetworkClient getClient(void);
+};
+

@@ -1,5 +1,7 @@
 #pragma once
 #include <avr/wdt.h>
+#include "sys_macros.h"
+
 
 /* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
                                                             DISPATCH SECTION 
@@ -101,14 +103,33 @@
 /* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
                                                             ALARM SECTION 
 */
+
+// Must be in "sys_structs.h", but "sys_structs.h" want "cfg_tune.h", and "cfg_tune.h" want "sys_structs.h" 
+#pragma pack(push,1)
+typedef struct {
+  uint32_t onTime;
+  uint32_t allTime;
+} blinkSettings_t;
+#pragma pack(pop)
+
+
+const blinkSettings_t blinkSettings[]={
+  {000UL, 1000UL}, // ERROR_NONE 0 ms   on, (1000-0) ms   off
+  {250UL,  500UL}, // ERROR_NET  250 ms on, (500-250) ms  off
+  {750UL, 1500UL}, // ERROR_DHCP 750 ms on, (1500-750) ms off
+  {500UL, 1000UL}, // ERROR_NO_NET_ACTIVITY 500 ms on, (1000-500) ms off
+};
+
 // Turn off state LED blink (no errors found)
 const uint32_t constBlinkNope                                   = 000UL;
 // State LED blink type with DHCP problem reached (no renew lease or more)
 // ~150ms on, ~850ms off
-const uint32_t constBlinkDhcpProblem         	                = 150UL; 
+const uint32_t constBlinkDhcpProblem         	                = 750UL; 
 // State LED blink type with Network activity problem (no packets processed for constNetIdleTimeout)
 // ~500ms on, ~500ms off
-const uint32_t constBlinkNetworkProblem                         = 500UL;
+const uint32_t constBlinkNetworkProblem                         = 250UL;
+//
+const uint32_t constBlinkNoNetActivityProblem                   = 500UL;
 
 
 /* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
@@ -141,7 +162,7 @@ const uint16_t constUserFunctionCallInterval                    = 1000UL; // 3se
 
 // How often do ENC28J60 module reinit for more stable network
 // 5 sec
-const uint32_t constPHYCheckInterval                            = 5000UL; 
+const uint32_t constPHYCheckInterval                            = 10000UL; 
 
 // Network activity timeout (for which no packets processed or no DHCP lease renews finished with success)
 // 60 sec
@@ -193,7 +214,7 @@ const uint32_t constSysMetricGatherPeriod                       = 1000UL;
 const uint8_t constArgC                                         = 6;
 // Size of buffer's argument part. All separators and delimiters must be taken into account. See note to constBufferSize macro too
 //const uint16_t constArgsPartSize                               = 163;
-const uint16_t constArgsPartSize                                = 150;
+const uint16_t constArgsPartSize                                = 250;
 // Size of buffer's command part
 const uint8_t constCmdPartSize                                  = 25;
 
@@ -205,9 +226,11 @@ const uint8_t constCmdPartSize                                  = 25;
 // - getMegatecUPSMetric() can write to its up to MEGATEC_MAX_ANSWER_LENGTH bytes, for example
 // The total size of the buffer. 
 const uint16_t constBufferSize                                  = constCmdPartSize + constArgsPartSize;
+// Packet payload size must be no more that Buffer Size - Packet Header Size
+const uint16_t constPayloadSize                                 = constBufferSize - ZBX_HEADER_LENGTH;
 
-// How long the ID of MCU
-const uint8_t constMcuIdLength                                  = 20;
+// How long the ID of MCU (in bytes)
+const uint8_t constMcuIdSize                                    = 10;
 
 /* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
                                                           AGENT CONFIGURATION SECTION 

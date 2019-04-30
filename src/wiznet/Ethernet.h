@@ -1,13 +1,12 @@
+#include "../net_platforms.h"
+#ifdef NETWORK_ETH_WIZNET
+
+#pragma once
+
 /*
  modified 12 Aug 2013
  by Soohwan Kim (suhwan@wiznet.co.kr)
 */
-#include "../net_platforms.h"
-#ifdef NETWORK_ETH_WIZNET
-
-#ifndef _WIZNET_ETHERNET_H_
-#define _WIZNET_ETHERNET_H_
-
 
 //#include <inttypes.h>
 //#include <IPAddress.h>
@@ -26,20 +25,9 @@ private:
   IPAddress _dnsServerAddress;
   DhcpClass* _dhcp;
 public:
-  static uint8_t _state[MAX_SOCK_NUM];
-  static uint16_t _server_port[MAX_SOCK_NUM];
+  static uint8_t _state[WIZNET_SOCKETS_USED];
+  static uint16_t _server_port[WIZNET_SOCKETS_USED];
 
-#if defined(WIZ550io_WITH_MACADDRESS)
-  // Initialize function when use the ioShield serise (included WIZ550io)
-  // WIZ550io has a MAC address which is written after reset.
-  // Default IP, Gateway and subnet address are also writen.
-  // so, It needs some initial time. please refer WIZ550io Datasheet in details.
-  int begin(void);
-  void begin(IPAddress local_ip);
-  void begin(IPAddress local_ip, IPAddress dns_server);
-  void begin(IPAddress local_ip, IPAddress dns_server, IPAddress gateway);
-  void begin(IPAddress local_ip, IPAddress dns_server, IPAddress gateway, IPAddress subnet);
-#else
   // Initialize the Ethernet shield to use the provided MAC address and gain the rest of the
   // configuration through DHCP.
   // Returns 0 if the DHCP configuration failed, and 1 if it succeeded
@@ -48,8 +36,6 @@ public:
   void begin(uint8_t *mac_address, IPAddress local_ip, IPAddress dns_server);
   void begin(uint8_t *mac_address, IPAddress local_ip, IPAddress dns_server, IPAddress gateway);
   void begin(uint8_t *mac_address, IPAddress local_ip, IPAddress dns_server, IPAddress gateway, IPAddress subnet);
-
-#endif
   
   int maintain();
 
@@ -61,6 +47,8 @@ public:
   uint16_t getRTR();
   uint8_t getRCR();
   uint8_t getPHYCFG();
+  inline uint8_t getMaxSocketNumber() const { return W5100.getMaxSocketNumber(); }
+  inline uint8_t hardwareStatus() { return W5100.hardwareStatus(); }
   //
 
   friend class EthernetClient;
@@ -69,5 +57,4 @@ public:
 
 extern EthernetClass Ethernet;
 
-#endif // _WIZNET_ETHERNET_H_
 #endif // NETWORK_ETH_WIZNET

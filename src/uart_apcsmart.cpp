@@ -104,10 +104,10 @@ int8_t getAPCSmartUPSMetric(const uint8_t _rxPin, const uint8_t _txPin, uint8_t*
 
   command = 'Y';
   serialSend(&swSerial, &command, 1, true);
-  DTSD( SerialPrintln_P(PSTR("Recieving from UPS")); )
+  DTSD( Serial.println(F("Recieving from UPS")); )
 
   len = serialRecive(&swSerial, _dst, 0x03, APC_DEFAULT_READ_TIMEOUT, UART_STOP_ON_CHAR, '\r', UART_SLOW_MODE);
-  DTSD( Serial.print("len: "); Serial.println(len, DEC); )
+  DTSD( Serial.print(F("len: ")); Serial.println(len, DEC); )
 
   // Connection timeout occurs (recieved less than 3 byte)
   if (len < 0x03) { goto finish; } // rc inited with DEVICE_ERROR_TIMEOUT value

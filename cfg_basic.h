@@ -23,10 +23,10 @@
                 >>> NOTE that network drivers (UIPEthernet & WIZNet libs) are integrated to Zabbuino source code <<<
 */
 
-#define W5100_ETHERNET_SHIELD       // Arduino Ethernet Shield and Compatibles ...
+//#define W5100_ETHERNET_SHIELD       // Arduino Ethernet Shield and Compatibles ...
 //#define ENC28J60_ETHERNET_SHIELD      // Microchip __ENC28J60__ network modules
 //#define W5200_ETHERNET_SHIELD       // WIZ820io, W5200 Ethernet Shield , not tested yet
-//#define W5500_ETHERNET_SHIELD       // WIZ550io, ioShield series of WIZnet , tested but not satisfied with the performance on intensive traffic
+#define W5500_ETHERNET_SHIELD       // WIZ550io, ioShield series of WIZnet , tested but not satisfied with the performance on intensive traffic
 
 /* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
                                                                  PROGRAMM FEATURES SECTION
@@ -36,8 +36,7 @@
 */
 
 /****       New              ****/
-#define FEATURE_MLX90614_ENABLE
-
+//#define FEATURE_MLX90614_ENABLE
 /****       Network              ****/
 /*/
   /=/      Obtain an IP-address using DHCP
@@ -70,7 +69,7 @@
   /=/        - delay[]
   /=/
   /*/
-#define FEATURE_ARDUINO_BASIC_ENABLE
+//#define FEATURE_ARDUINO_BASIC_ENABLE
 
 /*/
   /=/      Enable commands:
@@ -146,7 +145,7 @@
 /*/
   /=/     Enable BOSCH BMP280 sensors handling
   /*/
-#define FEATURE_BMP280_ENABLE
+//#define FEATURE_BMP280_ENABLE
 
 /*/
   /=/     Enable BOSCH BME280 sensors handling and enable additional command
@@ -197,7 +196,7 @@
   /=/       - PCF8574.LCDPrint[]
   /=/
   /*/
-#define FEATURE_PCF8574_LCD_ENABLE
+//#define FEATURE_PCF8574_LCD_ENABLE
 
 /*/
   /=/     Enable Sensirion SHT2x sensors handling and commands:
@@ -234,7 +233,7 @@
   /=/       - MAX7219.Write[]
   /=/
   /*/
-//#define FEATURE_MAX7219_ENABLE
+#define FEATURE_MAX7219_ENABLE
 
 /****       UART bus       ****/
 /*/
@@ -251,7 +250,7 @@
   /=/       - mhzxx.pwm.co2[]
   /=/       - mhzxx.uart.co2[]
   /*/
-#define FEATURE_MHZXX_PWM_ENABLE
+//#define FEATURE_MHZXX_PWM_ENABLE
 //#define FEATURE_MHZXX_UART_ENABLE
 
 /*/
@@ -278,9 +277,9 @@
   /=/     Enable Plantower PMS-xxxx sensors support and command:
   /=/       - PMS.all[]
   /=/
-  /=/     Note: PMS.all command output is JSON (for Zabbix v3.4 and above) and constBufferSize must 175 char lenght at least
+  /=/     Note: PMS.all command output is JSON (for Zabbix v3.4 and above)
   /*/
-#define FEATURE_PLANTOWER_PMS_ALL_ENABLE
+//#define FEATURE_PLANTOWER_PMS_ALL_ENABLE
 
 /****       DHT/AM family    ****/
 
@@ -289,7 +288,7 @@
   /=/       - DHT.Humidity[];
   /=/       - DHT.Temperature[]
   /*/
-#define FEATURE_DHT_ENABLE
+//#define FEATURE_DHT_ENABLE
 
 /****       Ultrasonic    ****/
 
@@ -333,7 +332,7 @@
   /=/     Enable WS2812 led chip support and command:
   /=/       - ws2812.sendraw[]
   /*/
-#define FEATURE_WS2812_ENABLE
+//#define FEATURE_WS2812_ENABLE
 
 
 /****      Unsorted features     ****/
@@ -362,7 +361,7 @@
   /=/      Enable calling user functions on device start and every _constUserFunctionCallInterval_ if no active network session exist
   /=/      You can write to _plugin.ino_ your own code and use all Zabbuino's internal functions to query sensors and handle actuators
   /*/
-#define FEATURE_USER_FUNCTION_PROCESSING
+//#define FEATURE_USER_FUNCTION_PROCESSING
 
 /*/
   /=/      Support Zabbix's Action functionality and enable command:
@@ -410,7 +409,7 @@
   /=/       - Sys.RAM.Free[];
   /=/       - Sys.RAM.FreeMin[]
   /*/
-//#define FEATURE_SYSINFO_ENABLE
+#define FEATURE_SYSINFO_ENABLE
 
 /*/
   /=/      Enable support the system RTC (DS3231 or PCF8563 RTC chip which connected via I2C interface) and commands:
@@ -425,24 +424,24 @@
 /*/
   /=/     View the more or less debug messages on the Serial Monitor. Choose one.
   /*/
-#define FEATURE_DEBUG_TO_SERIAL_LOW
+//#define FEATURE_DEBUG_TO_SERIAL_LOW
 //#define FEATURE_DEBUG_TO_SERIAL_MIDDLE
-//#define FEATURE_DEBUG_TO_SERIAL_HIGH
-//#define FEATURE_DEBUG_TO_SERIAL_DEV
+#define FEATURE_DEBUG_TO_SERIAL_HIGH
+#define FEATURE_DEBUG_TO_SERIAL_DEV
 
 
 
 /*/
   /=/     Let Zabbuino to detect network module errors, and try to fix it.
   /*/
-//#define FEATURE_NETWORK_MONITORING
+#define FEATURE_NETWORK_MONITORING
 
 /*/
   /=/     Recieve command from Serial Monitor too. Do not forget to enable one of FEATURE_DEBUG_TO_SERIAL_* macro
   /=/
   /=/     Note that 64 bytes buffer reserved for Serial (refer to HardwareSerial.h) and long commands like ws2812.sendraw[5,1,over9000chars] can be processed uncorrectly
   /*/
-#define FEATURE_SERIAL_LISTEN_TOO
+//#define FEATURE_SERIAL_LISTEN_TOO
 
 /*/
   /=/     Send back to user text messages if error is occurs. Otherwise - send numeric code
@@ -457,7 +456,7 @@
 /* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
                                                             NETWORK MODULE SECTION
 
-       Note, that changing MAC or IP-address separately may cause "strange" network errors until the moment when the router delete old ARP-records from the cache.
+       Note: MAC or IP-address separately changing may cause "strange" network errors until the moment when the router delete old ARP-records from the cache.
 
 */
 
@@ -476,13 +475,13 @@ const uint8_t constNetDefaultUseDHCP = false;
 */
 
 // Zabbuino's IP address
-#define NET_DEFAULT_MAC_ADDRESS                                {0xBE,0xAD,0xEB,0xA8,0x00,0xDD}
-#define NET_DEFAULT_IP_ADDRESS                                 {192,168,0,121}
-#define NET_DEFAULT_GATEWAY                                    {192,168,0,1}
-#define NET_DEFAULT_NETMASK                                    {255,255,255,0}
+const uint8_t constDefaultMacAddress[6]                PROGMEM = {0xBE, 0xAD, 0xEB, 0xA8, 0x00, 0xDD};
+const uint8_t constDefaultIPAddress[4]                 PROGMEM = {172, 16, 100, 206};
+const uint8_t constDefaultGateway[4]                   PROGMEM = {172, 16, 100, 254};
+const uint8_t constDefaultNetmask[4]                   PROGMEM = {255, 255, 255, 0};
 
 /* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
-                                                               ALARM SECTION
+  ALARM SECTION
 */
 
 // Where is state LED connected
@@ -493,7 +492,7 @@ const uint8_t constStateLedPin                                 = 0x09;
 //#define ADVANCED_BLINKING
 
 /* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
-                                                         SYSTEM CONFIGURATION SECTION
+  SYSTEM CONFIGURATION SECTION
 */
 
 // Debug serial port speed in baud
@@ -516,13 +515,13 @@ const uint16_t constSysTZOffset                                = 0x2A30; // 1080
                                                           AGENT CONFIGURATION SECTION
 */
 
-#define ZBX_AGENT_TCP_PORT                                     (10050)
+const uint16_t constZbxAgentTcpPort                            = 10050;
 
-#define ZBX_AGENT_DEFAULT_HOSTNAME                             "zabbuino"
+const char constZbxAgentDefaultHostname[]            PROGMEM   = "zabbuino";
 
 // Domain name used only to make FDQN if FEATURE_NET_USE_MCUID is allowed, and FEATURE_EEPROM_ENABLE is disabled
-#define ZBX_AGENT_DEFAULT_DOMAIN                               ".local.net"
+const char constZbxAgentDefaultDomain[]              PROGMEM   = ".local.net";
 
 
-const char constZbxAgentVersion[] PROGMEM =                    "Zabbuino 1.3";
+const char constZbxAgentVersion[]                    PROGMEM   = "Zabbuino 1.3.1";
 

@@ -1,11 +1,11 @@
-// DHCP Library v0.3 - April 25, 2009
-// Author: Jordan Terrell - blog.jordanterrell.com
-
 #include "../net_platforms.h"
 #ifdef NETWORK_ETH_WIZNET
 
-#ifndef _WIZNET_DHCP_H_
-#define _WIZNET_DHCP_H_
+#pragma once
+
+// DHCP Library v0.3 - April 25, 2009
+// Author: Jordan Terrell - blog.jordanterrell.com
+
 
 //#include <string.h>
 //#include <stdlib.h>
@@ -183,5 +183,4 @@ public:
   int checkLease();
 };
 
-#endif // _WIZNET_DHCP_H_
 #endif // NETWORK_ETH_WIZNET

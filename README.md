@@ -40,6 +40,20 @@ Implemented:
 - Simulate varuious vendor's IR transmitters.
 -----------------------------
 
+#### 30 Apr 2019
+
+Changes:
+
+- Wiznet driver and network part of system is modified for reaching more stability;
+- Debug logging optimized for take less Progmem Space;
+- 1-Wire: End of conversion for non-parasite powered sensors will be detected by bus state  (conversion can be done faster that datasheet's tConv);
+- 1-Wire: CRC is valid if "all zeros scratchpad" coming from sensor, but this is  bus's malfunction case (bus grounded). Added detection for that case;
+- MAX7219: All chars "images" moved to the Progmem space;
+- MAX7219: Code is rewritten to direct register manipulation: "0 .0 .0 .0 .0 .0" string was pushed to the Microwire bus in 4168us before and 1456us now;
+
+Note: all pins used by MAX7219 must be set to OUTPUT state on start (or indicator's leds may blinks), and indicator must be cleared on the system start (in plugin)
+
+
 #### 06 Dec 2018
 
 Changes:

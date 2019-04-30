@@ -3,87 +3,148 @@
 
 #include "service.h"
 
-#include "NetworkAddress.h"
 #include "net_platforms.h"
 
 #include "network.h"
 
-void NetworkClass::init(netconfig_t* _netConfig) {
-  memcpy(macAddress, _netConfig->macAddress, 6*sizeof(uint8_t));
-  netDefaultIP = _netConfig->ipAddress;
-  netDefaultGW = _netConfig->ipGateway;
-  netDefaultNM = _netConfig->ipNetmask;
-
-#ifdef FEATURE_NET_DHCP_ENABLE
-#ifdef FEATURE_NET_DHCP_FORCE
-  useDHCP = true;
-#else // FEATURE_NET_DHCP_FORCE
-  useDHCP = _netConfig->useDHCP;
-#endif // FEATURE_NET_DHCP_FORCE
-#else  // FEATURE_NET_DHCP_ENABLE
-  useDHCP = false;
-#endif //FEATURE_NET_DHCP_ENABLE
-/*
-#if defined(NETWORK_RS485)
-  useDHCP = false;
-#endif
-*/
+NetworkClass::NetworkClass() {
+  // isPhyOk returns error state if detect it
+  phyConfigured = false;
 }
 
 
-uint8_t NetworkClass::checkPHY() {
-  uint8_t rc;
-  DTSL( PRINTLN_PSTR("Checking PHY..."); )   
-  rc = false;
+int16_t NetworkClass::maintain() {
+  int16_t rc = DHCP_CHECK_NONE;
 
-// Persistent IP address does not exist when DHCP used, and testing can not executed
-#ifndef FEATURE_NET_DHCP_ENABLE
-  // need "restart" PHY module if it settings is losted (may be PHY power problem?)
-  if (localIP() != netDefaultIP) { 
-     restart(); 
-     rc = true; 
+#if defined(FEATURE_NET_DHCP_ENABLE)
+  if (useDhcp) {
+     // maintain() subroutine adds more fat to WIZnet drivers, because includes DHCP functionality to firmware even it not need
+     rc = Ethernet.maintain();
+     if (rc) { resetDefaults((uint32_t) Ethernet.localIP(), (uint32_t) Ethernet.dnsServerIP(), (uint32_t) Ethernet.gatewayIP(), (uint32_t) Ethernet.subnetMask()); }
   }
-#endif
+#endif // FEATURE_NET_DHCP_ENABLE
+  return rc;
+}
 
-#if defined(NETWORK_ETH_WIZNET)
-  //rc = false;
+void NetworkClass::tick() {
+#if defined(NETWORK_ETH_ENC28J60) 
+    // tick() subroutine is very important for UIPEthernet, and must be called often (every ~250ms). If ENC28J60 driver not used - this subroutine do nothing
+   Ethernet.tick();
+#endif
+}
+
+uint8_t NetworkClass::isPhyConfigured() { 
+  uint32_t localIpAddress = (uint32_t) Ethernet.localIP();
+  // NET_ZERO_IP_ADDRESS != defaultIpAddress -> network is not configured after start
+  // localIpAddress == defaultIpAddress -> Netcard is missconfigured (may be drop configuration on power problem or something?)
+  phyConfigured = (phyConfigured && (NET_ZERO_IP_ADDRESS != defaultIpAddress) && (localIpAddress == defaultIpAddress));
+  return phyConfigured;
+}
+
+
+uint8_t NetworkClass::isPhyOk() {
+  uint8_t phyState = true;
+
+  DTSL( Serial.print(FSH_P(STRING_Checking_PHY)); Serial.print(FSH_P(STRING_3xDot_Space)); )   
+
+#if defined(NETWORK_ETH_WIZNET) //NETWORK_ETH_WIZNET 
+  // hardwareStatus() returns 0x00 if wrong hardware or no hardware answer
+//  DTSL( Serial.print("HW stat:"); Serial.println(Ethernet.hardwareStatus()); )   
+  phyState = !!Ethernet.hardwareStatus();
+
 #elif defined(NETWORK_ETH_ENC28J60) //NETWORK_ETH_WIZNET 
-  uint8_t stateEconRxen = Enc28J60.readReg((uint8_t) ECON1) & ECON1_RXEN;
-  uint8_t stateEirRxerif = Enc28J60.readReg((uint8_t) EIR) & EIR_RXERIF;
+  phyState = !!Enc28J60.getrev();
+  uint8_t stateEconRxen    = Enc28J60.readReg((uint8_t) ECON1) & ECON1_RXEN;
+  uint8_t stateEirRxerif   = Enc28J60.readReg((uint8_t) EIR) & EIR_RXERIF;
   uint8_t stateEstatBuffer = Enc28J60.readReg((uint8_t) ESTAT) & ESTAT_BUFFER;
   if (!stateEconRxen || (stateEstatBuffer && stateEirRxerif)) {
-     // Seems, that init() does not flush IP-address settings on chip registers
-     Enc28J60.init(macAddress);  
-     rc = true;
+     // ENC28J60 rise error flag
+     phyState = false;
   }
-#elif defined(NETWORK_RS485)
-  //rc = false;
 #endif
+
+  DTSL( Serial.println(FSH_P(phyState ? STRING_ok : STRING_fail)); )
+
+  return phyState;
+}
+
+
+void NetworkClass::init(const uint8_t* _mac, const uint32_t _ip, const uint32_t _dns, const uint32_t _gw, const uint32_t _netmask, const uint8_t _useDhcp) {
+  // MAC never changes, but IP/DNS/GW/... can be changed by DHCP
+  memcpy(macAddress, _mac, sizeof(macAddress));
+  useDhcp = _useDhcp;
+  resetDefaults(_ip, _dns, _gw, _netmask);
+#if defined(NETWORK_ETH_WIZNET)
+   // let chip warming up
+  //if (WIZNET_WARMING_UP_TIME > millis() ) { delay(millis()-WIZNET_WARMING_UP_TIME); }
+  //if (WIZNET_WARMING_UP_TIME > millis() ) { delay(WIZNET_WARMING_UP_TIME); }
+#endif
+}
+
+void NetworkClass::resetDefaults(const uint32_t _ip, const uint32_t _dns, const uint32_t _gw, const uint32_t _netmask) {
+  defaultIpAddress = _ip;
+  defaultDns = _dns;
+  defaultGateway = _gw;
+  defaultNetmask = _netmask;
+}
+
+uint8_t NetworkClass::relaunch() {
+  uint8_t rc = ERROR_NONE;
+  if (!isPhyOk()) { return ERROR_NET; }
+
+  DTSL( Serial.print(FSH_P(STRING_Network_relaunch_with)); 
+        Serial.print(FSH_P(useDhcp ? STRING_DHCP : STRING_static_ip));
+        Serial.print(FSH_P(STRING_3xDot_Space)); 
+      )
+
+  // !!! All begin() procedures must be make soft reset & init network chip registers
+
+  // this part of code must be excluded if not FEATURE_NET_DHCP_ENABLE to avoid including DHCP-related procedures from the Ethernet library
+#if defined(FEATURE_NET_DHCP_ENABLE)
+  if (useDhcp) {
+    // beginWithDHCP() returns 1 on success, and 0 on fail.
+    if (Ethernet.begin(macAddress)) {
+      resetDefaults((uint32_t) Ethernet.localIP(), (uint32_t) Ethernet.dnsServerIP(), (uint32_t) Ethernet.gatewayIP(), (uint32_t) Ethernet.subnetMask()); 
+    } else {
+      rc = ERROR_DHCP;
+    }
+  } else {
+#else // <<= If (DHCP feature not enabled) or (DHCP feature enabled, but useDhcp is not set)
+    Ethernet.begin(macAddress, IPAddress(defaultIpAddress), IPAddress(defaultDns), IPAddress(defaultGateway), IPAddress(defaultNetmask));
+#endif
+#if defined(FEATURE_NET_DHCP_ENABLE)
+  }
+#endif
+  if (ERROR_NONE == rc) {
+     DTSL( Serial.println(FSH_P(STRING_ok)); )
+     phyConfigured = true;
+  } else {
+     DTSL( Serial.println(FSH_P(STRING_fail)); )
+  }
 
   return rc;
 }
 
-void NetworkClass::showNetworkState() {
-#if defined(NETWORK_RS485)
-  PRINT_PSTR("Address : "); Serial.println(localIP()); 
-#else
-  PRINT_PSTR("MAC     : "); printArray(macAddress, sizeof(macAddress), &Serial, MAC_ADDRESS); 
-  PRINT_PSTR("IP      : "); Serial.println(Ethernet.localIP()); 
-  PRINT_PSTR("Subnet  : "); Serial.println(Ethernet.subnetMask()); 
-  PRINT_PSTR("Gateway : "); Serial.println(Ethernet.gatewayIP()); 
-#endif
+void NetworkClass::printNetworkInfo() {
+  //Serial.print(F("MAC     : ")); printArray(macAddress, sizeof(macAddress), &Serial, MAC_ADDRESS);
+  Serial.print(F("IP\t: ")); Serial.println(localIP());
+  Serial.print(F("Subnet\t: ")); Serial.println(subnetMask());
+  Serial.print(F("Gateway\t: ")); Serial.println(gatewayIP());
 #ifdef NETWORK_ETH_ENC28J60
-  DTSL( PRINT_PSTR("ENC28J60: rev "); Serial.println(Enc28J60.getrev()); )
+  Serial.print(F("ENC28J60: rev ")); Serial.println(Enc28J60.getrev());
 #endif
 }
 
-void NetworkClass::showPHYState() {
+void NetworkClass::printPHYState() {
 #ifdef NETWORK_ETH_ENC28J60
-   PRINT_PSTR("ECON1.RXEN: ")  ; Serial.println(Enc28J60.readReg((uint8_t) ECON1), BIN); 
-   PRINT_PSTR("EIR.RXERIF: ")  ; Serial.println(Enc28J60.readReg((uint8_t) EIR), BIN); 
-   PRINT_PSTR("ESTAT.BUFFER: "); Serial.println(Enc28J60.readReg((uint8_t) ESTAT), BIN); 
+   Serial.print(F("ECON1.RXEN  : ")); Serial.println(Enc28J60.readReg((uint8_t) ECON1), BIN); 
+   Serial.print(F("EIR.RXERIF  : ")); Serial.println(Enc28J60.readReg((uint8_t) EIR), BIN); 
+   Serial.print(F("ESTAT.BUFFER: ")); Serial.println(Enc28J60.readReg((uint8_t) ESTAT), BIN); 
 #endif
 }
+
+
+/*
 
 void NetworkClass::restart() {
   uint8_t useDefaultIP = true;
@@ -92,10 +153,10 @@ void NetworkClass::restart() {
   start:
   // User want to use DHCP with Zabbuino?
   if (useDHCP) {
-     DTSM( PRINTLN_PSTR("Obtaining address from DHCP..."); )
+     DTSM( Serial.println(F("Obtaining address from DHCP...")); )
      // Try to ask DHCP server & turn off DHCP feature for that session if no offer recieved
      if (0 == begin(macAddress)) {
-        DTSM( PRINTLN_PSTR("No success"); )
+        DTSM( Serial.println(F("No success")); )
 #ifdef FEATURE_NET_DHCP_FORCE
         // infinitive loop here on "DHCP force" setting
 #ifdef ON_ALARM_STATE_BLINK
@@ -118,10 +179,10 @@ void NetworkClass::restart() {
 #endif // FEATURE_NET_DHCP_ENABLE
 
 
- //Serial.println("p4");
+ //Serial.println("p4"));
   // No DHCP offer recieved or no DHCP need - start with stored/netDefault IP config
   if (useDefaultIP) {
-     DTSM( PRINTLN_PSTR("Use default IP"); )
+     DTSM( Serial.println(F("Use default IP")); )
      useDHCP = false;
 
 #if defined(NETWORK_ETH_ENC28J60) || defined(NETWORK_ETH_WIZNET)
@@ -130,15 +191,6 @@ void NetworkClass::restart() {
      begin(macAddress, netDefaultIP, netDefaultIP, netDefaultGW, netDefaultNM);
      server.begin();
 
-#elif defined(NETWORK_RS485)
-     begin(RS485_SPEED, RS485_RX_PIN, RS485_TX_PIN, RS485_BUSMODE_PIN);
-     server.begin(netDefaultIP);
-#endif
   }
-
-  // Start listen sockets by ethernet modules only
-#if !defined(NETWORK_RS485)
-//  server.begin();
-#endif
-
 }
+*/

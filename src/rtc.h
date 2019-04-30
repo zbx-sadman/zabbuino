@@ -106,3 +106,4 @@ int8_t getUnixTime(SoftwareWire*, uint32_t*);
 *****************************************************************************************************************************/
 //int8_t getTZOffset(const uint8_t, const uint8_t, uint8_t, int16_t*);
 
+

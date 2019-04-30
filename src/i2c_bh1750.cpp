@@ -41,42 +41,42 @@ int8_t getBH1750Metric(SoftwareWire* _softTWI, uint8_t _i2cAddress, uint8_t _mod
 *****************************************************************************************************************************/
 int8_t getBH1750Metric(SoftwareWire* _softTWI, uint8_t _i2cAddress, uint8_t _mode, const uint8_t _metric, char *_dst, uint32_t* _value, const uint8_t _wantsNumber)
 {
-  int8_t rc = RESULT_IS_FAIL;
+  int8_t rc = DEVICE_ERROR_CONNECT;
   uint8_t readingNum, 
           value[2];   // do not use _dst array instead value array, due strange behavior detected - sometime _dst[n] is not uint8_t
                       // println(_dst[n], BIN) can show 1111111111101010 for example. Need to make some cast experiments
-  int16_t convertTime;
+  int32_t maxConversionTime;
   // result variable must be 32bit because readed from sensor 16bit value will be scaled to avoid float calculation
 
-  //  int32_t ;
-  if (!isI2CDeviceReady(_softTWI, _i2cAddress)) { rc = DEVICE_ERROR_CONNECT; goto finish; }
+  if (!isI2CDeviceReady(_softTWI, _i2cAddress)) { goto finish; }
 
+  rc = RESULT_IS_FAIL;
 
   switch (_mode) {
     case BH1750_ONETIME_HIGHRES: 
     case BH1750_ONETIME_HIGHRES_2:
       readingNum = 2;
-      convertTime = 180; // 180ms - max time to complete High-resolution measurement
+      maxConversionTime = 180; // 180ms - max time to complete High-resolution measurement
       break;
     case BH1750_ONETIME_LOWRES:
        readingNum = 2;
-       convertTime = 24; // 24ms - max time to complete Low-resolution measurement
+       maxConversionTime = 24; // 24ms - max time to complete Low-resolution measurement
        break;
     case BH1750_CONTINUOUS_HIGHRES:
     case BH1750_CONTINUOUS_HIGHRES_2:
       readingNum = 1;
-      convertTime = 180; // 2 round of 180ms convertation (180ms - max time to complete High-resolution measurement)
+      maxConversionTime = 180; // 2 round of 180ms convertation (180ms - max time to complete High-resolution measurement)
       break;
     case BH1750_CONTINUOUS_LOWRES:
     default:  
       _mode = BH1750_CONTINUOUS_LOWRES;
       readingNum = 1;
-      convertTime = 24; // 2 round of 24ms convertation (24ms - max time to complete Low-resolution measurement)
+      maxConversionTime = 24; // 2 round of 24ms convertation (24ms - max time to complete Low-resolution measurement)
   }
 
   // Make some readings - 1 or 3 and get latest result
   while (readingNum) {
-    --readingNum;
+    readingNum--;
     // Wake up, sensor!
     // It going sleep after One-Time measurement 
     if (0x01 != writeByteToI2C(_softTWI, _i2cAddress, I2C_NO_REG_SPECIFIED, BH1750_CMD_POWERON)) { goto finish; }
@@ -84,12 +84,12 @@ int8_t getBH1750Metric(SoftwareWire* _softTWI, uint8_t _i2cAddress, uint8_t _mod
     // Start convertation
     if (0x01 != writeByteToI2C(_softTWI, _i2cAddress, I2C_NO_REG_SPECIFIED, _mode)) { goto finish; }
     // Wait to complete covertation round
-    delay(convertTime);
+    delay(maxConversionTime);
     // Read data
     if (0x02 != readBytesFromI2C(_softTWI, _i2cAddress, I2C_NO_REG_SPECIFIED, value, 0x02)) { goto finish; }
   }
 
-  *_value = (((int32_t) value[0]) << 8) | value[1];
+  *_value = (((uint32_t) value[0]) << 8) | value[1];
 
   if (SENS_READ_RAW == _metric) {
     ltoa(*_value, _dst, 10);
@@ -106,7 +106,8 @@ int8_t getBH1750Metric(SoftwareWire* _softTWI, uint8_t _i2cAddress, uint8_t _mod
     }
   }
   rc = RESULT_IS_BUFFERED;
-  finish:
+
+finish:
   return rc;
 }
 

@@ -30,10 +30,6 @@
 #define MLX90614_TEMPERATURE_ZONE_01                            (0x01)
 #define MLX90614_TEMPERATURE_ZONE_02                            (0x02)
 
-static uint8_t mlx90614crc8 (uint8_t inCrc, uint8_t inData);  
-
-static int8_t readRegister(SoftwareWire* _softTWI, const uint8_t _i2cAddress, const uint8_t _i2cRegister, int16_t* _value);
-
 /*****************************************************************************************************************************
 *
 *   Overloads of main subroutine. Used to get numeric metric's value or it's char presentation only

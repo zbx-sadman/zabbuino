@@ -245,7 +245,7 @@ int16_t prepareBufferForAdvShiftout(const uint8_t _bitOrder, const uint8_t compr
       // Data will be 'decompressed' from HEX string by repeat every nibble twice: FD3 => FFDD33
       // This compression method allow to minimize len of recieved HEX-string when it used for color coding (RGB pixel leds and etc)
       case 0x01:
-        DTSD ( SerialPrintln_P(PSTR("'repeat' type compression ")); )
+        DTSD ( Serial.println(F("'repeat' type compression ")); )
         for (dataBufferReadPosition = 0; dataBufferReadPosition <= lenOfBuffer; dataBufferReadPosition++) {
             _src[dataBufferReadPosition] = (_src[dataBufferReadPosition] << 4) | _src[dataBufferReadPosition];
         }

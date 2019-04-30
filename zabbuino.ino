@@ -1,3 +1,11 @@
+/*
+
+  Sketch uses 19,150 bytes (7%) of program storage space. Maximum is 253,952 bytes.
+  Global variables use 1,160 bytes (14%) of dynamic memory, leaving 7,032 bytes for local variables. Maximum is 8,192 bytes.
+
+  Sketch uses 21,420 bytes (8%) of program storage space. Maximum is 253,952 bytes.
+  Global variables use 1,136 bytes (13%) of dynamic memory, leaving 7,056 bytes for local variables. Maximum is 8,192 bytes.
+*/
 /*-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
 
                             To avoid compilation errors use proper release Arduino IDE, please.
@@ -23,14 +31,13 @@ void setup() {
 #ifdef SERIAL_USE
   Serial.begin(constSerialMonitorSpeed);
 #endif // SERIAL_USE
+  SPI.begin();
 
-  DTSL( SerialPrint_P(constZbxAgentVersion); PRINTLN_PSTR(" wakes up"); )
-  memset((void*) &sysMetrics, 0x00, sizeof(sysmetrics_t));
+  DTSL( Serial.print(FSH_P(constZbxAgentVersion)); Serial.println(FSH_P(STRING_wakes_up)); )
 
   sysMetrics.sysVCCMin = sysMetrics.sysVCCMax = getADCVoltage(ANALOG_CHAN_VBG);
   sysMetrics.sysRamFree = sysMetrics.sysRamFreeMin = getRamFree();
 
-  pinMode(constFactoryResetButtonPin, INPUT_PULLUP);
   pinMode(constStateLedPin, OUTPUT);
 
 #ifdef ADVANCED_BLINKING
@@ -39,23 +46,24 @@ void setup() {
 #endif
 }
 
-
 /* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
                                                                        GENERAL SECTION
 */
 void loop() {
-  uint8_t i, result, errorCode = ERROR_NONE;
+  uint8_t result, needNetworkRelaunch = true, errorCode = ERROR_NONE;
   char incomingData;
-  uint16_t blinkType = constBlinkNope;
-  uint32_t processStartTime, processEndTime, prevPHYCheckTime, prevNetProblemTime, prevSysMetricGatherTime, clientConnectTime, netDebugPrintTime;
+  //uint16_t blinkType = constBlinkNope;
+  uint32_t processStartTime, processEndTime, prevPHYCheckTime, prevNetActivityTime, prevSysMetricGatherTime, clientConnectTime, netDebugPrintTime;
+  // this value helps make Network init immedately
+  //uint32_t phyCheckInterval = 0x00;
   char cBuffer[constBufferSize + 1]; // +1 for trailing \0
   // Last idx is not the same that array size
   char* optarg[constArgC];
   packetInfo_t packetInfo = {PACKET_TYPE_NONE, 0x00, 0x00, optarg};
+  NetworkClient netClient;
+  NetworkServer netServer(constZbxAgentTcpPort);
 
-#ifdef FEATURE_USER_FUNCTION_PROCESSING
-  uint32_t prevUserFuncCall = 0x00;
-#endif
+  __USER_FUNCTION( uint32_t prevUserFuncCall = 0x00; )
 
   // 0. Init some libs to make system screen works if it enabled
 #ifdef TWI_USE
@@ -63,10 +71,10 @@ void loop() {
 #endif
 
 #ifdef FEATURE_SYSTEM_RTC_ENABLE
-  DTSM( PRINT_PSTR("Init system RTC "); )
+  DTSM( Serial.print(FSH_P(STRING_Init_system_RTC)); Serial.print(FSH_P(STRING_3xDot_Space)); )
   if (! initRTC(&SoftTWI)) {
     // sysMetrics.sysStartTimestamp already inited by 0x00 with memset() on start
-    DTSM( PRINT_PSTR("un"); )
+    DTSM( Serial.println(FSH_P(STRING_ok)); )
   } else {
     // Get current timestamp from system RTC and store it into sysMetrics structure.
     // On RTC failure - do not use it
@@ -74,126 +82,96 @@ void loop() {
       sysMetrics.sysStartTimestamp = 0x00;
     }
   }
-  DTSM( PRINTLN_PSTR("succesfull"); )
+  DTSM( Serial.println(FSH_P(STRING_fail)); )
 #endif
 
-#ifdef FEATURE_USER_FUNCTION_PROCESSING
   // Run user function
-  initStageUserFunction(cBuffer);
-#endif
+  __USER_FUNCTION( initStageUserFunction(cBuffer); )
 
   // System load procedure
-
   // 1. Factory reset block
-  //
 #ifdef FEATURE_EEPROM_ENABLE
-  // Set mode of constFactoryResetButtonPin and turn on internal pull resistor
-  digitalWrite(constStateLedPin, LOW);
-  // Check for constFactoryResetButtonPin shorting to ground?
-  // (when pulled INPUT pin shorted to GND - digitalRead() return LOW)
-  if (LOW == digitalRead(constFactoryResetButtonPin)) {
-    DTSL( PRINTLN_PSTR("The factory reset button is pressed"); )
-    // Fire up state LED
-    digitalWrite(constStateLedPin, HIGH);
-    // Wait some msecs
-    delay(constHoldTimeToFactoryReset);
-    // constFactoryResetButtonPin still shorted?
-    if (LOW == digitalRead(constFactoryResetButtonPin)) {
-      DTSL( PRINTLN_PSTR("Rewrite EEPROM with defaults..."); )
-      setConfigDefaults(&netConfig);
-      saveConfigToEEPROM(&netConfig);
-      // Blink fast while constFactoryResetButtonPin shorted to GND
-      DTSL( PRINTLN_PSTR("Done. Release the factory reset button now"); )
-      while (LOW == digitalRead(constFactoryResetButtonPin)) {
-        digitalWrite(constStateLedPin, millis() % 100 < 50);
-      }
-    }
-    digitalWrite(constStateLedPin, LOW);
-  } // if (LOW == digitalRead(constFactoryResetButtonPin))
+  // factoryReset() return false on EEPROM saving fail
+  if (!factoryReset(sysConfig)) {
+    DTSM( Serial.print(FSH_P(STRING_Config)); Serial.println(FSH_P(STRING_saving_error)); )
+  }
 #endif // FEATURE_EEPROM_ENABLE
 
   // 2. Load configuration from EEPROM
   //
 #ifdef FEATURE_EEPROM_ENABLE
-  if (false == loadConfigFromEEPROM(&netConfig)) {
-    DTSM( PRINTLN_PSTR("Config load error"); )
+  DTSL( Serial.print(FSH_P(STRING_Config)); Serial.print(FSH_P(STRING_loading)); Serial.print(FSH_P(STRING_3xDot_Space)); )
+  if (!loadConfigFromEEPROM(sysConfig)) {
+    DTSL( Serial.println(FSH_P(STRING_fail)); )
     // bad CRC detected, use default values for this run
-    setConfigDefaults(&netConfig);
-    if (!saveConfigToEEPROM(&netConfig)) {
+    setConfigDefaults(sysConfig);
+    if (!saveConfigToEEPROM(sysConfig)) {
+      DTSM( Serial.print(FSH_P(STRING_Config)); Serial.println(FSH_P(STRING_saving_error)); )
+      DTSL( Serial.println(FSH_P(STRING_Use_default_settings)); )
       // what to do on saving error?
     }
+  } else {
+    DTSL( Serial.println(FSH_P(STRING_ok)); )
   }
 #else // FEATURE_EEPROM_ENABLE
-  DTSM( PRINTLN_PSTR("Use default settings"); )
+  DTSM( Serial.println(FSH_P(STRING_EEPROM_disabled)); )
+  DTSL( Serial.println(FSH_P(STRING_Use_default_settings)); )
   // Use hardcoded values if EEPROM feature disabled
-  setConfigDefaults(&netConfig);
+  setConfigDefaults(sysConfig);
 #endif // FEATURE_EEPROM_ENABLE
 
   // 3. Forcing the system parameters in accordance with the user's compilation options & hardware set
   //
 #ifdef FEATURE_PASSWORD_PROTECTION_FORCE
-  netConfig.useProtection = true;
+  sysConfig.useProtection = true;
 #endif
+#ifdef FEATURE_NET_DHCP_FORCE
+  sysConfig.useDHCP = true;
+#endif // FEATURE_NET_DHCP_FORCE
 
-#if defined(FEATURE_SYSTEM_RTC_ENABLE) && defined(FEATURE_EEPROM_ENABLE)
-  set_zone(netConfig.tzOffset);
+#if defined(FEATURE_SYSTEM_RTC_ENABLE)
+  set_zone(sysConfig.tzOffset);
 #endif
-
 
   // 4. Network initialization and starting
   //
-
 #if defined FEATURE_ETHERNET_SHIELD_RESET_BUG_FIX
-  // Let's do nothing if Ethernet Shield reset unstable
+  // Let's have a some delay from the system start if Ethernet Shield turns on unstable
   processStartTime = millis();
   if (processStartTime < constEthernetShieldInitDelay) {
     delay(constEthernetShieldInitDelay - processStartTime);
   }
 #endif
-  Network.init(&netConfig);
 
-#ifdef FEATURE_USER_FUNCTION_PROCESSING
   // Call user function
-  netPrepareStageUserFunction(cBuffer);
+  __USER_FUNCTION( netPrepareStageUserFunction(cBuffer); )
+
+
+  // init() just make preset of Network object internal data. Real starting maken on relaunch()
+  Network.init(sysConfig.macAddress, sysConfig.ipAddress, sysConfig.ipAddress, sysConfig.ipGateway, sysConfig.ipNetmask, sysConfig.useDHCP);
+  //netServer.begin();
+
+  DTSL(
+    //Serial.println(F("Wait for network warming up... "));
+#if defined(FEATURE_SYSTEM_RTC_ENABLE)
+    Serial.print(F("Timezone: ")); Serial.println(sysConfig.tzOffset, DEC);
 #endif
-
-  Network.restart();
-
-  DTSL( PRINTLN_PSTR("Serving on:");
-        Network.showNetworkState();
-        PRINT_PSTR("Password: "); Serial.println(netConfig.password, DEC);
-#if defined(FEATURE_SYSTEM_RTC_ENABLE) && defined(FEATURE_EEPROM_ENABLE)
-        PRINT_PSTR("Timezone: "); Serial.println(netConfig.tzOffset, DEC);
-#endif
-
-      )
+  )
 
   // 5. Other system parts initialization
   //
-  // I/O ports initialization. Refer to "I/O PORTS SETTING SECTION" in src\cfg_tune.h
-  i = PORTS_NUM;
-  while (i) {
-    i--;
-    setPortMode(i, (uint8_t) pgm_read_word(&(port_mode[i])), (uint8_t) pgm_read_word(&(port_pullup[i])));
+  // I/O ports initialization. Refer to "I/O PORTS SETTING SECTION" in src/cfg_tune.h
+  if (RESULT_IS_FAIL == initPortMode()) {
+    DTSM( Serial.println(FSH_P(STRING_IO_ports_presets_is_wrong)); )
   }
 
+  // Prepare external interrupts info structure and so
 #ifdef INTERRUPT_USE
-  // Init external interrupts info structure
-  i = EXTERNAL_NUM_INTERRUPTS;
-  while (i) {
-    i--;
-    // -1 - interrupt is detached
-    // just use NOT_AN_INTERRUPT = -1 macro from Arduino.h
-    extInterrupt[i].mode = NOT_AN_INTERRUPT;
-    extInterrupt[i].owner = OWNER_IS_NOBODY;
-    extInterrupt[i].value = 0;
-  }
+  initExtInt();
 #endif
 
-#ifdef FEATURE_WATCHDOG_ENABLE
   // Watchdog activation
-  wdt_enable(constWtdTimeout);
-#endif
+  __WATCHDOG( wdt_enable(constWtdTimeout); )
 
 #ifdef GATHER_METRIC_USING_TIMER_INTERRUPT
   // need to analyze return code?
@@ -206,26 +184,25 @@ void loop() {
 #endif
 
   // Correcting timestamps
-  prevPHYCheckTime = prevNetProblemTime = prevSysMetricGatherTime =  netDebugPrintTime = clientConnectTime = millis();
+  prevSysMetricGatherTime = prevPHYCheckTime = 0x00;
+  prevNetActivityTime = netDebugPrintTime = clientConnectTime = millis();
 
   // 6. Enter to infinitive loop to serve incoming requests
   //
   // if no exist while() here - netProblemTime must be global or static - its will be 0 every loop() and time-related cases will be processeed abnormally
   // ...and while save some cpu ticks because do not call everytime from "hidden main()" subroutine, and do not init var, and so.
   //*****************************************************************************************************************************************************
-#ifdef FEATURE_USER_FUNCTION_PROCESSING
+
   // Call user function
-  preLoopStageUserFunction(cBuffer);
-#endif
+  __USER_FUNCTION( preLoopStageUserFunction(cBuffer); )
 
   while (true) {
-#ifdef FEATURE_WATCHDOG_ENABLE
     // reset watchdog every loop
-    wdt_reset();
-#endif
+    __WATCHDOG( wdt_reset(); )
+
 
     // Gather internal metrics periodically
-    if (constSysMetricGatherPeriod <= (uint32_t) (millis() - prevSysMetricGatherTime)) {
+    if ((millis() - prevSysMetricGatherTime) > constSysMetricGatherPeriod) {
       // When FEATURE_SYSINFO_ENABLE is disabled, compiler can be omit gatherSystemMetrics() sub (due find no operators inside) and trow exception
 #ifndef GATHER_METRIC_USING_TIMER_INTERRUPT
       gatherSystemMetrics();
@@ -236,121 +213,135 @@ void loop() {
       millisRollover();
     }
 
-#if defined (NETWORK_ETH_ENC28J60)
-    // tick() subroutine is very important for UIPEthernet, and must be called often (every ~250ms)
-    // This subroutine available in Network object only if ENC28J60 driver used
-    Network.tick();
-#endif
-
-#if defined(FEATURE_NET_DHCP_ENABLE)
-    if (Network.isDHCPUsed() ) {
-      // maintain() subroutine adds more fat to WIZnet drivers, because includes DHCP functionality to firmware even it not need
-      result = Network.maintain();
-      // Renew procedure finished with success
-      switch (result) {
-        case DHCP_CHECK_NONE:
-        case DHCP_CHECK_RENEW_OK:
-        case DHCP_CHECK_REBIND_OK:
-          // No alarm blink need, network activity registred
-          blinkType = constBlinkNope;
-          errorCode = ERROR_NONE;
-          break;
-        default:
-          // Got some errors - blink with "DHCP problem message"
-          blinkType = constBlinkDhcpProblem;
-          errorCode = ERROR_DHCP;
-          DTSM( PRINTLN_PSTR("DHCP renew problem occured"); )
-      }
-    }
-#endif // FEATURE_NET_DHCP_ENABLE
-
-    // No DHCP problem found, but no data recieved or network activity for a long time
-    if (ERROR_NONE == errorCode && (constNetIdleTimeout <= (uint32_t) (millis() - prevNetProblemTime))) {
-      blinkType = constBlinkNetworkProblem;
-      errorCode = ERROR_NET;
-    }
-
-#if defined(FEATURE_NETWORK_MONITORING)
-    if (constPHYCheckInterval <= (uint32_t) (millis() - prevPHYCheckTime)) {
-      if (consNetDebugPrintInterval <= (uint32_t) (millis() - netDebugPrintTime )) {
-        DTSL( Network.showPHYState(); )
-        netDebugPrintTime = millis();
-      }
-      // checkPHY() subroutine returns true if network module error detected and phy is reinited.
-      if (Network.checkPHY()) {
-        sysMetrics.netPHYReinits++;
-        DTSL( PRINT_PSTR("Network module reinit #"); Serial.println(sysMetrics.netPHYReinits); )
-      }
-      prevPHYCheckTime = millis();
-    }
-#endif // FEATURE_NETWORK_MONITORING
 
     // Turn off state led if no errors occured in the current loop.
     // Otherwise - make LED blinked or just turn on
     if (ERROR_NONE == errorCode) {
       digitalWrite(constStateLedPin, LOW);
-      //alarmTimeSaved  = false;
       sysMetrics.sysAlarmRisedTime = 0x00;
     } else {
-      //      if (!alarmTimeSaved) {
       if (sysMetrics.sysAlarmRisedTime) {
         sysMetrics.sysAlarmRisedTime = millis();
-        //  alarmTimeSaved = true;
       }
-#ifdef FEATURE_USER_FUNCTION_PROCESSING
+
       // Call user function
-      alarmStageUserFunction(cBuffer, errorCode);
-#endif
+      __USER_FUNCTION( alarmStageUserFunction(cBuffer, errorCode); )
 
 #ifdef ON_ALARM_STATE_BLINK
-      digitalWrite(constStateLedPin, millis() % 1000 < blinkType);
+      digitalWrite(constStateLedPin, millis() % blinkSettings[errorCode].allTime < blinkSettings[errorCode].onTime);
 #else
       digitalWrite(constStateLedPin, HIGH);
 #endif
     } // if (ERROR_NONE == errorCode) ... else
 
+    if (needNetworkRelaunch) {
+      needNetworkRelaunch = false;
+      // Network module lost address (was resetted) or was not init (first time run)
+      // Relaunch will reset hardware and re-init its registers
+      sysMetrics.netPHYReinits++;
+      DTSL( Serial.print(FSH_P(STRING_Network_module_reset_No)); Serial.println(sysMetrics.netPHYReinits); )
+      // relaunch() returns code that can be used as status led blink type
+      errorCode = Network.relaunch();
+      if (ERROR_NONE == errorCode) {
+        //Serial.println("relaunch");
+        netServer.begin();
+        // relaunch() returns true if DHCP is OK or Static IP used
+        DTSL( Network.printNetworkInfo(); Serial.print(FSH_P(STRING_Password)); Serial.println(sysConfig.password, DEC); )
+      }
+    }
+
+    // tick() subroutine is very important for UIPEthernet, and must be called often (every ~250ms). If ENC28J60 driver not used - this subroutine do nothing
+    Network.tick();
+
+    if ((millis() - prevPHYCheckTime) > constPHYCheckInterval) {
+      //phyCheckInterval = constPHYCheckInterval;
+
+      // do not forget SPI.begin() or system is hangs up
+      if ((millis() - netDebugPrintTime) > consNetDebugPrintInterval) {
+        DTSL( Network.printPHYState(); )
+        netDebugPrintTime = millis();
+      }
+
+      // Network hardware is ok?
+      if (Network.isPhyOk()) {
+        // Network hardware settings is the same that MCU needs?
+        if (!Network.isPhyConfigured()) {
+          // Need relaunch on next loop in hardware settings error detected
+          needNetworkRelaunch = true;
+        } else { // if (!Network.isPhyConfigured())
+          // PHY is works properly
+          result = Network.maintain();
+          // Renew procedure finished with success
+          switch (result) {
+            case DHCP_CHECK_NONE:
+            case DHCP_CHECK_RENEW_OK:
+            case DHCP_CHECK_REBIND_OK:
+              // No alarm blink need, network activity registred
+              errorCode = ERROR_NONE;
+              break;
+            default:
+              // Got some errors - blink with "DHCP problem message"
+              //blinkType = constBlinkDhcpProblem;
+              errorCode = ERROR_DHCP;
+              DTSM( Serial.println(FSH_P(STRING_DHCP_renew_problem_occured)); )
+          } // switch (result)
+        } // if (!Network.isPhyConfigured())
+      } else { // if (Network.isPhyOk())
+        // PHY is disconnected or rise any error flag
+        needNetworkRelaunch = true;
+        // Right errorCode will be taken on relaunch()
+      } // if (Network.isPhyOk())
+      prevPHYCheckTime = millis();
+    }
+
+    // No DHCP problem found, but no data recieved or network activity for a long time
+    if (ERROR_NONE == errorCode && (constNetIdleTimeout <= (millis() - prevNetActivityTime))) {
+      errorCode = ERROR_NO_NET_ACTIVITY;
+    }
 
     //*********************************************
-
 
 #ifdef FEATURE_SERIAL_LISTEN_TOO
     // Network connections will processed if no data in Serial buffer exist
     if (Serial.available() <= 0) {
 #endif
-      if (!Network.client) {
-        Network.checkClient();
-        if (!Network.client) {
-#ifdef FEATURE_USER_FUNCTION_PROCESSING
+      if (!netClient) {
+        // accept() returns client with "Connected but not send data" state and system must have more stability on this
+#if defined(NETWORK_ETH_WIZNET)
+        netClient = netServer.accept();
+#else
+        netClient = netServer.available();
+#endif
+        if (!netClient) {
           // Call "loop stage" user function screen every constRenewSystemDisplayInterval only if no connection exist, because that function can modify cBuffer content
           // and recieved data can be corrupted
-          if (constUserFunctionCallInterval <= (uint32_t) (millis() - prevUserFuncCall)) {
-            loopStageUserFunction(cBuffer);
+          __USER_FUNCTION( if (constUserFunctionCallInterval <= (uint32_t) (millis() - prevUserFuncCall)) {
+          loopStageUserFunction(cBuffer);
             prevUserFuncCall = millis();
-          }
-#endif // FEATURE_USER_FUNCTION_PROCESSING
+          } )
           // Jump to new round of main loop
           continue;
         }
         // reinit analyzer because previous session can be dropped or losted
-        //        analyzeStream('\0', cBuffer, NO_REINIT_ANALYZER, &packetInfo);
-        analyzeStream('\0', cBuffer, REINIT_ANALYZER, &packetInfo);
+        analyzeStream('\0', cBuffer, REINIT_ANALYZER, packetInfo);
         clientConnectTime = millis();
-        DTSH( PRINT_PSTR("New client #"); Serial.println(Network.client); )
+        // ToDo: add remoteIp() output
+        DTSH( Serial.print(FSH_P(STRING_New)); Serial.print(FSH_P(STRING_client_No)); Serial.println(netClient); )
       }
 
       // Client will be dropped if its connection so slow. Then round must be restarted.
       if (constNetSessionTimeout <= (uint32_t) (millis() - clientConnectTime)) {
-        DTSH( PRINT_PSTR("Drop client #"); Serial.println(Network.client); )
-        Network.stopClient();
+        DTSH( Serial.print(FSH_P(STRING_Drop)); Serial.print(FSH_P(STRING_client_No)); Serial.println(netClient); )
+        netClient.stop();
         // Jump to new round of main loop
         continue;
       }
 
       // Network data can be splitted to a number frames and ethClient.available() can return 0 on first frame processing. Need to ignore it.
-      if (!Network.client.available()) {
+      if (!netClient.available()) {
         continue;
       }
-      incomingData = Network.client.read();
+      incomingData = netClient.read();
 #ifdef FEATURE_SERIAL_LISTEN_TOO
     } else {
       // If in Serial buffer is exist just read it
@@ -358,7 +349,7 @@ void loop() {
     }
 #endif
 
-    result = analyzeStream(incomingData, cBuffer, NO_REINIT_ANALYZER, &packetInfo);
+    result = analyzeStream(incomingData, cBuffer, NO_REINIT_ANALYZER, packetInfo);
     // result is true if analyzeStream() do not finished and need more data
     // result is false if EOL or trailing char detected or there no room in buffer or max number or args parsed...
     if (true == result) {
@@ -369,7 +360,7 @@ void loop() {
     // Will be better do nothing if client is disconnected while analyzing is finished
     // But checking must be disable for commands which coming in from the Serial. Otherwise commands will be never executed if no active network client exist.
 #ifndef FEATURE_SERIAL_LISTEN_TOO
-    if (!Network.client.connected()) {
+    if (!netClient.connected()) {
       continue;
     }
 #endif
@@ -377,29 +368,28 @@ void loop() {
     digitalWrite(constStateLedPin, HIGH);
     processStartTime = millis();
     DTSM( uint32_t ramBefore = getRamFree(); )
-    //DTSL( Serial.print(cBuffer); PRINT_PSTR(" => "); ) // zbxd\1 is broke this output
-
-    sysMetrics.sysCmdLast = executeCommand(cBuffer, &netConfig, &packetInfo);
+    //DTSL( Serial.print(cBuffer); Serial.print(FSH_P(STRING_right_arrow)); ) // zbxd\1 is broke this output
+    sysMetrics.sysCmdLast = executeCommand(netClient, cBuffer, sysConfig, packetInfo);
 
 #ifdef FEATURE_REMOTE_COMMANDS_ENABLE
     // When system.run[] command is recieved, need to run another command, which taken from option #0 by cmdIdx() sub
     if (RESULT_IS_NEW_COMMAND == sysMetrics.sysCmdLast) {
-      int16_t k = 0;
+      uint16_t k = 0;
       // simulate command recieving to properly string parsing
       // option #0 is memmoved() early to the buffer in the executeCommand()
-      while (analyzeStream(cBuffer[k], cBuffer, NO_REINIT_ANALYZER, &packetInfo)) {
+      while (analyzeStream(cBuffer[k], cBuffer, NO_REINIT_ANALYZER, packetInfo)) {
         k++;
       }
-      DTSL( Serial.print(cBuffer); PRINT_PSTR(" => "); )
-      sysMetrics.sysCmdLast = executeCommand(cBuffer, &netConfig, &packetInfo);
+      DTSL( Serial.print(cBuffer); Serial.print(FSH_P(STRING_right_arrow)); )
+      sysMetrics.sysCmdLast = executeCommand(netClient, cBuffer, sysConfig, packetInfo);
     }
 #endif
     processEndTime = millis();
     // use processEndTime as processDurationTime
     processEndTime = processEndTime - processStartTime ;
-    DTSM( PRINT_PSTR("Spended: "); Serial.print(processEndTime);
-          PRINT_PSTR(" ms, "); Serial.print((ramBefore - getRamFree()));
-          PRINTLN_PSTR(" memory bytes");
+    DTSM( Serial.print(F("Spended: ")); Serial.print(processEndTime);
+          Serial.print(F(" ms, ")); Serial.print((ramBefore - getRamFree()));
+          Serial.println(F(" memory bytes"));
         )
     // Correct internal runtime metrics if need
     if (sysMetrics.sysCmdTimeMax < processEndTime) {
@@ -410,25 +400,23 @@ void loop() {
     // Wait some time to finishing answer send, close connection, and restart network activity control cycle
     //delay(constNetStabilizationDelay);
     // Actually Ethernet lib's flush() do nothing, but UIPEthernet flush() free ENC28J60 memory blocks where incoming (?) data stored
-    Network.client.flush();
-    Network.stopClient();
-    //Serial.println("------ 1 ------");
+    netClient.flush();
+    netClient.stop();
 #ifdef FEATURE_SERIAL_LISTEN_TOO
     // Flush the incoming Serial buffer by reading because Serial object have no clear procedure.
-    flushStreamRXBuffer(&Serial, 1000, false);
+    flushStreamRXBuffer(&Serial, 1000UL, false);
 #endif
-    sysMetrics.sysCmdLastExecTime = prevPHYCheckTime = prevNetProblemTime = millis();
-    blinkType = constBlinkNope;
+    sysMetrics.sysCmdLastExecTime = prevPHYCheckTime = prevNetActivityTime = millis();
+    //blinkType = constBlinkNope;
     errorCode = ERROR_NONE;
   } // while(true)
 }
-
 
 /* ****************************************************************************************************************************
 
 
 **************************************************************************************************************************** */
-static int16_t executeCommand(char* _dst, netconfig_t* _netConfig, packetInfo_t* _packetInfo) {
+static int16_t executeCommand(NetworkClient & _netClient, char* _dst, netconfig_t& _sysConfig, packetInfo_t& _packetInfo) {
 
   char* payload;
   int8_t rc;
@@ -437,27 +425,27 @@ static int16_t executeCommand(char* _dst, netconfig_t* _netConfig, packetInfo_t*
   uint8_t cmdIdx;
   // duration option in the tone[] command is ulong
   int32_t argv[constArgC];
-  // Zabbix use 64-bit numbers, but we can use only -uint32_t...+uint32_t range. Error can be occurs on ltoa() call with value > long_int_max
-  int32_t value = 0;
-  NetworkAddress tmpAddress;
+  // Zabbix use 64-bit numbers, but we can use only int32_t range. Error can be occurs on ltoa() call with value > long_int_max
+  int32_t value = 0x00;
+  //NetworkAddress tmpAddress;
   uint32_t payloadLenght;
 
-  char** optarg = _packetInfo->optarg;
+  char** optarg = _packetInfo.optarg;
 
   // what about PACKET_TYPE_NONE ?
-  payload = (PACKET_TYPE_ZABBIX == _packetInfo->type) ? &_dst[ZBX_HEADER_LENGTH] : &_dst[0];
+  payload = (PACKET_TYPE_ZABBIX == _packetInfo.type) ? &_dst[ZBX_HEADER_LENGTH] : &_dst[0];
 
   cmdIdx  = arraySize(commands);
-  DTSD (PRINT_PSTR("Packet type: ");  Serial.println((PACKET_TYPE_ZABBIX == _packetInfo->type) ? "Zabbix" : "Plain text"); )
-  DTSL (PRINT_PSTR("Packet payload: ");  Serial.println(payload); )
+  DTSD (Serial.print(F("Packet type: "));  Serial.println((PACKET_TYPE_ZABBIX == _packetInfo.type) ? F("Zabbix") : F("Plain_text")); )
+  DTSL (Serial.print(F("Packet payload: "));  Serial.println(payload); )
 
   // Search specified command index in the list of implemented functions
   rc = 0x01;
-
   while (cmdIdx && (0 != rc)) {
     cmdIdx--;
-    rc = strcmp_P(payload, (const char*) pgm_read_word(&(commands[cmdIdx].name)));
-    DTSD( Serial.print("# 0x"); Serial.print(cmdIdx , HEX); PRINT_PSTR(" => "); SerialPrintln_P((const char*) pgm_read_word(&(commands[cmdIdx].name))); )
+    PGM_P cmdName = pgm_read_word(&(commands[cmdIdx].name));
+    rc = strcmp_P(payload, cmdName);
+    DTSD( Serial.print(F("#")); Serial.print(FSH_P(STRING_HEX_Prefix));  Serial.print(cmdIdx , HEX); Serial.print(FSH_P(STRING_right_arrow)); Serial.println(FSH_P(cmdName)); )
   }
   cmdIdx = pgm_read_byte(&(commands[cmdIdx].idx));
 
@@ -470,7 +458,7 @@ static int16_t executeCommand(char* _dst, netconfig_t* _netConfig, packetInfo_t*
   rc = RESULT_IS_FAIL;
   sysMetrics.sysCmdCount++;
 
-  DTSM( PRINT_PSTR("Execute command #"); Serial.print(cmdIdx, HEX); PRINT_PSTR(" => `"); Serial.print(payload); Serial.println("`"); )
+  DTSM( Serial.print(FSH_P(STRING_Execute_command_No)); Serial.print(cmdIdx, HEX); Serial.print(FSH_P(STRING_right_arrow)); Serial.println(payload); )
 
   // ***************************************************************************************************************
   // If command have no options - it must be run immedately
@@ -478,193 +466,196 @@ static int16_t executeCommand(char* _dst, netconfig_t* _netConfig, packetInfo_t*
     //  case  CMD_ZBX_NOPE:
     //        break;
 
-    case CMD_ZBX_AGENT_PING:
-      //
-      //   agent.ping
-      //
-      rc = RESULT_IS_OK;
-      goto finish;
+    case CMD_ZBX_AGENT_PING: {
+        //
+        //   agent.ping
+        //
+        rc = RESULT_IS_OK;
+        goto finish;
+      }
 
-    case CMD_ZBX_AGENT_HOSTNAME:
-      //
-      //   agent.hostname
-      //
-      strcpy(payload, _netConfig->hostname);
-      rc = RESULT_IS_BUFFERED;
-      goto finish;
+    case CMD_ZBX_AGENT_HOSTNAME: {
+        //
+        //   agent.hostname
+        //
+        strcpy(payload, _sysConfig.hostname);
+        rc = RESULT_IS_BUFFERED;
+        goto finish;
+      }
 
-    case CMD_ZBX_AGENT_VERSION:
-      //
-      //  agent.version
-      //
-      strcpy_P(payload, constZbxAgentVersion);
-      rc = RESULT_IS_BUFFERED;
-      goto finish;
+    case CMD_ZBX_AGENT_VERSION: {
+        //
+        //  agent.version
+        //
+        strcpy_P(payload, constZbxAgentVersion);
+        rc = RESULT_IS_BUFFERED;
+        goto finish;
+      }
 
-    case CMD_SYSTEM_UPTIME:
-      //
-      //  system.uptime
-      //
-      // Returns uptime in seconds
-      //  value  = ((uint32_t) millisRollover() * (UINT32_MAX / 1000UL) + (millis() / 1000UL));
-      value  = ((uint32_t) millisRollover() * UINT32_MAX + millis()) / 1000UL;
+    case CMD_SYSTEM_UPTIME: {
+        //
+        //  system.uptime
+        //
+        // Returns uptime in seconds
+        //  value  = ((uint32_t) millisRollover() * (UINT32_MAX / 1000UL) + (millis() / 1000UL));
+        value  = ((uint32_t) millisRollover() * UINT32_MAX + millis()) / 1000UL;
 
 #ifdef FEATURE_SYSTEM_RTC_ENABLE
-      // Just rewrite millises uptime by another, which taken from system RTC
-      if (0x00 != sysMetrics.sysStartTimestamp) {
-        SoftTWI.reconfigure(constSystemRtcSDAPin, constSystemRtcSCLPin);
-        if (getUnixTime(&SoftTWI, (uint32_t*) &value)) {
-          value = value - sysMetrics.sysStartTimestamp;
+        // Just rewrite millises uptime by another, which taken from system RTC
+        if (0x00 != sysMetrics.sysStartTimestamp) {
+          SoftTWI.reconfigure(constSystemRtcSDAPin, constSystemRtcSCLPin);
+          if (getUnixTime(&SoftTWI, (uint32_t*) &value)) {
+            value = value - sysMetrics.sysStartTimestamp;
+          }
         }
-      }
 #endif
-      rc = RESULT_IS_UNSIGNED_VALUE;
-      goto finish;
+        rc = RESULT_IS_UNSIGNED_VALUE;
+        goto finish;
+      }
 
 #ifdef FEATURE_SYSINFO_ENABLE
-    case CMD_SYSTEM_HW_CHASSIS:
-      //
-      //  system.hw.chassis
-      //
-      strcpy_P(payload, PSTR(BOARD));
-      rc = RESULT_IS_BUFFERED;
-      goto finish;
-
-    case CMD_NET_PHY_NAME:
-      //
-      //  net.phy.name
-      //
-      strcpy_P(payload, PSTR(PHY_MODULE_NAME));
-      rc = RESULT_IS_BUFFERED;
-      goto finish;
-
-    case CMD_NET_PHY_REINITS:
-      //
-      //  net.phy.reinits
-      //
-      value = sysMetrics.netPHYReinits;
-      rc = RESULT_IS_UNSIGNED_VALUE;
-      goto finish;
-
-    case CMD_SYS_CMD_TIMEMAX_N:
-      //
-      //  sys.cmd.timemax.n
-      //
-      ultoa(sysMetrics.sysCmdTimeMaxN, payload, 16);
-      rc = RESULT_IS_BUFFERED;
-      goto finish;
-
-    case CMD_SYS_RAM_FREE:
-      //
-      //  sys.ram.free
-      //
-      //  That metric must be collected periodically to avoid returns always same data
-      value = sysMetrics.sysRamFree;
-      rc = RESULT_IS_UNSIGNED_VALUE;
-      goto finish;
-
-    case CMD_SYS_RAM_FREEMIN:
-      //
-      //  sys.ram.freemin
-      //
-      // Without ATOMIC_BLOCK block using sysMetrics[IDX_METRIC_SYS_RAM_FREEMIN] variable can be changed in interrupt on reading
-      ATOMIC_BLOCK(ATOMIC_RESTORESTATE) {
-        value = sysMetrics.sysRamFreeMin;
+    case CMD_SYSTEM_HW_CHASSIS: {
+        //
+        //  system.hw.chassis
+        //
+        strcpy_P(payload, PSTR(BOARD));
+        rc = RESULT_IS_BUFFERED;
+        goto finish;
       }
-      rc = RESULT_IS_UNSIGNED_VALUE;
-      goto finish;
+
+    case CMD_NET_PHY_NAME: {
+        //
+        //  net.phy.name
+        //
+        strcpy_P(payload, PSTR(PHY_MODULE_NAME));
+        rc = RESULT_IS_BUFFERED;
+        goto finish;
+      }
+
+    case CMD_NET_PHY_REINITS: {
+        //
+        //  net.phy.reinits
+        //
+        value = sysMetrics.netPHYReinits;
+        rc = RESULT_IS_UNSIGNED_VALUE;
+        goto finish;
+      }
+
+    case CMD_SYS_CMD_TIMEMAX_N: {
+        //
+        //  sys.cmd.timemax.n
+        //
+        ultoa(sysMetrics.sysCmdTimeMaxN, payload, 16);
+        rc = RESULT_IS_BUFFERED;
+        goto finish;
+      }
+
+    case CMD_SYS_RAM_FREE: {
+        //
+        //  sys.ram.free
+        //
+        //  That metric must be collected periodically to avoid returns always same data
+        value = sysMetrics.sysRamFree;
+        rc = RESULT_IS_UNSIGNED_VALUE;
+        goto finish;
+      }
+
+    case CMD_SYS_RAM_FREEMIN: {
+        //
+        //  sys.ram.freemin
+        //
+        // Without ATOMIC_BLOCK block using sysMetrics[IDX_METRIC_SYS_RAM_FREEMIN] variable can be changed in interrupt on reading
+        ATOMIC_BLOCK(ATOMIC_RESTORESTATE) {
+          value = sysMetrics.sysRamFreeMin;
+        }
+        rc = RESULT_IS_UNSIGNED_VALUE;
+        goto finish;
+      }
 #endif
 
-    case CMD_SYS_VCC:
-      //
-      // sys.vcc
-      //
-      // Take VCC
-      value = getADCVoltage(ANALOG_CHAN_VBG);
-      // VCC may be bigger than max or smaller than min.
-      // To avoid wrong results and graphs in monitoring system - correct min/max metrics
-      correctVCCMetrics(value);
-      rc = RESULT_IS_UNSIGNED_VALUE;
-      goto finish;
+    case CMD_SYS_VCC: {
+        //
+        // sys.vcc
+        //
+        // Take VCC
+        value = getADCVoltage(ANALOG_CHAN_VBG);
+        // VCC may be bigger than max or smaller than min.
+        // To avoid wrong results and graphs in monitoring system - correct min/max metrics
+        correctVCCMetrics(value);
+        rc = RESULT_IS_UNSIGNED_VALUE;
+        goto finish;
+      }
 
-    case CMD_SYS_VCCMIN:
-      //
-      // sys.vccMin
-      //
-      //value = sysMetrics[IDX_METRIC_SYS_VCCMIN];
-      value = sysMetrics.sysVCCMin;
-      rc = RESULT_IS_UNSIGNED_VALUE;
-      goto finish;
+    case CMD_SYS_VCCMIN: {
+        //
+        // sys.vccMin
+        //
+        //value = sysMetrics[IDX_METRIC_SYS_VCCMIN];
+        value = sysMetrics.sysVCCMin;
+        rc = RESULT_IS_UNSIGNED_VALUE;
+        goto finish;
+      }
 
-    case CMD_SYS_VCCMAX:
-      //
-      // sys.vccMax
-      //
-      value = sysMetrics.sysVCCMax;
-      rc = RESULT_IS_UNSIGNED_VALUE;
-      goto finish;
+    case CMD_SYS_VCCMAX: {
+        //
+        // sys.vccMax
+        //
+        value = sysMetrics.sysVCCMax;
+        rc = RESULT_IS_UNSIGNED_VALUE;
+        goto finish;
+      }
 
 #ifdef FEATURE_SYSTEM_RTC_ENABLE
 
-    case CMD_SYSTEM_LOCALTIME:
-      //
-      //  system.localtime
-      //  Zabbix wants UTC as localtime
-      //
-      if (getUnixTime(&SoftTWI, (uint32_t*) &value)) {
-        rc = RESULT_IS_UNSIGNED_VALUE;
+    case CMD_SYSTEM_LOCALTIME: {
+        //
+        //  system.localtime
+        //  Zabbix wants UTC as localtime
+        //
+        if (getUnixTime(&SoftTWI, (uint32_t*) &value)) {
+          rc = RESULT_IS_UNSIGNED_VALUE;
+        }
+        goto finish;
       }
-      goto finish;
 #endif // FEATURE_SYSTEM_RTC_ENABLE
-  }
+  } // switch (cmdIdx) part #1
 
   // ***************************************************************************************************************
   // Command with options take more time
   // batch convert args to number values
   i = constArgC;
   while (i) {
-    --i;
+    i--;
     argv[i] = strtol((char*) optarg[i], NULL, 0);
 
     DTSH(
-      PRINT_PSTR("argv["); Serial.print(i); PRINT_PSTR("] => \"");
+      Serial.print(F("argv[")); Serial.print(i); Serial.print(F("] => \""));
     if ('\0' == *optarg[i]) {
-    PRINT_PSTR("<null>");
+    Serial.print(F("<null>"));
     } else {
       Serial.print((char*) optarg[i]);
     }
-    PRINT_PSTR("\" => "); Serial.println(argv[i]);
+    Serial.print(F("\" => ")); Serial.println(argv[i]);
     )
   }
 
-  //DTSM( Serial.print("[2] "); Serial.println(millis()); )
-
   // Check rights for password protected action
-  accessGranted = (!_netConfig->useProtection || (uint32_t) argv[0] == _netConfig->password);
-
-  //DTSM( Serial.print("[3] "); Serial.println(millis()); )
+  accessGranted = (!_sysConfig.useProtection || (uint32_t) argv[0] == _sysConfig.password);
 
   switch (cmdIdx) {
 #ifdef FEATURE_USER_FUNCTION_PROCESSING
-    case CMD_USER_RUN:
-      //
-      //  user.run[option#0, option#1, option#2, option#3, option#4, option#5]
-      //
-      /*
-            while (1) {
-              executeCommandUserFunction(payload, optarg, argv, &value);
-              //executeCommandUserFunction(cBuffer, optarg, (uint32_t*) cBuffer, &netDebugPrintTime);
-            }
-      */
-
-      rc = executeCommandUserFunction(payload, optarg, argv, &value);
-      goto finish;
+    case CMD_USER_RUN: {
+        //
+        //  user.run[option#0, option#1, option#2, option#3, option#4, option#5]
+        //
+        rc = executeCommandUserFunction(payload, optarg, argv, &value);
+        goto finish;
+      }
 
 #endif // FEATURE_USER_FUNCTION_PROCESSING
 
 #ifdef FEATURE_REMOTE_COMMANDS_ENABLE
-    case CMD_SYSTEM_RUN:
-      {
+    case CMD_SYSTEM_RUN: {
         //
         //  system.run["newCommand"]
         //
@@ -672,205 +663,221 @@ static int16_t executeCommand(char* _dst, netconfig_t* _netConfig, packetInfo_t*
           goto finish;
         }
         // take length of 0-th arg + 1 byte for '\0'
-        i = strlen((char*) optarg[0]) + 1;
+        uint8_t k = strlen((char*) optarg[0]) + 1;
         // move it to begin of buffer to using as new incoming command
         // Note: ~8bytes can be saved with copying bytes in while() cycle. But source code will not beauty
-        memmove(payload, optarg[0], i);
-        payload[i] = '\n';
-        //      payload[len+1] = '\0';
+        memmove(payload, optarg[0], k);
+        payload[k] = '\n';
         // immediately return RESULT_IS_NEW_COMMAND to re-run executeCommand() with new command
         return RESULT_IS_NEW_COMMAND;
         goto finish;
       }
+
 #endif // FEATURE_REMOTE_COMMANDS_ENABLE
 
 #ifdef FEATURE_ARDUINO_BASIC_ENABLE
-    case CMD_ARDUINO_ANALOGWRITE:
-      //
-      //  analogWrite[pin, value]
-      //
-      if (! isSafePin(argv[0])) {
+    case CMD_ARDUINO_ANALOGWRITE: {
+        //
+        //  analogWrite[pin, value]
+        //
+        if (! isSafePin(argv[0])) {
+          goto finish;
+        }
+        analogWrite(argv[0], argv[1]);
+        rc = RESULT_IS_OK;
         goto finish;
       }
-      analogWrite(argv[0], argv[1]);
-      rc = RESULT_IS_OK;
-      goto finish;
 
-    case CMD_ARDUINO_ANALOGREAD:
-      //
-      //  analogRead[pin, analogReferenceSource, mapToLow, mapToHigh]
-      //
+    case CMD_ARDUINO_ANALOGREAD: {
+        //
+        //  analogRead[pin, analogReferenceSource, mapToLow, mapToHigh]
+        //
 #ifdef FEATURE_AREF_ENABLE
-      // change source of the reference voltage if its given
-      if ('\0' != *optarg[1]) {
-        analogReference(argv[1]);
-        delayMicroseconds(2000);
-      }
+        // change source of the reference voltage if its given
+        if ('\0' != *optarg[1]) {
+          analogReference(argv[1]);
+          delayMicroseconds(2000);
+        }
 #endif
-      if (! isSafePin(argv[0])) {
+        if (! isSafePin(argv[0])) {
+          goto finish;
+        }
+        value = analogRead(argv[0]);
+        if ('\0' != *optarg[2] && '\0' != *optarg[3]) {
+          value = map(value, constAnalogReadMappingLowValue, constAnalogReadMappingHighValue, argv[2], argv[3]);
+        }
+        rc = RESULT_IS_UNSIGNED_VALUE;
         goto finish;
       }
-      value = analogRead(argv[0]);
-      if ('\0' != *optarg[2] && '\0' != *optarg[3]) {
-        value = map(value, constAnalogReadMappingLowValue, constAnalogReadMappingHighValue, argv[2], argv[3]);
-      }
-      rc = RESULT_IS_UNSIGNED_VALUE;
-      goto finish;
 
 #endif // FEATURE_ARDUINO_BASIC_ENABLE
 
 #ifdef FEATURE_AREF_ENABLE
-    case CMD_ARDUINO_ANALOGREFERENCE:
-      //
-      //  analogReference[source]
-      //
-      analogReference(argv[0]);
-      rc = RESULT_IS_OK;
-      goto finish;
+    case CMD_ARDUINO_ANALOGREFERENCE: {
+        //
+        //  analogReference[source]
+        //
+        analogReference(argv[0]);
+        rc = RESULT_IS_OK;
+        goto finish;
+      }
 #endif
 
 #ifdef FEATURE_ARDUINO_BASIC_ENABLE
-    case CMD_ARDUINO_DELAY:
-      //
-      //  delay[time]
-      //
-      delay(argv[0]);
-      rc = RESULT_IS_OK;
-      goto finish;
-
-    case CMD_ARDUINO_DIGITALWRITE:
-      //
-      //  digitalWrite[pin, value, testPin, testValue]
-      //
-      if (isSafePin(argv[0])) {
-        // turn on or turn off logic on pin
-        pinMode(argv[0], OUTPUT);
-        digitalWrite(argv[0], argv[1]);
+    case CMD_ARDUINO_DELAY: {
+        //
+        //  delay[time]
+        //
+        delay(argv[0]);
         rc = RESULT_IS_OK;
+        goto finish;
       }
-      goto finish;
 
-    case CMD_ARDUINO_DIGITALREAD:
-      //
-      //  digitalRead[pin]
-      //
-      if (isSafePin(argv[0])) {
-        pinMode(argv[0], INPUT);
-        value = digitalRead(argv[0]);
-        rc = RESULT_IS_UNSIGNED_VALUE;
+    case CMD_ARDUINO_DIGITALWRITE: {
+        //
+        //  digitalWrite[pin, value, testPin, testValue]
+        //
+        if (isSafePin(argv[0])) {
+          // turn on or turn off logic on pin
+          pinMode(argv[0], OUTPUT);
+          digitalWrite(argv[0], argv[1]);
+          rc = RESULT_IS_OK;
+        }
+        goto finish;
       }
-      goto finish;
+
+    case CMD_ARDUINO_DIGITALREAD: {
+        //
+        //  digitalRead[pin]
+        //
+        if (isSafePin(argv[0])) {
+          pinMode(argv[0], INPUT);
+          value = digitalRead(argv[0]);
+          rc = RESULT_IS_UNSIGNED_VALUE;
+        }
+        goto finish;
+      }
 
 #endif // FEATURE_ARDUINO_BASIC_ENABLE
 
 #ifdef FEATURE_TONE_ENABLE
-    case CMD_ARDUINO_TONE:
-      //
-      //  tone[pin, frequency, duration]
-      //
-      if (! isSafePin(argv[0])) {
+    case CMD_ARDUINO_TONE: {
+        //
+        //  tone[pin, frequency, duration]
+        //
+        if (! isSafePin(argv[0])) {
+          goto finish;
+        }
+        rc = RESULT_IS_OK;
+        if ('\0' != *optarg[2]) {
+          tone(argv[0], argv[1], argv[2]);
+          goto finish;
+        }
+        tone(argv[0], argv[1]);
         goto finish;
       }
-      rc = RESULT_IS_OK;
-      if ('\0' != *optarg[2]) {
-        tone(argv[0], argv[1], argv[2]);
-        goto finish;
-      }
-      tone(argv[0], argv[1]);
-      goto finish;
 
-    case CMD_ARDUINO_NOTONE:
-      //
-      //  noTone[pin]
-      //
-      if (! isSafePin(argv[0])) {
+    case CMD_ARDUINO_NOTONE: {
+        //
+        //  noTone[pin]
+        //
+        if (! isSafePin(argv[0])) {
+          goto finish;
+        }
+        noTone(argv[0]);
+        rc = RESULT_IS_OK;
         goto finish;
       }
-      noTone(argv[0]);
-      rc = RESULT_IS_OK;
-      goto finish;
-
 #endif
 
 #ifdef FEATURE_RANDOM_ENABLE
-    case CMD_ARDUINO_RANDOMSEED:
-      //
-      //  randomSeed[value]
-      //
-      randomSeed((0 == argv[0]) ? (int32_t) millis() : argv[0]);
-      rc = RESULT_IS_OK;
-      goto finish;
+    case CMD_ARDUINO_RANDOMSEED: {
+        //
+        //  randomSeed[value]
+        //
+        randomSeed((0 == argv[0]) ? (int32_t) millis() : argv[0]);
+        rc = RESULT_IS_OK;
+        goto finish;
+      }
 
-    case CMD_ARDUINO_RANDOM:
-      //
-      //  random[min, max]
-      //
-      //  !! random return long
-      value = ('\0' == *optarg[1]) ? random(argv[0]) : random(argv[0], argv[1]);
-      rc = RESULT_IS_UNSIGNED_VALUE;
-      goto finish;
+    case CMD_ARDUINO_RANDOM: {
+        //
+        //  random[min, max]
+        //
+        //  !! random return long
+        value = ('\0' == *optarg[1]) ? random(argv[0]) : random(argv[0], argv[1]);
+        rc = RESULT_IS_UNSIGNED_VALUE;
+        goto finish;
+      }
 #endif // FEATURE_RANDOM_ENABLE
 
 #ifdef FEATURE_EEPROM_ENABLE
-    case CMD_SET_HOSTNAME:
-      //
-      //  set.hostname[password, hostname]
-      //
-      // payload[_argOffset[1]] != \0 if argument #2 given
-      if (!accessGranted || '0' != *optarg[1]) {
-        strncpy(_netConfig->hostname, optarg[1], constAgentHostnameMaxLength);
-        rc = RESULT_IS_UNSTORED_IN_EEPROM;
-      }
-      goto finish;
-
-    case CMD_SET_PASSWORD:
-      //
-      //  set.password[oldPassword, newPassword]
-      //
-      if (accessGranted && '\0' != *optarg[1]) {
-        // take new password from argument #2
-        _netConfig->password = argv[1];
-        rc = RESULT_IS_UNSTORED_IN_EEPROM;
-      }
-      goto finish;
-
-    case CMD_SET_SYSPROTECT:
-      //
-      //  set.sysprotect[password, protection]
-      //
-      if (accessGranted && '\0' != *optarg[1]) {
-        _netConfig->useProtection = (1 == argv[1]) ? true : false;
-        rc = RESULT_IS_UNSTORED_IN_EEPROM;
-      }
-      goto finish;
-
-    case CMD_SET_NETWORK:
-      //
-      //  set.network[password, useDHCP, macAddress, ipAddress, ipNetmask, ipGateway]
-      //
-      if (!accessGranted) {
+    case CMD_SET_HOSTNAME: {
+        //
+        //  set.hostname[password, hostname]
+        //
+        // payload[_argOffset[1]] != \0 if argument #2 given
+        if (!accessGranted || '0' != *optarg[1]) {
+          strncpy(_sysConfig.hostname, optarg[1], constAgentHostnameMaxLength);
+          // strncpy() can do not copy trailing \0
+          _sysConfig.hostname[constAgentHostnameMaxLength] = '\0';
+          rc = RESULT_IS_UNSTORED_IN_EEPROM;
+        }
         goto finish;
       }
-      // i is used as 'success' variable
-      i = true;
-      // useDHCP flag coming from argument#1 and must be numeric (boolean) - 1 or 0,
-      // argv[0] data contain in payload[_argOffset[1]] placed from _argOffset[0]
-      _netConfig->useDHCP = (0 != (uint8_t) argv[1]);
-      // ip, netmask and gateway have one structure - 4 byte
-      // take 6 bytes from second argument of command and use as new MAC-address
-      // if convertation is failed (sub return -1) variable must be falsed too via logic & operator
-      i = i ? (6 == hstoba((uint8_t *) &_netConfig->macAddress, optarg[2])) : false;
-      // If string to which point optarg[3] can be converted to valid NetworkAddress - just do it.
-      // Otherwize (string can not be converted) _netConfig->ipAddress will stay untouched;
-      i = (i) ? (strToNetworkAddress((char*) optarg[3], &_netConfig->ipAddress)) : false;
-      i = (i) ? (strToNetworkAddress((char*) optarg[4], &_netConfig->ipNetmask)) : false;
-      i = (i) ? (strToNetworkAddress((char*) optarg[5], &_netConfig->ipGateway)) : false;
-      // if any convert operation failed - just do not return "need to eeprom write" return code
-      if (i) {
-        rc = RESULT_IS_UNSTORED_IN_EEPROM;
-      }
-      goto finish;
 
+    case CMD_SET_PASSWORD: {
+        //
+        //  set.password[oldPassword, newPassword]
+        //
+        if (accessGranted && '\0' != *optarg[1]) {
+          // take new password from argument #2
+          _sysConfig.password = argv[1];
+          rc = RESULT_IS_UNSTORED_IN_EEPROM;
+        }
+        goto finish;
+      }
+
+    case CMD_SET_SYSPROTECT: {
+        //
+        //  set.sysprotect[password, protection]
+        //
+        if (accessGranted && '\0' != *optarg[1]) {
+          _sysConfig.useProtection = (1 == argv[1]) ? true : false;
+          rc = RESULT_IS_UNSTORED_IN_EEPROM;
+        }
+        goto finish;
+      }
+
+    case CMD_SET_NETWORK: {
+        //
+        //  set.network[password, useDHCP, macAddress, ipAddress, ipNetmask, ipGateway]
+        //
+        if (!accessGranted) {
+          goto finish;
+        }
+        uint8_t success = true;
+        netconfig_t newConfig;
+        memcpy((uint8_t*) &newConfig, (uint8_t*) &_sysConfig, sizeof(newConfig));
+
+        // useDHCP flag coming from argument#1 and must be numeric (boolean) - 1 or 0,
+        // argv[0] data contain in payload[_argOffset[1]] placed from _argOffset[0]
+        newConfig.useDHCP = (0 != (uint8_t) argv[1]);
+        // ip, netmask and gateway have one structure - 4 byte
+        // take 6 bytes from second argument of command and use as new MAC-address
+        // if convertation is failed (sub return -1) variable must be falsed too via logic & operator
+        success = (success) ? (6 == hstoba((uint8_t *) &newConfig.macAddress, optarg[2])) : false;
+        // If string to which point optarg[3] can be converted to valid NetworkAddress - just do it.
+        // Otherwize (string can not be converted) _sysConfig.ipAddress will stay untouched;
+        success = (success) ? (strToNetworkAddress((char*) optarg[3], newConfig.ipAddress)) : false;
+        success = (success) ? (strToNetworkAddress((char*) optarg[4], newConfig.ipNetmask)) : false;
+        success = (success) ? (strToNetworkAddress((char*) optarg[5], newConfig.ipGateway)) : false;
+        // if any convert operation failed - just do not return "need to eeprom write" return code
+        if (success) {
+          rc = (saveConfigToEEPROM(newConfig)) ? RESULT_IS_OK : DEVICE_ERROR_EEPROM_CORRUPTED;
+        }
+        goto finish;
+      }
 #endif // FEATURE_EEPROM_ENABLE
 
 #ifdef FEATURE_SYSTEM_RTC_ENABLE
@@ -887,11 +894,11 @@ static int16_t executeCommand(char* _dst, netconfig_t* _netConfig, packetInfo_t*
 #ifdef FEATURE_EEPROM_ENABLE
       // tzOffset is defined?
       if ('\0' != *optarg[2]) {
-        _netConfig->tzOffset = (int16_t) argv[2];
+        _sysConfig.tzOffset = (int16_t) argv[2];
         // Save config to EEPROM
-        i = saveConfigToEEPROM(_netConfig);
+        i = saveConfigToEEPROM(_sysConfig);
         if (i) {
-          set_zone(_netConfig->tzOffset);
+          set_zone(_sysConfig.tzOffset);
           rc = RESULT_IS_OK;
         }
       }
@@ -970,14 +977,14 @@ static int16_t executeCommand(char* _dst, netconfig_t* _netConfig, packetInfo_t*
       rc = RESULT_IS_BUFFERED;
       if (0 == strcmp_P(optarg[0], PSTR("id"))) {
         // Read 10 bytes with step 1 (0x0E..0x17) of the signature row <= http://www.avrfreaks.net/forum/unique-id-atmega328pb
-        getBootSignatureBytes(payload, 0x0E, 10, 1);
+        getBootSignatureAsHexString(payload, 0x0E, 10, 1);
       } else if (0 == strcmp_P(optarg[0], PSTR("freq"))) {
         // Return back CPU frequency
         value = F_CPU;
         rc = RESULT_IS_UNSIGNED_VALUE;
       } else if (0 == strcmp_P(optarg[0], PSTR("model"))) {
         // Read 3 bytes with step 2 (0x00, 0x02, 0x04) of the signature row <= http://www.avrfreaks.net/forum/device-signatures
-        getBootSignatureBytes(payload, 0x00, 3, 2);
+        getBootSignatureAsHexString(payload, 0x00, 3, 2);
       } else {
         // Return back CPU name
         strcpy_P(payload, PSTR(_AVR_CPU_NAME_));
@@ -1032,7 +1039,8 @@ static int16_t executeCommand(char* _dst, netconfig_t* _netConfig, packetInfo_t*
 
       // real buffer size not take in account and no overflow check in scanOneWire()!!
       if (isSafePin(argv[0])) {
-        value = scanOneWire(argv[0], (uint8_t*) payload);
+        // 
+        value = scanOneWire(argv[0], (uint8_t*) payload, constPayloadSize);
         if (value) {
           rc = RESULT_IS_BUFFERED;
         }
@@ -1618,14 +1626,14 @@ static int16_t executeCommand(char* _dst, netconfig_t* _netConfig, packetInfo_t*
             // need to use payload as uint8_t, because sometime autocast is fail and user can get wrong data
             uint8_t* payloadPtr;
             payloadPtr = (uint8_t*) payload;
-            Network.client.print("0x");
+            _netClient.print("0x");
             DTSL( Serial.print("0x"); )
             for (i = 0; i < argv[4]; i++) {
               if (0x10 > payloadPtr[i]) {
-                Network.client.print("0");
+                _netClient.print("0");
                 DTSL( Serial.print("0"); )
               }
-              Network.client.print(payloadPtr[i], HEX);
+              _netClient.print(payloadPtr[i], HEX);
               DTSL( Serial.print(payloadPtr[i], HEX); )
             }
             rc = RESULT_IS_PRINTED;
@@ -1718,7 +1726,7 @@ static int16_t executeCommand(char* _dst, netconfig_t* _netConfig, packetInfo_t*
           //  mlx90614.temperature[18, 19, 0x5A, 1]
           rc = getMLX90614Metric(&SoftTWI, (I2C_NO_ADDR_SPECIFIED != i2CAddress) ? i2CAddress : MLX90614_I2C_ADDR, (('\0' == *optarg[3]) ? MLX90614_TEMPERATURE_ZONE_01 : argv[3]), SENS_READ_TEMP, payload);
           //rc = getMLX90614Metric(&SoftTWI, i2CAddress, argv[3], SENS_READ_TEMP, payload);
-        goto finish;
+          goto finish;
 #endif
 
 
@@ -1746,7 +1754,7 @@ finish:
 
 #ifdef FEATURE_EEPROM_ENABLE
   if (RESULT_IS_UNSTORED_IN_EEPROM == rc) {
-    rc = (saveConfigToEEPROM(_netConfig)) ? RESULT_IS_OK : DEVICE_ERROR_EEPROM_CORRUPTED;
+    rc = (saveConfigToEEPROM(_sysConfig)) ? RESULT_IS_OK : DEVICE_ERROR_EEPROM_CORRUPTED;
   }
 #endif
 
@@ -1814,7 +1822,7 @@ finish:
                         Push Zabbix packet header if incoming packet have Zabbix type
   */
   payloadLenght = strlen(payload);
-  if (PACKET_TYPE_ZABBIX == _packetInfo->type) {
+  if (PACKET_TYPE_ZABBIX == _packetInfo.type) {
     // Calculate payload length to
     if (RESULT_IS_BUFFERED == rc) {
       switch (cmdIdx) {
@@ -1840,53 +1848,53 @@ finish:
     // Copy lenght of answer string to header
     memcpy(&_dst[ZBX_HEADER_PREFIX_LENGTH], &payloadLenght, sizeof(payloadLenght));
     DTSD (
-      PRINTLN_PSTR("--hdr--");
+      Serial.println(F("--hdr--"));
     for (i = 0; i < ZBX_HEADER_LENGTH; i++) {
     Serial.print(_dst[i], HEX);
       Serial.print(" '");
       Serial.print((char) _dst[i]);
       Serial.println("' ");
     }
-    PRINTLN_PSTR("--pld--");
+    Serial.println(F("--pld--"));
     )
-    if (Network.client.connected()) {
-      Network.client.write(_dst, ZBX_HEADER_LENGTH);
+    if (_netClient.connected()) {
+      _netClient.write(_dst, ZBX_HEADER_LENGTH);
     }
   }
 
   /*
                         Push reply data to the client
   */
-  DTSL( PRINT_PSTR("Reply: "); )
+  DTSL( Serial.print(F("Reply: ")); )
   switch (cmdIdx) {
 #ifdef FEATURE_OW_ENABLE
     // Special output format for OW.Scan[] command: 0x01020304\n0x05060708\n...
     case CMD_OW_SCAN:
-      if (Network.client.connected()) {
-        printArray((uint8_t*) payload, OW_ADDRESS_LENGTH * value, &Network.client, OW_ADDRESS);
+      if (_netClient.connected()) {
+        printArray((uint8_t*) payload, OW_ADDRESS_LENGTH * value, _netClient, OW_ADDRESS);
       }
-      DTSL ( printArray((uint8_t*) payload, OW_ADDRESS_LENGTH * value, &Serial, OW_ADDRESS); )
+      DTSL ( printArray((uint8_t*) payload, OW_ADDRESS_LENGTH * value, Serial, OW_ADDRESS); )
       break;
 #endif
 #ifdef FEATURE_I2C_ENABLE
     // Special output format for I2C.Scan[] command: 0x01\n0x02\n0x03...
     case CMD_I2C_SCAN: {
-        if (Network.client.connected()) {
-          printArray((uint8_t*) payload, I2C_ADDRESS_LENGTH * value, &Network.client, I2C_ADDRESS);
+        if (_netClient.connected()) {
+          printArray((uint8_t*) payload, I2C_ADDRESS_LENGTH * value, _netClient, I2C_ADDRESS);
         }
-        DTSL ( printArray((uint8_t*) payload, I2C_ADDRESS_LENGTH * value, &Serial, I2C_ADDRESS); )
+        DTSL ( printArray((uint8_t*) payload, I2C_ADDRESS_LENGTH * value, Serial, I2C_ADDRESS); )
       }
       break;
 #endif
-    // Plain tex output for other
+    // Plain text output for other
     default:
-      if (Network.client.connected()) {
+      if (_netClient.connected()) {
         //Network.client.print(payload);
         //DTSL( Serial.print("payloadLenght:"); Serial.println(payloadLenght); )
 
-        Network.client.write(payload, payloadLenght);
-        if (PACKET_TYPE_ZABBIX != _packetInfo->type) {
-          Network.client.print('\n');
+        _netClient.write(payload, payloadLenght);
+        if (PACKET_TYPE_ZABBIX != _packetInfo.type) {
+          _netClient.print('\n');
         }
       }
       DTSL( Serial.println(payload); )
@@ -1901,7 +1909,7 @@ finish:
   //
   switch (rc) {
     case RESULT_IS_SYSTEM_REBOOT_ACTION:
-      Network.stopClient();
+      _netClient.stop();
       delay(100);
       // The reason why using the watchdog timer or RST_SWRST_bm is preferable over jumping to the reset vector, is that when the watchdog or RST_SWRST_bm resets the AVR,
       // the registers will be reset to their known, default settings. Whereas jumping to the reset vector will leave the registers in their previous state, which is
@@ -1909,10 +1917,8 @@ finish:
       //
       //  ...but some Arduino's bootloaders going to "crazy loopboot" when WTD is enable on reset
       //
-#ifdef FEATURE_WATCHDOG_ENABLE
       // Watchdog deactivation
-      wdt_disable();
-#endif
+      __WATCHDOG( wdt_disable(); )
       asm volatile ("jmp 0");
       break;
   }

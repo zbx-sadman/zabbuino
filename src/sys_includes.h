@@ -5,6 +5,7 @@
 #include "../cfg_basic.h"
 #include "cfg_tune.h"
 
+#include "sys_pgm_res.h"
 #include "sys_macros.h"
 #include "sys_structs.h"
 #include "sys_debug.h"

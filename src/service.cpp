@@ -2,12 +2,12 @@
 #include "sys_includes.h"
 
 #include <avr/boot.h>
+#include <util/atomic.h>
 #include <util/crc16.h>
 
 #include "system.h"
-
 #include "service.h"
-#include "sys_macros.h"
+#include "eeprom.h"
 
 /*****************************************************************************************************************************
 *
@@ -30,6 +30,41 @@ uint8_t flushStreamRXBuffer(Stream* _stream, const uint32_t _timeout, const uint
  return true;
 }
 
+/*****************************************************************************************************************************
+*
+*   
+*   
+*
+*****************************************************************************************************************************/
+uint8_t factoryReset(netconfig_t& _sysConfig) {
+  uint8_t rc = false;
+   // Factory reset button pin must be shorted to ground to action start
+   pinMode(constFactoryResetButtonPin, INPUT_PULLUP);
+
+   digitalWrite(constStateLedPin, LOW);
+
+   // Is constFactoryResetButtonPin shorted?
+   if (LOW == digitalRead(constFactoryResetButtonPin)) {
+      DTSL( FSH_P((STRING_The_factory_reset_button_is_pressed)); )
+      // Fire up state LED
+      digitalWrite(constStateLedPin, HIGH);
+      // Wait some msecs
+      delay(constHoldTimeToFactoryReset);
+      // constFactoryResetButtonPin still shorted?
+      if (LOW == digitalRead(constFactoryResetButtonPin)) {
+         DTSL( Serial.print(FSH_P(STRING_Rewrite_EEPROM_with_defaults)); Serial.print(FSH_P(STRING_3xDot_Space)); )
+         setConfigDefaults(_sysConfig);
+         // return "sucess" only if default config saved
+         rc = saveConfigToEEPROM(_sysConfig);
+         // Blink fast while constFactoryResetButtonPin shorted to GND
+         DTSL( Serial.print(FSH_P(STRING_Release_the_factory_reset_button_now)); )
+         while (LOW == digitalRead(constFactoryResetButtonPin)) { digitalWrite(constStateLedPin, millis() % 100 < 50); }
+      }
+  } // if (LOW == digitalRead(constFactoryResetButtonPin))
+
+  digitalWrite(constStateLedPin, LOW);
+  return rc;
+}
 
 /*****************************************************************************************************************************
 *
@@ -37,7 +72,7 @@ uint8_t flushStreamRXBuffer(Stream* _stream, const uint32_t _timeout, const uint
 *   Must be called every (UINT32_MAX / 2) - 1 ms at least
 *
 *****************************************************************************************************************************/
-uint8_t millisRollover(void) {
+uint16_t millisRollover(void) {
   // get the current millis() value for how long the microcontroller has been running
   //
   // To avoid any possiblity of missing the rollover, we use a boolean toggle that gets flipped
@@ -47,10 +82,10 @@ uint8_t millisRollover(void) {
   //   the function should be called as frequently as possible to capture the actual moment of rollover.
   // The rollover counter is good for over 35 years of runtime. --Rob Faludi http://rob.faludi.com
   //
-  static uint8_t numRollovers = 0,               // variable that permanently holds the number of rollovers since startup
-                 readyToRoll = false;            // tracks whether we've made it halfway to rollover
-  const uint32_t halfwayMillis = UINT32_MAX / 2; // this is halfway to the max millis value (17179868 for earlier versions of Arduino)
-  uint32_t now = millis();                       // the time right now
+  static uint16_t numRollovers = 0,               // variable that permanently holds the number of rollovers since startup
+                  readyToRoll = false;            // tracks whether we've made it halfway to rollover
+  const uint32_t  halfwayMillis = UINT32_MAX / 2; // this is halfway to the max millis value (17179868 for earlier versions of Arduino)
+  uint32_t now =  millis();                       // the time right now
 
   // as long as the value is greater than halfway to the max
   // you are ready to roll over
@@ -81,49 +116,39 @@ uint32_t uptime(void) {
 *   Set default values of network configuration
 *
 *****************************************************************************************************************************/
-void setConfigDefaults(netconfig_t *_configStruct)
-{
-  memset(_configStruct, '\0', sizeof(netconfig_t));
-  // Copying defaut MAC to the config
-  uint8_t mac[] = NET_DEFAULT_MAC_ADDRESS;
-  memcpy(_configStruct->macAddress, mac, arraySize(_configStruct->macAddress));
+void setConfigDefaults(netconfig_t& _sysConfig) {
+  uint8_t copyCharsNumber;
+  // Copying arrays of the default data to the config
+  memcpy_P(&_sysConfig.macAddress, constDefaultMacAddress, sizeof(_sysConfig.macAddress));
+  memcpy_P(&_sysConfig.ipAddress,  constDefaultIPAddress,  sizeof(_sysConfig.ipAddress));
+  memcpy_P(&_sysConfig.ipGateway,  constDefaultGateway,    sizeof(_sysConfig.ipGateway));
+  memcpy_P(&_sysConfig.ipNetmask,  constDefaultNetmask,    sizeof(_sysConfig.ipNetmask));
 
-  _configStruct->useDHCP   = constNetDefaultUseDHCP;
-  _configStruct->ipAddress = NetworkAddress(NET_DEFAULT_IP_ADDRESS);
-  _configStruct->ipNetmask = NetworkAddress(NET_DEFAULT_NETMASK);
-  _configStruct->ipGateway = NetworkAddress(NET_DEFAULT_GATEWAY);
-  _configStruct->password  = constSysDefaultPassword;
-  _configStruct->tzOffset  = constSysTZOffset;
-  _configStruct->useProtection = constSysDefaultProtection;  
+  _sysConfig.useDHCP         = constNetDefaultUseDHCP;
+  _sysConfig.password        = constSysDefaultPassword;
+  _sysConfig.useProtection   = constSysDefaultProtection;
+
+  _sysConfig.tzOffset = constSysTZOffset;
+
+  _sysConfig.hostname[constAgentHostnameMaxLength] = '\0';
+
 #ifdef FEATURE_NET_USE_MCUID
-  // if FEATURE_NET_USE_MCUID is defined:
-  // 1. Make FDQN-hostname from MCU ID and default domain name
-  // 2. Modify MAC - the 4,5,6 default's MAC octets is replaced to the last 3 byte of MCU ID
-  // 3. Modify IP - the last default's IP octet is replaced too to the last byte of MCU ID
-  //
-  // Note: Unique MCU ID defined for ATMega328PB and can not exist on other MCU's. 
-  //       You need try to read it before use for network addresses generating.
-  //       Using only 3 last bytes not guarantee making unique MAC or IP.
-  getBootSignatureBytes(_configStruct->hostname, 0x0E, 10, 1);
-  memcpy(&_configStruct->hostname[constMcuIdLength], (ZBX_AGENT_DEFAULT_DOMAIN), arraySize(ZBX_AGENT_DEFAULT_DOMAIN));
-  _configStruct->hostname[constMcuIdLength+sizeof(ZBX_AGENT_DEFAULT_DOMAIN)+1]='\0';
-  
-  // 
-  // Interrupts must be disabled before boot_signature_byte_get will be called to avoid code crush
-  noInterrupts();
-  _configStruct->macAddress[3] = boot_signature_byte_get(0x15);
-  _configStruct->macAddress[4] = boot_signature_byte_get(0x16);
-  _configStruct->macAddress[5] = boot_signature_byte_get(0x17);
-  interrupts();
-  _configStruct->ipAddress[3] = _configStruct->macAddress[5];
-
+  copyCharsNumber = (constAgentHostnameMaxLength <= (constMcuIdSize * 2)) ? constAgentHostnameMaxLength : constMcuIdSize * 2;
+  getBootSignatureAsHexString((char*) &_sysConfig.hostname, 0x0E, copyCharsNumber / 2, 1);
 #else
-  // Otherwise - use default hostname and domain name for FDQN-hostname
-  memcpy(&_configStruct->hostname[0], (ZBX_AGENT_DEFAULT_HOSTNAME), arraySize(ZBX_AGENT_DEFAULT_HOSTNAME));
-  memcpy(&_configStruct->hostname[sizeof(ZBX_AGENT_DEFAULT_HOSTNAME)-1], (ZBX_AGENT_DEFAULT_DOMAIN), arraySize(ZBX_AGENT_DEFAULT_DOMAIN));
-  _configStruct->hostname[sizeof(ZBX_AGENT_DEFAULT_HOSTNAME)+sizeof(ZBX_AGENT_DEFAULT_DOMAIN)+1]='\0';
+  /*
+  // old copying code +22 progspace bytes on GCC optimize ("O0")
+  copyCharsNumber = strlen_P(constZbxAgentDefaultHostname);
+  copyCharsNumber = (constAgentHostnameMaxLength <= copyCharsNumber) ? constAgentHostnameMaxLength : copyCharsNumber;
+  strncpy_P(_sysConfig.hostname, constZbxAgentDefaultHostname, copyCharsNumber);
+  */
+  strncpy_P(_sysConfig.hostname, constZbxAgentDefaultHostname, constAgentHostnameMaxLength);
+  copyCharsNumber = strlen(_sysConfig.hostname);
 #endif
+  strncpy_P(&_sysConfig.hostname[copyCharsNumber], constZbxAgentDefaultDomain, constAgentHostnameMaxLength - copyCharsNumber);
 }
+
+
 /*****************************************************************************************************************************
 *
 *   Convert _Qm.n_ float number (int64_t) to char[] 
@@ -264,45 +289,20 @@ uint8_t dallas_crc8(uint8_t *_src, uint8_t _len)
   }
   return crc;
 }
-/*****************************************************************************************************************************
-*
-*  Print string stored in PROGMEM to Serial 
-*
-*****************************************************************************************************************************/
-void SerialPrint_P (const char *_src) {
-  char currChar;
-  while ((currChar = pgm_read_byte(_src++)) != '\0') {
-    Serial.print(currChar);
-  }
-}
-/*****************************************************************************************************************************
-*
-*  Print string stored in PROGMEM to Serial + Line Feed
-*
-*****************************************************************************************************************************/
-void SerialPrintln_P (const char *_src) {
-  SerialPrint_P(_src);
-  Serial.println();
-}
 
 /*****************************************************************************************************************************
 *
 *  Print array to Serial as MAC or IP or other string with sign-separated parts
 *
 *****************************************************************************************************************************/
-void printArray(uint8_t *_src, const uint8_t _len, Stream* _stream, const uint8_t _type)
-{
+void printArray(uint8_t* _src, const uint8_t _len, Stream& _stream, const uint8_t _type) {
   char separator;
   uint8_t format, i;
   uint16_t pos = 0;
 
-  // One byte step
-//  step = 1;
   format = HEX;
   switch (_type) {
     case OW_ADDRESS:
-      // Eight bytes step
-//      step = 8;
       separator = '\n';
       break;
     case I2C_ADDRESS:
@@ -317,38 +317,35 @@ void printArray(uint8_t *_src, const uint8_t _len, Stream* _stream, const uint8_
       separator = '.';
    }     
 
-  while (pos < _len) {
-    switch (_type) {
-      case OW_ADDRESS:
-        _stream->print("0x");
-        i = 7;
-        while (i) {
-          --i;
-          if (0x0F > _src[pos]) { _stream->print('0'); }
-          _stream->print(_src[pos], format);
-          ++pos;
-        }
-        break;
+   while (pos < _len) {
+      switch (_type) {
+         case OW_ADDRESS:
+           _stream.print(FSH_P(STRING_HEX_Prefix));
+           i = 7;
+           while (i) {
+             i--;
+             if (0x0F > _src[pos]) { _stream.print('0'); }
+             _stream.print(_src[pos], format);
+             pos++;
+           }
+           break;
 
-      case I2C_ADDRESS:
-        _stream->print("0x");
-      case MAC_ADDRESS:
-          if (0x0F > _src[pos]) { _stream->print('0'); }
-        break;
+         case I2C_ADDRESS:
+           _stream.print(FSH_P(STRING_HEX_Prefix));
+         case MAC_ADDRESS:
+           if (0x0F > _src[pos]) { _stream.print('0'); }
+           break;
 
-      case IP_ADDRESS:
-      default:
-        break;
+         case IP_ADDRESS:
+         default:
+           break;
+      }     
 
-    }     
-
-    _stream->print(_src[pos], format);
-    ++pos;
-    if (pos < _len) { _stream->print(separator); 
-
-}
-  }
-  _stream->println();
+      _stream.print(_src[pos], format);
+      pos++;
+      if (pos < _len) { _stream.print(separator); }
+   }
+   _stream.println();
 }
 
 void blinkMore(const uint8_t _times, const uint16_t _onTime, const uint16_t _offTime) 
@@ -365,9 +362,9 @@ uint8_t validateNetworkAddress(const NetworkAddress _address) {
   return true;
 }
 */
-uint8_t strToNetworkAddress(const char* _src, NetworkAddress* _dstAddress) {
+uint8_t strToNetworkAddress(const char* _src, uint32_t& _dstAddress) {
   if ('\0' == *_src) { return false; }
-  *_dstAddress = NetworkAddress(htonl(strtoul(_src, NULL, 0)));
+  _dstAddress = htonl(strtoul(_src, NULL, 0));
   return true;
 }
 
@@ -377,7 +374,7 @@ uint8_t strToNetworkAddress(const char* _src, NetworkAddress* _dstAddress) {
    Detect Zabbix packets, on-fly spit incoming stream to command & arguments
 
 **************************************************************************************************************************** */
-uint8_t analyzeStream(char _charFromClient, char* _dst, uint8_t doReInit, packetInfo_t* _packetInfo) {
+uint8_t analyzeStream(char _charFromClient, char* _dst, const uint8_t doReInit, packetInfo_t& _packetInfo) {
   uint8_t static allowAnalyze          = true, 
                  cmdSliceNumber        = 0,
                  isEscapedChar         = 0,
@@ -388,8 +385,8 @@ uint8_t analyzeStream(char _charFromClient, char* _dst, uint8_t doReInit, packet
   // Jump into reInitStage procedure. This is a bad programming style, but the subroutine must be lightweight.
   if (doReInit) {
     // Temporary clean code stub
-    _packetInfo->dataLength = 0x00;
-    _packetInfo->type = PACKET_TYPE_PLAIN;
+    _packetInfo.dataLength = 0x00;
+    _packetInfo.type = PACKET_TYPE_PLAIN;
     *_dst = '\0';
     goto reInitStage;
   }
@@ -407,38 +404,31 @@ uint8_t analyzeStream(char _charFromClient, char* _dst, uint8_t doReInit, packet
   if ((ZBX_HEADER_PREFIX_LENGTH-1) == bufferWritePosition) {
     if (0 == memcmp(_dst, (ZBX_HEADER_PREFIX), ZBX_HEADER_PREFIX_LENGTH)) {
       // If packet have prefix - it is Zabbix's native packet
-      _packetInfo->type = PACKET_TYPE_ZABBIX;
-      DTSD( Serial.println("ZBX header detected"); )
+      _packetInfo.type = PACKET_TYPE_ZABBIX;
+      DTSD( Serial.print(FSH_P(STRING_ZBX_header)); Serial.println(FSH_P(STRING_detected)); )
       allowAnalyze = false;
-  //    _packetInfo->dataLength = 0;
     }
   }
 
   // Allow packet analyzing when Zabbix header is skipped
-  if (ZBX_HEADER_LENGTH == bufferWritePosition && PACKET_TYPE_ZABBIX == _packetInfo->type) {
+  if (ZBX_HEADER_LENGTH == bufferWritePosition && PACKET_TYPE_ZABBIX == _packetInfo.type) {
     //bufferWritePosition = 0;
     //needSkipZabbix2Header = false;
     allowAnalyze = true;
-    _packetInfo->dataLength = 0x00;
-    memcpy(&(_packetInfo->expectedDataLength), &_dst[ZBX_HEADER_PREFIX_LENGTH], sizeof(_packetInfo->expectedDataLength));
-
-//    Serial.print("Expected DataLength:"); Serial.println(_packetInfo->expectedDataLength); 
-
-    //DTSD( Serial.println("ZBX header dropped"); )
-    DTSD( Serial.println("ZBX header passed"); )
+    _packetInfo.dataLength = 0x00;
+    memcpy(&(_packetInfo.expectedDataLength), &_dst[ZBX_HEADER_PREFIX_LENGTH], sizeof(_packetInfo.expectedDataLength));
+    DTSD( Serial.print(FSH_P(STRING_ZBX_header)); Serial.println(FSH_P(STRING_passed)); )
     // Return 'Need next char' and save a lot cpu time
     //return true;
   }
 
-  // no PRINT_PSTR(...)) used to avoid slow perfomance on analyze loops
   // Development mode only debug message level used
-  DTSD( Serial.print("in: "); Serial.print(_dst[bufferWritePosition], HEX); Serial.print(" '");Serial.print((char) _dst[bufferWritePosition]); Serial.print("' "); )
+  DTSD( Serial.print("in: "); Serial.print(_dst[bufferWritePosition], HEX); Serial.print(" '"); Serial.print((char) _dst[bufferWritePosition]); Serial.print("' "); )
 
   // Process all chars if its not from header data
-//  if (!needSkipZabbix2Header) 
   if (allowAnalyze) {
     // char is not escaped
-    DTSD( Serial.println("...");  )
+    DTSD( Serial.println(FSH_P(STRING_3xDot_Space));  )
     switch (_charFromClient) {
       // Doublequote sign is arrived
       case '"':
@@ -476,7 +466,7 @@ uint8_t analyzeStream(char _charFromClient, char* _dst, uint8_t doReInit, packet
         if (!doubleQuotedString) {
           //  If '_argOffset' array is not exhausted - push begin of next argument (bufferWritePosition+1) on buffer to arguments offset array.
           if (constArgC > cmdSliceNumber) {
-            _packetInfo->optarg[cmdSliceNumber] = &_dst[bufferWritePosition + 1];
+            _packetInfo.optarg[cmdSliceNumber] = &_dst[bufferWritePosition + 1];
           }
           cmdSliceNumber++;
           // Make current buffer segment like C-string
@@ -494,13 +484,12 @@ uint8_t analyzeStream(char _charFromClient, char* _dst, uint8_t doReInit, packet
 
       // EOL detected
       case '\n':
-        DTSH( PRINTLN_PSTR("NEWLINE"); )
         // Save last argIndex that pointed to <null> item. All unused _argOffset[] items must be pointed to this <null> item too.
         _dst[bufferWritePosition] = '\0';
         packetRecieved = true;
         //while (constArgC > cmdSliceNumber) { _argOffset[cmdSliceNumber++] = bufferWritePosition;}
         while (constArgC > cmdSliceNumber) {
-          _packetInfo->optarg[cmdSliceNumber++] = &_dst[bufferWritePosition];
+          _packetInfo.optarg[cmdSliceNumber++] = &_dst[bufferWritePosition];
         }
         // Change argIndex value to pass (constArgC < argIndex) condition
         cmdSliceNumber = constArgC + 1;
@@ -510,9 +499,9 @@ uint8_t analyzeStream(char _charFromClient, char* _dst, uint8_t doReInit, packet
       default:
         isEscapedChar = false;
     }
-    _packetInfo->dataLength++;
+    _packetInfo.dataLength++;
 
-    if ((_packetInfo->dataLength >= _packetInfo->expectedDataLength) && (PACKET_TYPE_ZABBIX == _packetInfo->type)) {
+    if ((_packetInfo.dataLength >= _packetInfo.expectedDataLength) && (PACKET_TYPE_ZABBIX == _packetInfo.type)) {
         packetRecieved = true;
         // !!! potential break
         _dst[bufferWritePosition+1] = '\0';
@@ -523,7 +512,7 @@ uint8_t analyzeStream(char _charFromClient, char* _dst, uint8_t doReInit, packet
   //    Serial.println("Packet finished"); 
         //while (constArgC > cmdSliceNumber) { _argOffset[cmdSliceNumber++] = bufferWritePosition;}
         while (constArgC > cmdSliceNumber) {
-          _packetInfo->optarg[cmdSliceNumber++] = &_dst[bufferWritePosition];
+          _packetInfo.optarg[cmdSliceNumber++] = &_dst[bufferWritePosition];
         }
         // Change argIndex value to pass (constArgC < argIndex) condition
         cmdSliceNumber = constArgC + 1;
@@ -532,9 +521,9 @@ uint8_t analyzeStream(char _charFromClient, char* _dst, uint8_t doReInit, packet
     // EOL reached or there is not room to store args. Stop stream analyzing and do command executing
     if (constArgC < cmdSliceNumber) {
 reInitStage:
-      DTSH( PRINTLN_PSTR("Reinit analyzer"); )
+      DTSH( Serial.println(FSH_P(STRING_Reinit_parser)); )
       // Clear vars for next round, and return false as 'Do not need next char'
-      bufferWritePosition = cmdSliceNumber = isEscapedChar = doubleQuotedString = 0;
+      bufferWritePosition = cmdSliceNumber = isEscapedChar = doubleQuotedString = 0x00;
       doubleQuotedString = false;
       packetRecieved = false;
       allowAnalyze = true;
@@ -544,7 +533,7 @@ reInitStage:
     DTSD( Serial.println();  )
   }
   //
-  ++bufferWritePosition;
+  bufferWritePosition++;
   // Return 'Need next char' and save a lot cpu time
   return true;
 }

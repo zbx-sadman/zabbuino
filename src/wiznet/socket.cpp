@@ -2,6 +2,8 @@
 #ifdef NETWORK_ETH_WIZNET
 
 #include "socket.h"
+#include "util.h"
+
 
 static uint16_t local_port;
 
@@ -9,7 +11,7 @@ static uint16_t local_port;
  * @brief	This Socket function initialize the channel in perticular mode, and set the port and wait for W5100 done it.
  * @return 	1 for success else 0.
  */
-uint8_t socket(SOCKET s, uint8_t protocol, uint16_t port, uint8_t flag)
+uint8_t socket(socket_t s, uint8_t protocol, uint16_t port, uint8_t flag)
 {
   if ((protocol == SnMR::TCP) || (protocol == SnMR::UDP) || (protocol == SnMR::IPRAW) || (protocol == SnMR::MACRAW) || (protocol == SnMR::PPPOE))
   {
@@ -35,7 +37,7 @@ uint8_t socket(SOCKET s, uint8_t protocol, uint16_t port, uint8_t flag)
 /**
  * @brief	This function close the socket and parameter is "s" which represent the socket number
  */
-void close(SOCKET s)
+void close(socket_t s)
 {
   W5100.execCmdSn(s, Sock_CLOSE);
   W5100.writeSnIR(s, 0xFF);
@@ -46,7 +48,7 @@ void close(SOCKET s)
  * @brief	This function established  the connection for the channel in passive (server) mode. This function waits for the request from the peer.
  * @return	1 for success else 0.
  */
-uint8_t listen(SOCKET s)
+uint8_t listen(socket_t s)
 {
   if (W5100.readSnSR(s) != SnSR::INIT)
     return 0;
@@ -61,7 +63,7 @@ uint8_t listen(SOCKET s)
  * 		
  * @return	1 for success else 0.
  */
-uint8_t connect(SOCKET s, uint8_t * addr, uint16_t port)
+uint8_t connect(socket_t s, uint8_t * addr, uint16_t port)
 {
   if 
     (
@@ -85,7 +87,7 @@ uint8_t connect(SOCKET s, uint8_t * addr, uint16_t port)
  * @brief	This function used for disconnect the socket and parameter is "s" which represent the socket number
  * @return	1 for success else 0.
  */
-void disconnect(SOCKET s)
+void disconnect(socket_t s)
 {
   W5100.execCmdSn(s, Sock_DISCON);
 }
@@ -95,14 +97,14 @@ void disconnect(SOCKET s)
  * @brief	This function used to send the data in TCP mode
  * @return	1 for success else 0.
  */
-uint16_t send(SOCKET s, const uint8_t * buf, uint16_t len)
+uint16_t send(socket_t s, const uint8_t * buf, uint16_t len)
 {
   uint8_t status;//=0;
   uint16_t ret=0;
   uint16_t freesize=0;
 
-  if (len > W5100.SSIZE) 
-    ret = W5100.SSIZE; // check size not to exceed MAX size.
+  if (len > W5100.socketSize) 
+    ret = W5100.socketSize; // check size not to exceed MAX size.
   else 
     ret = len;
 
@@ -145,7 +147,7 @@ uint16_t send(SOCKET s, const uint8_t * buf, uint16_t len)
  * 		
  * @return	received data size for success else -1.
  */
-int16_t recv(SOCKET s, uint8_t *buf, int16_t len)
+int16_t recv(socket_t s, uint8_t *buf, int16_t len)
 {
   // Check how much data is available
   int16_t ret = W5100.getRXReceivedSize(s);
@@ -183,7 +185,7 @@ int16_t recv(SOCKET s, uint8_t *buf, int16_t len)
  * 		
  * @return
  */
-uint16_t peek(SOCKET s, uint8_t *buf)
+uint16_t peek(socket_t s, uint8_t *buf)
 {
   W5100.recv_data_processing(s, buf, 1, 1);
 
@@ -197,11 +199,11 @@ uint16_t peek(SOCKET s, uint8_t *buf)
  * 		
  * @return	This function return send data size for success else -1.
  */
-uint16_t sendto(SOCKET s, const uint8_t *buf, uint16_t len, uint8_t *addr, uint16_t port)
+uint16_t sendto(socket_t s, const uint8_t *buf, uint16_t len, uint8_t *addr, uint16_t port)
 {
   uint16_t ret=0;
 
-  if (len > W5100.SSIZE) ret = W5100.SSIZE; // check size not to exceed MAX size.
+  if (len > W5100.socketSize) ret = W5100.socketSize; // check size not to exceed MAX size.
   else ret = len;
 
   if
@@ -246,7 +248,7 @@ uint16_t sendto(SOCKET s, const uint8_t *buf, uint16_t len, uint8_t *addr, uint1
  * 	
  * @return	This function return received data size for success else -1.
  */
-uint16_t recvfrom(SOCKET s, uint8_t *buf, uint16_t len, uint8_t *addr, uint16_t *port)
+uint16_t recvfrom(socket_t s, uint8_t *buf, uint16_t len, uint8_t *addr, uint16_t *port)
 {
   uint8_t head[8];
   uint16_t data_len=0;
@@ -315,18 +317,22 @@ uint16_t recvfrom(SOCKET s, uint8_t *buf, uint16_t len, uint8_t *addr, uint16_t 
 /**
  * @brief	Wait for buffered transmission to complete.
  */
-void flush(SOCKET s) {
+
+
+void flush(socket_t _socket) {
+  __SUPPRESS_WARNING_UNUSED(_socket);
   // TODO
 }
 
-uint16_t igmpsend(SOCKET s, const uint8_t * buf, uint16_t len)
+
+uint16_t igmpsend(socket_t s, const uint8_t * buf, uint16_t len)
 {
   //uint8_t status;
   //=0;
   uint16_t ret=0;
 
-  if (len > W5100.SSIZE) 
-    ret = W5100.SSIZE; // check size not to exceed MAX size.
+  if (len > W5100.socketSize) 
+    ret = W5100.socketSize; // check size not to exceed MAX size.
   else 
     ret = len;
 
@@ -353,7 +359,7 @@ uint16_t igmpsend(SOCKET s, const uint8_t * buf, uint16_t len)
   return ret;
 }
 
-uint16_t bufferData(SOCKET s, uint16_t offset, const uint8_t* buf, uint16_t len)
+uint16_t bufferData(socket_t s, uint16_t offset, const uint8_t* buf, uint16_t len)
 {
   uint16_t ret =0;
   if (len > W5100.getTXFreeSize(s))
@@ -368,7 +374,7 @@ uint16_t bufferData(SOCKET s, uint16_t offset, const uint8_t* buf, uint16_t len)
   return ret;
 }
 
-int startUDP(SOCKET s, uint8_t* addr, uint16_t port)
+int startUDP(socket_t s, uint8_t* addr, uint16_t port)
 {
   if
     (
@@ -386,7 +392,7 @@ int startUDP(SOCKET s, uint8_t* addr, uint16_t port)
   }
 }
 
-int sendUDP(SOCKET s)
+int sendUDP(socket_t s)
 {
   W5100.execCmdSn(s, Sock_SEND);
 		

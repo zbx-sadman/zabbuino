@@ -1,8 +1,8 @@
-// DHCP Library v0.3 - April 25, 2009
-// Author: Jordan Terrell - blog.jordanterrell.com
-
 #include "../net_platforms.h"
 #ifdef NETWORK_ETH_WIZNET
+
+// DHCP Library v0.3 - April 25, 2009
+// Author: Jordan Terrell - blog.jordanterrell.com
 
 #include "Dhcp.h"
 
@@ -326,7 +326,8 @@ uint8_t DhcpClass::parseDHCPResponse(unsigned long responseTimeout, uint32_t& tr
                 
                 case dhcpServerIdentifier :
                     opt_len = _dhcpUdpSocket.read();
-                    if( *((uint32_t*)_dhcpDhcpServerIp) == 0 || 
+                    //if( *((uint32_t*)_dhcpDhcpServerIp) == 0 || 
+                    if( ((uint32_t) IPAddress(_dhcpDhcpServerIp)) == 0x00 || 
                         IPAddress(_dhcpDhcpServerIp) == _dhcpUdpSocket.remoteIP() )
                     {
                         _dhcpUdpSocket.read(_dhcpDhcpServerIp, sizeof(_dhcpDhcpServerIp));

@@ -25,7 +25,7 @@
 #include "sys_includes.h"
 
 #include "SoftwareWire/SoftwareWire.h"
-#include "NetworkAddress.h"
+//#include "NetworkAddress.h"
 #include "network.h"
 #include "sys_commands.h"
 #include "sys_platforms.h"
@@ -90,8 +90,7 @@
 
 // some members of struct used in timer's interrupt
 volatile sysmetrics_t sysMetrics;
-
-netconfig_t netConfig;
+netconfig_t sysConfig;
 
 NetworkClass Network;
 
