@@ -14,7 +14,13 @@ void U16ToWire(uint8_t* _dst, uint16_t _value) {
   _dst[0] = ((_value >> 8) & 0xFF); 
   _dst[1] = (_value & 0xFF);
 }
-
+/*
+uint16_t _WireToU16(uint8_t* _src) {
+  uint16_t result;
+  result = ((uint16_t) _src[0] << 8) | _src[1];
+  return result;
+}
+ */
 /*****************************************************************************************************************************
 *
 *   Send one byte to writeBytesToI2C() subroutine

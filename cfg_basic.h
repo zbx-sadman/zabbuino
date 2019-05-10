@@ -23,10 +23,10 @@
                 >>> NOTE that network drivers (UIPEthernet & WIZNet libs) are integrated to Zabbuino source code <<<
 */
 
-//#define W5100_ETHERNET_SHIELD       // Arduino Ethernet Shield and Compatibles ...
+#define W5100_ETHERNET_SHIELD       // Arduino Ethernet Shield and Compatibles ...
 //#define ENC28J60_ETHERNET_SHIELD      // Microchip __ENC28J60__ network modules
 //#define W5200_ETHERNET_SHIELD       // WIZ820io, W5200 Ethernet Shield , not tested yet
-#define W5500_ETHERNET_SHIELD       // WIZ550io, ioShield series of WIZnet , tested but not satisfied with the performance on intensive traffic
+//#define W5500_ETHERNET_SHIELD       // WIZ550io, ioShield series of WIZnet , tested but not satisfied with the performance on intensive traffic
 
 /* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
                                                                  PROGRAMM FEATURES SECTION
@@ -37,6 +37,7 @@
 
 /****       New              ****/
 //#define FEATURE_MLX90614_ENABLE
+#define FEATURE_SGP30_ENABLE
 /****       Network              ****/
 /*/
   /=/      Obtain an IP-address using DHCP
@@ -233,7 +234,7 @@
   /=/       - MAX7219.Write[]
   /=/
   /*/
-#define FEATURE_MAX7219_ENABLE
+//#define FEATURE_MAX7219_ENABLE
 
 /****       UART bus       ****/
 /*/
@@ -424,10 +425,10 @@
 /*/
   /=/     View the more or less debug messages on the Serial Monitor. Choose one.
   /*/
-//#define FEATURE_DEBUG_TO_SERIAL_LOW
+#define FEATURE_DEBUG_TO_SERIAL_LOW
 //#define FEATURE_DEBUG_TO_SERIAL_MIDDLE
-#define FEATURE_DEBUG_TO_SERIAL_HIGH
-#define FEATURE_DEBUG_TO_SERIAL_DEV
+//#define FEATURE_DEBUG_TO_SERIAL_HIGH
+//#define FEATURE_DEBUG_TO_SERIAL_DEV
 
 
 

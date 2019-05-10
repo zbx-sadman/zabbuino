@@ -1729,6 +1729,21 @@ static int16_t executeCommand(NetworkClient & _netClient, char* _dst, netconfig_
           goto finish;
 #endif
 
+#ifdef FEATURE_SGP30_ENABLE
+        case CMD_SGP30_CO2E:
+          //
+          //  sgp30.co2e[sdaPin, sclPin, i2cAddress]
+          // sgp30.co2e[18, 19, 0x58]
+          rc = getSGP30Metric(SoftTWI, (I2C_NO_ADDR_SPECIFIED != i2CAddress) ? i2CAddress : SGP30_I2C_ADDRESS, SENS_READ_CO2E, false, payload);
+          goto finish;
+
+        case CMD_SGP30_TVOC:
+          //
+          //  sgp30.tvoc[sdaPin, sclPin, i2cAddress]
+          rc = getSGP30Metric(SoftTWI, (I2C_NO_ADDR_SPECIFIED != i2CAddress) ? i2CAddress : SGP30_I2C_ADDRESS, SENS_READ_TVOC, false, payload);
+          goto finish;
+#endif
+
 
 
       }  // switch (cmdIdx), I2C block

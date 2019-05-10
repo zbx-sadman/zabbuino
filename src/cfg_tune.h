@@ -49,6 +49,7 @@
     defined (FEATURE_ADPS9960_ENABLE)    || \
     defined (FEATURE_TSL2561_ENABLE)     || \
     defined (FEATURE_MLX90614_ENABLE)    || \
+    defined (FEATURE_SGP30_ENABLE)       || \
     defined (FEATURE_INA219_ENABLE)
     #define TWI_USE
 #endif

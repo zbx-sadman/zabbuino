@@ -140,6 +140,9 @@
 
 #define CMD_MLX90614_TEMPERATURE                                (0x5D)
 
+#define CMD_SGP30_CO2E                                          (0x5E)
+#define CMD_SGP30_TVOC                                          (0x5F)
+
 // add new command as "const char command_<COMMAND_MACRO> PROGMEM". Only 'const' push string to PROGMEM.
 // command_* values must be in lower case due analyze sub convert all chars to lower
 const char command_CMD_ZBX_NOPE[]                               PROGMEM = "\1";
@@ -277,6 +280,9 @@ const char command_CMD_PLANTOWER_PMS_ALL[]                      PROGMEM = "pms.a
 const char command_CMD_PLANTOWER_PMS_EPM25[]                    PROGMEM = "pms.epm25";
 
 const char command_CMD_MLX90614_TEMPERATURE[]                   PROGMEM = "mlx90614.temperature";
+
+const char command_CMD_SGP30_CO2E[]                             PROGMEM = "sgp30.co2e";
+const char command_CMD_SGP30_TVOC[]                             PROGMEM = "sgp30.tvoc";
 
 //
 const command_t PROGMEM commands[] = {
@@ -512,4 +518,8 @@ const command_t PROGMEM commands[] = {
     { CMD_MLX90614_TEMPERATURE    , command_CMD_MLX90614_TEMPERATURE},
 #endif
 
+#ifdef FEATURE_SGP30_ENABLE
+    { CMD_SGP30_CO2E    , command_CMD_SGP30_CO2E},
+    { CMD_SGP30_TVOC    , command_CMD_SGP30_TVOC},
+#endif
 };

@@ -62,6 +62,9 @@
 #define SENS_READ_PARTICLES_50_UM                               (0x2A)
 #define SENS_READ_PARTICLES_100_UM                              (0x2B)
 
+#define SENS_READ_TVOC                                          (0x30)
+#define SENS_READ_CO2E                                          (0x31)
+
 #define SENS_READ_ID                                            (0xFD)
 #define SENS_READ_ALL                                           (0xFE)
 #define SENS_READ_RAW                                           (0xFF)

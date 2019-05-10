@@ -40,6 +40,18 @@ Implemented:
 - Simulate varuious vendor's IR transmitters.
 -----------------------------
 
+#### 10 May 2019
+New features:
+  - _FEATURE\_SGP30\_ENABLE_ Sensirion SGP30 Multi-Pixel Gas Sensor support.
+  - Commands ``sgp30.co2e[sdaPin, sclPin, i2cAddress]``, ``sgp30.tvoc[sdaPin, sclPin, i2cAddress]`` is added:
+    - _sdaPin_, _sclPin_ - I2C pins to which SGP30 connected;
+    - _i2cAddress_ - I2C address of SGP30 (can be 0x58 only);
+    Example: ``sgp30.co2e[18, 19, 0x58]`` returns ÑO2eq value; ``sgp30.tvoc[18, 19, 0x58]`` returns TVOC value;
+
+    Note #1: Senserion SGP30 can be more accurate when used with humidity sensor, but this feature not supported now;
+    Note #2: Values which readed within first 15 sec will be 'defaults' due specific of the SGP30's startup procedure;
+    Note #3: More that one sensor per host connecting not recommended (will not work properly).
+
 #### 30 Apr 2019
 
 Changes:
