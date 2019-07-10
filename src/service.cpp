@@ -344,11 +344,9 @@ void printArray(uint8_t *_src, const uint8_t _len, Stream* _stream, const uint8_
 
     _stream->print(_src[pos], format);
     ++pos;
-    if (pos < _len) { _stream->print(separator); 
-
-}
+    if (pos < _len) { _stream->print(separator); }
   }
-  _stream->println();
+ _stream->print('\n');
 }
 
 void blinkMore(const uint8_t _times, const uint16_t _onTime, const uint16_t _offTime) 
