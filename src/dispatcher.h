@@ -57,6 +57,8 @@
 #include "i2c_adps9960.h"
 #include "i2c_mlx90614.h"
 #include "i2c_sgp30.h"
+#include "i2c_t67xx.h"
+
 
 // 1-Wire devices 
 #include "ow_bus.h"
@@ -69,6 +71,8 @@
 #include "uart_player.h"
 #include "uart_pzem.h"
 #include "uart_plantower.h"
+#include "uart_novafitness.h"
+#include "uart_ze08_ch02.h"
 
 
 // SPI-compatible devices 
@@ -84,6 +88,7 @@
 #include "shiftout.h"
 #include "microwire_bus.h"
 #include "actuators.h"
+#include "modbus.h"
 
 /*-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
                                                    GLOBAL VARIABLES SECTION
@@ -93,7 +98,7 @@
 volatile sysmetrics_t sysMetrics;
 netconfig_t sysConfig;
 
-NetworkClass Network;
+//NetworkClass Network;
 
 #ifdef TWI_USE
 SoftwareWire SoftTWI(constDefaultSDAPin, constDefaultSCLPin);

@@ -1,5 +1,5 @@
 #include "../net_platforms.h"
-#ifdef NETWORK_ETH_WIZNET
+#ifdef NETWORK_ETHERNET_WIZNET
 
 #include "EthernetClient.h"
 
@@ -175,4 +175,4 @@ uint16_t EthernetClient::remotePort() {
   return W5100.readSnDPORT(_sock);
 }
 
-#endif // NETWORK_ETH_WIZNET
+#endif // NETWORK_ETHERNET_WIZNET

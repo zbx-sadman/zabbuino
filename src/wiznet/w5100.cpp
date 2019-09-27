@@ -1,7 +1,5 @@
 #include "../net_platforms.h"
-#ifdef NETWORK_ETH_WIZNET
-
-
+#ifdef NETWORK_ETHERNET_WIZNET
 
 /*
  * Copyright (c) 2010 by Cristian Maglie <c.maglie@bug.st>
@@ -37,13 +35,13 @@ uint8_t W5100Class::init(void) {
   if (!softReset() || !hardwareStatus()) { goto finish; }
  
 // !!!!
-#if defined(W5100_ETHERNET_SHIELD)
+#if defined(NETWORK_ETHERNET_W5100)
   writeTMSR(WIZNET_SOCKET_MEM_SIZE_REG_VALUE);
   writeRMSR(WIZNET_SOCKET_MEM_SIZE_REG_VALUE);
   rc = true;
 
 // !!!!
-#elif defined(W5500_ETHERNET_SHIELD)
+#elif defined(NETWORK_ETHERNET_W5500)
   for (uint8_t i = 0x00; i < WIZNET_SOCKETS_ONBOARD; i++) {
        // Configure used sockets...
        if (i < maxSocketNumber) {
@@ -60,14 +58,13 @@ uint8_t W5100Class::init(void) {
 // !!!!
 
 finish:
-//  Serial.print("PHY Init: ");Serial.println(rc);
   return rc;
 
 }
 
 uint8_t W5100Class::hardwareStatus() {
   uint8_t rc = 0x00;
-#if defined(W5100_ETHERNET_SHIELD)
+#if defined(NETWORK_ETHERNET_W5100)
   // Store Mode Register
   uint8_t oldMR = readMR();  
   // toggle 0x10 (ping block)
@@ -78,7 +75,7 @@ uint8_t W5100Class::hardwareStatus() {
   if (readMR() == testMR) { rc = 51; }
   // Restore Mode Register
   writeMR(oldMR);
-#elif defined(W5500_ETHERNET_SHIELD)
+#elif defined(NETWORK_ETHERNET_W5500)
   // VERSIONR always indicates the W5500 version as 0x04.
   if (0x04 == readVERSIONR()) { rc = 55; }
 #endif
@@ -88,9 +85,9 @@ uint8_t W5100Class::hardwareStatus() {
 uint8_t W5100Class::linkStatus() {
   uint8_t rc = 0x00;
 /*
-#if defined(W5100_ETHERNET_SHIELD)
+#if defined(NETWORK_ETHERNET_W5100)
   if (WIZNET_SOCKET_MEM_SIZE_REG_VALUE == readTMSR()) { rc = 51; }
-#elif defined(W5500_ETHERNET_SHIELD)
+#elif defined(NETWORK_ETHERNET_W5500)
   // VERSIONR always indicates the W5500 version as 0x04.
   if (0x04 == readVERSIONR()) { rc = 55; }
 #endif
@@ -107,7 +104,6 @@ uint8_t W5100Class::softReset(void) {
    // then wait for soft reset to complete
    do {
       	uint8_t mr = readMR();
-      	//Serial.print("mr="); Serial.println(mr, HEX);
    	if (mr == 0x00) { return true; }
    	delay(1);
    } while (++count < 20);
@@ -147,7 +143,7 @@ void W5100Class::send_data_processing(socket_t s, const uint8_t *data, uint16_t 
 void W5100Class::send_data_processing_offset(socket_t s, uint16_t data_offset, const uint8_t *data, uint16_t len)
 {
 // !!!!
-#if defined(W5100_ETHERNET_SHIELD)
+#if defined(NETWORK_ETHERNET_W5100)
 
   uint16_t ptr = readSnTX_WR(s);
   ptr += data_offset;
@@ -166,7 +162,7 @@ void W5100Class::send_data_processing_offset(socket_t s, uint16_t data_offset, c
   writeSnTX_WR(s, ptr);
 
 // !!!!
-#elif defined(W5500_ETHERNET_SHIELD)
+#elif defined(NETWORK_ETHERNET_W5500)
 
     uint16_t ptr = readSnTX_WR(s);
     uint8_t cntl_byte = (0x14 + (s << 0x05) );
@@ -195,12 +191,11 @@ void W5100Class::recv_data_processing(socket_t s, uint8_t* data, uint16_t len, u
 //void W5100Class::read_data(socket_t s, volatile uint16_t src, volatile uint8_t *dst, uint16_t len)
 void W5100Class::read_data(socket_t s, uint16_t src, uint8_t* dst, uint16_t len) {
 // !!!!
-#if defined(W5100_ETHERNET_SHIELD)
+#if defined(NETWORK_ETHERNET_W5100)
   uint16_t size;
   uint16_t src_mask;
   uint16_t src_ptr;
   
-  //Serial.printf("read_data, len=%d, at:%d\n", len, src);
   src_mask = (uint16_t)src & socketMask;
   src_ptr = getSocketRxBaseAddr(s) + src_mask;
   
@@ -213,7 +208,7 @@ void W5100Class::read_data(socket_t s, uint16_t src, uint8_t* dst, uint16_t len)
      read(getSocketRxBaseAddr(s), dst, len - size);
   }
 // !!!!
-#elif defined(W5500_ETHERNET_SHIELD)
+#elif defined(NETWORK_ETHERNET_W5500)
     uint8_t cntl_byte = (0x18 + (s << 0x05));
     read((uint16_t)src , cntl_byte, (uint8_t*) dst, len);
 #endif
@@ -223,7 +218,7 @@ void W5100Class::read_data(socket_t s, uint16_t src, uint8_t* dst, uint16_t len)
 
 
 // !!!!
-#if defined(W5100_ETHERNET_SHIELD)
+#if defined(NETWORK_ETHERNET_W5100)
 uint8_t W5100Class::write(uint16_t _addr, uint8_t _data) {
   setSS();  
   SPI.transfer(0xF0);
@@ -235,7 +230,7 @@ uint8_t W5100Class::write(uint16_t _addr, uint8_t _data) {
   return 1;
 }
 // !!!!
-#elif defined(W5500_ETHERNET_SHIELD)
+#elif defined(NETWORK_ETHERNET_W5500)
 
 uint8_t W5100Class::write(uint16_t _addr, uint8_t _controlByte, uint8_t _data) {
     setSS();  
@@ -252,7 +247,7 @@ uint8_t W5100Class::write(uint16_t _addr, uint8_t _controlByte, uint8_t _data) {
 
 
 // !!!!
-#if defined(W5100_ETHERNET_SHIELD)
+#if defined(NETWORK_ETHERNET_W5100)
 uint16_t W5100Class::write(uint16_t _addr, const uint8_t* _buf, uint16_t _len) {
   for (uint16_t i = 0x00; i < _len; i++)
   {
@@ -267,7 +262,7 @@ uint16_t W5100Class::write(uint16_t _addr, const uint8_t* _buf, uint16_t _len) {
   return _len;
 }
 // !!!!
-#elif defined(W5500_ETHERNET_SHIELD)
+#elif defined(NETWORK_ETHERNET_W5500)
 uint16_t W5100Class::write(uint16_t _addr, uint8_t _controlByte, const uint8_t* _buf, uint16_t _len)
 {
     setSS();
@@ -285,7 +280,7 @@ uint16_t W5100Class::write(uint16_t _addr, uint8_t _controlByte, const uint8_t* 
 
 
 // !!!!
-#if defined(W5100_ETHERNET_SHIELD)
+#if defined(NETWORK_ETHERNET_W5100)
 uint8_t W5100Class::read(uint16_t _addr)
 {
   setSS();  
@@ -297,7 +292,7 @@ uint8_t W5100Class::read(uint16_t _addr)
   return _data;
 }
 // !!!!
-#elif defined(W5500_ETHERNET_SHIELD)
+#elif defined(NETWORK_ETHERNET_W5500)
 uint8_t W5100Class::read(uint16_t _addr, uint8_t _controlByte)
 {
     setSS();
@@ -313,7 +308,7 @@ uint8_t W5100Class::read(uint16_t _addr, uint8_t _controlByte)
 
 
 // !!!!
-#if defined(W5100_ETHERNET_SHIELD)
+#if defined(NETWORK_ETHERNET_W5100)
 uint16_t W5100Class::read(uint16_t _addr, uint8_t *_buf, uint16_t _len)
 {
   for (uint16_t i=0; i<_len; i++)
@@ -329,7 +324,7 @@ uint16_t W5100Class::read(uint16_t _addr, uint8_t *_buf, uint16_t _len)
   return _len;
 }
 // !!!!
-#elif defined(W5500_ETHERNET_SHIELD)
+#elif defined(NETWORK_ETHERNET_W5500)
 
 uint16_t W5100Class::read(uint16_t _addr, uint8_t _controlByte, uint8_t *_buf, uint16_t _len)
 { 
@@ -358,4 +353,4 @@ void W5100Class::execCmdSn(socket_t s, SockCMD _cmd) {
 
 
 
-#endif // NETWORK_ETH_WIZNET
+#endif // NETWORK_ETHERNET_WIZNET

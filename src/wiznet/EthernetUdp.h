@@ -1,5 +1,5 @@
 #include "../net_platforms.h"
-#ifdef NETWORK_ETH_WIZNET
+#ifdef NETWORK_ETHERNET_WIZNET
 
 #pragma once
 
@@ -101,4 +101,4 @@ public:
   virtual uint16_t remotePort() { return _remotePort; };
 };
 
-#endif // NETWORK_ETH_WIZNET
+#endif // NETWORK_ETHERNET_WIZNET

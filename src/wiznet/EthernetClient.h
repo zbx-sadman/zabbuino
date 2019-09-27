@@ -1,5 +1,5 @@
 #include "../net_platforms.h"
-#ifdef NETWORK_ETH_WIZNET
+#ifdef NETWORK_ETHERNET_WIZNET
 
 #pragma once
 
@@ -54,4 +54,4 @@ private:
   uint8_t _sock;
 };
 
-#endif // NETWORK_ETH_WIZNET
+#endif // NETWORK_ETHERNET_WIZNET

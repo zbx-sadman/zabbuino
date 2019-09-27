@@ -1,5 +1,5 @@
 #include "../net_platforms.h"
-#ifdef NETWORK_ETH_WIZNET
+#ifdef NETWORK_ETHERNET_WIZNET
 
 // Arduino DNS client for WizNet5100-based Ethernet shield
 // (c) Copyright 2009-2010 MCQN Ltd.
@@ -429,4 +429,4 @@ uint16_t DNSClient::ProcessResponse(uint16_t aTimeout, IPAddress& aAddress)
     return -10;//INVALID_RESPONSE;
 }
 
-#endif // NETWORK_ETH_WIZNET
+#endif // NETWORK_ETHERNET_WIZNET

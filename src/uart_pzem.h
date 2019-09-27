@@ -19,12 +19,16 @@ version 1.0 is used
 
 /*****************************************************************************************************************************
 *
-*   Read values of the specified metric from the Peacefair PZEM-004 Energy Meter, put it to output buffer on success. 
+*  Read values of the specified metric from the Peacefair PZEM-004 Energy Meter, put it to output buffer on success. 
 *
-*   Returns: 
-*     - RESULT_IS_BUFFERED on success
-*     - DEVICE_ERROR_TIMEOUT if device stop talking
+*  Returns: 
+*    - RESULT_IS_UNSIGNED_VALUE    on success when POWER/ENERGY metric specified
+*    - RESULT_IS_FLOAT_02_DIGIT    on success when CURRENT(AC) metric specified
+*    - RESULT_IS_FLOAT_01_DIGIT    on success when VOLTAGE metric specified
+*    - DEVICE_ERROR_NOT_SUPPORTED  on wrong params specified
+*    - DEVICE_ERROR_TIMEOUT        on sensor stops answer to the request
+*    - DEVICE_ERROR_WRONG_ANSWER   on "error" answer
+*    - DEVICE_ERROR_CHECKSUM       on bad checksum recieved
 *
 *****************************************************************************************************************************/
-int8_t getPZEM004Metric(const uint8_t, const uint8_t, uint8_t, const char*, uint8_t*);
-
+int8_t getPZEM004Metric(const uint8_t, const uint8_t, const char*, uint8_t, int32_t*);

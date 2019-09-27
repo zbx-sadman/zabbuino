@@ -22,7 +22,7 @@ int8_t AT24CXXWrite(SoftwareWire* _softTWI, const uint8_t _i2cAddress, uint16_t 
     value[2]=*_src;
     if (sizeof(value) != writeBytesToI2C(_softTWI, _i2cAddress, I2C_NO_REG_SPECIFIED, value, sizeof(value))) { goto finish; } 
     delay(5); // t write is 5ms max
-//    Serial.print("Written: "); Serial.println(value[2], HEX);
+//    DEBUG_PORT.print("Written: "); DEBUG_PORT.println(value[2], HEX);
     _cellAddress++;
     _src++;
     _lenght--;

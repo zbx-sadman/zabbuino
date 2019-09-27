@@ -59,7 +59,7 @@
  * $Id: timer.h,v 1.3 2006/06/11 21:46:39 adam Exp $
  */
 #include "../net_platforms.h"
-#ifdef NETWORK_ETH_ENC28J60
+#ifdef NETWORK_ETHERNET_ENC28J60
 
 #ifndef _UIP_UIP_TIMER_H_
 #define _UIP_UIP_TIMER_H_
@@ -85,4 +85,4 @@ void uip_timer_restart(struct uip_timer *t);
 int uip_timer_expired(struct uip_timer *t);
 
 #endif // _UIP_UIP_TIMER_H_
-#endif // NETWORK_ETH_ENC28J60
+#endif // NETWORK_ETHERNET_ENC28J60

@@ -10,7 +10,7 @@
 #include "interrupts.h"
 
 // EXTERNAL_NUM_INTERRUPTS its a macro from <wiring_private.h>
-volatile extInterrupt_t extInterrupt[EXTERNAL_NUM_INTERRUPTS];
+volatile static extInterrupt_t extInterrupt[EXTERNAL_NUM_INTERRUPTS];
 
 
 /*-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
@@ -41,28 +41,28 @@ void initExtInt() {
  // EXTERNAL_NUM_INTERRUPTS its a macro from <wiring_private.h>
 #ifdef FEATURE_EXTERNAL_INTERRUPT_ENABLE
 
-#if (EXTERNAL_NUM_INTERRUPTS > 7)
+#if (EXTERNAL_NUM_INTERRUPTS > 0x07)
    HANDLE_INT_N_FOR_EXTINT(INT7)
 #endif
-#if (EXTERNAL_NUM_INTERRUPTS > 6)
+#if (EXTERNAL_NUM_INTERRUPTS > 0x06)
    HANDLE_INT_N_FOR_EXTINT(INT6)
 #endif
-#if (EXTERNAL_NUM_INTERRUPTS > 5)
+#if (EXTERNAL_NUM_INTERRUPTS > 0x05)
    HANDLE_INT_N_FOR_EXTINT(INT5)
 #endif
-#if (EXTERNAL_NUM_INTERRUPTS > 4)
+#if (EXTERNAL_NUM_INTERRUPTS > 0x04)
    HANDLE_INT_N_FOR_EXTINT(INT4)
 #endif
-#if (EXTERNAL_NUM_INTERRUPTS > 3)
+#if (EXTERNAL_NUM_INTERRUPTS > 0x03)
    HANDLE_INT_N_FOR_EXTINT(INT3)
 #endif
-#if (EXTERNAL_NUM_INTERRUPTS > 2)
+#if (EXTERNAL_NUM_INTERRUPTS > 0x02)
    HANDLE_INT_N_FOR_EXTINT(INT2)
 #endif
-#if (EXTERNAL_NUM_INTERRUPTS > 1)
+#if (EXTERNAL_NUM_INTERRUPTS > 0x01)
    HANDLE_INT_N_FOR_EXTINT(INT1)
 #endif
-#if (EXTERNAL_NUM_INTERRUPTS > 0)
+#if (EXTERNAL_NUM_INTERRUPTS > 0x00)
    HANDLE_INT_N_FOR_EXTINT(INT0)
 #endif
 
@@ -78,17 +78,15 @@ void initExtInt() {
 *
 *****************************************************************************************************************************/
 // This function make more that just return counter...
-int8_t manageExtInt(uint32_t *_dst, uint8_t _pin, uint8_t _mode) {
+int8_t manageExtInt(const uint8_t _pin, const uint8_t _mode, uint32_t* _value) {
    int8_t rc = RESULT_IS_FAIL;
 //   int8_t rc = 32;
    // This condition placed here to avoid using defaut case (EXTERNAL_NUM_INTERRUPTS <= 0) in switch(interruptNumber) due its very strange but 
    // theoretically possible situation 
-#if (EXTERNAL_NUM_INTERRUPTS > 0)
-//   extern volatile extInterrupt_t extInterrupt[];
-//   extern extInterrupt_t *extInterrupt;
-   // int32_t result;
+#if (EXTERNAL_NUM_INTERRUPTS > 0x00)
+
    voidFuncPtr interruptHandler;
-   int8_t interruptNumber=digitalPinToInterrupt(_pin);
+   int8_t interruptNumber = digitalPinToInterrupt(_pin);
    // NOT_AN_INTERRUPT == -1 - it's macro from Arduino.h
    // Interrupt number and mode is correct? If not - just jump to the end, because rc already init with RESULT_IS_FAIL value
    if ((NOT_AN_INTERRUPT == interruptNumber) || (EXTERNAL_NUM_INTERRUPTS < interruptNumber) || (RISING < _mode)) { goto finish; }
@@ -111,46 +109,44 @@ int8_t manageExtInt(uint32_t *_dst, uint8_t _pin, uint8_t _mode) {
       // No ATOMIC_BLOCK(ATOMIC_RESTORESTATE{} used here due interrupt must be previosly detached
       // ...but if new mode is RISING and pin have HIGH state when attachInterrupt() will be called - counter will be increased immediately.
       // May be better init counter after attachInterrupt() to get 0 on any state of _pin?
-      extInterrupt[interruptNumber].value = 0;
+      extInterrupt[interruptNumber].value = 0x00;
 
       switch (interruptNumber) {
 // This code taken from WInterrupts.c and modifed
-#if (EXTERNAL_NUM_INTERRUPTS > 8)
+#if (EXTERNAL_NUM_INTERRUPTS > 0x08)
     #warning There are more than 8 external interrupts. Some callbacks may not be initialized.
 #endif
-#if (EXTERNAL_NUM_INTERRUPTS > 7)
+#if (EXTERNAL_NUM_INTERRUPTS > 0x07)
         CASE_INT_N_FOR_EXTINT(INT7)
 #endif
-#if (EXTERNAL_NUM_INTERRUPTS > 6)
+#if (EXTERNAL_NUM_INTERRUPTS > 0x06)
         CASE_INT_N_FOR_EXTINT(INT6)
 #endif
-#if (EXTERNAL_NUM_INTERRUPTS > 5)
+#if (EXTERNAL_NUM_INTERRUPTS > 0x05)
         CASE_INT_N_FOR_EXTINT(INT5)
 #endif
-#if (EXTERNAL_NUM_INTERRUPTS > 4)
+#if (EXTERNAL_NUM_INTERRUPTS > 0x04)
         CASE_INT_N_FOR_EXTINT(INT4)
 #endif
-#if (EXTERNAL_NUM_INTERRUPTS > 3)
+#if (EXTERNAL_NUM_INTERRUPTS > 0x03)
         CASE_INT_N_FOR_EXTINT(INT3)
 #endif
-#if (EXTERNAL_NUM_INTERRUPTS > 2)
+#if (EXTERNAL_NUM_INTERRUPTS > 0x02)
         CASE_INT_N_FOR_EXTINT(INT2)
 #endif
-#if (EXTERNAL_NUM_INTERRUPTS > 1)
+#if (EXTERNAL_NUM_INTERRUPTS > 0x01)
         CASE_INT_N_FOR_EXTINT(INT1)
 #endif
-#if (EXTERNAL_NUM_INTERRUPTS > 0)
+#if (EXTERNAL_NUM_INTERRUPTS > 0x00)
         CASE_INT_N_FOR_EXTINT(INT0)
 #endif
       }  // switch (interruptNumber)
 
-      // Need to do checking NOT_AN_INTERRUPT == _mode and notattach if true?
+      // Need to do checking NOT_AN_INTERRUPT == _mode and not attach if true?
       attachInterrupt(interruptNumber, interruptHandler, _mode);
-      // No ATOMIC_BLOCK(ATOMIC_RESTORESTATE{} used here due interrupt must be previosly detached
-      // ATOMIC_BLOCK(ATOMIC_RESTORESTATE) { extInterrupt[interruptNumber].value = 0; }
    }
 
-   ATOMIC_BLOCK(ATOMIC_RESTORESTATE) { *_dst = (uint32_t) extInterrupt[interruptNumber].value; }
+   ATOMIC_BLOCK(ATOMIC_RESTORESTATE) { *_value = (uint32_t) extInterrupt[interruptNumber].value; }
 
    rc = RESULT_IS_UNSIGNED_VALUE;
           
@@ -173,28 +169,28 @@ int8_t manageExtInt(uint32_t *_dst, uint8_t _pin, uint8_t _mode) {
 
 #ifdef FEATURE_INCREMENTAL_ENCODER_ENABLE
 
-#if (EXTERNAL_NUM_INTERRUPTS > 7)
+#if (EXTERNAL_NUM_INTERRUPTS > 0x07)
    HANDLE_INT_N_FOR_INCENC(INT7)
 #endif
-#if (EXTERNAL_NUM_INTERRUPTS > 6)
+#if (EXTERNAL_NUM_INTERRUPTS > 0x06)
    HANDLE_INT_N_FOR_INCENC(INT6)
 #endif
-#if (EXTERNAL_NUM_INTERRUPTS > 5)
+#if (EXTERNAL_NUM_INTERRUPTS > 0x05)
    HANDLE_INT_N_FOR_INCENC(INT5)
 #endif
-#if (EXTERNAL_NUM_INTERRUPTS > 4)
+#if (EXTERNAL_NUM_INTERRUPTS > 0x04)
    HANDLE_INT_N_FOR_INCENC(INT4)
 #endif
-#if (EXTERNAL_NUM_INTERRUPTS > 3)
+#if (EXTERNAL_NUM_INTERRUPTS > 0x03)
    HANDLE_INT_N_FOR_INCENC(INT3)
 #endif
-#if (EXTERNAL_NUM_INTERRUPTS > 2)
+#if (EXTERNAL_NUM_INTERRUPTS > 0x02)
    HANDLE_INT_N_FOR_INCENC(INT2)
 #endif
-#if (EXTERNAL_NUM_INTERRUPTS > 1)
+#if (EXTERNAL_NUM_INTERRUPTS > 0x01)
    HANDLE_INT_N_FOR_INCENC(INT1)
 #endif
-#if (EXTERNAL_NUM_INTERRUPTS > 0)
+#if (EXTERNAL_NUM_INTERRUPTS > 0x00)
    HANDLE_INT_N_FOR_INCENC(INT0)
 #endif
 
@@ -213,7 +209,7 @@ int8_t manageIncEnc(int32_t* _dst, uint8_t const _terminalAPin, uint8_t const _t
 
    // This condition placed here to avoid using defaut case (EXTERNAL_NUM_INTERRUPTS <= 0) in switch(interruptNumber) due its very strange but 
    // theoretically possible situation 
-#if (EXTERNAL_NUM_INTERRUPTS > 0)
+#if (EXTERNAL_NUM_INTERRUPTS > 0x00)
    //extern volatile extInterrupt_t extInterrupt[];
 //   extern extInterrupt_t *extInterrupt;
    voidFuncPtr interruptHandler;
@@ -242,31 +238,31 @@ int8_t manageIncEnc(int32_t* _dst, uint8_t const _terminalAPin, uint8_t const _t
       extInterrupt[interruptNumber].value = _initialValue;
 
       switch (interruptNumber) {
-#if (EXTERNAL_NUM_INTERRUPTS > 8)
+#if (EXTERNAL_NUM_INTERRUPTS > 0x08)
     #warning There are more than 8 external interrupts. Some callbacks may not be initialized.
 #endif
-#if (EXTERNAL_NUM_INTERRUPTS > 7)
+#if (EXTERNAL_NUM_INTERRUPTS > 0x07)
         CASE_INT_N_FOR_INCENC(INT7)
 #endif
-#if (EXTERNAL_NUM_INTERRUPTS > 6)
+#if (EXTERNAL_NUM_INTERRUPTS > 0x06)
         CASE_INT_N_FOR_INCENC(INT6)
 #endif
-#if (EXTERNAL_NUM_INTERRUPTS > 5)
+#if (EXTERNAL_NUM_INTERRUPTS > 0x05)
         CASE_INT_N_FOR_INCENC(INT5)
 #endif
-#if (EXTERNAL_NUM_INTERRUPTS > 4)
+#if (EXTERNAL_NUM_INTERRUPTS > 0x04)
         CASE_INT_N_FOR_INCENC(INT4)
 #endif
-#if (EXTERNAL_NUM_INTERRUPTS > 3)
+#if (EXTERNAL_NUM_INTERRUPTS > 0x03)
         CASE_INT_N_FOR_INCENC(INT3)
 #endif
-#if (EXTERNAL_NUM_INTERRUPTS > 2)
+#if (EXTERNAL_NUM_INTERRUPTS > 0x02)
         CASE_INT_N_FOR_INCENC(INT2)
 #endif
-#if (EXTERNAL_NUM_INTERRUPTS > 1)
+#if (EXTERNAL_NUM_INTERRUPTS > 0x01)
         CASE_INT_N_FOR_INCENC(INT1)
 #endif
-#if (EXTERNAL_NUM_INTERRUPTS > 0)
+#if (EXTERNAL_NUM_INTERRUPTS > 0x00)
         CASE_INT_N_FOR_INCENC(INT0)
 #endif
         }  // switch (interruptNumber)

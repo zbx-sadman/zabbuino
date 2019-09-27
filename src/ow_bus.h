@@ -1,5 +1,7 @@
 #pragma once
 
+#define ONEWIRE_ID_SIZE                                         (0x08)
+
 /*****************************************************************************************************************************
 *
 *   Scan 1-Wire bus and print to ethernet client ID's (Addresses) of all detected devices

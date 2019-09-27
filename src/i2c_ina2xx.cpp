@@ -10,25 +10,6 @@
 
 /*****************************************************************************************************************************
 *
-*   Overloads of main subroutine. Used to get numeric metric's value or it's char presentation only
-*
-*****************************************************************************************************************************/
-int8_t getINA219Metric(SoftwareWire* _softTWI, const uint8_t _i2cAddress, uint8_t _voltageRange, uint16_t _maxExpectedCurrent, const uint8_t _metric, uint32_t* _value)
-{
-  char stubBuffer;
-  return getINA219Metric(_softTWI, _i2cAddress, _voltageRange, _maxExpectedCurrent, _metric, &stubBuffer, _value, true);
-
-}
-
-int8_t getINA219Metric(SoftwareWire* _softTWI, const uint8_t _i2cAddress, uint8_t _voltageRange, uint16_t _maxExpectedCurrent, const uint8_t _metric, char* _dst)
-{
-  uint32_t stubValue = 0x00;
-  return getINA219Metric(_softTWI, _i2cAddress, _voltageRange, _maxExpectedCurrent, _metric, _dst, &stubValue, false);
-}
-
-
-/*****************************************************************************************************************************
-*
 *   Read specified metric's value of the INA219 sensor, put it to output buffer on success. 
 *
 *   Returns: 
@@ -37,14 +18,16 @@ int8_t getINA219Metric(SoftwareWire* _softTWI, const uint8_t _i2cAddress, uint8_
 *     - RESULT_IS_FAIL - on other fails
 *
 *****************************************************************************************************************************/
-int8_t getINA219Metric(SoftwareWire* _softTWI, const uint8_t _i2cAddress, uint8_t _voltageRange, uint16_t _maxExpectedCurrent, const uint8_t _metric, char* _dst, uint32_t* _value, const uint8_t _wantsNumber)
-{
+int8_t getINA219Metric(SoftwareWire* _softTWI, uint8_t _i2cAddress, const uint8_t _voltageRange, const uint16_t _maxExpectedCurrent, const uint8_t _metric, uint32_t& _value) {
   int8_t rc = RESULT_IS_FAIL;
-  uint16_t result, calValue, configValue;
-  uint8_t value[2];
+  uint8_t rawData[0x02];
   uint8_t i2cReg, currentDivider_mA, powerDivider_mW;     
+  uint16_t result, calValue, configValue;
+  uint32_t startConversionTime;
 
   if (!isI2CDeviceReady(_softTWI, _i2cAddress)) { rc = DEVICE_ERROR_CONNECT; goto finish; }
+
+  if (!_i2cAddress) { _i2cAddress = INA219_I2C_ADDRESS; }
 
 /*
     Configuration Register (address = 00h) [on reset = 399Fh / B0011100110011111]
@@ -89,7 +72,7 @@ int8_t getINA219Metric(SoftwareWire* _softTWI, const uint8_t _i2cAddress, uint8_
     case 16: //16V 
       switch (_maxExpectedCurrent) {
         // 16V, 400mA
-        case 400:                    
+        case 400: {
           calValue = 8192;
           currentDivider_mA = 20;
           powerDivider_mW = 1;
@@ -99,8 +82,9 @@ int8_t getINA219Metric(SoftwareWire* _softTWI, const uint8_t _i2cAddress, uint8_
                         INA219_CONFIG_SADCRES_12BIT_1S_532US |
                         INA219_CONFIG_MODE_SANDBVOLT_CONTINUOUS; 
           break;
+        }
         // 16V, 1000mA
-        case 1000:                   
+        case 1000: {
           calValue = 8192;
           currentDivider_mA = 20;  
           powerDivider_mW = 1;     
@@ -109,12 +93,13 @@ int8_t getINA219Metric(SoftwareWire* _softTWI, const uint8_t _i2cAddress, uint8_
                         INA219_CONFIG_BADCRES_12BIT |
                         INA219_CONFIG_SADCRES_12BIT_1S_532US |
                         INA219_CONFIG_MODE_SANDBVOLT_CONTINUOUS; 
-
+          break;
+        }
         // 16V, 2A
         case 2000:                 
         // 16V, 3A
         case 3000:                 
-        default:                   
+        default: {
           calValue = 4096;
           currentDivider_mA = 10;  
           powerDivider_mW = 2;     
@@ -125,12 +110,13 @@ int8_t getINA219Metric(SoftwareWire* _softTWI, const uint8_t _i2cAddress, uint8_
                         INA219_CONFIG_MODE_SANDBVOLT_CONTINUOUS; 
       }
       break;
-  
+    } // switch (_maxExpectedCurrent)
+
     case 32: // 32V 
     default: 
       switch (_maxExpectedCurrent) {
         // 32V, 1A
-        case 1000:                 
+        case 1000: {
           calValue = 8192;
 //          calValue = 10240;
           currentDivider_mA = 20; // Current LSB = 50uA per bit (1000/50 = 20)     
@@ -142,11 +128,12 @@ int8_t getINA219Metric(SoftwareWire* _softTWI, const uint8_t _i2cAddress, uint8_
                         INA219_CONFIG_SADCRES_12BIT_1S_532US |
                         INA219_CONFIG_MODE_SANDBVOLT_CONTINUOUS; 
           break;
+        }
         // 32V, 2A
         case 2000:                 
         // 32V, 3A
         case 3000:
-        default:                  
+        default: {
           calValue = 4096;
           currentDivider_mA = 10;  // Current LSB = 100uA per bit (1000/100 = 10)
           powerDivider_mW = 2;     // Power LSB = 1mW per bit (2/1)
@@ -155,24 +142,28 @@ int8_t getINA219Metric(SoftwareWire* _softTWI, const uint8_t _i2cAddress, uint8_
                         INA219_CONFIG_BADCRES_12BIT |
                         INA219_CONFIG_SADCRES_12BIT_1S_532US |
                         INA219_CONFIG_MODE_SANDBVOLT_CONTINUOUS;
-      }
+        }
+      } // switch (_maxExpectedCurrent)
 
       break;
    }
 
 
-  U16ToWire(value, configValue);
-  if (0x02 != writeBytesToI2C(_softTWI, _i2cAddress, INA219_REG_CONFIGURATION, value, 0x02)) { goto finish; }
+  U16ToWire(rawData, configValue);
+  if (0x02 != writeBytesToI2C(_softTWI, _i2cAddress, INA219_REG_CONFIGURATION, rawData, 0x02)) { goto finish; }
 
-  U16ToWire(value, calValue);
-  if (0x02 != writeBytesToI2C(_softTWI, _i2cAddress, INA219_REG_CALIBRATION, value, 0x02)) { goto finish; }
+  U16ToWire(rawData, calValue);
+  if (0x02 != writeBytesToI2C(_softTWI, _i2cAddress, INA219_REG_CALIBRATION, rawData, 0x02)) { goto finish; }
 
+  startConversionTime = millis();
   // Wait ready bit - CNVR == 1 in Bus Voltage Register
   do {
      delay(10);
-     if (0x02 != readBytesFromI2C(_softTWI, _i2cAddress, INA219_REG_BUS_VOLTAGE, value, 0x02)) { goto finish; }
-  } while (!(value[1] & B00000010)); 
+     if (0x02 != readBytesFromI2C(_softTWI, _i2cAddress, INA219_REG_BUS_VOLTAGE, rawData, 0x02)) { goto finish; }
+  } while (!(rawData[0x01] & INA219_BUS_VOLTAGE_CONVERSION_READY_MASK) && (millis() - startConversionTime) < INA219_CONVERSION_TIMEOUT); 
 
+  
+  if (rawData[0x01] & INA219_BUS_VOLTAGE_OVERFLOW_MASK) { goto finish; }
 
   switch (_metric) {
     case SENS_READ_SHUNT_VOLTAGE:
@@ -194,37 +185,32 @@ int8_t getINA219Metric(SoftwareWire* _softTWI, const uint8_t _i2cAddress, uint8_
    }
 
 
-  if (0x02 != readBytesFromI2C(_softTWI, _i2cAddress, i2cReg, value, 0x02)) { goto finish; }
-//  Serial.print("Register: 0x"); Serial.println(i2cReg, HEX);
-//  Serial.print("uC register content: "); Serial.print("0x"); Serial.print(value[0], HEX);  Serial.print(" 0x"); Serial.print(value[1], HEX); Serial.println();
-  result = WireToU16(value);
+  if (0x02 != readBytesFromI2C(_softTWI, _i2cAddress, i2cReg, rawData, 0x02)) { goto finish; }
+//  DEBUG_PORT.print("Register: 0x"); DEBUG_PORT.println(i2cReg, HEX);
+//  DEBUG_PORT.print("uC register content: "); DEBUG_PORT.print("0x"); DEBUG_PORT.print(rawData[0], HEX);  DEBUG_PORT.print(" 0x"); DEBUG_PORT.print(rawData[1], HEX); DEBUG_PORT.println();
+  result = WireToU16(rawData);
 
-//  Serial.print("result raw: 0x"); Serial.print(result, HEX); Serial.print(" => "); Serial.println(result); 
+//  DEBUG_PORT.print("result raw: 0x"); DEBUG_PORT.print(result, HEX); DEBUG_PORT.print(" => "); DEBUG_PORT.println(result); 
 
   switch (_metric) {
     case SENS_READ_SHUNT_VOLTAGE:
-      *_value = result; 
+      _value = result; 
       break;
     case SENS_READ_BUS_VOLTAGE:
-      *_value = (int16_t) (result >> 3) * 4;
+      _value = (int16_t) (result >> 3) * 4;
       break;
     case SENS_READ_POWER:
-      *_value = ((int16_t) result) * powerDivider_mW; 
+      _value = ((int16_t) result) * powerDivider_mW; 
       break;
     case SENS_READ_DC:
 //      if bitRead(result, 15) { result = 0; }        // negative
-      *_value = ((int16_t) result)  / currentDivider_mA;
+      _value = ((int16_t) result)  / currentDivider_mA;
       break;
    }
 
+  rc = RESULT_IS_SIGNED_VALUE;
 
-  if (!_wantsNumber) {
-     ltoa(*_value, _dst, 10);
-  }
-
-  rc = RESULT_IS_BUFFERED;
-
-  finish:
+finish:
   gatherSystemMetrics(); // Measure memory consumption
   return rc;
 

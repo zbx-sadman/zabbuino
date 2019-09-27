@@ -1,5 +1,5 @@
 #include "../net_platforms.h"
-#ifdef NETWORK_ETH_WIZNET
+#ifdef NETWORK_ETHERNET_WIZNET
 
 // DHCP Library v0.3 - April 25, 2009
 // Author: Jordan Terrell - blog.jordanterrell.com
@@ -477,4 +477,4 @@ void DhcpClass::printByte(char * buf, uint8_t n ) {
   } while(n);
 }
 
-#endif // NETWORK_ETH_WIZNET
+#endif // NETWORK_ETHERNET_WIZNET

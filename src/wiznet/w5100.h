@@ -1,7 +1,7 @@
-#include "../net_platforms.h"
-#ifdef NETWORK_ETH_WIZNET
-
 #pragma once
+#include "../net_platforms.h"
+#ifdef NETWORK_ETHERNET_WIZNET
+
 
 #include <SPI.h>
 
@@ -44,7 +44,7 @@ typedef uint8_t socket_t;
 /**            Default socket setting             **/
 /***************************************************/
 // Define some values for settng socket size in init()
-#if defined(W5100_ETHERNET_SHIELD)
+#if defined(NETWORK_ETHERNET_W5100)
 //#warning "***** W5100 *****"
 
     #define WIZNET_SOCKETS_ONBOARD                   0x04
@@ -79,7 +79,7 @@ typedef uint8_t socket_t;
 #endif // #ifdef WIZNET_LARGE_BUFFERS_USED
 
 
-#elif defined(W5500_ETHERNET_SHIELD)
+#elif defined(NETWORK_ETHERNET_W5500)
 //#warning "***** W5500 *****"
 
     #define WIZNET_SOCKETS_ONBOARD                   0x08
@@ -231,7 +231,7 @@ public:
   // ---------------
 private:
 // !!!!
-#if defined(W5100_ETHERNET_SHIELD)
+#if defined(NETWORK_ETHERNET_W5100)
 
   static uint8_t write(uint16_t _addr, uint8_t _data);
   static uint16_t write(uint16_t addr, const uint8_t *buf, uint16_t len);
@@ -266,7 +266,7 @@ private:
   }
 
 // !!!!
-#elif defined(W5500_ETHERNET_SHIELD)
+#elif defined(NETWORK_ETHERNET_W5500)
 
   static uint8_t  write(uint16_t _addr, uint8_t _cb, uint8_t _data);
   static uint16_t write(uint16_t _addr, uint8_t _cb, const uint8_t *buf, uint16_t len);
@@ -314,7 +314,7 @@ public:
   __GP_REGISTER8 (IMR,    0x0016);    // Interrupt Mask
 
 // !!!!
-#if defined(W5100_ETHERNET_SHIELD)
+#if defined(NETWORK_ETHERNET_W5100)
   __GP_REGISTER16(RTR,    0x0017);    // Timeout address
   __GP_REGISTER8 (RCR,    0x0019);    // Retry count
   __GP_REGISTER8 (RMSR,   0x001A);    // Receive memory size (W5100 only)
@@ -325,7 +325,7 @@ public:
   __GP_REGISTER_N(UIPR,   0x002A, 4); // Unreachable IP address in UDP mode (W5100 only)
   __GP_REGISTER16(UPORT,  0x002E);    // Unreachable Port address in UDP mode (W5100 only)
 
-#elif defined(W5500_ETHERNET_SHIELD)
+#elif defined(NETWORK_ETHERNET_W5500)
   __GP_REGISTER16(RTR,    0x0019);    // Timeout address
   __GP_REGISTER8 (RCR,    0x001B);    // Retry count
   __GP_REGISTER8 (PTIMER, 0x001C);    // PPP LCP Request Timer
@@ -387,10 +387,10 @@ private:
   }
 
 // !!!!
-#if defined(W5100_ETHERNET_SHIELD)
+#if defined(NETWORK_ETHERNET_W5100)
 
 // !!!!
-#elif defined(W5500_ETHERNET_SHIELD)
+#elif defined(NETWORK_ETHERNET_W5500)
 
   //static const uint16_t CH_BASE = 0x0000;
   //static const uint16_t CH_SIZE = 0x0000;
@@ -441,7 +441,7 @@ public:
   static uint16_t getSocketTxBaseAddr(uint8_t _socketNum) { return _socketNum * socketSize + WIZNET_TX_MEMORY_START_ADDRESS; }
   static uint16_t getSocketRxBaseAddr(uint8_t _socketNum) { return _socketNum * socketSize + WIZNET_RX_MEMORY_START_ADDRESS; }
 
-#if defined(W5500_ETHERNET_SHIELD)
+#if defined(NETWORK_ETHERNET_W5500)
   static bool hasOffsetAddressMapping(void) { return true; }
 #else 
   static bool hasOffsetAddressMapping(void) { return false; }
@@ -467,7 +467,7 @@ extern W5100Class W5100;
 
 
 // !!!!
-#if defined(W5100_ETHERNET_SHIELD)
+#if defined(NETWORK_ETHERNET_W5100)
 
 uint8_t  W5100Class::readSn(socket_t _s, uint16_t _addr) { return read(WIZNET_SOCKET_REGISTER_BASE_ADDRESS + _s * WIZNET_SOCKET_REGISTER_SIZE + _addr); }
 uint8_t  W5100Class::writeSn(socket_t _s, uint16_t _addr, uint8_t _data) { return write(WIZNET_SOCKET_REGISTER_BASE_ADDRESS + _s * WIZNET_SOCKET_REGISTER_SIZE + _addr, _data); }
@@ -475,7 +475,7 @@ uint16_t W5100Class::readSn(socket_t _s, uint16_t _addr, uint8_t *_buf, uint16_t
 uint16_t W5100Class::writeSn(socket_t _s, uint16_t _addr, uint8_t *_buf, uint16_t _len) { return write(WIZNET_SOCKET_REGISTER_BASE_ADDRESS + _s * WIZNET_SOCKET_REGISTER_SIZE + _addr, _buf, _len); }
 
 // !!!!
-#elif defined(W5500_ETHERNET_SHIELD)
+#elif defined(NETWORK_ETHERNET_W5500)
 
 uint8_t W5100Class::readSn(socket_t _s, uint16_t _addr) {
     // 2.2.2 Control Phase
@@ -510,4 +510,4 @@ void W5100Class::setPHYCFGR(uint8_t _val) {
 #endif
 // !!!!
 
-#endif // NETWORK_ETH_WIZNET
+#endif // NETWORK_ETHERNET_WIZNET

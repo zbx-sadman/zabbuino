@@ -1,5 +1,5 @@
 #include "../net_platforms.h"
-#ifdef NETWORK_ETH_WIZNET
+#ifdef NETWORK_ETHERNET_WIZNET
 
 #pragma once
 
@@ -40,4 +40,4 @@ uint16_t bufferData(socket_t s, uint16_t offset, const uint8_t* buf, uint16_t le
 */
 int sendUDP(socket_t s);
 
-#endif // NETWORK_ETH_WIZNET
+#endif // NETWORK_ETHERNET_WIZNET

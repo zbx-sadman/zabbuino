@@ -10,15 +10,6 @@
 
 /*****************************************************************************************************************************
 *
-*   Overloads of main subroutine. Used to get numeric metric's value or it's char presentation only
-*
-*****************************************************************************************************************************/
-int8_t getMAX6675Metric(const uint8_t, const uint8_t, const uint8_t, const uint8_t, uint32_t*);
-
-int8_t getMAX6675Metric(const uint8_t, const uint8_t, const uint8_t, const uint8_t, char*);
-
-/*****************************************************************************************************************************
-*
 *   Read specified metric's value of the MAX6675 sensor, put it to output buffer on success. 
 *
 *   Returns: 
@@ -28,5 +19,5 @@ int8_t getMAX6675Metric(const uint8_t, const uint8_t, const uint8_t, const uint8
 *     - RESULT_IS_FAIL on other fails
 *
 *****************************************************************************************************************************/
-int8_t getMAX6675Metric(const uint8_t, const uint8_t, const uint8_t, const uint8_t, char*, uint32_t*, const uint8_t);
+int8_t getMAX6675Metric(const uint8_t, const uint8_t, const uint8_t, const uint8_t, int32_t*);
 

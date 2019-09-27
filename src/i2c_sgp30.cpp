@@ -26,85 +26,81 @@ static uint8_t crcSGP30(uint8_t* _src) {
 
 /*****************************************************************************************************************************
 *
-*   Read specified metric's value of the SGP30 sensor, put it to output buffer on success. 
+*  Read specified metric's value of the SGP30 sensor, put it to specified variable's address on success.
 *
-*   Returns: 
-*     - RESULT_IS_BUFFERED on success
-*     - DEVICE_ERROR_CONNECT on test connection error
-*     - RESULT_IS_FAIL - on other fails
+*  Returns: 
+*    - RESULT_IS_UNSIGNED_VALUE    on success 
+*    - RESULT_IS_FLOAT_02_DIGIT    on success when LUX metric specified
+*    - DEVICE_ERROR_NOT_SUPPORTED  on wrong params specified
+*    - DEVICE_ERROR_TIMEOUT        on sensor stops answer to the request
+*    - DEVICE_ERROR_CONNECT        on connection error
+*    - DEVICE_ERROR_CHECKSUM       on detect data corruption
 *
 *****************************************************************************************************************************/
-static int8_t getSGP30Metric(SoftwareWire& _softTWI, const uint8_t _i2cAddress, const uint8_t _metric, const uint8_t _reInit, char *_dst, uint32_t* _value, const uint8_t _wantsNumber)
-{
-  int8_t rc = DEVICE_ERROR_CONNECT;
-  uint8_t value[6];
-  uint8_t* ptrData;
-  uint16_t command;
+
+int8_t getSGP30Metric(SoftwareWire* _softTWI, uint8_t _i2cAddress, const int32_t _absHumidity, const uint8_t _metric, const uint8_t _reInit, int32_t* _value) {
   static uint8_t initialized = false;
+  int8_t   rc                = DEVICE_ERROR_TIMEOUT;
+  uint8_t  buffer[0x06]      = {0x00};
 
-  if (!isI2CDeviceReady(&_softTWI, _i2cAddress)) { goto finish; }
+  if (!_i2cAddress) { _i2cAddress = SGP30_I2C_ADDRESS; }
 
-  rc = RESULT_IS_FAIL;
+  if (!isI2CDeviceReady(_softTWI, _i2cAddress)) { rc = DEVICE_ERROR_CONNECT; goto finish; }
+
+  if (_absHumidity > 256000) { goto finish; rc = DEVICE_ERROR_NOT_SUPPORTED; }
+
+  buffer[0x00] = SGP30_CMD_BYTE_COMMON;
 
   if (!initialized || _reInit) {
-     command = SGP30_CMD_IAQ_INIT;
-     if (sizeof(command) != writeBytesToI2C((SoftwareWire*) &_softTWI, _i2cAddress, I2C_NO_REG_SPECIFIED, (uint8_t*) &command, sizeof(command))) { goto finish; }
+     buffer[0x01] = SGP30_CMD_BYTE_IAQ_INIT;
+     if (0x02 != writeBytesToI2C(_softTWI, _i2cAddress, I2C_NO_REG_SPECIFIED, buffer, 0x02)) { goto finish; }
      delay(SGP30_TIME_IAQ_INIT);
      initialized = true;   
   }
 
-  command = SGP30_CMD_IAQ_MEASURE;
-  if (sizeof(command) != writeBytesToI2C(&_softTWI, _i2cAddress, I2C_NO_REG_SPECIFIED, (uint8_t*) &command, sizeof(command))) { goto finish; }
+  if (_absHumidity >= 0x00) {
+     uint16_t ahScaled = (uint16_t)(((uint64_t)_absHumidity * 256 * 16777) >> 24);     
+     buffer[0x01] = SGP30_CMD_BYTE_SET_ABSOLUTE_HUMIDITY;
+     buffer[0x02] = ahScaled >> 8;
+     buffer[0x03] = ahScaled & 0xFF;
+     buffer[0x04] = crcSGP30(&buffer[0x02]);
+     if (0x05 != writeBytesToI2C(_softTWI, _i2cAddress, I2C_NO_REG_SPECIFIED, buffer, 0x05)) { goto finish; }
+     delay(50);
+  }
+
+  buffer[0x01] = SGP30_CMD_BYTE_IAQ_MEASURE;
+
+  if (0x02 != writeBytesToI2C(_softTWI, _i2cAddress, I2C_NO_REG_SPECIFIED, buffer, 0x02)) { goto finish; }
+
   delay(SGP30_TIME_IAQ_MEASURE);
-  if (sizeof(value) != readBytesFromI2C(&_softTWI, _i2cAddress, I2C_NO_REG_SPECIFIED, value, sizeof(value))) { goto finish; }
+
+  if (0x06 != readBytesFromI2C(_softTWI, _i2cAddress, I2C_NO_REG_SPECIFIED, buffer, 0x06)) { goto finish; }
 
   // CRC check
   rc = DEVICE_ERROR_CHECKSUM;
-  if (value[SGP30_CO2E_CRC_BYTE] != crcSGP30(&value[SGP30_CO2E_DATA_BYTE])) { goto finish; }
-  if (value[SGP30_TVOC_CRC_BYTE] != crcSGP30(&value[SGP30_TVOC_DATA_BYTE])) { goto finish; }
+  
+  if (buffer[SGP30_CO2_BYTE_CRC]  != crcSGP30(&buffer[SGP30_CO2_BYTE_DATA]) || 
+      buffer[SGP30_TVOC_BYTE_CRC] != crcSGP30(&buffer[SGP30_TVOC_BYTE_DATA]))  { goto finish; }
 
                                   
   switch(_metric) {
     case SENS_READ_TVOC:
-      ptrData = &value[SGP30_TVOC_DATA_BYTE];
-      *_value = WireToU16(ptrData);
-    break;
+      *_value = WireToU16((uint8_t*)&buffer[SGP30_TVOC_BYTE_DATA]);
+      break;
 
     case SENS_READ_CO2E:
-      //*_value = WireToU16(&value[SGP30_CO2_DATA_BYTE]);
-      ptrData = &value[SGP30_CO2E_DATA_BYTE];
-      *_value = WireToU16(ptrData);
-    break;
- 
+      *_value = WireToU16((uint8_t*)&buffer[SGP30_CO2_BYTE_DATA]);
+      break;
+    
     default:
       rc = DEVICE_ERROR_NOT_SUPPORTED;
       goto finish; 
-    break;
   }
 
-  if (!_wantsNumber) {
-     ltoa(*_value, _dst, 10);
-  }
-
-  rc = RESULT_IS_BUFFERED;
+  rc = RESULT_IS_UNSIGNED_VALUE;
 
 finish:
+  gatherSystemMetrics(); // Measure memory consumption
   return rc;
 }
 
-/*****************************************************************************************************************************
-*
-*   Overloads of main subroutine. Used to get numeric metric's value or it's char presentation only
-*
-*****************************************************************************************************************************/
-int8_t getSGP30Metric(SoftwareWire& _softTWI, const uint8_t _i2cAddress, const uint8_t _metric, const uint8_t _reInit, uint32_t* _value)
-{
-  char stubBuffer;
-  return getSGP30Metric(_softTWI, _i2cAddress, _metric, _reInit, &stubBuffer, _value, true);
-}
-
-int8_t getSGP30Metric(SoftwareWire& _softTWI, uint8_t _i2cAddress, const uint8_t _metric, const uint8_t _reInit, char* _dst)
-{
-  uint32_t stubValue;
-  return getSGP30Metric(_softTWI, _i2cAddress, _metric, _reInit, _dst, &stubValue, false);
-}

@@ -1,4 +1,8 @@
+#include "../net_platforms.h"
+#ifdef NETWORK_ETHERNET_WIZNET
+
 #pragma once
+
 /*
  *  Udp.cpp: Library to send/receive UDP packets.
  *
@@ -82,3 +86,4 @@ public:
 protected:
   uint8_t* rawIPAddress(IPAddress& addr) { return addr.raw_address(); };
 };
+#endif

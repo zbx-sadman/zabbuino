@@ -23,7 +23,7 @@
  */
 
 #include "../net_platforms.h"
-#ifdef NETWORK_ETH_ENC28J60
+#ifdef NETWORK_ETHERNET_ENC28J60
 
 #include "Enc28J60Network.h"
 
@@ -624,4 +624,4 @@ Enc28J60Network::linkStatus()
 }
 
 Enc28J60Network Enc28J60;
-#endif // NETWORK_ETH_ENC28J60
+#endif // NETWORK_ETHERNET_ENC28J60

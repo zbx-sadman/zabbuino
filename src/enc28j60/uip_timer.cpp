@@ -46,7 +46,7 @@
  */
 
 #include "../net_platforms.h"
-#ifdef NETWORK_ETH_ENC28J60
+#ifdef NETWORK_ETHERNET_ENC28J60
 
 #include "uip_timer.h"
 
@@ -127,4 +127,4 @@ uip_timer_expired(struct uip_timer *t)
 /*---------------------------------------------------------------------------*/
 
 /** @} */
-#endif // NETWORK_ETH_ENC28J60
+#endif // NETWORK_ETHERNET_ENC28J60

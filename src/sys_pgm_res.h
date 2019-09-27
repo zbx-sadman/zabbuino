@@ -1,6 +1,11 @@
 #pragma once
 #include <avr/pgmspace.h>
 
+// Zabbix v2.x header prefix ('ZBXD\x01')
+const uint8_t zbxHeaderPrefix[]                         PROGMEM = {'z', 'b', 'x', 'd', '\1'};
+
+const char STRING_Expected_data_so_big[]                      PROGMEM = "\nExpected data so big";
+
 const char STRING_1[] PROGMEM = "hello";
 const char STRING_loopStageUserFunction[]                     PROGMEM = "loopStageUserFunction";
 const char STRING_executeCommandUserFunction[]                PROGMEM = "executeCommandUserFunction";

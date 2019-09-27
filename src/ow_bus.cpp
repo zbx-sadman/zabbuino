@@ -2,10 +2,9 @@
 #include "sys_includes.h"
 
 // OneWire lib for Dallas sensors
-#include "OneWire\OneWire.h"
+#include "OneWire/OneWire.h"
 
 #include "service.h"
-#include "network.h"
 
 #include "ow_bus.h"
 
@@ -23,24 +22,24 @@
 *     - number of found devices
 *
 *****************************************************************************************************************************/
-int8_t scanOneWire(const uint8_t _pin, uint8_t* _dst, size_t _maxLen) {
-  uint8_t dsAddr[8], 
+int8_t scanOneWire(const uint8_t _pin, uint8_t* _dst, size_t _bufferSize) {
+  uint8_t dsAddr[ONEWIRE_ID_SIZE], 
           numDevices = 0x00;
+
   OneWire owDevice(_pin);
 
   // Test the bus
   if (!owDevice.reset()) { goto finish; }
 
   owDevice.reset_search();
+  // Do not write more that _bufferSize (buffer size)
   while (owDevice.search(dsAddr)) {
-    // Do not write more that _maxLen (buffer size)
-    if (_maxLen > sizeof(dsAddr)) {
-      _maxLen -= sizeof(dsAddr);
-       memcpy(_dst, dsAddr, sizeof(dsAddr));
-      _dst += sizeof(dsAddr);
-      numDevices++;
+    if (_bufferSize >= sizeof(dsAddr)) { 
+       memcpy(_dst, dsAddr, ONEWIRE_ID_SIZE);
+       _bufferSize -= ONEWIRE_ID_SIZE;
+       _dst += ONEWIRE_ID_SIZE;
+        numDevices++;
     }
-
   }
 
 finish:

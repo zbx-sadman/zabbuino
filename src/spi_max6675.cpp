@@ -9,25 +9,6 @@
 
 /*****************************************************************************************************************************
 *
-*   Overloads of main subroutine. Used to get numeric metric's value or it's char presentation only
-*
-*****************************************************************************************************************************/
-int8_t getMAX6675Metric(const uint8_t _misoPin, const uint8_t _sclkPin, const uint8_t _csPin, const uint8_t _metric, uint32_t* _value)
-{
-  char stubBuffer;
-  return getMAX6675Metric(_misoPin, _sclkPin, _csPin, _metric, &stubBuffer, _value, true);
-
-}
-
-int8_t getMAX6675Metric(const uint8_t _misoPin, const uint8_t _sclkPin, const uint8_t _csPin, const uint8_t _metric, char* _dst)
-{
-  uint32_t stubValue;
-  return getMAX6675Metric(_misoPin, _sclkPin, _csPin, _metric, _dst, &stubValue, false);
-}
-
-
-/*****************************************************************************************************************************
-*
 *   Read specified metric's value of the MAX6675 sensor, put it to output buffer on success. 
 *
 *   Returns: 
@@ -37,7 +18,7 @@ int8_t getMAX6675Metric(const uint8_t _misoPin, const uint8_t _sclkPin, const ui
 *     - RESULT_IS_FAIL on other fails
 *
 *****************************************************************************************************************************/
-int8_t getMAX6675Metric(const uint8_t _misoPin, const uint8_t _sclkPin, const uint8_t _csPin, const uint8_t _metric, char* _dst, uint32_t* _value, const uint8_t _wantsNumber)
+int8_t getMAX6675Metric(const uint8_t _misoPin, const uint8_t _sclkPin, const uint8_t _csPin, const uint8_t _metric, int32_t* _value)
 {
   int8_t rc = RESULT_IS_FAIL;
   uint32_t result;
@@ -47,11 +28,7 @@ int8_t getMAX6675Metric(const uint8_t _misoPin, const uint8_t _sclkPin, const ui
 
     
   if (SENS_READ_TEMP != _metric) { goto finish; }
-/* 
-  Serial.print("MISO: "); Serial.println(_misoPin);
-  Serial.print("SCK: "); Serial.println(_sclkPin);
-  Serial.print("CS: "); Serial.println(_csPin);
-*/
+
   pinMode(_misoPin, INPUT);
   pinMode(_sclkPin, OUTPUT); 
   pinMode(_csPin, OUTPUT);
@@ -73,16 +50,16 @@ int8_t getMAX6675Metric(const uint8_t _misoPin, const uint8_t _sclkPin, const ui
 
   _delay_ms(1);
 
-  result = softSpiReadByte(sclkPortOutputRegister, sclkPinBit, misoPortInputRegister, misoPinBit);
+  result = spiReadByte(sclkPortOutputRegister, sclkPinBit, misoPortInputRegister, misoPinBit);
   result <<= 8;
-  result |= softSpiReadByte(sclkPortOutputRegister, sclkPinBit, misoPortInputRegister, misoPinBit);
+  result |= spiReadByte(sclkPortOutputRegister, sclkPinBit, misoPortInputRegister, misoPinBit);
 
   if (result & MAX6675_BITMASK_ID) {
     rc = DEVICE_ERROR_WRONG_ID; 
     goto finish; 
   }
 
-//  Serial.print("raw: "); Serial.println(result, BIN); 
+//  DEBUG_PORT.print("raw: "); DEBUG_PORT.println(result, BIN); 
 
   if (result & MAX6675_BITMASK_TERMOCOUPLE_INPUT) {
     // No thermocouple attached!
@@ -93,22 +70,17 @@ int8_t getMAX6675Metric(const uint8_t _misoPin, const uint8_t _sclkPin, const ui
   result >>= 3;
 
   *_value = result * 25;
-//  Serial.print("result (1): "); Serial.println(result); 
-//  Serial.print("result (2): "); Serial.println(((float) *_value) *0.25); 
+//  DEBUG_PORT.print("result (1): "); DEBUG_PORT.println(result); 
+//  DEBUG_PORT.print("result (2): "); DEBUG_PORT.println(((float) *_value) *0.25); 
 //  t = *_value * 25;
 //  w = int(t/100);
 //  f = t-(w*100);
-//  Serial.print("result whole: "); Serial.println(w);
-//  Serial.print("result fract: "); Serial.println(f);
+//  DEBUG_PORT.print("result whole: "); DEBUG_PORT.println(w);
+//  DEBUG_PORT.print("result fract: "); DEBUG_PORT.println(f);
 
+  rc = RESULT_IS_FLOAT_02_DIGIT;
 
-  if (!_wantsNumber) {
-     ltoaf(*_value, _dst, 2);
-  }
-
-  rc = RESULT_IS_BUFFERED;
-
-  finish:
+finish:
   gatherSystemMetrics(); // Measure memory consumption
   // SPI deactivate
   digitalWrite(_csPin, HIGH);

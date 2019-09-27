@@ -1,5 +1,5 @@
 #include "../net_platforms.h"
-#ifdef NETWORK_ETH_WIZNET
+#ifdef NETWORK_ETHERNET_WIZNET
 
 /*
  modified 12 Aug 2013
@@ -137,4 +137,4 @@ uint8_t EthernetClass::getPHYCFG() {
 
 EthernetClass Ethernet;
 
-#endif // NETWORK_ETH_WIZNET
+#endif // NETWORK_ETHERNET_WIZNET

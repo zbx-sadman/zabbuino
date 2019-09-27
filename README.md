@@ -19,7 +19,9 @@ Implemented:
 - Support BH1750, MAX44009, TSL2561 light sensors;
 - Support ADPS9960 light/color sensor;
 - Support VEML6070 ultraviolet sensor;
-- Support DS3231 RTC I2C module;
+- Support MH-Z14/MH-Z19/MH-Z19B CO2 sensor;
+- Support Telaire T67xx family CO2 sensor;
+- Support DS3231 & PCF8563 RTC I2C module;
 - Support incremental encoder (on interrupt's pin);
 - Support any devices that need to use hardware interrupt - tilt switches, dry contacts, water flow sensor, and so;
 - Support INA219 power/current monitor;
@@ -34,11 +36,34 @@ Implemented:
 - Support WS2801 Led stripe and any indicators on shift registers via extended `shiftout` command;
 - Support WS2812 Led stripe;
 - Support PZEM-004 energy meter;
-- Support Plantower PMS-A003 (and similar) sensors;
+- Support Plantower PMS-A003 (and similar) dust sensors;
+- Support Nova Fitness SDS011 (and similar) dust sensors;
 - Support APC Smart UPS (with RS232 interface);
 - Support Megatec UPS's (with RS232 interface);
 - Simulate varuious vendor's IR transmitters.
 -----------------------------
+
+#### 27 Sep 2019
+New features:
+  - _FEATURE\_T67XX\_ENABLE_ Telaire T67xx family sensor support.
+  - Command ``t67xx.i2c.co2[sdaPin, sclPin, i2cAddress]`` is added:
+    - _sdaPin_, _sclPin_ - I2C pins to which T67xx connected;
+    - _i2cAddress_ - I2C address of T67xx (default address is 0x15);
+    Example: ``t67xx.i2c.co2[18, 19]`` returns CO2 level value; 
+
+    Note #1: Only I2C connection supported at this time
+
+  - Commands ``PMS.epm[rxPin, txPin, particleSize]`` and ``PMS.fpm[rxPin, txPin, particleSize]`` is added:
+    - _rxPin_, _txPin_ - SoftwareSerial's pins to which PMS-xxxx connected. Only _rxPin_ is used now, you can use the same pin for _txPin_ at this time. 
+    - _particleSize_ - used particles size: 3 - 0.3um,  5 - 0.5um, 10 - 0.1um, 25 - 2.5um, 50 - 5um, 100 - 10um;
+    Example: ``PMS.epm[3, 3, 25]`` returns PM2.5 concentration for atmospheric environment, ``PMS.fpm[3, 3, 100]`` returns PM10 concentration for factory's atmospheric environment.
+
+  - _FEATURE\_NOVA\_FITNESS\_SDS\_ENABLE_ Nova Fitness SDS011 (and compatible) sensor support.
+  - Command ``SDS.all[rxPin, txPin]`` and ``PMS.epm[rxPin, txPin, particleSize]`` is added:
+    - _rxPin_, _txPin_ - SoftwareSerial's pins to which SDSxxx connected. 
+    - _particleSize_ - used particles size: 25 - 2.5um, 100 - 10um;
+    Example: ``PMS.all[4, 5]`` returns PM2.5 and PM10 metric values as one JSON-string, ``PMS.epm[4, 5, 25]`` returns PM2.5 concentration for atmospheric environment, 
+
 
 #### 10 May 2019
 New features:
@@ -46,7 +71,7 @@ New features:
   - Commands ``sgp30.co2e[sdaPin, sclPin, i2cAddress]``, ``sgp30.tvoc[sdaPin, sclPin, i2cAddress]`` is added:
     - _sdaPin_, _sclPin_ - I2C pins to which SGP30 connected;
     - _i2cAddress_ - I2C address of SGP30 (can be 0x58 only);
-    Example: ``sgp30.co2e[18, 19, 0x58]`` returns ÑO2eq value; ``sgp30.tvoc[18, 19, 0x58]`` returns TVOC value;
+    Example: ``sgp30.co2e[18, 19, 0x58]`` returns CO2eq value; ``sgp30.tvoc[18, 19, 0x58]`` returns TVOC value;
 
     Note #1: Senserion SGP30 can be more accurate when used with humidity sensor, but this feature not supported now;
     Note #2: Values which readed within first 15 sec will be 'defaults' due specific of the SGP30's startup procedure;
@@ -62,6 +87,7 @@ Changes:
 - 1-Wire: CRC is valid if "all zeros scratchpad" coming from sensor, but this is  bus's malfunction case (bus grounded). Added detection for that case;
 - MAX7219: All chars "images" moved to the Progmem space;
 - MAX7219: Code is rewritten to direct register manipulation: "0 .0 .0 .0 .0 .0" string was pushed to the Microwire bus in 4168us before and 1456us now;
+
 
 Note: all pins used by MAX7219 must be set to OUTPUT state on start (or indicator's leds may blinks), and indicator must be cleared on the system start (in plugin)
 

@@ -3,6 +3,7 @@
 /*
 
   Datasheet: http://rohmfs.rohm.com/en/products/databook/datasheet/ic/sensor/light/bh1750fvi-e.pdf
+
 */
 
 #define BH1750_I2C_ADDRESS                                      (0x23)
@@ -30,23 +31,23 @@
 // Device is automatically set to Power Down after measurement.
 #define BH1750_ONETIME_LOWRES                                   (0x23)
 
-/*****************************************************************************************************************************
-*
-*   Overloads of main subroutine. Used to get numeric metric's value or it's char presentation only
-*
-*****************************************************************************************************************************/
-int8_t getBH1750Metric(SoftwareWire*, uint8_t, uint8_t, const uint8_t, char*);
-int8_t getBH1750Metric(SoftwareWire*, uint8_t, uint8_t, const uint8_t, uint32_t*);
+// 10 lx => 12
+#define BH1750_HIGHRES_2_TRESHOLD                               (12U)
+
+#define BH1750_LOWRES_CONVERSION_TIME_MS                        (24U)
+#define BH1750_HIGHRES_2_CONVERSION_TIME_MS                     (180U)
+#define BH1750_HIGHRES_CONVERSION_TIME_MS                       (180U)
 
 /*****************************************************************************************************************************
 *
-*  Read specified metric's value of the BH1750 sensor, put it to output buffer on success. 
+*  Read specified metric's value of the BH1750 sensor, put it to specified variable's address on success.
 *
 *  Returns: 
-*    - RESULT_IS_BUFFERED on success
-*     - DEVICE_ERROR_CONNECT on test connection error
-*     - RESULT_IS_FAIL - on other fails
+*    - RESULT_IS_UNSIGNED_VALUE    on success when RAW metric specified
+*    - RESULT_IS_FLOAT_02_DIGIT    on success when LUX metric specified
+*    - DEVICE_ERROR_NOT_SUPPORTED  on wrong params specified
+*    - DEVICE_ERROR_TIMEOUT        on sensor stops answer to the request
+*    - DEVICE_ERROR_CONNECT        on connection error
 *
 *****************************************************************************************************************************/
-int8_t getBH1750Metric(SoftwareWire* _softTWI, uint8_t _i2cAddress, uint8_t _mode, const uint8_t _metric, char *_dst, uint32_t* _value, const uint8_t _wantsNumber = false);
-
+int8_t getBH1750Metric(SoftwareWire*, uint8_t, uint8_t, int32_t*);

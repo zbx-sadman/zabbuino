@@ -1,7 +1,7 @@
 #pragma once
 
 /*
-
+http://style.winsensor.com/pro_pdf/MH-Z19B.pdf  MH-Z19B new datasheet (cheenese)
 */
 
 #define MH_ZXX_UART_SPEED                                       (9600)    // baud
@@ -37,12 +37,13 @@
 *   Overloads of main subroutine. Used to get numeric metric's value or it's char presentation only
 *
 *****************************************************************************************************************************/
+/*
 int8_t getMHZxxMetricUART(const uint8_t, const uint8_t, int32_t*);
 int8_t getMHZxxMetricUART(const uint8_t, const uint8_t, uint8_t*);
 
 int8_t getMHZxxMetricPWM(const uint8_t, const uint16_t, int32_t*);
 int8_t getMHZxxMetricPWM(const uint8_t, const uint16_t, uint8_t*);
-
+*/
 
 /*****************************************************************************************************************************
 *
@@ -55,7 +56,7 @@ int8_t getMHZxxMetricPWM(const uint8_t, const uint16_t, uint8_t*);
 *    - DEVICE_ERROR_TIMEOUT if sensor stops answer to the request
 *
 *****************************************************************************************************************************/
-int8_t getMHZxxMetricPWM(const uint8_t _pin, const uint16_t _range, uint8_t* _dst, int32_t* _value, const uint8_t _wantsNumber = false);
+int8_t getMHZxxMetricPWM(const uint8_t _pin, const uint16_t _range, int32_t* _value);
 
 
 /*****************************************************************************************************************************
@@ -67,5 +68,5 @@ int8_t getMHZxxMetricPWM(const uint8_t _pin, const uint16_t _range, uint8_t* _ds
 *     - DEVICE_ERROR_TIMEOUT if device stop talking
 *
 *****************************************************************************************************************************/
-int8_t getMHZxxMetricUART(const uint8_t _rxPin, const uint8_t _txPin, uint8_t* _dst, int32_t* _value, const uint8_t _wantsNumber = false);
+int8_t getMHZxxMetricUART(const uint8_t _rxPin, const uint8_t _txPin, int32_t* _value);
 

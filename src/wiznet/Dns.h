@@ -1,5 +1,5 @@
 #include "../net_platforms.h"
-#ifdef NETWORK_ETH_WIZNET
+#ifdef NETWORK_ETHERNET_WIZNET
 
 #pragma once
 // Arduino DNS client for WizNet5100-based Ethernet shield
@@ -45,4 +45,4 @@ protected:
     EthernetUDP iUdp;
 };
 
-#endif // NETWORK_ETH_WIZNET
+#endif // NETWORK_ETHERNET_WIZNET

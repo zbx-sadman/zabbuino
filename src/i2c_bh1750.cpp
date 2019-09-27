@@ -10,104 +10,65 @@
 
 /*****************************************************************************************************************************
 *
-*   Overloads of main subroutine. Used to get numeric metric's value or it's char presentation only
+*  Read specified metric's value of the BH1750 sensor, put it to specified variable's address on success.
+*
+*  Returns: 
+*    - RESULT_IS_UNSIGNED_VALUE    on success when RAW metric specified
+*    - RESULT_IS_FLOAT_02_DIGIT    on success when LUX metric specified
+*    - DEVICE_ERROR_NOT_SUPPORTED  on wrong params specified
+*    - DEVICE_ERROR_TIMEOUT        on sensor stops answer to the request
+*    - DEVICE_ERROR_CONNECT        on connection error
 *
 *****************************************************************************************************************************/
-int8_t getBH1750Metric(SoftwareWire* _softTWI, uint8_t _i2cAddress, uint8_t _mode, const uint8_t _metric, uint32_t* _value)
-{
-  char stubBuffer;
-  return getBH1750Metric(_softTWI, _i2cAddress, _mode, _metric, &stubBuffer, _value, true);
-//  return getBH1750Metric(_softTWI, _i2cAddress, _mode, _metric, 0x00, _value, true);
+int8_t getBH1750Metric(SoftwareWire* _softTWI, uint8_t _i2cAddress, const uint8_t _metric, int32_t* _value) {
+  int8_t   rc                = DEVICE_ERROR_TIMEOUT;
+  uint8_t  readingNum        = 0x02, 
+           rawData[0x02]     = {0x00},       	
+           measurementMode   = BH1750_ONETIME_HIGHRES;
+  uint16_t rawValue          = 0x00; 
+  uint32_t maxConversionTime = BH1750_HIGHRES_CONVERSION_TIME_MS;
 
-}
+  if (!_i2cAddress) { _i2cAddress = BH1750_I2C_ADDRESS; }
 
-int8_t getBH1750Metric(SoftwareWire* _softTWI, uint8_t _i2cAddress, uint8_t _mode, const uint8_t _metric, char* _dst)
-{
-  uint32_t stubValue;
-  return getBH1750Metric(_softTWI, _i2cAddress, _mode, _metric, _dst, &stubValue, false);
-  //  pointer to fake 'value' variable can be used, because called subroutine never write by this pointer
-  //  return getBH1750Metric(_softTWI, _i2cAddress, _mode, _metric, _dst, (uint32_t*) _dst, false);
-}
+  if (!isI2CDeviceReady(_softTWI, _i2cAddress)) { rc = DEVICE_ERROR_CONNECT; goto finish; }
 
-/*****************************************************************************************************************************
-*
-*   Read specified metric's value of the BH1750 sensor, put it to output buffer on success. 
-*
-*   Returns: 
-*     - RESULT_IS_BUFFERED on success
-*     - DEVICE_ERROR_CONNECT on test connection error
-*     - RESULT_IS_FAIL - on other fails
-*
-*****************************************************************************************************************************/
-int8_t getBH1750Metric(SoftwareWire* _softTWI, uint8_t _i2cAddress, uint8_t _mode, const uint8_t _metric, char *_dst, uint32_t* _value, const uint8_t _wantsNumber)
-{
-  int8_t rc = DEVICE_ERROR_CONNECT;
-  uint8_t readingNum, 
-          value[2];   // do not use _dst array instead value array, due strange behavior detected - sometime _dst[n] is not uint8_t
-                      // println(_dst[n], BIN) can show 1111111111101010 for example. Need to make some cast experiments
-  int32_t maxConversionTime;
-  // result variable must be 32bit because readed from sensor 16bit value will be scaled to avoid float calculation
-
-  if (!isI2CDeviceReady(_softTWI, _i2cAddress)) { goto finish; }
-
-  rc = RESULT_IS_FAIL;
-
-  switch (_mode) {
-    case BH1750_ONETIME_HIGHRES: 
-    case BH1750_ONETIME_HIGHRES_2:
-      readingNum = 2;
-      maxConversionTime = 180; // 180ms - max time to complete High-resolution measurement
-      break;
-    case BH1750_ONETIME_LOWRES:
-       readingNum = 2;
-       maxConversionTime = 24; // 24ms - max time to complete Low-resolution measurement
-       break;
-    case BH1750_CONTINUOUS_HIGHRES:
-    case BH1750_CONTINUOUS_HIGHRES_2:
-      readingNum = 1;
-      maxConversionTime = 180; // 2 round of 180ms convertation (180ms - max time to complete High-resolution measurement)
-      break;
-    case BH1750_CONTINUOUS_LOWRES:
-    default:  
-      _mode = BH1750_CONTINUOUS_LOWRES;
-      readingNum = 1;
-      maxConversionTime = 24; // 2 round of 24ms convertation (24ms - max time to complete Low-resolution measurement)
-  }
-
-  // Make some readings - 1 or 3 and get latest result
   while (readingNum) {
     readingNum--;
-    // Wake up, sensor!
-    // It going sleep after One-Time measurement 
+
     if (0x01 != writeByteToI2C(_softTWI, _i2cAddress, I2C_NO_REG_SPECIFIED, BH1750_CMD_POWERON)) { goto finish; }
-    //delay(10);
-    // Start convertation
-    if (0x01 != writeByteToI2C(_softTWI, _i2cAddress, I2C_NO_REG_SPECIFIED, _mode)) { goto finish; }
-    // Wait to complete covertation round
+
+    if (0x01 != writeByteToI2C(_softTWI, _i2cAddress, I2C_NO_REG_SPECIFIED, measurementMode)) { goto finish; }
     delay(maxConversionTime);
+
     // Read data
-    if (0x02 != readBytesFromI2C(_softTWI, _i2cAddress, I2C_NO_REG_SPECIFIED, value, 0x02)) { goto finish; }
+    if (0x02 != readBytesFromI2C(_softTWI, _i2cAddress, I2C_NO_REG_SPECIFIED, rawData, 0x02)) { goto finish; }
+
+    rawValue = WireToU16(rawData);
+
+    // On the dark - switch to the 0.11 lx resolution
+    if (rawValue <= BH1750_HIGHRES_2_TRESHOLD) {
+       measurementMode = BH1750_ONETIME_HIGHRES_2;
+    } else {
+       readingNum = 0x00;
+    }
   }
 
-  *_value = (((uint32_t) value[0]) << 8) | value[1];
+  *_value = rawValue;
 
-  if (SENS_READ_RAW == _metric) {
-    ltoa(*_value, _dst, 10);
-  } else {
+  rc = RESULT_IS_UNSIGNED_VALUE;
+
+  if (SENS_READ_LUX == _metric) {
     // Prepare result's value to using in ltoaf() subroutine
     // level = level/1.2; // convert to lux
     // 5 / 1.2 => 4,16
     // (5 * 1000) / 12 => 416 ==> ltoaf (..., ..., 2) ==> 4.16
     // max raw level = 65535 => 65535 * 1000 => long int
-    *_value = (*_value * 1000) / 12;    
-    // If required - put to variable '_value' scaled value or it whole part only.
-    if (!_wantsNumber) {
-       ltoaf(*_value, _dst, 2);
-    }
+    *_value = (*_value * 1000L) / 12;    
+    rc = RESULT_IS_FLOAT_02_DIGIT;
   }
-  rc = RESULT_IS_BUFFERED;
 
 finish:
+  gatherSystemMetrics(); // Measure memory consumption
   return rc;
 }
 

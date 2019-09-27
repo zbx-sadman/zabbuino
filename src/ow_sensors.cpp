@@ -6,7 +6,6 @@
 
 #include "service.h"
 #include "system.h"
-#include "network.h"
 
 #include "ow_bus.h"
 #include "ow_sensors.h"
@@ -27,35 +26,34 @@
 *     - false on fail
 *
 *****************************************************************************************************************************/
-//Sketch uses 21,592 bytes (8%) of program storage space. Maximum is 253,952 bytes.
-// Global variables use 900 bytes (10%) of dynamic memory, leaving 7,292 bytes for local variables. Maximum is 8,192 bytes.
-//static uint8_t getScratchPadFromDevice(OneWire* _owDevice, const uint8_t *_addr, uint8_t *_scratchPad) {
-static uint8_t getScratchPadFromDevice(OneWire& _owDevice, const uint8_t* _addr, uint8_t* _scratchPad) {
+static uint8_t getScratchPadFromDevice(OneWire& _owDevice, const uint8_t* _id, uint8_t* _scratchPad) {
   // send the reset command and fail fast
   // reset() returns 1 if a device asserted a presence pulse, 0 otherwise.
   if (!_owDevice.reset()) { return false; }
-
-  _owDevice.select(_addr);
+  _owDevice.select(_id);
   _owDevice.write(DS18X20_CMD_READSCRATCH);
 
-  uint8_t len = DS18X20_SCRATCHPAD_SIZE + 1;
+  uint8_t len = DS18X20_SCRATCHPAD_SIZE;
   while (len--){
     *_scratchPad = _owDevice.read();
+    //len--;
     _scratchPad++;
   }
-
   return (_owDevice.reset());
 }
 
 
 static uint8_t isCRCOK(uint8_t* _scratchPad) {
   // '==' here not typo
-  return (dallas_crc8(_scratchPad, DS18X20_SCRATCHPAD_SIZE) == _scratchPad[DS18X20_BYTE_SCRATCHPAD_CRC]);
+  //return (dallas_crc8(_scratchPad, DS18X20_SCRATCHPAD_SIZE - 1) == _scratchPad[DS18X20_BYTE_SCRATCHPAD_CRC]);
+  return (!dallas_crc8(_scratchPad, DS18X20_SCRATCHPAD_SIZE));
 }
 
-static uint8_t isAllZeros(uint8_t* _src, size_t _len) {
+static uint8_t isAllZeros(uint8_t* _src, uint8_t _len) {
  while(_len--) {
+   // return false if *_src != 0x00 
    if (*_src) { return false; }
+   //_len--;
    _src++;
  } 
  return true;
@@ -80,67 +78,47 @@ return rc;
 
 /*****************************************************************************************************************************
 *
-*  Overloaded getDS18X20Metric() functions. Refer to original subroutione to see return codes
-*
-*****************************************************************************************************************************/
-int8_t getDS18X20Metric(const uint8_t _pin, uint8_t _resolution, uint8_t* _id, int32_t* _value)
-{
-  char stubBuffer;
-  return getDS18X20Metric(_pin, _resolution, _id, &stubBuffer, _value, true);
-
-}
-
-int8_t getDS18X20Metric(const uint8_t _pin, uint8_t _resolution, uint8_t* _id, char* _dst)
-{
-  int32_t stubValue;
-  return getDS18X20Metric(_pin, _resolution, _id, _dst, &stubValue, false);
-}
-
-
-
-/*****************************************************************************************************************************
-*
-*  Read specified metric's value of the digital sensor of Dallas DS18x20 family, put it to output buffer on success. 
+*  Read specified metric's value of the digital sensor of Dallas DS18x20 family, returns temperature as number on success. 
 *
 *  Note: subroutine is tested with DS18B20 only. 
 *        probably you can meet problems with the correct calculation of temperature due to incorrect 'tRaw' adjustment 
 *
-*   Returns: 
-*     - RESULT_IS_BUFFERED on success
-*     - DEVICE_ERROR_CONNECT on connection error
-*     - DEVICE_ERROR_CHECKSUM on detect data corruption
+*  Returns: 
+*     - RESULT_IS_FLOAT_04_DIGIT    on success
+*     - DEVICE_ERROR_NOT_SUPPORTED  on wrong params specified
+*     - DEVICE_ERROR_TIMEOUT        on sensor stops answer to the request
+*     - DEVICE_ERROR_CHECKSUM       on detect data corruption
 *
 *****************************************************************************************************************************/
-int8_t getDS18X20Metric(const uint8_t _pin, uint8_t _resolution, uint8_t* _id, char* _dst, int32_t* _value, const uint8_t _wantsNumber)
-//int8_t getDS18X20Metric(const uint8_t _pin, uint8_t _resolution, char* _id, char* _dst)
+int8_t getDS18X20Metric(const uint8_t _pin, uint8_t _resolution, uint8_t* _id, int32_t* _value)
 {
-  int8_t   rc = DEVICE_ERROR_CONNECT;
-  uint8_t  signBit, parasitePowerUsed, busReady, resolutionIdx;
-  uint8_t* scratchPad=(uint8_t*) _dst;
+  int8_t   rc = DEVICE_ERROR_TIMEOUT;
+  uint8_t  signBit, parasitePowerUsed, resolutionIdx;
+  uint8_t  scratchPad[DS18X20_SCRATCHPAD_SIZE];
   int32_t  tRaw;
   uint32_t maxConversionTime, startConversionTime;
-  uint8_t  resolutionCodes[] = {DS18X20_MODE_9_BIT, DS18X20_MODE_10_BIT, DS18X20_MODE_11_BIT, DS18X20_MODE_12_BIT};
-  uint8_t  noiseBits[] = {7, 3, 1, 0};
+  const uint8_t resolutionCodes[] = {DS18X20_MODE_9_BIT, DS18X20_MODE_10_BIT, DS18X20_MODE_11_BIT, DS18X20_MODE_12_BIT};
+  const uint8_t noiseBits[] = {7, 3, 1, 0};
 
   // Start mass conversion or read data if prev conversion has been finished no more that N sec is good idea, but need to store link busPin<->prevConversionTime
   // static uint32_t prevConversionTime = 0;
 
   OneWire owDevice(_pin);
 
-  if ('\0' == _id[0]) {
+  if (0x00 == _id[0]) {
     // If ID not given - search any sensor on OneWire bus and use its. Or return error when no devices found.
     owDevice.reset_search();
     // If search() function returns a '1' then it has enumerated the next device and you may retrieve the ROM from the
     // OneWire::address variable. If there are no devices, no further devices, or something horrible happens in the middle of the
     // enumeration then a 0 is returned. (R) OneWire.cpp
 
-    // rc already init with DEVICE_ERROR_CONNECT value
+    // rc already init with DEVICE_ERROR_TIMEOUT value
     if (0x00 == owDevice.search(_id)) { goto finish; }
   } 
 
-  // Addr is proper?
-  // rc already init with DEVICE_ERROR_CONNECT value
-  if (dallas_crc8(_id, 7) != _id[7]) { goto finish; }
+  // Addr is proper? dallas_crc8(_all_message_) return 0x00 on success or !0 on fail
+  // rc already init with DEVICE_ERROR_TIMEOUT value
+  if (dallas_crc8(_id, ONEWIRE_ID_SIZE)) { goto finish; }
 
   // readScratchPad() returns internal system's error code
   rc = readScratchPad(owDevice, _id, scratchPad);
@@ -201,7 +179,7 @@ int8_t getDS18X20Metric(const uint8_t _pin, uint8_t _resolution, uint8_t* _id, c
   //        09 bit res, 93.75 ms
   // conversionTime = (tCONV) / (2 ^ (12 [bit resolution] - N [bit resolution])). 12bit => 750ms, 11bit => 375ms ...
   // For some DS sensors you may need increase tCONV to 1250ms or more
-  maxConversionTime = 750 / (1 << (12 - _resolution));
+  maxConversionTime = DS18X20_MAX_CONVERSION_TIME / (1 << (12 - _resolution));
 
   // Temperature read begin
   owDevice.reset();
@@ -212,16 +190,17 @@ int8_t getDS18X20Metric(const uint8_t _pin, uint8_t _resolution, uint8_t* _id, c
   // Wait to end conversion
   startConversionTime = millis();
   while (millis() - startConversionTime < maxConversionTime) {
-    delay(1);
-    // Non-parasite powered sensor send '1' to DQ when conversion is finished
+    // loop content do not block interrupt handling, no any delay() need
+    //delay(1);
+    // Non-parasite powered sensor "send active bit" to DQ when conversion is finished
     if (!parasitePowerUsed && (0x01 == owDevice.read_bit())) { break; }
   }
-
-  //Serial.print("TConv: "); Serial.println(millis() - startConversionTime);
 
   // readScratchPad() returns internal system's error code
   rc = readScratchPad(owDevice, _id, scratchPad);
   if (RESULT_IS_OK != rc) { goto finish; }
+
+//  memset(scratchPad, 0x00, sizeof(scratchPad)); // just test
 
   // Temperature calculation
   tRaw = (((int32_t) scratchPad[DS18X20_BYTE_TEMP_MSB]) << 0x08) | scratchPad[DS18X20_BYTE_TEMP_LSB];
@@ -256,9 +235,7 @@ int8_t getDS18X20Metric(const uint8_t _pin, uint8_t _resolution, uint8_t* _id, c
 
   *_value = tRaw; 
 
-  if (!_wantsNumber) { ltoaf(tRaw, _dst, 4); } 
-
-  rc = RESULT_IS_BUFFERED;
+  rc = RESULT_IS_FLOAT_04_DIGIT;
 
   finish:
   gatherSystemMetrics(); // Measure memory consumption

@@ -39,12 +39,14 @@
 
 /*****************************************************************************************************************************
 *
-*   Read values of the specified metric from the Peacefair PZEM-004 Energy Meter, put it to output buffer on success. 
+*  Run specified commad with specified volume on DFPlayer Mini
 *
-*   Returns: 
-*     - RESULT_IS_BUFFERED on success
-*     - DEVICE_ERROR_TIMEOUT if device stop talking
+*  Returns: 
+*    - DEVICE_ERROR_TIMEOUT        if device stop talking
+*    - DEVICE_ERROR_CHECKSUM       when bad CRC is recieved
+*    - DEVICE_ERROR_WRONG_ANSWER   on DFPlayer Mini answer "fail" (not 0x41)
+*    - DEVICE_ERROR_NOT_SUPPORTED  when wrong command is given
+*    - RESULT_IS_FAIL              on other fails
 *
 *****************************************************************************************************************************/
 int8_t runDFPlayerMini(const uint8_t _rxPin, const uint8_t _txPin, uint8_t _command, uint16_t _option, int16_t _volume, uint8_t* _dst);
-

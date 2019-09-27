@@ -58,12 +58,18 @@ typedef struct {                                  // 9 bytes:
 #pragma pack(pop)
 
 #pragma pack(push,1)
-typedef struct {                                  
-  uint8_t type;
-  uint16_t dataLength;
-  uint16_t expectedDataLength;
-  char** optarg;
-} packetInfo_t ;
+typedef struct {
+  uint8_t    type;
+  uint8_t    data[constBufferSize];
+  union {
+    uint8_t*   payloadByte;
+    char*      payloadChar;
+    char*      command;
+  };
+  uint16_t  dataFreeSize;                         // How much we can take from data[] when form ASCIIZ response ("plain text" request give more space than "native zabbix")
+  int32_t   argv[constArgC];
+  char*     args[constArgC];
+} request_t;
 #pragma pack(pop)
 
 
@@ -89,5 +95,3 @@ typedef union {
   uint32_t uint32;
 } numericValue32_t;
 #pragma pack(pop)
-
-

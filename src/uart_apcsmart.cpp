@@ -46,7 +46,7 @@ int8_t getAPCSmartUPSMetric(const uint8_t _rxPin, const uint8_t _txPin, uint8_t*
   
   // May be just make sum of buffer's bytes to use into switch: '^'+'A' => ...
   command = _command[0];
-  // Serial.print("command: "); Serial.println(command, HEX);
+  // DEBUG_PORT.print("command: "); DEBUG_PORT.println(command, HEX);
   switch (command) {
      // Shutdown commands not working yet
      case 0x0E:  // ^N,  Turn on UPS
@@ -87,7 +87,7 @@ int8_t getAPCSmartUPSMetric(const uint8_t _rxPin, const uint8_t _txPin, uint8_t*
      case '7':   // 0x37 Dip switch positions
      case '8':   // 0x38 Register #3
      case '9':   // 0x39 Line quality
-    //   Serial.println("Command allowed");
+    //   DEBUG_PORT.println("Command allowed");
        break;
      default:
        goto finish;
@@ -99,15 +99,14 @@ int8_t getAPCSmartUPSMetric(const uint8_t _rxPin, const uint8_t _txPin, uint8_t*
   //
   // Flush all device's transmitted data to avoid get excess data in recieve buffer
   // APC UPS can be flushed in slow mode
-  //serialRXFlush(&swSerial, UART_SLOW_MODE);
   flushStreamRXBuffer(&swSerial, APC_DEFAULT_READ_TIMEOUT, UART_SLOW_MODE);
 
   command = 'Y';
   serialSend(&swSerial, &command, 1, true);
-  DTSD( Serial.println(F("Recieving from UPS")); )
+  __DMLD( DEBUG_PORT.println(F("Recieving from UPS")); )
 
   len = serialRecive(&swSerial, _dst, 0x03, APC_DEFAULT_READ_TIMEOUT, UART_STOP_ON_CHAR, '\r', UART_SLOW_MODE);
-  DTSD( Serial.print(F("len: ")); Serial.println(len, DEC); )
+  __DMLD( DEBUG_PORT.print(F("len: ")); DEBUG_PORT.println(len, DEC); )
 
   // Connection timeout occurs (recieved less than 3 byte)
   if (len < 0x03) { goto finish; } // rc inited with DEVICE_ERROR_TIMEOUT value
@@ -124,14 +123,14 @@ int8_t getAPCSmartUPSMetric(const uint8_t _rxPin, const uint8_t _txPin, uint8_t*
 
   while (sendTimes) {
      // All commands fits to 1 byte
-     //Serial.println("send");
+     //DEBUG_PORT.println("send");
      serialSend(&swSerial, _command, 1, true);
-     //Serial.println("recieve");
+     //DEBUG_PORT.println("recieve");
       // Recieve answer from Smart UPS. Answer placed to buffer directly and does not require additional processing 
      len = serialRecive(&swSerial, _dst, APC_MAX_ANSWER_LENGTH, APC_DEFAULT_READ_TIMEOUT, UART_STOP_ON_CHAR, '\r', UART_SLOW_MODE);
-     //Serial.print("len: "); Serial.println(len);
+     //DEBUG_PORT.print("len: "); DEBUG_PORT.println(len);
      if (!sendCommandTwice && '\r' != _dst[len-1]) { goto finish; } // rc inited with DEVICE_ERROR_TIMEOUT value
-     //Serial.print("reply: "); Serial.println((char*) _dst);
+     //DEBUG_PORT.print("reply: "); DEBUG_PORT.println((char*) _dst);
 
      sendTimes--;
      if (0 < sendTimes) { 
@@ -154,7 +153,6 @@ int8_t getAPCSmartUPSMetric(const uint8_t _rxPin, const uint8_t _txPin, uint8_t*
   serialSend(&swSerial, &command, 1, true);
   //serialRXFlush(&swSerial, true);
   flushStreamRXBuffer(&swSerial, APC_DEFAULT_READ_TIMEOUT, UART_SLOW_MODE);
-  //Serial.println("Destroy current SoftwareSerial instance");
  
   rc = RESULT_IS_BUFFERED;
 

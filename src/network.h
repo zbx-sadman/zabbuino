@@ -20,15 +20,13 @@
 
 
 // Include headers for an network module
-#if defined(NETWORK_ETH_WIZNET)
+#if defined(NETWORK_ETHERNET_WIZNET)
 #include "wiznet/Ethernet.h" 
-//typedef EthernetClass ParentEthernetClass;
 #define ParentEthernetClass EthernetClass
 
 
-#elif defined(NETWORK_ETH_ENC28J60) //NETWORK_ETH_WIZNET 
+#elif defined(NETWORK_ETHERNET_ENC28J60) //NETWORK_ETH_WIZNET 
 #include "enc28j60/UIPEthernet.h"
-//typedef UIPEthernetClass ParentEthernetClass;
 #define ParentEthernetClass UIPEthernetClass
 
 #endif // NETWORK_ETH_ENC28J60
@@ -36,31 +34,29 @@
 typedef EthernetClient NetworkClient;
 typedef EthernetServer NetworkServer;
 
-class NetworkClass : public ParentEthernetClass {
+class Network : public ParentEthernetClass {
   private:
-    uint8_t useDhcp;
-    uint8_t phyConfigured;
-    uint8_t macAddress[6];
-    uint32_t defaultIpAddress;
-    uint32_t defaultGateway;
-    uint32_t defaultNetmask;
-    uint32_t defaultDns;
+    static uint8_t useDhcp;
+     // isPhyOk returns error state if detect it
+    static uint8_t phyConfigured;
+    static uint8_t macAddress[6];
+    static uint32_t defaultIpAddress;
+    static uint32_t defaultGateway;
+    static uint32_t defaultNetmask;
+    static uint32_t defaultDns;
 
   public:
-    NetworkClass();
-    ~NetworkClass() {}
-    uint8_t isPhyOk(void);
-    uint8_t isPhyConfigured(void);
-    int16_t maintain(void);
-    void printNetworkInfo(void);
-    void printPHYState(void);
+    static uint8_t isPhyOk(void);
+    static uint8_t isPhyConfigured(void);
+    static int16_t maintain(void);
+    static void printNetworkInfo(void);
+    static void printPHYState(void);
 //    void resetPhy(void);
-    inline uint8_t isDHCPUsed() { return useDhcp; }
-    void init(const uint8_t*, const uint32_t, const uint32_t, const uint32_t, const uint32_t, const uint8_t);
-    uint8_t relaunch(void);
-    void resetDefaults(const uint32_t, const uint32_t, const uint32_t, const uint32_t);
-    void tick();
+    static inline uint8_t isDHCPUsed() { return useDhcp; }
+    static void init(const uint8_t*, const uint32_t, const uint32_t, const uint32_t, const uint32_t, const uint8_t);
+    static uint8_t relaunch(void);
+    static void resetDefaults(const uint32_t, const uint32_t, const uint32_t, const uint32_t);
+    static void tick();
 
 //    NetworkClient getClient(void);
 };
-

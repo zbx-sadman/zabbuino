@@ -1,5 +1,6 @@
 #pragma once
 
+int8_t makeTextPayload(char*, int32_t, int8_t);
 uint8_t flushStreamRXBuffer(Stream*, const uint32_t, const uint8_t);
 uint8_t factoryReset(netconfig_t&);
 
@@ -53,7 +54,7 @@ int16_t hstoba(uint8_t*, const char*);
 *   This function placed here to aviod compilation error when OneWire library is not #included
 *
 *****************************************************************************************************************************/
-uint8_t dallas_crc8(uint8_t *addr, uint8_t len);
+uint8_t dallas_crc8(uint8_t*, uint8_t);
 
 /*****************************************************************************************************************************
 *
@@ -83,9 +84,8 @@ void blinkMore(const uint8_t _times, const uint16_t _onTime, const uint16_t _off
 *  
 *
 *****************************************************************************************************************************/
-//uint8_t validateNetworkAddress(const NetworkAddress);
-uint8_t strToNetworkAddress(const char* _src, uint32_t& _dstAddress);
-uint8_t analyzeStream(char _charFromClient, char* _dst, const uint8_t doReInit, packetInfo_t& _packetInfo);
+uint8_t strToNetworkAddress(char*, uint32_t&);
+uint8_t parseRequest(char, const uint8_t, request_t&);
 
 /* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
                                                          INLINE AND "DEFINE" FUNCTIONS SECTION 
@@ -106,7 +106,7 @@ inline char dtoh(const uint8_t  _dec) { return (_dec > 9) ? ('A' - 10 + _dec) : 
 
 // if _source have hex prefix - return true
 //#define haveHexPrefix(_src) ( (_src[0] == '0' && _src[1] == 'x') )
-inline uint8_t haveHexPrefix(const char*    _src) { return (_src[0] == '0' && _src[1] == 'x'); } 
+inline uint8_t haveHexPrefix(const char*    _src) { return (_src[0x00] == '0' && _src[0x01] == 'x'); } 
 inline uint8_t haveHexPrefix(const uint8_t* _src) { return haveHexPrefix((const char*) _src ); } 
 
 
@@ -115,9 +115,6 @@ inline uint8_t htod(const char   _hex) {
 }
 inline uint8_t htod(const uint8_t _hex) { return htod((const char) _hex); }
 //inline uint8_t htod(const int16_t _hex) { return htod((const char) _hex); }
-
-
-#define arraySize(_array) ( sizeof(_array) / sizeof(*(_array)) )
 
 /* ****************************************************************************************************************************
 *
@@ -152,7 +149,8 @@ inline void correctVCCMetrics(uint32_t _currVCC) {
 
 // *** Helpers ***
 
-#define arraySize(_array) ( sizeof(_array) / sizeof(*(_array)) )
+//#define arraySize(_array) ( sizeof(_array) / sizeof(*(_array)) )
+#define arraySize(_array) ( sizeof(_array) / sizeof(*_array) )
 #define FSH_P(p) (reinterpret_cast<const __FlashStringHelper *>(p))
 
 

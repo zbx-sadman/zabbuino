@@ -2,7 +2,7 @@
 // Author: Jordan Terrell - blog.jordanterrell.com
 
 #include "../net_platforms.h"
-#ifdef NETWORK_ETH_ENC28J60
+#ifdef NETWORK_ETHERNET_ENC28J60
 
 #include "Dhcp.h"
 
@@ -475,4 +475,4 @@ void DhcpClass::printByte(char * buf, uint8_t n ) {
     *str-- = c < 10 ? c + '0' : c + 'A' - 10;
   } while(n);
 }
-#endif // NETWORK_ETH_ENC28J60
+#endif // NETWORK_ETHERNET_ENC28J60

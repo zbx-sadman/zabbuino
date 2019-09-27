@@ -1,29 +1,3 @@
-/*
-
-old:
-Sketch uses 18,492 bytes (57%) of program storage space. Maximum is 32,256 bytes.
-Global variables use 826 bytes (40%) of dynamic memory, leaving 1,222 bytes for local variables. Maximum is 2,048 bytes.
-
-progmemed:
-Sketch uses 18,320 bytes (56%) of program storage space. Maximum is 32,256 bytes.
-Global variables use 826 bytes (40%) of dynamic memory, leaving 1,222 bytes for local variables. Maximum is 2,048 bytes.
-
-
-'max7219.write[5,6,7,1,"0 .0 .0 .0 .0 .0"]'
-Spended (ms): 4
-Spended (us): 4168
-
-Spended (us): 1456
-
-
-zabbix_get -s 172.16.100.206 -k 'max7219.write[5,6,7,1,"UuUuUuUuUuU"]'
-Spended (us): 3856
-Spended (us): 1176
-
-
-Sketch uses 18,820 bytes (58%) of program storage space. Maximum is 32,256 bytes.
-Global variables use 878 bytes (42%) of dynamic memory, leaving 1,170 bytes for local variables. Maximum is 2,048 bytes.
-*/
 /* 
 The original code was written for the Wiring board by:
  * Nicholas Zambetti and Dave Mellis /Interaction Design Institute Ivrea /Dec 2004
@@ -46,26 +20,7 @@ Second modification is by:
 #include "system.h"
 
 #include "microwire_bus.h"
-
-/*****************************************************************************************************************************
-*
-*  Send one byte to MAX7219 controller
-*
-*  Returns: 
-*    - none
-*
-*****************************************************************************************************************************/
-static void writeByteToMAX7219(volatile uint8_t *_dataPinPOR, const uint8_t _dataPinBit, volatile uint8_t *_clockPinPOR, const uint8_t _clockPinBit, const uint8_t _data) 
-{
-  int8_t i = 0x08;
-  while(i) {
-    i--;                                                      // move to lesser bit
-    *_clockPinPOR &= ~_clockPinBit;                             // tick
-    // send i-th bit value 
-    (_data & (0x01 << i)) ? *_dataPinPOR |= _dataPinBit : *_dataPinPOR &= ~_dataPinBit;
-    *_clockPinPOR |= _clockPinBit;                               // tock
-  }
-}
+#include "spi_bus.h"
 
 /*****************************************************************************************************************************
 *
@@ -75,12 +30,12 @@ static void writeByteToMAX7219(volatile uint8_t *_dataPinPOR, const uint8_t _dat
 *    - none
 *
 *****************************************************************************************************************************/
-static void pushDataToMAX7219(volatile uint8_t *_dataPinPOR, const uint8_t _dataPinBit, volatile uint8_t *_clockPinPOR, const uint8_t _clockPinBit, volatile uint8_t *_loadPinPOR, const uint8_t _loadPinBit, const uint8_t _register, const uint8_t _data) {    
+static void pushDataToMAX7219(const uint8_t spiType, volatile uint8_t* _mosiPinPOR, const uint8_t _mosiPinBit, volatile uint8_t* _sclkPinPOR, const uint8_t _sclkPinBit, volatile uint8_t* _loadPinPOR, const uint8_t _loadPinBit, const uint8_t _register, const uint8_t _data) {
   *_loadPinPOR &= ~_loadPinBit;
   // specify register or column
-  writeByteToMAX7219(_dataPinPOR, _dataPinBit, _clockPinPOR, _clockPinBit, _register);   
+  spiWriteByte(spiType, _sclkPinPOR, _sclkPinBit, _mosiPinPOR, _mosiPinBit, _register);   
   // put data  
-  writeByteToMAX7219(_dataPinPOR, _dataPinBit, _clockPinPOR, _clockPinBit, _data);
+  spiWriteByte(spiType, _sclkPinPOR, _sclkPinBit, _mosiPinPOR,  _mosiPinBit, _data);
   // show it
   *_loadPinPOR |= _loadPinBit;
 }
@@ -93,116 +48,118 @@ static void pushDataToMAX7219(volatile uint8_t *_dataPinPOR, const uint8_t _data
 *    - none
 *
 *****************************************************************************************************************************/
-void writeToMAX7219(const uint8_t _dataPin, const uint8_t _clockPin, const uint8_t _loadPin, const uint8_t _intensity, char* _src) {    
-  uint8_t col, currByte = 0,  isHexString = false;
-//  uint32_t startTime = micros();
+void writeToMAX7219(const uint8_t _mosiPin, const uint8_t _sclkPin, const uint8_t _loadPin, const uint8_t _intensity, uint8_t* _src) {
+  uint8_t dataSize = 0x00, spiType = SPI_TYPE_SOFTWARE;
 
-  uint8_t dataPinBit, clockPinBit, loadPinBit;
-  volatile uint8_t *dataPinPOR, *clockPinPOR, *loadPinPOR;
+  uint8_t mosiPinBit = 0x00, sclkPinBit = 0x00, loadPinBit = 0x00;
+  volatile uint8_t *mosiPinPOR = nullptr, *sclkPinPOR = nullptr, *loadPinPOR = nullptr;
 
-  dataPinBit  = digitalPinToBitMask(_dataPin);
-  dataPinPOR  = portOutputRegister(digitalPinToPort(_dataPin));
-  
-  clockPinBit = digitalPinToBitMask(_clockPin); 
-  clockPinPOR = portOutputRegister(digitalPinToPort(_clockPin));
+  //uint32_t startTime = micros();
+  if (MOSI == _mosiPin && SCK == _sclkPin) {
+     spiType = SPI_TYPE_HARDWARE;
+  } else {
+     mosiPinBit  = digitalPinToBitMask(_mosiPin);
+     mosiPinPOR  = portOutputRegister(digitalPinToPort(_mosiPin));
+ 
+     sclkPinBit = digitalPinToBitMask(_sclkPin); 
+     sclkPinPOR = portOutputRegister(digitalPinToPort(_sclkPin));
+
+     pinMode(_mosiPin, OUTPUT);
+     pinMode(_sclkPin, OUTPUT);
+
+  }  
+
   
   loadPinBit  = digitalPinToBitMask(_loadPin); 
   loadPinPOR  = portOutputRegister(digitalPinToPort(_loadPin));
-  
-  pinMode(_dataPin, OUTPUT);
-  pinMode(_clockPin, OUTPUT);
+
   pinMode(_loadPin, OUTPUT);
 
   // Init the module 
   // Mark all columns as active
-  pushDataToMAX7219(dataPinPOR, dataPinBit, clockPinPOR, clockPinBit, loadPinPOR, loadPinBit, MAX7219_REGISTER_SCANLIMIT, 0x07);      
+  pushDataToMAX7219(spiType, mosiPinPOR, mosiPinBit, sclkPinPOR, sclkPinBit, loadPinPOR, loadPinBit, MAX7219_REGISTER_SCANLIMIT, 0x07);      
   // No decode digits - led matrix mode, define active led segsments manually
-  pushDataToMAX7219(dataPinPOR, dataPinBit, clockPinPOR, clockPinBit, loadPinPOR, loadPinBit, MAX7219_REGISTER_DECODE_MODE, 0x00);
+  pushDataToMAX7219(spiType, mosiPinPOR, mosiPinBit, sclkPinPOR, sclkPinBit, loadPinPOR, loadPinBit, MAX7219_REGISTER_DECODE_MODE, 0x00);
   // Switch on IC
-  pushDataToMAX7219(dataPinPOR, dataPinBit, clockPinPOR, clockPinBit, loadPinPOR, loadPinBit, MAX7219_REGISTER_SHUTDOWN, 0x01);
+  pushDataToMAX7219(spiType, mosiPinPOR, mosiPinBit, sclkPinPOR, sclkPinBit, loadPinPOR, loadPinBit, MAX7219_REGISTER_SHUTDOWN, 0x01);
   // Switch off display test
-  pushDataToMAX7219(dataPinPOR, dataPinBit, clockPinPOR, clockPinBit, loadPinPOR, loadPinBit, MAX7219_REGISTER_DISPLAYTEST, 0x00); // no display test
+  pushDataToMAX7219(spiType, mosiPinPOR, mosiPinBit, sclkPinPOR, sclkPinBit, loadPinPOR, loadPinBit, MAX7219_REGISTER_DISPLAYTEST, 0x00); // no display test
   // Set intensity
-  pushDataToMAX7219(dataPinPOR, dataPinBit, clockPinPOR, clockPinBit, loadPinPOR, loadPinBit, MAX7219_REGISTER_INTENSITY, _intensity & 0x0F);    // the first 0x0f is the value you can set
+  pushDataToMAX7219(spiType, mosiPinPOR, mosiPinBit, sclkPinPOR, sclkPinBit, loadPinPOR, loadPinBit, MAX7219_REGISTER_INTENSITY, _intensity & 0x0F);    // the first 0x0f is the value you can set
 
-  // Draw line by line from first column...
-  col = 0x01;
-  // MAX7219.write[5,6,7,1,"1.2.3.4.5.6.7.8"]
-  // MAX7219.write[5,6,7,1,"    1.25"]
-  // MAX7219.write[15,16,17,1,"Hc  -1.25"]
   // HEX strings must be processeed specially
   if (haveHexPrefix(_src)) {
+     uint8_t* ptrWritePosition = _src;
      // Skip "0x"
-     _src += 2;
-     isHexString = true;
+     uint8_t* ptrReadPosition  = _src + 0x02;
+
+     // HEX processing
+     while (*ptrReadPosition) {
+       // Make first four bits of byte to push from HEX.
+       *ptrWritePosition = htod(*ptrReadPosition); ptrReadPosition++;
+       // Check for second nibble existience
+       if (*ptrReadPosition) {
+          // Move first nibble to high
+          *ptrWritePosition <<= 4;
+          // Add its to byte if HEX not '\0'
+          *ptrWritePosition |= htod(*ptrReadPosition);
+       }
+     }   
+     // it's ok for length calculate?
+     dataSize = ptrReadPosition - _src;
+     dataSize--;
   } else {
 
-    uint8_t dataBufferSwapPosition = 0x00;
-    uint8_t lenOfBuffer = 0x00;
-    while (_src[lenOfBuffer]) { lenOfBuffer++; }
-    uint8_t dataBufferPosition = lenOfBuffer-1;
-    lenOfBuffer = lenOfBuffer >> 1;
-    // 
-    while (lenOfBuffer){
-       // swap buffer items 
-       char tmpVal = _src[dataBufferSwapPosition];
-       _src[dataBufferSwapPosition] = _src[dataBufferPosition];
-       _src[dataBufferPosition] = tmpVal;
-       // shrink swapping area
-       dataBufferPosition--;
-       dataBufferSwapPosition++;
-       lenOfBuffer--;
-     } 
-  }
-  
-  while (*_src) {
-    // HEX processing
-    if (isHexString) {
-       // Make first four bits of byte to push from HEX.
-       currByte = htod(*_src); _src++;
-       // Move first nibble to high
-       currByte <<= 4;
-       // Check for second nibble existience
-       if (*_src) {
-          // Add its to byte if HEX not '\0'
-          currByte |= htod(*_src);
-       }
 #ifndef NO_ASCII_SUPPORT
-    } else {     
-      uint8_t letterDrawingsNo = arraySize(letterDrawings)+1;
+     uint8_t letterDrawingsNo;
+     uint8_t* dotOwner         = nullptr;
+     uint8_t* ptrWritePosition = _src;
+     uint8_t* ptrReadPosition  = _src;
 
+     while (*ptrReadPosition) {
+       // dot just skipped and processed on next step
+       if ('.' == *ptrReadPosition) { 
+          // dotOwner is not nullptr if dot sign is not first char in the string
+          if (dotOwner) { *dotOwner |= 0x80; }
+       } else {
+          letterDrawingsNo = arraySize(letterDrawings) + 0x01;
+          // Search the drawing No into reference array
+          do { letterDrawingsNo--; } while (letterDrawingsNo && *ptrReadPosition != pgm_read_byte(&(letterDrawings[letterDrawingsNo].sign)));
+          *ptrWritePosition = pgm_read_byte(&(letterDrawings[letterDrawingsNo].draw));
+          dotOwner = ptrWritePosition;
+          ptrWritePosition++;
+          dataSize++;
+       }
+       ptrReadPosition++;
+     }
 
-/*
-      //Serial.print("letterDrawingsNo: "); Serial.print(letterDrawingsNo); Serial.print(", sign: "); Serial.print (sign); 
-      while (letterDrawingsNo) {
-        letterDrawingsNo--;
-        char sign = (char) pgm_read_byte(&(letterDrawings[letterDrawingsNo].sign));
-           //Serial.print("letterDrawingsNo: "); Serial.print(letterDrawingsNo); Serial.print(", sign: "); Serial.print (sign); 
-        if (sign == *_src) { break; }
-      }
-*/
-      // Search the drawing No into reference array
-      do { letterDrawingsNo--; } while (letterDrawingsNo && *_src != pgm_read_byte(&(letterDrawings[letterDrawingsNo].sign)));
-      currByte = pgm_read_byte(&(letterDrawings[letterDrawingsNo].draw));
-      //Serial.print(", currByte: "); Serial.println(currByte);
+     // start read from the end and write to the begin (ptrWritePosition and ptrReadPosition just reused)
+     ptrWritePosition--;
+     ptrReadPosition = _src;
 
-      // dot just skipped and processed on next step
-      if ('.' == *_src) { goto next; }
-      // 'dot' sign is prev? 
-      if ('.' == ((char) *(_src-1))) { currByte |= 0x80; }
+     while (ptrWritePosition > ptrReadPosition){
+
+       // swap buffer items 
+       char tmpVal = *ptrReadPosition; *ptrReadPosition = *ptrWritePosition; *ptrWritePosition = tmpVal;
+       // shrink swapping area
+       ptrWritePosition--;
+       ptrReadPosition++;
+     } 
 #endif
-    }
-    // Pushing byte to column
-    pushDataToMAX7219(dataPinPOR, dataPinBit, clockPinPOR, clockPinBit, loadPinPOR, loadPinBit, col, currByte);
-
-    // only 8 columns must be processeed, comment its if need more
-    col++;
-    if (0x08 < col) { break; }
-    next:
-    _src++;
-
   }
-//  Serial.print("Spended (us): "); Serial.println(micros()-startTime);
+
+  
+  //!!! calc runtime !!!  
+  // Draw line by line from first column...
+  uint8_t col = 0x01;
+  for (uint8_t i = 0x00; i < dataSize; i++) {  
+    // Pushing byte to column
+    pushDataToMAX7219(spiType, mosiPinPOR, mosiPinBit, sclkPinPOR, sclkPinBit, loadPinPOR, loadPinBit, col, _src[i]);  
+    // only 8 columns must be processeed, comment its if need more
+    col++    ;
+    if (0x08 < col) { break; }
+  }
+  //uint32_t endTime = micros(); DEBUG_PORT.print("processed in (uS): "); DEBUG_PORT.println(endTime-startTime);
 
   gatherSystemMetrics(); // Measure memory consumption
     

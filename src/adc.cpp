@@ -69,6 +69,8 @@ uint16_t getADCVoltage(const uint8_t _analogChannel) {
 *****************************************************************************************************************************/
 int8_t getACS7XXMetric(const uint8_t _sensorPin, uint32_t _sampleTime, uint32_t _aRefVoltage, const uint8_t _metric, const uint8_t _sensitivity, const int32_t _ZeroCurrentPoint, char* _dst)
 {  
+  __SUPPRESS_WARNING_UNUSED(_sampleTime);
+
   uint32_t sampleInterval, mVperUnit, prevMicros = 0;
   int32_t result, adcValue, numUnits = 0;
   int16_t samplesCount = 0; // adcTable[ADC_SAMPLES], 
@@ -137,7 +139,6 @@ int8_t getACS7XXMetric(const uint8_t _sensorPin, uint32_t _sampleTime, uint32_t 
       break;
   }
 
-//  Serial.print("numUnits: ");   Serial.println(numUnits); 
   /**** Calculation ****/
   switch (_metric) {
     case SENS_READ_ZC:

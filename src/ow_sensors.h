@@ -22,9 +22,10 @@
 #define DS18X20_MODE_11_BIT                                     (0x5F) // 11 bit
 #define DS18X20_MODE_12_BIT                                     (0x7F) // 12 bit
 
-#define DS18X20_MIN_RESOLUTION                                  (9) //  9 bit
-#define DS18X20_MAX_RESOLUTION                                  (12) //  12 bit
+#define DS18X20_MIN_RESOLUTION                                  (9)    //  9 bit
+#define DS18X20_MAX_RESOLUTION                                  (12)   //  12 bit
 
+#define DS18X20_MAX_CONVERSION_TIME                             (750U) //  750 ms
 
 // OneWire commands
 #define DS18X20_CMD_STARTCONVO                                  (0x44)  // Tells device to take a temperature reading and put it on the scratchpad
@@ -47,28 +48,21 @@
 #define DS18X20_BYTE_COUNT_PER_C                                (0x07)
 #define DS18X20_BYTE_SCRATCHPAD_CRC                             (0x08)
 
-#define DS18X20_SCRATCHPAD_SIZE                                 (0x08)
+#define DS18X20_SCRATCHPAD_SIZE                                 (0x09)
 
                                                                      
 /*****************************************************************************************************************************
 *
-*   Overloads of main subroutine. Used to get numeric metric's value or it's char presentation only
-*
-*****************************************************************************************************************************/
-int8_t getDS18X20Metric(const uint8_t, uint8_t, uint8_t*, int32_t*);
-int8_t getDS18X20Metric(const uint8_t, uint8_t, uint8_t*, char*);
-
-/*****************************************************************************************************************************
-*
-*  Read specified metric's value of the digital sensor of Dallas DS18x20 family, put it to output buffer on success. 
+*  Read specified metric's value of the digital sensor of Dallas DS18x20 family, returns temperature as number on success. 
 *
 *  Note: subroutine is tested with DS18B20 only. 
 *        probably you can meet problems with the correct calculation of temperature due to incorrect 'tRaw' adjustment 
 *
-*   Returns: 
-*     - RESULT_IS_BUFFERED on success
-*     - DEVICE_ERROR_CONNECT on connection error
-*     - DEVICE_ERROR_CHECKSUM on detect data corruption
+*  Returns: 
+*     - RESULT_IS_FLOAT_04_DIGIT    on success
+*     - DEVICE_ERROR_NOT_SUPPORTED  on wrong params specified
+*     - DEVICE_ERROR_TIMEOUT        on sensor stops answer to the request
+*     - DEVICE_ERROR_CHECKSUM       on detect data corruption
 *
 *****************************************************************************************************************************/
-int8_t getDS18X20Metric(const uint8_t, uint8_t, uint8_t*, char*, int32_t*, const uint8_t _wantsNumber = false);
+int8_t getDS18X20Metric(const uint8_t, uint8_t, uint8_t*, int32_t*);

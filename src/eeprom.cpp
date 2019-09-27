@@ -23,7 +23,7 @@ uint8_t saveConfigToEEPROM(netconfig_t& _sysConfig)
           restartWriteCycle, 
           *ptrSysConfig = (uint8_t*) &_sysConfig;
 
-  DTSM ( Serial.println(F("Saving config to EEPROM")); )
+  __DMLM( DEBUG_PORT.println(F("Saving config to EEPROM")); )
   // Calculate CRC of _sysConfig and place it to first byte of structure to batch writing.
   // CRC-byte must be skipped on CRC calculating
   _sysConfig.CRC = dallas_crc8(((uint8_t*) &_sysConfig) + sizeof(_sysConfig.CRC), sizeof(_sysConfig)-sizeof(_sysConfig.CRC));
@@ -41,29 +41,29 @@ uint8_t saveConfigToEEPROM(netconfig_t& _sysConfig)
   while (index) {
      // Writing procedure must be stopped by return operator if EEPROM space is not enought to save sizeof() bytes of config
      if (startAddress > (EEPROM.length() - sizeof(_sysConfig))) { 
-        DTSM ( Serial.println(F("There is not room to save config")); )
+        __DMLM( DEBUG_PORT.println(F("There is not room to save config")); )
         return false;
      }
 
      restartWriteCycle = false;
      index = sizeof(_sysConfig);
-     //Serial.print("Need to write: "); Serial.print(index); Serial.println(" bytes");
+     //DEBUG_PORT.print("Need to write: "); DEBUG_PORT.print(index); DEBUG_PORT.println(" bytes");
           
      // Operations must be repeated until all bytes of config structure not saved and no write errors found
      while (index && !restartWriteCycle) {
        --index;
        // Just simulate EEPROM.update():
        // Write only changed data and immediately tests the written byte. On testing error - restart write cycle with new start address.
-       //Serial.print("0x"); Serial.print(ptrSysConfig[index]); Serial.print(" => '"); Serial.print((char) ptrSysConfig[index]); Serial.print("'"); 
+       //DEBUG_PORT.print("0x"); DEBUG_PORT.print(ptrSysConfig[index]); DEBUG_PORT.print(" => '"); DEBUG_PORT.print((char) ptrSysConfig[index]); DEBUG_PORT.print("'"); 
        if (EEPROM[index + startAddress] != ptrSysConfig[index]) {
-          //Serial.println(" [W]"); 
+          //DEBUG_PORT.println(" [W]"); 
           EEPROM[index + startAddress] = ptrSysConfig[index];
           if (EEPROM[index + startAddress] == ptrSysConfig[index]) { continue; }
-          DTSM ( Serial.println(F("Probaly EEPROM cell is corrupted...")); )
+          __DMLM( DEBUG_PORT.println(F("Probaly EEPROM cell is corrupted...")); )
           startAddress = startAddress + index + 1;
           restartWriteCycle = true;
        } // if (EEPROM[index + startAddress] != ptrSysConfig[index])
-       //Serial.println(" [U]"); 
+       //DEBUG_PORT.println(" [U]"); 
 
      } // while (index && !restartWriteCycle)
   } // while (index)
@@ -94,7 +94,7 @@ uint8_t loadConfigFromEEPROM(netconfig_t& _sysConfig)
           startAddress, 
           *ptrSysConfig = (uint8_t*) &_sysConfig;
 
-  DTSM ( Serial.println(F("Load configuration from EEPROM")); )
+//  __DMLM( DEBUG_PORT.print(F("Load configuration from EEPROM ")); )
   // Read the pointer of config store start address and validate it: default_start_address < startAddress < (last_eeprom_cell_address - config_structure_size) 
   // On error - stop working
   startAddress = EEPROM[CONFIG_STORE_PTR_ADDRESS];

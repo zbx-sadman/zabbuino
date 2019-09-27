@@ -17,7 +17,7 @@
  along with this program.  If not, see <http://www.gnu.org/licenses/>.
   */
 #include "../net_platforms.h"
-#ifdef NETWORK_ETH_ENC28J60
+#ifdef NETWORK_ETHERNET_ENC28J60
 
 
 #include "UIPEthernet.h"
@@ -63,4 +63,4 @@ size_t UIPServer::write(const uint8_t *buf, size_t size)
   return ret;
 }
 
-#endif // NETWORK_ETH_ENC28J60
+#endif // NETWORK_ETHERNET_ENC28J60

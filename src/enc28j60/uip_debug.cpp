@@ -1,5 +1,5 @@
 #include "../net_platforms.h"
-#ifdef NETWORK_ETH_ENC28J60
+#ifdef NETWORK_ETHERNET_ENC28J60
 
 #include "uip_debug.h"
 
@@ -165,4 +165,4 @@ UIPDebug::uip_debug_printbytes(const uint8_t *data, uint8_t len)
         Serial.print(",");
     }
 }
-#endif // NETWORK_ETH_ENC28J60
+#endif // NETWORK_ETHERNET_ENC28J60

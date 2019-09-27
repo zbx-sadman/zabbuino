@@ -1,5 +1,5 @@
 #include "../net_platforms.h"
-#ifdef NETWORK_ETH_WIZNET
+#ifdef NETWORK_ETHERNET_WIZNET
 
 /*
  *  Udp.cpp: Library to send/receive UDP packets with the Arduino ethernet shield.
@@ -217,4 +217,4 @@ void EthernetUDP::flush()
   }
 }
 
-#endif // NETWORK_ETH_WIZNET
+#endif // NETWORK_ETHERNET_WIZNET

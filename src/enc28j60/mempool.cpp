@@ -18,7 +18,7 @@
  */
 
 #include "../net_platforms.h"
-#ifdef NETWORK_ETH_ENC28J60
+#ifdef NETWORK_ETHERNET_ENC28J60
 
 #include "mempool.h"
 
@@ -168,4 +168,4 @@ MemoryPool::blockSize(memhandle handle)
 {
   return blocks[handle].size;
 }
-#endif // NETWORK_ETH_ENC28J60
+#endif // NETWORK_ETHERNET_ENC28J60

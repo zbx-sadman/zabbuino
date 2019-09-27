@@ -6,39 +6,39 @@
    Subroutine calls on start of Zabbuino
 
 *****************************************************************************************************************************/
-void __attribute__((weak)) initStageUserFunction(char*);
+void __attribute__((weak)) initStageUserFunction(uint8_t*);
 
 /*****************************************************************************************************************************
 
    Subroutine calls when config is already loaded, but network not started yet
 
 *****************************************************************************************************************************/
-void __attribute__((weak)) netPrepareStageUserFunction(char*);
+void __attribute__((weak)) netPrepareStageUserFunction(uint8_t*);
 
 /*****************************************************************************************************************************
 
    Subroutine calls before processing loop entering
 
 *****************************************************************************************************************************/
-void __attribute__((weak)) preLoopStageUserFunction(char*);
+void __attribute__((weak)) preLoopStageUserFunction(uint8_t*);
 
 /*****************************************************************************************************************************
 
    Subroutine calls if alarm occured
 
 *****************************************************************************************************************************/
-void __attribute__((weak)) alarmStageUserFunction(char*, uint8_t);
+void __attribute__((weak)) alarmStageUserFunction(uint8_t*, uint8_t);
 
 /*****************************************************************************************************************************
 
    Subroutine calls on every loop if no active network session exist
 
 *****************************************************************************************************************************/
-void __attribute__((weak)) loopStageUserFunction(char*);
+void __attribute__((weak)) loopStageUserFunction(uint8_t*);
 
 /*****************************************************************************************************************************
 
    Subroutine calls when user.run[] command catched
 
 *****************************************************************************************************************************/
-int8_t __attribute__((weak)) executeCommandUserFunction(char*, char**, int32_t*, int32_t*);
+int8_t __attribute__((weak)) executeCommandUserFunction(uint8_t*, char**, int32_t*, int32_t*);

@@ -1,5 +1,5 @@
 #include "../net_platforms.h"
-#ifdef NETWORK_ETH_WIZNET
+#ifdef NETWORK_ETHERNET_WIZNET
 
 #include "EthernetServer.h"
 
@@ -215,4 +215,4 @@ size_t EthernetServer::write(const uint8_t *buffer, size_t size)
   return n;
 }
 
-#endif // NETWORK_ETH_WIZNET
+#endif // NETWORK_ETHERNET_WIZNET

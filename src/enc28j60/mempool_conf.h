@@ -1,5 +1,5 @@
 #include "../net_platforms.h"
-#ifdef NETWORK_ETH_ENC28J60
+#ifdef NETWORK_ETHERNET_ENC28J60
 
 #ifndef _UIP_MEMPOOLCONF_H_
 #define _UIP_MEMPOOLCONF_H_
@@ -34,4 +34,4 @@ void enc28J60_mempool_block_move_callback(memaddress,memaddress,memaddress);
 #define MEMPOOL_MEMBLOCK_MV(dest,src,size) enc28J60_mempool_block_move_callback(dest,src,size)
 
 #endif // _UIP_MEMPOOLCONF_H_
-#endif // NETWORK_ETH_ENC28J60
+#endif // NETWORK_ETHERNET_ENC28J60

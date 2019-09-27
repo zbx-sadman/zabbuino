@@ -8,6 +8,7 @@
 #include "system.h"
 #include "service.h"
 #include "eeprom.h"
+#include "ow_bus.h"
 
 /*****************************************************************************************************************************
 *
@@ -45,19 +46,21 @@ uint8_t factoryReset(netconfig_t& _sysConfig) {
 
    // Is constFactoryResetButtonPin shorted?
    if (LOW == digitalRead(constFactoryResetButtonPin)) {
-      DTSL( FSH_P((STRING_The_factory_reset_button_is_pressed)); )
+      __DMLL( FSH_P((STRING_The_factory_reset_button_is_pressed)); )
       // Fire up state LED
       digitalWrite(constStateLedPin, HIGH);
       // Wait some msecs
       delay(constHoldTimeToFactoryReset);
       // constFactoryResetButtonPin still shorted?
       if (LOW == digitalRead(constFactoryResetButtonPin)) {
-         DTSL( Serial.print(FSH_P(STRING_Rewrite_EEPROM_with_defaults)); Serial.print(FSH_P(STRING_3xDot_Space)); )
+         __DMLL( DEBUG_PORT.print(FSH_P(STRING_Rewrite_EEPROM_with_defaults)); DEBUG_PORT.print(FSH_P(STRING_3xDot_Space)); )
          setConfigDefaults(_sysConfig);
          // return "sucess" only if default config saved
          rc = saveConfigToEEPROM(_sysConfig);
+         if (!rc) { __DMLM( DEBUG_PORT.print(FSH_P(STRING_Config)); DEBUG_PORT.println(FSH_P(STRING_saving_error)); ) }
+
          // Blink fast while constFactoryResetButtonPin shorted to GND
-         DTSL( Serial.print(FSH_P(STRING_Release_the_factory_reset_button_now)); )
+         __DMLL( DEBUG_PORT.print(FSH_P(STRING_Release_the_factory_reset_button_now)); )
          while (LOW == digitalRead(constFactoryResetButtonPin)) { digitalWrite(constStateLedPin, millis() % 100 < 50); }
       }
   } // if (LOW == digitalRead(constFactoryResetButtonPin))
@@ -130,7 +133,7 @@ void setConfigDefaults(netconfig_t& _sysConfig) {
 
   _sysConfig.tzOffset = constSysTZOffset;
 
-  _sysConfig.hostname[constAgentHostnameMaxLength] = '\0';
+  _sysConfig.hostname[constAgentHostnameMaxLength] = CHAR_NULL;
 
 #ifdef FEATURE_NET_USE_MCUID
   copyCharsNumber = (constAgentHostnameMaxLength <= (constMcuIdSize * 2)) ? constAgentHostnameMaxLength : constMcuIdSize * 2;
@@ -189,7 +192,7 @@ void ltoaf(const int32_t _number, char* _dst, const uint8_t _num_after_dot)
   const int32_t dividers[maxStringLen]={1000000000, 100000000, 10000000, 1000000, 100000, 10000, 1000, 100, 10, 1};
   
   // If Zero given - Zero returned without long processing 
-  if (0 == value) { _dst[0] = '0';  _dst[1] = '\0'; return;} 
+  if (0 == value) { _dst[0] = '0';  _dst[1] = CHAR_NULL; return;} 
  
   // negative value testing and write '-' to output buffer
   if (0 > value) { value = 0 - value; *_dst = '-'; _dst++;} 
@@ -232,7 +235,7 @@ void ltoaf(const int32_t _number, char* _dst, const uint8_t _num_after_dot)
     // do not add trailing zeros after dot
     if (0 >= value and pointIsUsed) {break;}
   }
-  *_dst = '\0';
+  *_dst = CHAR_NULL;
 }
 
 /*****************************************************************************************************************************
@@ -278,7 +281,7 @@ int16_t hstoba(uint8_t* _dst, const char* _src)
 *   This function placed here to aviod compilation error when OneWire library is not #included
 *
 *****************************************************************************************************************************/
-uint8_t dallas_crc8(uint8_t *_src, uint8_t _len)
+uint8_t dallas_crc8(uint8_t* _src, uint8_t _len)
 {
   uint8_t crc = 0;
   while (_len) {
@@ -321,7 +324,8 @@ void printArray(uint8_t* _src, const uint8_t _len, Stream& _stream, const uint8_
       switch (_type) {
          case OW_ADDRESS:
            _stream.print(FSH_P(STRING_HEX_Prefix));
-           i = 7;
+           // Last byte was printed on the ** (see below)
+           i = ONEWIRE_ID_SIZE - 1;
            while (i) {
              i--;
              if (0x0F > _src[pos]) { _stream.print('0'); }
@@ -340,12 +344,12 @@ void printArray(uint8_t* _src, const uint8_t _len, Stream& _stream, const uint8_
          default:
            break;
       }     
-
+      // ** common print procedure
       _stream.print(_src[pos], format);
       pos++;
       if (pos < _len) { _stream.print(separator); }
    }
-   _stream.println();
+   _stream.print('\n');
 }
 
 void blinkMore(const uint8_t _times, const uint16_t _onTime, const uint16_t _offTime) 
@@ -362,73 +366,123 @@ uint8_t validateNetworkAddress(const NetworkAddress _address) {
   return true;
 }
 */
-uint8_t strToNetworkAddress(const char* _src, uint32_t& _dstAddress) {
-  if ('\0' == *_src) { return false; }
-  _dstAddress = htonl(strtoul(_src, NULL, 0));
-  return true;
+
+uint8_t strToNetworkAddress(char* _src, uint32_t& _ipAddress) {
+  uint8_t formatError = false;
+  _ipAddress = 0x00;
+
+  if (CHAR_NULL == *_src) {
+    formatError = true;
+  } else if (haveHexPrefix(_src)) {
+    _ipAddress = htonl(strtoul(_src, NULL, 0));
+  } else {
+    char* ptrStartString = _src;
+    uint8_t octetNo = 0x00, eolDetected = false, byteShift = 0x00, bytesRead = 0x00;
+    uint32_t octetValue;
+    while (!formatError && !eolDetected) {
+      Serial.println(*_src);
+      if (CHAR_NULL == *_src || '.' == *_src) {
+        eolDetected = (CHAR_NULL == *_src);
+        *_src = CHAR_NULL;
+        octetValue = strtoul(ptrStartString, NULL, 0);
+        Serial.print("Octet #"); Serial.print(octetNo); Serial.print(" => ");  Serial.print(ptrStartString); Serial.print(" => ");  Serial.println(octetValue);
+        octetNo++;
+        // may be use strtoul && 0x00 >= octetValue ?
+        formatError = (0xFF < octetValue || 0x04 < octetNo);
+        ptrStartString = _src + 1;
+        _ipAddress |= (octetValue << byteShift);
+        byteShift += 8;
+      }
+      _src++;
+      bytesRead++;
+      formatError |= (bytesRead > 0x0F);
+    }
+    formatError |= (0x04 != octetNo);
+  }
+
+  if (formatError) {
+    _ipAddress = 0x00;
+  }
+
+  return !formatError;
 }
+
 
 /*****************************************************************************************************************************
 
-   Stream analyzing subroutine
+   Parse request subroutine
    Detect Zabbix packets, on-fly spit incoming stream to command & arguments
 
 **************************************************************************************************************************** */
-uint8_t analyzeStream(char _charFromClient, char* _dst, const uint8_t doReInit, packetInfo_t& _packetInfo) {
-  uint8_t static allowAnalyze          = true, 
-                 cmdSliceNumber        = 0,
-                 isEscapedChar         = 0,
-                 doubleQuotedString    = false,
-                 packetRecieved        = false;
-  uint16_t static bufferWritePosition  = 0;
+uint8_t parseRequest(char _charFromClient, const uint8_t doReInit, request_t& _request) {
+  uint8_t  addChunk = false, rc = true;
+  uint8_t  static allowAnalyze, argCounter, isEscapedChar, doubleQuotedString, parsingDone, *ptrChunkStart;
+  uint16_t static bufferWritePosition, payloadReadedLength, payloadExpectedLength;
 
   // Jump into reInitStage procedure. This is a bad programming style, but the subroutine must be lightweight.
   if (doReInit) {
-    // Temporary clean code stub
-    _packetInfo.dataLength = 0x00;
-    _packetInfo.type = PACKET_TYPE_PLAIN;
-    *_dst = '\0';
-    goto reInitStage;
+    __DMLD( DEBUG_PORT.print(FSH_P(STRING_Reinit_parser)); )
+    _request.type = PACKET_TYPE_PLAIN;
+    _request.dataFreeSize = 0x00;
+    // Just init pointers with nullptr to mark args with no content
+    //memset(_request.args, NULL, sizeof(_request.args)); ???
+    uint8_t i = arraySize(_request.args);
+    while (i) {
+      --i;
+      _request.args[i] = nullptr;
+    }
+    ptrChunkStart = nullptr;
+    bufferWritePosition = argCounter = isEscapedChar = doubleQuotedString = payloadReadedLength = 0x00;
+    rc = doubleQuotedString = parsingDone = false;
+    allowAnalyze = true;
+    goto finish;
   }
 
-  // If there is not room in buffer - simulate EOL recieving
-  if (constBufferSize <= bufferWritePosition ) {
-    _charFromClient = '\n';
+  // If there is not room in buffer - create fake command CMD_ZBX_NOPE to return ZBX_NOTSUPPORTED
+  if (sizeof(_request.data) <= bufferWritePosition ) {
+    _request.type = PACKET_TYPE_NONE;
+    // Return false as 'Do not need next char'
+    rc = false;
+    goto finish;
   }
 
   // Put next char to buffer
-  _dst[bufferWritePosition] = (doubleQuotedString) ? _charFromClient : tolower(_charFromClient);
+  _request.data[bufferWritePosition] = (doubleQuotedString) ? _charFromClient : tolower(_charFromClient);
+
+  // Development mode only debug message level used
+  __DMLD( DEBUG_PORT.print(F("in [")); DEBUG_PORT.print(bufferWritePosition); DEBUG_PORT.print(F("]: ")); DEBUG_PORT.print(_request.data[bufferWritePosition], HEX); DEBUG_PORT.print(F(" '")); DEBUG_PORT.print((char) _request.data[bufferWritePosition]); DEBUG_PORT.print(F("' ")); )
 
   // When ZBX_HEADER_PREFIX_LENGTH chars is saved to buffer - test its for Zabbix2 protocol header prefix ("ZBXD\01") presence
   // (ZBX_HEADER_PREFIX_LENGTH-1) was used because bufferWritePosition is start count from 0, not from 1
-  if ((ZBX_HEADER_PREFIX_LENGTH-1) == bufferWritePosition) {
-    if (0 == memcmp(_dst, (ZBX_HEADER_PREFIX), ZBX_HEADER_PREFIX_LENGTH)) {
+  if ((sizeof(zbxHeaderPrefix) - 1) == bufferWritePosition) {
+    if (0x00 == memcmp_P(_request.data, zbxHeaderPrefix, sizeof(zbxHeaderPrefix))) {
       // If packet have prefix - it is Zabbix's native packet
-      _packetInfo.type = PACKET_TYPE_ZABBIX;
-      DTSD( Serial.print(FSH_P(STRING_ZBX_header)); Serial.println(FSH_P(STRING_detected)); )
+      _request.type = PACKET_TYPE_ZABBIX;
+      __DMLD( DEBUG_PORT.print(FSH_P(STRING_ZBX_header)); DEBUG_PORT.print(FSH_P(STRING_detected)); )
       allowAnalyze = false;
     }
   }
 
   // Allow packet analyzing when Zabbix header is skipped
-  if (ZBX_HEADER_LENGTH == bufferWritePosition && PACKET_TYPE_ZABBIX == _packetInfo.type) {
-    //bufferWritePosition = 0;
-    //needSkipZabbix2Header = false;
+  if ((ZBX_HEADER_LENGTH - 1) == bufferWritePosition && PACKET_TYPE_ZABBIX == _request.type) {
     allowAnalyze = true;
-    _packetInfo.dataLength = 0x00;
-    memcpy(&(_packetInfo.expectedDataLength), &_dst[ZBX_HEADER_PREFIX_LENGTH], sizeof(_packetInfo.expectedDataLength));
-    DTSD( Serial.print(FSH_P(STRING_ZBX_header)); Serial.println(FSH_P(STRING_passed)); )
-    // Return 'Need next char' and save a lot cpu time
-    //return true;
+    payloadReadedLength = 0x00;
+    memcpy(&(payloadExpectedLength), &_request.data[ZBX_HEADER_PREFIX_LENGTH], sizeof(payloadExpectedLength));
+    // Expected length is more that buffer, processing must be stopped
+    if (sizeof(_request.data) < (payloadExpectedLength + ZBX_HEADER_LENGTH)) {
+      __DMLD( DEBUG_PORT.println(FSH_P(STRING_Expected_data_so_big));)
+      _request.type = PACKET_TYPE_NONE;
+      // Return false as 'Do not need next char'
+      rc = false;
+      goto finish;
+    }
+    __DMLD( DEBUG_PORT.print(FSH_P(STRING_ZBX_header)); DEBUG_PORT.print(FSH_P(STRING_passed)); )
   }
-
-  // Development mode only debug message level used
-  DTSD( Serial.print("in: "); Serial.print(_dst[bufferWritePosition], HEX); Serial.print(" '"); Serial.print((char) _dst[bufferWritePosition]); Serial.print("' "); )
 
   // Process all chars if its not from header data
   if (allowAnalyze) {
     // char is not escaped
-    DTSD( Serial.println(FSH_P(STRING_3xDot_Space));  )
+    __DMLD( DEBUG_PORT.print(FSH_P(STRING_3xDot_Space));  )
     switch (_charFromClient) {
       // Doublequote sign is arrived
       case '"':
@@ -436,11 +490,12 @@ uint8_t analyzeStream(char _charFromClient, char* _dst, const uint8_t doReInit, 
           // Doublequote is not escaped - just drop it and toggle "string is doublequoted" mode (do not convert char case,
           //  skip action on space, ']', '[', ',' detection). Then jump out from subroutine to get next char from client
           doubleQuotedString = !doubleQuotedString;
-          return true;
+          // rc already inited as true
+          goto finish;
         }
         // Doublequote is escaped. Move write position backward to one step and write doublequote sign to '\' position
         bufferWritePosition--;
-        _dst[bufferWritePosition] = '"';
+        _request.data[bufferWritePosition] = '"';
         isEscapedChar = false;
         break;
 
@@ -455,22 +510,25 @@ uint8_t analyzeStream(char _charFromClient, char* _dst, const uint8_t doReInit, 
       case 0x20:
         // Return 'Need next char'
         if (!doubleQuotedString) {
-          return true;
+          // rc already inited as true
+          goto finish;
         }
         break;
 
-      // Delimiter or separator found.
+      // Starting square bracket found - command part readed, args reading starts
       case '[':
+        if (!doubleQuotedString) {
+          argCounter = 0x00;
+          _request.data[bufferWritePosition] = CHAR_NULL;
+          ptrChunkStart = &_request.data[bufferWritePosition + 1];
+        }
+        break;
+
+      // Separator found.
       case ',':
         // If its reached not in doublequoted string - process it as control char.
         if (!doubleQuotedString) {
-          //  If '_argOffset' array is not exhausted - push begin of next argument (bufferWritePosition+1) on buffer to arguments offset array.
-          if (constArgC > cmdSliceNumber) {
-            _packetInfo.optarg[cmdSliceNumber] = &_dst[bufferWritePosition + 1];
-          }
-          cmdSliceNumber++;
-          // Make current buffer segment like C-string
-          _dst[bufferWritePosition] = '\0';
+          addChunk = true;
         }
         break;
 
@@ -485,55 +543,138 @@ uint8_t analyzeStream(char _charFromClient, char* _dst, const uint8_t doReInit, 
       // EOL detected
       case '\n':
         // Save last argIndex that pointed to <null> item. All unused _argOffset[] items must be pointed to this <null> item too.
-        _dst[bufferWritePosition] = '\0';
-        packetRecieved = true;
-        //while (constArgC > cmdSliceNumber) { _argOffset[cmdSliceNumber++] = bufferWritePosition;}
-        while (constArgC > cmdSliceNumber) {
-          _packetInfo.optarg[cmdSliceNumber++] = &_dst[bufferWritePosition];
+        if (!doubleQuotedString) {
+          parsingDone = addChunk = true;
+          //__DMLD( DEBUG_PORT.print(F(" NL detected @ ")); DEBUG_PORT.println(bufferWritePosition); )
         }
-        // Change argIndex value to pass (constArgC < argIndex) condition
-        cmdSliceNumber = constArgC + 1;
         break;
 
       // All next chars is non-escaped
       default:
         isEscapedChar = false;
     }
-    _packetInfo.dataLength++;
 
-    if ((_packetInfo.dataLength >= _packetInfo.expectedDataLength) && (PACKET_TYPE_ZABBIX == _packetInfo.type)) {
-        packetRecieved = true;
-        // !!! potential break
-        _dst[bufferWritePosition+1] = '\0';
-    }   
+    // !parsingDone => parsing not already finished due '\n' or ']' found and bufferWritePosition can be increased to terminate string 
+    // if all bytes of packet recieved and analyzed
+    // agent.ping|0x00 => bufferWritePosition++, buffer[bufferWritePosition] = 0x00
+    // agent.ping\n|0x00 => buffer[bufferWritePosition] = 0x00
+    if (!parsingDone && (payloadReadedLength >= payloadExpectedLength) && (PACKET_TYPE_ZABBIX == _request.type)) {
+      parsingDone = true;
+      // ASCIIZ string will be maked later, inside 'if (parsingDone)...' operator
+      bufferWritePosition++;
+    }
 
-    // Rework need
-    if (packetRecieved) {
-  //    Serial.println("Packet finished"); 
-        //while (constArgC > cmdSliceNumber) { _argOffset[cmdSliceNumber++] = bufferWritePosition;}
-        while (constArgC > cmdSliceNumber) {
-          _packetInfo.optarg[cmdSliceNumber++] = &_dst[bufferWritePosition];
+    if (addChunk) {
+      addChunk = false;
+      uint8_t *ptrChunkEnd = &_request.data[bufferWritePosition];
+      //__DMLD( DEBUG_PORT.print(F(" chunk finished with : ")); DEBUG_PORT.println(*ptrChunkEnd, HEX); )
+      // Terminate current chunk and make ASCIIZ string
+      *ptrChunkEnd = CHAR_NULL;
+      // Store pointer if args array is not full, otherwize - finish parsing
+      if (arraySize(_request.args) > argCounter) {
+        // Store pointer only when data contain between separators - pointer distantion more that pointer size
+        if (ptrChunkEnd > ptrChunkStart) {
+          _request.args[argCounter] = (char*) ptrChunkStart;
+          __DMLD( DEBUG_PORT.print(F(" chunked ")); )
         }
-        // Change argIndex value to pass (constArgC < argIndex) condition
-        cmdSliceNumber = constArgC + 1;
+        ptrChunkStart = ptrChunkEnd + 1;
+        argCounter++;
+      } else {
+        parsingDone = true;
+      }
     }
 
-    // EOL reached or there is not room to store args. Stop stream analyzing and do command executing
-    if (constArgC < cmdSliceNumber) {
-reInitStage:
-      DTSH( Serial.println(FSH_P(STRING_Reinit_parser)); )
-      // Clear vars for next round, and return false as 'Do not need next char'
-      bufferWritePosition = cmdSliceNumber = isEscapedChar = doubleQuotedString = 0x00;
-      doubleQuotedString = false;
-      packetRecieved = false;
-      allowAnalyze = true;
-      return false;
+    if (parsingDone) {
+      _request.data[bufferWritePosition] = CHAR_NULL;
+      // Return false as 'Do not need next char'
+      rc = false; goto finish;
     }
-  } else {
-    DTSD( Serial.println();  )
-  }
+
+    payloadReadedLength++;
+
+  } // if (allowAnalyze) {
   //
   bufferWritePosition++;
+finish:
   // Return 'Need next char' and save a lot cpu time
-  return true;
+  __DMLD( DEBUG_PORT.println(); )
+  return rc;
+}
+
+
+int8_t makeTextPayload(char* _dst, int32_t _value, int8_t _code) {
+
+  int8_t rc = RESULT_IS_OK;
+    switch (_code) {
+      case RESULT_IS_BUFFERED:
+        break;
+      case RESULT_IS_OK:
+      case RESULT_IS_SYSTEM_REBOOT_ACTION:
+        //  '1' must be returned
+        _dst[0] = '1';
+        _dst[1] = CHAR_NULL;
+        break;
+      case RESULT_IS_FAIL:
+        // or '0'
+        _dst[0] = '0';
+        _dst[1] = CHAR_NULL;
+        break;
+      case RESULT_IS_SIGNED_VALUE:
+        //  or _code value placed in 'value' variable and must be converted to C-string.
+        ltoa((int32_t) _value, _dst, 10);
+        break;
+      case RESULT_IS_UNSIGNED_VALUE:
+        //  or _code value placed in 'value' variable and must be converted to C-string.
+        ultoa((uint32_t) _value, _dst, 10);
+        break;
+      case DEVICE_ERROR_CONNECT:
+        strcpy_P(_dst, MSG_DEVICE_ERROR_CONNECT);
+        break;
+      case DEVICE_ERROR_ACK_L:
+        strcpy_P(_dst, MSG_DEVICE_ERROR_ACK_L);
+        break;
+      case DEVICE_ERROR_ACK_H:
+        strcpy_P(_dst, MSG_DEVICE_ERROR_ACK_H);
+        break;
+      case DEVICE_ERROR_CHECKSUM:
+        strcpy_P(_dst, MSG_DEVICE_ERROR_CHECKSUM);
+        break;
+      case DEVICE_ERROR_TIMEOUT:
+        strcpy_P(_dst, MSG_DEVICE_ERROR_TIMEOUT);
+        break;
+      case DEVICE_ERROR_WRONG_ID:
+        strcpy_P(_dst, MSG_DEVICE_ERROR_WRONG_ID);
+        break;
+      case DEVICE_ERROR_NOT_SUPPORTED:
+        strcpy_P(_dst, MSG_DEVICE_ERROR_NOT_SUPPORTED);
+        break;
+      case DEVICE_ERROR_WRONG_ANSWER:
+        strcpy_P(_dst, MSG_DEVICE_ERROR_WRONG_ANSWER);
+        break;
+      case DEVICE_ERROR_EEPROM_CORRUPTED:
+        strcpy_P(_dst, MSG_DEVICE_ERROR_EEPROM);
+        break;
+      case ZBX_NOTSUPPORTED:
+        strcpy_P(_dst, MSG_ZBX_NOTSUPPORTED);
+        break;
+      case RESULT_IS_FLOAT_QMN:
+#if defined(FUNCTION_QTOAF_USE)
+        qtoaf((int32_t)_value, _dst, 10);
+#endif
+        break;
+      default:
+        // fast and ugly code block
+        if (RESULT_IS_FLOAT_01_DIGIT == _code || RESULT_IS_FLOAT_02_DIGIT == _code || RESULT_IS_FLOAT_03_DIGIT == _code || RESULT_IS_FLOAT_04_DIGIT == _code) {
+#if defined(FUNCTION_LTOAF_USE)
+          uint8_t numAfterDot = _code - RESULT_IS_FLOAT;
+          ltoaf((int32_t) _value, _dst, numAfterDot);
+#endif
+        } else {
+          // otherwise subroutine return unexpected value, need to check its source code
+          strcpy_P(_dst, MSG_ZBX_UNEXPECTED_RC);
+          rc = RESULT_IS_FAIL;
+        }
+        break;
+    }
+  return rc;
 }

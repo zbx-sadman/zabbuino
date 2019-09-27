@@ -19,7 +19,7 @@ void initExtInt(void);
 *    - RESULT_IS_FAIL if interrupt mode is wrong of wrong pin is specified
 *
 *****************************************************************************************************************************/
-  int8_t manageExtInt(uint32_t* _dst, uint8_t _pin, uint8_t _mode);
+int8_t manageExtInt(const uint8_t, const uint8_t, uint32_t*);
 
 /*
  macro CASE_INT_N_FOR_EXTINT(INT0) will be transformed to code:
@@ -40,35 +40,35 @@ void initExtInt(void);
 
  macro HANDLE_INT_N_FOR_EXTINT(INT0) will be  transformed to code:
 
-    void handleExtINT0() { extern extInterrupt_t* extInterrupt; extInterrupt[INT0].count++; }
+    void handleExtINT0() { extern extInterrupt_t* extInterrupt; extInterrupt[INT0].value++; }
 */
 
 #define HANDLE_INT_N_FOR_EXTINT(_interrupt) \
-   void handleExt##_interrupt(void) { ++extInterrupt[_interrupt].value; }
+   void handleExt##_interrupt(void) { extInterrupt[_interrupt].value++; }
 
  
-#if (EXTERNAL_NUM_INTERRUPTS > 7)
+#if (EXTERNAL_NUM_INTERRUPTS > 0x07)
   void handleExtINT7(void);
 #endif
-#if (EXTERNAL_NUM_INTERRUPTS > 6)
+#if (EXTERNAL_NUM_INTERRUPTS > 0x06)
   void handleExtINT6(void);
 #endif
-#if (EXTERNAL_NUM_INTERRUPTS > 5)
+#if (EXTERNAL_NUM_INTERRUPTS > 0x05)
   void handleExtINT5(void);
 #endif
-#if (EXTERNAL_NUM_INTERRUPTS > 4)
+#if (EXTERNAL_NUM_INTERRUPTS > 0x04)
   void handleExtINT4(void);
 #endif
-#if (EXTERNAL_NUM_INTERRUPTS > 3)
+#if (EXTERNAL_NUM_INTERRUPTS > 0x03)
   void handleExtINT3(void);
 #endif
-#if (EXTERNAL_NUM_INTERRUPTS > 2)
+#if (EXTERNAL_NUM_INTERRUPTS > 0x02)
   void handleExtINT2(void);
 #endif
-#if (EXTERNAL_NUM_INTERRUPTS > 1)
+#if (EXTERNAL_NUM_INTERRUPTS > 0x01)
   void handleExtINT1(void);
 #endif
-#if (EXTERNAL_NUM_INTERRUPTS > 0)
+#if (EXTERNAL_NUM_INTERRUPTS > 0x00)
   void handleExtINT0(void);
 #endif
 
@@ -92,7 +92,7 @@ void initExtInt(void);
 *    - RESULT_IS_FAIL if wrong pin is specified
 *
 *****************************************************************************************************************************/
-  int8_t manageIncEnc(int32_t* _dst, uint8_t const _terminalAPin, uint8_t const _terminalBPin, int32_t const _initialValue);
+int8_t manageIncEnc(int32_t* _dst, uint8_t const _terminalAPin, uint8_t const _terminalBPin, int32_t const _initialValue);
 
 /*
  macro CASE_INT_N_FOR_INCENC(INT0) will be transformed to code:
@@ -119,28 +119,28 @@ void initExtInt(void);
               { ++extInterrupt[_interrupt].value; } else { --extInterrupt[_interrupt].value; } \
          } statePrevTerminalA = stateTerminalA; }
 
-#if (EXTERNAL_NUM_INTERRUPTS > 7)
+#if (EXTERNAL_NUM_INTERRUPTS > 0x07)
   void handleIncEncINT7(void);
 #endif
-#if (EXTERNAL_NUM_INTERRUPTS > 6)
+#if (EXTERNAL_NUM_INTERRUPTS > 0x06)
   void handleIncEncINT6(void);
 #endif
-#if (EXTERNAL_NUM_INTERRUPTS > 5)
+#if (EXTERNAL_NUM_INTERRUPTS > 0x05)
   void handleIncEncINT5(void);
 #endif
-#if (EXTERNAL_NUM_INTERRUPTS > 4)
+#if (EXTERNAL_NUM_INTERRUPTS > 0x04)
   void handleIncEncINT4(void);
 #endif
-#if (EXTERNAL_NUM_INTERRUPTS > 3)
+#if (EXTERNAL_NUM_INTERRUPTS > 0x03)
   void handleIncEncINT3(void);
 #endif
-#if (EXTERNAL_NUM_INTERRUPTS > 2)
+#if (EXTERNAL_NUM_INTERRUPTS > 0x02)
   void handleIncEncINT2(void);
 #endif
-#if (EXTERNAL_NUM_INTERRUPTS > 1)
+#if (EXTERNAL_NUM_INTERRUPTS > 0x01)
   void handleIncEncINT1(void);
 #endif
-#if (EXTERNAL_NUM_INTERRUPTS > 0)
+#if (EXTERNAL_NUM_INTERRUPTS > 0x00)
   void handleIncEncINT0(void);
 #endif
 
