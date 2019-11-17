@@ -63,7 +63,7 @@ uint8_t Network::isPhyOk() {
   // EIR.RXERIF   - Recieve error interrupt bit
   // ESTAT.BUFFER - Ethernet buffer error status bit
   // ESTAT.CLKRDY - Clock Ready bit
-  uint8_t stateEconRxen    = !!(Enc28J60.readReg((uint8_t) ECON1) & ECON1_RXEN);
+  // uint8_t stateEconRxen    = !!(Enc28J60.readReg((uint8_t) ECON1) & ECON1_RXEN);
   uint8_t stateEirRxerif   = !!(Enc28J60.readReg((uint8_t) EIR) & EIR_RXERIF);
   uint8_t stateEstatBuffer = !!(Enc28J60.readReg((uint8_t) ESTAT) & ESTAT_BUFFER);
   uint8_t stateEstatClkRdy = !!(Enc28J60.readReg((uint8_t) ESTAT) & ESTAT_CLKRDY);
@@ -76,8 +76,11 @@ uint8_t Network::isPhyOk() {
   // 1) Recieve bit is __not__ set  (really need to be alarmed?)
   // 2) Ethernet buffer error status bit is __not__ dropped  AND Recieve error interrupt bit is set
   // 3) Clock Ready bit is __not_ set
-  //if (!stateEconRxen || (stateEstatBuffer && stateEirRxerif)) {
-  if (!stateEstatClkRdy || (stateEstatBuffer && stateEirRxerif)) {
+
+  // The CLKRDY does not work. See Rev. B4 Silicon Errata point page #1:
+  // After issuing the Reset command, wait for at least 1 ms in firmware for the device to be ready. 
+  // Implemented into UIP_Ethernet driver
+  if (stateEstatBuffer && stateEirRxerif) {
      // ENC28J60 rise error flag
      phyState = false;
   }
