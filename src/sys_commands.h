@@ -327,8 +327,9 @@ const command_t PROGMEM commands[] = {
 
 #ifdef FEATURE_SHIFTOUT_ENABLE 
     { CMD_SYS_SHIFTOUT            , command_CMD_SYS_SHIFTOUT},           
-    { CMD_SYS_REBOOT              , command_CMD_SYS_REBOOT},             
 #endif
+
+    { CMD_SYS_REBOOT              , command_CMD_SYS_REBOOT},             
 
 #ifdef FEATURE_REMOTE_COMMANDS_ENABLE
     { CMD_SYSTEM_RUN              , command_CMD_SYSTEM_RUN},             
