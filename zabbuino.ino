@@ -1428,6 +1428,16 @@ static int16_t executeCommand(Stream& _netClient, netconfig_t& _sysConfig, reque
 
 #endif // FEATURE_PLANTOWER_PMS_ALL_ENABLE
 
+#ifdef FEATURE_WUHAN_CUBIC_PM_UART_ENABLE
+    case CMD_WCPM_UART_ALL: {
+        //
+        //  WCPM.UART.All[rxPin, txPin]
+        //
+        rc = getPlantowerWuhanPMAllMetrics(_request.argv[0x00], _request.argv[0x01], _request.payloadChar, _request.dataFreeSize);
+        goto finish;
+      }
+#endif
+
 #ifdef FEATURE_NOVA_FITNESS_SDS_ENABLE
     case CMD_NOVA_SDS_ALL: {
         //
@@ -1784,6 +1794,16 @@ static int16_t executeCommand(Stream& _netClient, netconfig_t& _sysConfig, reque
       }
 #endif // FEATURE_T67XX_ENABLE
 
+#ifdef FEATURE_WUHAN_CUBIC_PM_I2C_ENABLE
+    case CMD_WCPM_I2C_ALL: {
+        //
+        //  WCPM.I2C.All[sdaPin, sclPin, i2cAddress]
+        //  WCPM.I2C.All[18, 19]
+        //  WCPM.UART.All[18, 19]
+        rc = getPlantowerWuhanPMAllMetrics(&SoftTWI, i2CAddress, _request.payloadChar, _request.dataFreeSize);
+        goto finish;
+      }
+#endif
 
 
   }
@@ -1902,4 +1922,3 @@ finish:
   __DMLL( DEBUG_PORT.println(); )
   return cmdIdx;
 }
-

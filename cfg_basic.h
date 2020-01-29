@@ -37,6 +37,8 @@
 
 
 //#define FEATURE_MODBUS_RTU_ENABLE
+//#define FEATURE_WUHAN_CUBIC_PM_UART_ENABLE
+//#define FEATURE_WUHAN_CUBIC_PM_I2C_ENABLE
 
 /****       New              ****/
 //
@@ -301,7 +303,7 @@
 //
 //     Note: PMS.all command output is JSON (for Zabbix v3.4 and above)
 //
-#define FEATURE_PLANTOWER_PMS_ENABLE
+//#define FEATURE_PLANTOWER_PMS_ENABLE
 
 //
 //     Enable Nova Fitness SDSxxx sensors support and command:
@@ -310,7 +312,7 @@
 //
 //     Note: SDS.all command output is JSON (for Zabbix v3.4 and above)
 //
-#define FEATURE_NOVA_FITNESS_SDS_ENABLE
+//#define FEATURE_NOVA_FITNESS_SDS_ENABLE
 
 //
 //     Enable Winsen ZE08-CH2O sensor support and command:
@@ -428,7 +430,7 @@
 //
 //     Store runtime settings in EEPROM and use its on start
 //
-//#define FEATURE_EEPROM_ENABLE
+#define FEATURE_EEPROM_ENABLE
 
 //
 //     Force protect (enable even netConfig.useProtection is false) your system from illegal access for change runtime settings and reboots
@@ -461,17 +463,17 @@
 //
 //    View the more or less debug messages on the Serial Monitor. 0 - no messages .. 2 - max
 //
-#define FEATURE_DEBUG_MESSAGING_LEVEL     3
+#define FEATURE_DEBUG_MESSAGING_LEVEL     1
 
 //    Various runtime info for development needs
-#define FEATURE_DEBUG_TO_SERIAL_DEV
+//#define FEATURE_DEBUG_TO_SERIAL_DEV
 
 //
 //     Recieve command from Serial Monitor too. Do not forget to enable one of FEATURE_DEBUG_TO_SERIAL_* macro
 //
 //     Note that 64 bytes buffer reserved for Serial (refer to HardwareSerial.h) and long commands like ws2812.sendraw[5,1,over9000chars] can be processed uncorrectly
 //
-#define FEATURE_SERIAL_LISTEN_TOO
+//#define FEATURE_SERIAL_LISTEN_TOO
 
 //
 //     Send back to user text messages if error is occurs. Otherwise - send numeric code
@@ -505,16 +507,16 @@ const uint8_t constNetDefaultUseDHCP = false;
 */
 
 // Zabbuino's IP address
-/*
   const uint8_t constDefaultMacAddress[6]                PROGMEM = {0xBE, 0xAD, 0xEB, 0xA8, 0x00, 0xDE};
   const uint8_t constDefaultIPAddress[4]                 PROGMEM = {172, 16, 100, 206};
   const uint8_t constDefaultGateway[4]                   PROGMEM = {172, 16, 100, 254};
   const uint8_t constDefaultNetmask[4]                   PROGMEM = {255, 255, 255, 0};
-*/
+/*
 const uint8_t constDefaultMacAddress[6]                PROGMEM = {0xBE, 0xAD, 0xEB, 0xA8, 0x00, 0xDE};
 const uint8_t constDefaultIPAddress[4]                 PROGMEM = {192, 168, 0, 123};
 const uint8_t constDefaultGateway[4]                   PROGMEM = {192, 168, 0, 1};
 const uint8_t constDefaultNetmask[4]                   PROGMEM = {255, 255, 255, 0};
+*/
 
 /* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
   ALARM SECTION
@@ -567,4 +569,3 @@ const char constZbxAgentDefaultDomain[]              PROGMEM   = ".local.net";
 
 
 const char constZbxAgentVersion[]                    PROGMEM   = "Zabbuino 1.4.0";
-

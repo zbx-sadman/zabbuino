@@ -154,7 +154,8 @@
 
 #define CMD_MB_RTU_FC03                                         (0x66)
 
-
+#define CMD_WCPM_UART_ALL                                       (0x67)
+#define CMD_WCPM_I2C_ALL                                        (0x68)
 
 // add new command as "const char command_<COMMAND_MACRO> PROGMEM". Only 'const' push string to PROGMEM.
 // command_* values must be in lower case due analyze sub convert all chars to lower
@@ -307,6 +308,9 @@ const char command_CMD_MB_RTU_FC03[]                            PROGMEM = "mb.rt
 
 const char command_CMD_NOVA_SDS_ALL[]                           PROGMEM = "sds.all";
 const char command_CMD_NOVA_SDS_EPM[]                           PROGMEM = "sds.epm";
+
+const char command_CMD_WCPM_UART_ALL[]                          PROGMEM = "wcpm.uart.all";
+const char command_CMD_WCPM_I2C_ALL[]                           PROGMEM = "wcpm.i2c.all";
 
 const command_t PROGMEM commands[] = {
     { CMD_ZBX_NOPE                , command_CMD_ZBX_NOPE},               
@@ -561,6 +565,14 @@ const command_t PROGMEM commands[] = {
 
 #ifdef FEATURE_MODBUS_RTU_ENABLE
     { CMD_MB_RTU_FC03             , command_CMD_MB_RTU_FC03},
+#endif
+
+#ifdef FEATURE_WUHAN_CUBIC_PM_UART_ENABLE
+    { CMD_WCPM_UART_ALL           , command_CMD_WCPM_UART_ALL},
+#endif
+
+#ifdef FEATURE_WUHAN_CUBIC_PM_I2C_ENABLE
+    { CMD_WCPM_I2C_ALL            , command_CMD_WCPM_I2C_ALL},
 #endif
 
 

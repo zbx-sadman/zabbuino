@@ -38,10 +38,25 @@ Implemented:
 - Support PZEM-004 energy meter;
 - Support Plantower PMS-A003 (and similar) dust sensors;
 - Support Nova Fitness SDS011 (and similar) dust sensors;
+- Support Wuhan Cubic PM2012 (and similar) dust sensors;
 - Support APC Smart UPS (with RS232 interface);
 - Support Megatec UPS's (with RS232 interface);
 - Simulate varuious vendor's IR transmitters.
 -----------------------------
+
+#### 29 Feb 2020
+New features:
+  - _FEATURE\_WUHAN\_CUBIC\_PM\_UART\_ENABLE\_ Wuhan Cubic PM2012 dust sensor support (UART protocol).
+  - Command ``WCPM.UART.all[rxPin, txPin]`` is added:
+    - _rxPin_, _txPin_ - SoftwareSerial's pins to which PM2012 connected. Only _rxPin_ is used now, you can use the same pin for _txPin_ at this time. 
+    Example: ``WCPM.UART.all[3,4]`` returns all metric values as one JSON-string.
+
+  - _FEATURE\_WUHAN\_CUBIC\_PM\_I2C\_ENABLE\_ Wuhan Cubic PM2012 dust sensor support (I2C protocol).
+  - Command ``WCPM.I2C.all[sdaPin, sclPin, i2cAddress]`` is added:
+    - _sdaPin_, _sclPin_ - I2C pins to which PM2012 connected;
+    - _i2cAddress_ - I2C address of PM2012 (default address is 0x12);
+    Example: ``WCPM.I2C.all[3,4]`` returns all metric values as one JSON-string.
+
 
 #### 27 Sep 2019
 New features:

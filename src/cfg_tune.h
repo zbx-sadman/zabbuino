@@ -47,20 +47,21 @@
 
 
 // Need to use Wire lib if any I2C related feature enabled
-#if defined (FEATURE_I2C_ENABLE)         || \
-    defined (FEATURE_BMP_ENABLE)         || \
-    defined (FEATURE_BH1750_ENABLE)      || \
-    defined (FEATURE_PCF8574_LCD_ENABLE) || \
-    defined (FEATURE_SHT2X_ENABLE)       || \
-    defined (FEATURE_SYSTEM_RTC_ENABLE)  || \
-    defined (FEATURE_MAX44009_ENABLE)    || \
-    defined (FEATURE_VEML6070_ENABLE)    || \
-    defined (FEATURE_PCA9685_ENABLE)     || \
-    defined (FEATURE_ADPS9960_ENABLE)    || \
-    defined (FEATURE_TSL2561_ENABLE)     || \
-    defined (FEATURE_MLX90614_ENABLE)    || \
-    defined (FEATURE_SGP30_ENABLE)       || \
-    defined (FEATURE_T67XX_ENABLE)       || \
+#if defined (FEATURE_I2C_ENABLE)                || \
+    defined (FEATURE_BMP_ENABLE)                || \
+    defined (FEATURE_BH1750_ENABLE)             || \
+    defined (FEATURE_PCF8574_LCD_ENABLE)        || \
+    defined (FEATURE_SHT2X_ENABLE)              || \
+    defined (FEATURE_SYSTEM_RTC_ENABLE)         || \
+    defined (FEATURE_MAX44009_ENABLE)           || \
+    defined (FEATURE_VEML6070_ENABLE)           || \
+    defined (FEATURE_PCA9685_ENABLE)            || \
+    defined (FEATURE_ADPS9960_ENABLE)           || \
+    defined (FEATURE_TSL2561_ENABLE)            || \
+    defined (FEATURE_MLX90614_ENABLE)           || \
+    defined (FEATURE_SGP30_ENABLE)              || \
+    defined (FEATURE_T67XX_ENABLE)              || \
+    defined (FEATURE_WUHAN_CUBIC_PM_I2C_ENABLE) || \
     defined (FEATURE_INA219_ENABLE)
     #define TWI_USE
 #endif

@@ -35,6 +35,7 @@
 #define PLANTOWER_READ_ALL                                      (0xFF)
 
 typedef struct {
+  uint16_t frameHeader;
   uint16_t frameLength;
   uint16_t standartPM10, standartPM25, standartPM100;
   uint16_t environmentPM10, environmentPM25, environmentPM100;
@@ -44,12 +45,38 @@ typedef struct {
 } plantowerData_t;
 
 
+
+#define PM2012_I2C_ADDRESS                                      (0x12)
+
+typedef struct {
+  uint16_t frameHeader;
+  uint16_t frameLength;
+  uint16_t standartPM10, standartPM25, standartPM100;
+  uint16_t environmentPM10, environmentPM25, environmentPM100;
+  uint16_t particles03um, particles05um, particles10um, particles25um, particles50um, particles100um;
+  //  wuhanParticleSensorStatus_s status;
+  struct {
+    uint8_t fanSpeedHigh: 1;
+    uint8_t fanSpeedLow:  1;
+    uint8_t temperaturedHigh: 1;
+    uint8_t temperaturedLow:  1;
+    uint8_t unused: 4;
+  } status;
+  uint8_t version;
+  uint16_t crc;
+} plantowerWuhanData_t;
+
 /*****************************************************************************************************************************
 *
 *   
 *
 *****************************************************************************************************************************/
 int8_t getPlantowerPMSOneMetric(const uint8_t, const uint8_t, uint8_t, const uint8_t, const uint8_t, uint32_t*);
-
 int8_t getPlantowerPMSAllMetrics(const uint8_t, const uint8_t, char*, const uint16_t);
 
+
+int8_t getPlantowerWuhanPMOneMetric(const uint8_t, const uint8_t, uint8_t, const uint8_t, const uint8_t, uint32_t*);
+int8_t getPlantowerWuhanPMAllMetrics(const uint8_t, const uint8_t, char*, const uint16_t);
+
+int8_t getPlantowerWuhanPMOneMetric(SoftwareWire*, uint8_t, uint8_t, const uint8_t, const uint8_t, uint32_t*);
+int8_t getPlantowerWuhanPMAllMetrics(SoftwareWire*, uint8_t, char*, const uint16_t);

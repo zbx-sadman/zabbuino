@@ -57,6 +57,7 @@
 #define SENS_READ_CO2E                                          (0x42)
 #define SENS_READ_CH2O                                          (0x43)
 
+#define SENS_READ_STATUS                                        (0xFC)
 #define SENS_READ_ID                                            (0xFD)
 #define SENS_READ_ALL                                           (0xFE)
 #define SENS_READ_RAW                                           (0xFF)
