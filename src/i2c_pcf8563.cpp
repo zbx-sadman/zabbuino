@@ -79,6 +79,9 @@ static uint8_t isPCF8563DateTimeValid(SoftwareWire* _softTWI, const uint8_t _i2c
 *
 *****************************************************************************************************************************/
 int8_t initPCF8563(SoftwareWire* _softTWI, const uint8_t _i2cAddress) {
+  __SUPPRESS_WARNING_UNUSED(_softTWI);
+  __SUPPRESS_WARNING_UNUSED(_i2cAddress);
+
   //int8_t rc = RESULT_IS_FAIL;
   int8_t rc = RESULT_IS_OK;
 

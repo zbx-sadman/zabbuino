@@ -663,6 +663,7 @@ static int16_t executeCommand(Stream& _netClient, netconfig_t& _sysConfig, reque
     case CMD_USER_RUN: {
         //
         //  user.run[option#0, option#1, option#2, option#3, option#4, option#5]
+// user.run[0xA0,14]
         //
         rc = executeCommandUserFunction(_request.payloadByte, _request.args, _request.argv, &value);
         goto finish;
