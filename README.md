@@ -36,7 +36,8 @@ Implemented:
 - Support BMP180/085, BMP280/BME280 pressure and temperature sensors;
 - Support BH1750, MAX44009, TSL2561 light sensors;
 - Support ADPS9960 light/color sensor;
-- Support Winsen MH-Z19 Co2 sensor;
+- Support MH-Z14/MH-Z19/MH-Z19B CO2 sensor;
+- Support Telaire T67xx family CO2 sensor;
 - Support VEML6070 ultraviolet sensor;
 - Support DS3231 & PCF8563 RTC I2C module;
 - Support incremental encoder (on interrupt's pin);
@@ -52,9 +53,11 @@ Implemented:
 - Support PCA9685 16 channel PWM controller;
 - Support WS2801 Led stripe and any indicators on shift registers via extended `shiftout` command;
 - Support WS2812 Led stripe;
-- Support PZEM-004 energy meter;
-- Support Plantower PMS-A003 (and similar) sensors;
+- Support Plantower PMS-A003 (and similar) dust sensors;
+- Support Nova Fitness SDS011 (and similar) dust sensors;
+- Support Wuhan Cubic PM2012 (and similar) dust sensors;
 - Support DFPlayer Mini;
+- Support PZEM-004 energy meter;
 - Support APC Smart UPS (with RS232 interface);
 - Support Megatec UPS's (with RS232 interface);
 - Simulate various vendor's IR transmitters.
@@ -66,8 +69,8 @@ Tested with:
 - Arduino Mini Pro / Nano / Duemilanove (ATmega328 MCU, 5V), Arduino Micro (ATmega32u4);
 - ENC28J60 mini module & ENC28J60 shield for Arduino Nano (5V both), Ethernet Shield (W5100), Mini Red W5100 Ethernet Module (5V), WIZ811MJ Ethernet module (3.3V);
 - SW-520D sensors, encoders (EC11), buttons & etc;
-- Sensors: DS18B20, AM2302 (DHT22), AM2320, BMP180, BME280, SHT21 (SI7021), BH1750, MAX44009, TSL2561, ADPS9960, MH-Z19B, VEML6070, INA219,
-HC-SR04, Plantower PMS-A003, MLX90614, MAX6675;
+- Sensors: DS18B20, AM2302 (DHT22), AM2320, BMP180, BME280, SHT21 (SI7021), BH1750, MAX44009, TSL2561, ADPS9960, MH-Z19B, T6703, VEML6070, INA219,
+HC-SR04, Plantower PMS-A003, PM2012, SDS011, MLX90614, MAX6675;
 - MAX7219 8x8 LED module & 8-Digit LED Display Module; 
 - LCD 2002 (Winstar) & 2004 (Generic) displays with PC8574 I2C convertor;
 - PCF8574 I2C expander;
