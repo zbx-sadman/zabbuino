@@ -35,14 +35,14 @@ int8_t getMAX44009Metric(SoftwareWire* _softTWI, uint8_t _i2cAddress, const uint
   if (!isI2CDeviceReady(_softTWI, _i2cAddress)) { rc = DEVICE_ERROR_CONNECT; goto finish; }
 
   switch (_mode){
-    case MAX44009_800MS_CYCLE_MODE:
+    case MAX44009_800MS_CYCLE_MODE: {
       // wait 800ms, because no way to get end of conversion flag
       configReg = _mode;
       conversionTime = 800;
-      //DEBUG_PORT.println("MAX44009_800MS_CYCLE_MODE"); 
       break;
+    }
 
-    case MAX44009_CONTINUOUS_MODE:
+    case MAX44009_CONTINUOUS_MODE: {
       if (arraySize(integrationTime) > _newTIM) {
          // We need wait some time because no any 'conversion finished' signal exists
          // Seems that MAX44009 read TIM, make conversion, read TIM again, and make conversion again. 
@@ -62,9 +62,13 @@ int8_t getMAX44009Metric(SoftwareWire* _softTWI, uint8_t _i2cAddress, const uint
       }
 
     // No break operator here its OK
-    default:
+
+    }
+
+    default: {
       rc = DEVICE_ERROR_NOT_SUPPORTED;
       goto finish;
+    }
   }
 
 

@@ -25,8 +25,8 @@
 
 #define NETWORK_ETHERNET_W5100           // Arduino Ethernet Shield and Compatibles ...
 //#define NETWORK_ETHERNET_ENC28J60      // Microchip __ENC28J60__ network modules
-//#define NETWORK_ETHERNET_W5500         // WIZ550io, ioShield series of WIZnet , tested but not satisfied with the performance on intensive traffic
-//#define NETWORK_SERIAL_INTERFACE         //
+//#define NETWORK_ETHERNET_W5500         // WIZ550io, ioShield series of WIZnet, tested but not satisfied with the performance on intensive traffic
+//#define NETWORK_SERIAL_INTERFACE       // not implemented yet
 
 /* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
                                                                  PROGRAMM FEATURES SECTION
@@ -34,11 +34,6 @@
                                   Comment #define's below to save RAM and Flash and uncomment to enable some feature
 
 */
-
-
-//#define FEATURE_MODBUS_RTU_ENABLE
-//#define FEATURE_WUHAN_CUBIC_PM_UART_ENABLE
-//#define FEATURE_WUHAN_CUBIC_PM_I2C_ENABLE
 
 /****       New              ****/
 //
@@ -72,7 +67,7 @@
 //        - delay[]
 //
 //
-//#define FEATURE_ARDUINO_BASIC_ENABLE
+#define FEATURE_ARDUINO_BASIC_ENABLE
 
 //
 //      Enable commands:
@@ -250,6 +245,12 @@
 //
 //#define FEATURE_MLX90614_ENABLE
 
+//
+//     Enable Wuhan Cubic PM2011 dust sensor support and command:
+//       - WCPM.I2C.All[]
+//
+//#define FEATURE_WUHAN_CUBIC_PM_I2C_ENABLE
+
 /****       MicroWire bus       ****/
 //
 //     Enable MAX7219 with 8x8 LED matrix handling and command:
@@ -273,7 +274,7 @@
 //       - mhzxx.uart.co2[]
 //
 //#define FEATURE_MHZXX_PWM_ENABLE
-//#define FEATURE_MHZXX_UART_ENABLE
+#define FEATURE_MHZXX_UART_ENABLE
 
 //
 //     Enable DFPlayer Mini support and command:
@@ -297,13 +298,13 @@
 
 //
 //     Enable Plantower PMS-xxxx sensors support and command:
-//       - PMS.all[]
-//       - PMS.epm[]
-//       - PMS.fpm[]
+//       - PMSxx.all[]
+//       - PMSxx.epm[]
+//       - PMSxx.fpm[]
 //
 //     Note: PMS.all command output is JSON (for Zabbix v3.4 and above)
 //
-//#define FEATURE_PLANTOWER_PMS_ENABLE
+#define FEATURE_PLANTOWER_PMSXX_ENABLE
 
 //
 //     Enable Nova Fitness SDSxxx sensors support and command:
@@ -313,6 +314,12 @@
 //     Note: SDS.all command output is JSON (for Zabbix v3.4 and above)
 //
 //#define FEATURE_NOVA_FITNESS_SDS_ENABLE
+
+//
+//     Enable Wuhan Cubic PM2011 dust sensor support and command:
+//       - WCPM.UART.All[]
+//
+//#define FEATURE_WUHAN_CUBIC_PM_UART_ENABLE
 
 //
 //     Enable Winsen ZE08-CH2O sensor support and command:
@@ -400,7 +407,7 @@
 //      Enable calling user functions on device start and every _constUserFunctionCallInterval_ if no active network session exist
 //      You can write to _plugin.ino_ your own code and use all Zabbuino's internal functions to query sensors and handle actuators
 //
-//#define FEATURE_USER_FUNCTION_PROCESSING
+#define FEATURE_USER_FUNCTION_PROCESSING
 
 //
 //      Support Zabbix's Action functionality and enable command:
@@ -430,7 +437,7 @@
 //
 //     Store runtime settings in EEPROM and use its on start
 //
-#define FEATURE_EEPROM_ENABLE
+//#define FEATURE_EEPROM_ENABLE
 
 //
 //     Force protect (enable even netConfig.useProtection is false) your system from illegal access for change runtime settings and reboots
@@ -473,12 +480,12 @@
 //
 //     Note that 64 bytes buffer reserved for Serial (refer to HardwareSerial.h) and long commands like ws2812.sendraw[5,1,over9000chars] can be processed uncorrectly
 //
-//#define FEATURE_SERIAL_LISTEN_TOO
+#define FEATURE_SERIAL_LISTEN_TOO
 
 //
 //     Send back to user text messages if error is occurs. Otherwise - send numeric code
 //
-#define USE_TEXT_ERROR_MESSAGES
+//#define USE_TEXT_ERROR_MESSAGES
 
 //
 //     Use interrupt on Timer1 for internal metric gathering
@@ -508,8 +515,8 @@ const uint8_t constNetDefaultUseDHCP = false;
 
 // Zabbuino's IP address
   const uint8_t constDefaultMacAddress[6]                PROGMEM = {0xBE, 0xAD, 0xEB, 0xA8, 0x00, 0xDE};
-  const uint8_t constDefaultIPAddress[4]                 PROGMEM = {172, 16, 100, 206};
-  const uint8_t constDefaultGateway[4]                   PROGMEM = {172, 16, 100, 254};
+  const uint8_t constDefaultIPAddress[4]                 PROGMEM = {192, 168, 0, 206};
+  const uint8_t constDefaultGateway[4]                   PROGMEM = {192, 168, 0, 1};
   const uint8_t constDefaultNetmask[4]                   PROGMEM = {255, 255, 255, 0};
 /*
 const uint8_t constDefaultMacAddress[6]                PROGMEM = {0xBE, 0xAD, 0xEB, 0xA8, 0x00, 0xDE};

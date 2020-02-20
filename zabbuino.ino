@@ -1107,17 +1107,6 @@ static int16_t executeCommand(Stream& _netClient, netconfig_t& _sysConfig, reque
       goto finish;
 #endif // FEATURE_MHZXX_PWM_ENABLE
 
-#ifdef FEATURE_MHZXX_UART_ENABLE
-    case CMD_MHZXX_UART_CO2:
-      //
-      //  MHZxx.UART.CO2[rxPin, txPin]
-      //
-      if (isSafePin(_request.argv[0x00]) && isSafePin(_request.argv[0x01])) {
-        rc = getMHZxxMetricUART(_request.argv[0x00], _request.argv[0x01], &value);
-      }
-      goto finish;
-#endif // FEATURE_MHZXX_UART_ENABLE
-
 #ifdef FEATURE_DHT_ENABLE
     case CMD_DHT_HUMIDITY:
       //
@@ -1319,6 +1308,7 @@ static int16_t executeCommand(Stream& _netClient, netconfig_t& _sysConfig, reque
       rc = getUltrasonicMetric(_request.argv[0x00], _request.argv[0x01], 0x01, &value);
       goto finish;
 #endif // FEATURE_ULTRASONIC_ENABLE
+
 #ifdef FEATURE_PZEM004_ENABLE
     //
     //  0xC0A80101 - an default IP address for PZEM (192.168.1.1)
@@ -1400,8 +1390,17 @@ static int16_t executeCommand(Stream& _netClient, netconfig_t& _sysConfig, reque
       }
 #endif // FEATURE_DFPLAYER_ENABLE
 
-#ifdef FEATURE_PLANTOWER_PMS_ENABLE
-    case CMD_PLANTOWER_PMS_ALL: {
+#ifdef FEATURE_MHZXX_UART_ENABLE
+    case CMD_MHZXX_UART_CO2:
+      //
+      //  MHZxx.UART.CO2[rxPin, txPin]
+      //
+      rc = getMHZxxMetricUART(_request.argv[0x00], _request.argv[0x01], &value);
+      goto finish;
+#endif // FEATURE_MHZXX_UART_ENABLE
+
+#ifdef FEATURE_PLANTOWER_PMSXX_ENABLE
+    case CMD_PLANTOWER_PMSXX_ALL: {
         //
         //  PMS.All[rxPin, txPin]
         //
@@ -1409,7 +1408,7 @@ static int16_t executeCommand(Stream& _netClient, netconfig_t& _sysConfig, reque
         goto finish;
       }
 
-    case CMD_PLANTOWER_PMS_FPM: {
+    case CMD_PLANTOWER_PMSXX_FPM: {
         //
         //  PMS.fpm[rxPin, txPin, particleSize]
         //  PM25 read
@@ -1418,7 +1417,7 @@ static int16_t executeCommand(Stream& _netClient, netconfig_t& _sysConfig, reque
         goto finish;
       }
 
-    case CMD_PLANTOWER_PMS_EPM: {
+    case CMD_PLANTOWER_PMSXX_EPM: {
         //
         //  PMS.epm[rxPin, txPin, particleSize]
         //  PM25 read
@@ -1427,7 +1426,7 @@ static int16_t executeCommand(Stream& _netClient, netconfig_t& _sysConfig, reque
         goto finish;
       }
 
-#endif // FEATURE_PLANTOWER_PMS_ALL_ENABLE
+#endif // FEATURE_PLANTOWER_PMSXX_ALL_ENABLE
 
 #ifdef FEATURE_WUHAN_CUBIC_PM_UART_ENABLE
     case CMD_WCPM_UART_ALL: {
@@ -1467,7 +1466,7 @@ static int16_t executeCommand(Stream& _netClient, netconfig_t& _sysConfig, reque
         rc = getZe08Ch2OMetric(_request.argv[0x00], _request.argv[0x01], SENS_READ_CH2O, &value);
         goto finish;
       }
-#endif // FEATURE_PLANTOWER_PMS_ALL_ENABLE
+#endif // FEATURE_ZE08_CH2O_ENABLE
 
 #ifdef FEATURE_MODBUS_RTU_ENABLE
     case CMD_MB_RTU_FC03: {
@@ -1582,7 +1581,7 @@ static int16_t executeCommand(Stream& _netClient, netconfig_t& _sysConfig, reque
 #ifdef FEATURE_BH1750_ENABLE
     case CMD_BH1750_LIGHT: {
         //
-        //  BH1750.light[sdaPin, sclPin, i2cAddress, mode]
+        //  BH1750.light[sdaPin, sclPin, i2cAddress]
         //
         rc = getBH1750Metric(&SoftTWI, i2CAddress, SENS_READ_LUX, &value);
         goto finish;

@@ -62,7 +62,7 @@ static uint8_t getNovaSDSChecksum(uint8_t* _buffer, uint8_t _len) {
 static int8_t getNovaSDSMetric(const uint8_t _rxPin, const uint8_t _txPin, const uint8_t _metric, const uint8_t _particlesSize, char* _dst, const uint16_t _dstSize, uint32_t* _value) {
   int8_t rc = DEVICE_ERROR_TIMEOUT;
   uint8_t checksum, len, buffer[NOVA_SDS_REQUEST_SUZE] = {0x00,};
-  uint16_t concentrationPM025, concentrationPM100;
+  uint16_t concentrationPM025, concentrationPM010;
        
   SoftwareSerial swSerial(_rxPin, _txPin);
   swSerial.begin(NOVA_SDS_UART_SPEED);
@@ -110,13 +110,13 @@ static int8_t getNovaSDSMetric(const uint8_t _rxPin, const uint8_t _txPin, const
 
   // divide to 10 with uint16_t is so ugly :(
   concentrationPM025 = (((uint16_t) buffer[NOVA_SDS_FIELD_RESPONSE_DATABYTE_02] << 8) | buffer[NOVA_SDS_FIELD_RESPONSE_DATABYTE_01]) / 10; 
-  concentrationPM100 = (((uint16_t) buffer[NOVA_SDS_FIELD_RESPONSE_DATABYTE_04] << 8) | buffer[NOVA_SDS_FIELD_RESPONSE_DATABYTE_03]) / 10;
+  concentrationPM010 = (((uint16_t) buffer[NOVA_SDS_FIELD_RESPONSE_DATABYTE_04] << 8) | buffer[NOVA_SDS_FIELD_RESPONSE_DATABYTE_03]) / 10;
 
   rc = DEVICE_ERROR_NOT_SUPPORTED; 
 
   switch (_metric) {
      case SENS_READ_ALL: {
-       uint16_t writtenBytes = snprintf_P(_dst, _dstSize, PSTR("{\"EPM25\":%u,\"EPM100\":%u}"), concentrationPM025, concentrationPM100);
+       uint16_t writtenBytes = snprintf_P(_dst, _dstSize, PSTR("{\"EPM25\":%u,\"EPM10\":%u}"), concentrationPM025, concentrationPM010);
        _dst[writtenBytes] = CHAR_NULL;
        rc = RESULT_IS_BUFFERED;
        goto finish;
@@ -130,7 +130,7 @@ static int8_t getNovaSDSMetric(const uint8_t _rxPin, const uint8_t _txPin, const
            break;
 
          case NOVA_SDS_PARTICLES_SIZE_010:
-           *_value = concentrationPM100;
+           *_value = concentrationPM010;
            break;
 
          default:

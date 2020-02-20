@@ -136,9 +136,9 @@
 #define CMD_ADPS9960_GREEN                                      (0x5A)
 #define CMD_ADPS9960_BLUE                                       (0x5B)
 
-#define CMD_PLANTOWER_PMS_ALL                                   (0x5C)
-#define CMD_PLANTOWER_PMS_FPM                                   (0x5D)
-#define CMD_PLANTOWER_PMS_EPM                                   (0x5E)
+#define CMD_PLANTOWER_PMSXX_ALL                                 (0x5C)
+#define CMD_PLANTOWER_PMSXX_FPM                                 (0x5D)
+#define CMD_PLANTOWER_PMSXX_EPM                                 (0x5E)
 
 #define CMD_SGP30_CO2E                                          (0x5F)
 #define CMD_SGP30_TVOC                                          (0x60)
@@ -291,9 +291,9 @@ const char command_CMD_ADPS9960_RED[]                           PROGMEM = "adps9
 const char command_CMD_ADPS9960_GREEN[]                         PROGMEM = "adps9960.green";
 const char command_CMD_ADPS9960_BLUE[]                          PROGMEM = "adps9960.blue";
 
-const char command_CMD_PLANTOWER_PMS_ALL[]                      PROGMEM = "pms.all";
-const char command_CMD_PLANTOWER_PMS_EPM[]                      PROGMEM = "pms.epm";
-const char command_CMD_PLANTOWER_PMS_FPM[]                      PROGMEM = "pms.fpm";
+const char command_CMD_PLANTOWER_PMSXX_ALL[]                    PROGMEM = "pmsxx.all";
+const char command_CMD_PLANTOWER_PMSXX_EPM[]                    PROGMEM = "pmsxx.epm";
+const char command_CMD_PLANTOWER_PMSXX_FPM[]                    PROGMEM = "pmsxx.fpm";
 
 const char command_CMD_MLX90614_TEMPERATURE[]                   PROGMEM = "mlx90614.temperature";
 
@@ -535,10 +535,10 @@ const command_t PROGMEM commands[] = {
     { CMD_ADPS9960_BLUE           , command_CMD_ADPS9960_BLUE},
 #endif
 
-#ifdef FEATURE_PLANTOWER_PMS_ENABLE
-    { CMD_PLANTOWER_PMS_ALL       , command_CMD_PLANTOWER_PMS_ALL},
-    { CMD_PLANTOWER_PMS_FPM       , command_CMD_PLANTOWER_PMS_FPM},
-    { CMD_PLANTOWER_PMS_EPM       , command_CMD_PLANTOWER_PMS_EPM},
+#ifdef FEATURE_PLANTOWER_PMSXX_ENABLE
+    { CMD_PLANTOWER_PMSXX_ALL       , command_CMD_PLANTOWER_PMSXX_ALL},
+    { CMD_PLANTOWER_PMSXX_FPM       , command_CMD_PLANTOWER_PMSXX_FPM},
+    { CMD_PLANTOWER_PMSXX_EPM       , command_CMD_PLANTOWER_PMSXX_EPM},
 #endif
 
 #ifdef FEATURE_MLX90614_ENABLE

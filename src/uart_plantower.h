@@ -23,11 +23,8 @@
 #define PLANTOWER_READ_FACTORY_PM010                            (0x10)
 #define PLANTOWER_READ_FACTORY_PM025                            (0x11)
 #define PLANTOWER_READ_FACTORY_PM100                            (0x12)
-//PM1.0
 #define PLANTOWER_READ_ENVIRONMENT_PM010                        (0x13)
-//PM2.5
 #define PLANTOWER_READ_ENVIRONMENT_PM025                        (0x14)
-//PM10.0
 #define PLANTOWER_READ_ENVIRONMENT_PM100                        (0x15)
 #define PLANTOWER_READ_PARTICLES_003_UM                         (0x16)
 #define PLANTOWER_READ_PARTICLES_005_UM                         (0x17)
