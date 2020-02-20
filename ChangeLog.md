@@ -3,7 +3,7 @@
 ### v1.4.0 (20 Feb 2019)
 
 Added:
-- New sensors, and devices support: Telaire T6703 (T67xx family), Sensirion SGP-30, Wuhan Cubic PM2012 (and similar), iNovaFitness SDS011.
+- New sensors, and devices support: Telaire T6703 (T67xx family), Winsen ZE08-CH2O, Sensirion SGP-30, Wuhan Cubic PM2012 (and similar), iNovaFitness SDS011.
 
 Changed: 
 - Network routines was rewrote;
