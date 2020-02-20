@@ -38,6 +38,7 @@ Implemented:
 - Support ADPS9960 light/color sensor;
 - Support MH-Z14/MH-Z19/MH-Z19B CO2 sensor;
 - Support Telaire T67xx family CO2 sensor;
+- Support Winsen ZE08-CH2O formaldehyde sensor;
 - Support VEML6070 ultraviolet sensor;
 - Support DS3231 & PCF8563 RTC I2C module;
 - Support incremental encoder (on interrupt's pin);
