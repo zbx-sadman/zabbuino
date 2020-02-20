@@ -7,12 +7,19 @@ Based on: https://github.com/adafruit/Adafruit_INA219
 
 #define INA219_I2C_ADDRESS                                      (0x40)
 
+#define INA219_CONVERSION_TIMEOUT                               (1000UL)
+
 #define INA219_REG_CONFIGURATION                                (0x00)
 #define INA219_REG_SHUNT_VOLTAGE                                (0x01)
 #define INA219_REG_BUS_VOLTAGE                                  (0x02)
 #define INA219_REG_POWER                                        (0x03)
 #define INA219_REG_CURRENT                                      (0x04)
 #define INA219_REG_CALIBRATION                                  (0x05)
+
+// The Math Overflow Flag (OVF) is set when the Power or Current calculations are out of range. 
+// It indicates that current and power data may be meaningless.
+#define INA219_BUS_VOLTAGE_OVERFLOW_MASK                        (0x01)  // Bus Voltage's overflow mask
+#define INA219_BUS_VOLTAGE_CONVERSION_READY_MASK                (0x02)  // Bus Voltage's Conversion Ready mask
 
 #define INA219_CONFIG_BVOLTAGERANGE_MASK                        (0x2000)  // Bus Voltage Range Mask
 #define INA219_CONFIG_BVOLTAGERANGE_16V                         (0x0000)  // 0-16V Range
@@ -55,14 +62,6 @@ Based on: https://github.com/adafruit/Adafruit_INA219
                                                                 
 /*****************************************************************************************************************************
 *
-*   Overloads of main subroutine. Used to get numeric metric's value or it's char presentation only
-*
-*****************************************************************************************************************************/
-int8_t getINA219Metric(SoftwareWire*, const uint8_t, uint8_t, uint16_t, const uint8_t, uint32_t*);
-int8_t getINA219Metric(SoftwareWire*, const uint8_t, uint8_t, uint16_t, const uint8_t, char*);
-
-/*****************************************************************************************************************************
-*
 *   Read specified metric's value of the INA219 sensor, put it to output buffer on success. 
 *
 *   Returns: 
@@ -71,4 +70,4 @@ int8_t getINA219Metric(SoftwareWire*, const uint8_t, uint8_t, uint16_t, const ui
 *     - RESULT_IS_FAIL - on other fails
 *
 *****************************************************************************************************************************/
-int8_t getINA219Metric(SoftwareWire*, const uint8_t, uint8_t, uint16_t, const uint8_t,  char*, uint32_t*, const uint8_t);
+int8_t getINA219Metric(SoftwareWire*, uint8_t, const uint8_t, const uint16_t, const uint8_t, uint32_t&);

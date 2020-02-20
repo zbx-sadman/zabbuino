@@ -6,12 +6,19 @@
 
 #define MLX90614_I2C_ADDR                                       (0x5A)
 
+#define MLX90614_OPCODE_READ_RAM                                (0x00)
+#define MLX90614_OPCODE_READ_ROM                                (0x20)
+#define MLX90614_OPCODE_READ_FLAGS                              (0xF0)
+#define MLX90614_OPCODE_ENTER_SLEEP_MODE                        (0xFF)
+
 // RAM
 #define MLX90614_RAWIR1                                         (0x04)
 #define MLX90614_RAWIR2                                         (0x05)
 #define MLX90614_TA                                             (0x06)
 #define MLX90614_TOBJ1                                          (0x07)
 #define MLX90614_TOBJ2                                          (0x08)
+#define MLX90614_TX_ERROR_MASK                                  (0x8000U)
+
 // EEPROM
 #define MLX90614_TOMAX                                          (0x20)
 #define MLX90614_TOMIN                                          (0x21)
@@ -30,26 +37,18 @@
 #define MLX90614_TEMPERATURE_ZONE_01                            (0x01)
 #define MLX90614_TEMPERATURE_ZONE_02                            (0x02)
 
-static uint8_t mlx90614crc8 (uint8_t inCrc, uint8_t inData);  
-
-static int8_t readRegister(SoftwareWire* _softTWI, const uint8_t _i2cAddress, const uint8_t _i2cRegister, int16_t* _value);
 
 /*****************************************************************************************************************************
 *
-*   Overloads of main subroutine. Used to get numeric metric's value or it's char presentation only
+*  Read specified metric's value of the MLX90614 sensor, put it to specified variable's address on success.
+*
+*  Returns: 
+*    - RESULT_IS_FAIL              on any error flags 
+*    - RESULT_IS_UNSIGNED_VALUE    on success when ID metric specified
+*    - RESULT_IS_FLOAT_02_DIGIT    on success when TEMP metric specified
+*    - DEVICE_ERROR_NOT_SUPPORTED  on wrong params specified
+*    - DEVICE_ERROR_TIMEOUT        on sensor stops answer to the request
+*    - DEVICE_ERROR_CONNECT        on connection error
 *
 *****************************************************************************************************************************/
 int8_t getMLX90614Metric(SoftwareWire* _softTWI, const uint8_t _i2cAddress, const uint8_t _temperatureZone, const uint8_t _metric, int32_t* _value);
-int8_t getMLX90614Metric(SoftwareWire* _softTWI, const uint8_t _i2cAddress, const uint8_t _temperatureZone, const uint8_t _metric, char* _dst);
-
-/*****************************************************************************************************************************
-*
-*   Read specified metric's value of the MLX90614 sensor, put it to output buffer on success. 
-*
-*   Returns: 
-*     - RESULT_IS_BUFFERED on success
-*     - DEVICE_ERROR_CONNECT on connection error
-*     - RESULT_IS_FAIL on other fails
-*
-*****************************************************************************************************************************/
-int8_t getMLX90614Metric(SoftwareWire* _softTWI, const uint8_t _i2cAddress, const uint8_t _temperatureZone, const uint8_t _metric, char* _dst, int32_t* _value, const uint8_t _wantsNumber);

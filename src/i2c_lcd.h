@@ -3,6 +3,8 @@
 #define LCD_MELT_CODEPAGE_COMPABILITY
 
 
+#define PCF8574_I2C_ADDRESS                                     (0x27)
+
 // Some pin mappings not used at presently
 /* LCD functional pin             ===>                   PCF8574 port (bit # in byte which send to I2C expander) */
 

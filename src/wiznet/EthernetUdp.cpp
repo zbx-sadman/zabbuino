@@ -1,3 +1,6 @@
+#include "../net_platforms.h"
+#ifdef NETWORK_ETHERNET_WIZNET
+
 /*
  *  Udp.cpp: Library to send/receive UDP packets with the Arduino ethernet shield.
  *  This version only offers minimal wrapping of socket.c/socket.h
@@ -26,21 +29,19 @@
  * bjoern@cs.stanford.edu 12/30/2008
  */
 
-#include "../net_platforms.h"
-#ifdef NETWORK_ETH_WIZNET
 
 #include "Dns.h"
 #include "Ethernet.h"
 
 /* Constructor */
-EthernetUDP::EthernetUDP() : _sock(MAX_SOCK_NUM) {}
+EthernetUDP::EthernetUDP() : _sock(WIZNET_SOCKETS_USED) {}
 
 /* Start EthernetUDP socket, listening at local port PORT */
 uint8_t EthernetUDP::begin(uint16_t port) {
-  if (_sock != MAX_SOCK_NUM)
+  if (_sock != WIZNET_SOCKETS_USED)
     return 0;
 
-  for (int i = 0; i < MAX_SOCK_NUM; i++) {
+  for (int i = 0; i < WIZNET_SOCKETS_USED; i++) {
     uint8_t s = W5100.readSnSR(i);
     if (s == SnSR::CLOSED || s == SnSR::FIN_WAIT) {
       _sock = i;
@@ -48,7 +49,7 @@ uint8_t EthernetUDP::begin(uint16_t port) {
     }
   }
 
-  if (_sock == MAX_SOCK_NUM)
+  if (_sock == WIZNET_SOCKETS_USED)
     return 0;
 
   _port = port;
@@ -67,13 +68,13 @@ int EthernetUDP::available() {
 /* Release any resources being used by this EthernetUDP instance */
 void EthernetUDP::stop()
 {
-  if (_sock == MAX_SOCK_NUM)
+  if (_sock == WIZNET_SOCKETS_USED)
     return;
 
   close(_sock);
 
   EthernetClass::_server_port[_sock] = 0;
-  _sock = MAX_SOCK_NUM;
+  _sock = WIZNET_SOCKETS_USED;
 }
 
 int EthernetUDP::beginPacket(const char *host, uint16_t port)
@@ -216,4 +217,4 @@ void EthernetUDP::flush()
   }
 }
 
-#endif // NETWORK_ETH_WIZNET
+#endif // NETWORK_ETHERNET_WIZNET

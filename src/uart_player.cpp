@@ -24,7 +24,7 @@ static uint16_t crcDFPlayerMini(uint8_t* _data) {
     for (uint8_t i = DFPLAYER_MINI_BYTE_VERSION; i < DFPLAYER_MINI_BYTE_CRC_00; i++) { 
         crc += _data[i]; 
     }
-    return (0xFFFF-crc+1);
+    return (0xFFFF - crc + 0x01);
 }
 
 /*****************************************************************************************************************************
@@ -61,11 +61,11 @@ static int8_t sendToDFPlayerMini(Stream* _stream, uint8_t _command, uint16_t _op
   // Flush all device's transmitted data to avoid get excess data in recieve buffer
   flushStreamRXBuffer(_stream, DFPLAYER_MINI_DEFAULT_READ_TIMEOUT, !UART_SLOW_MODE);
 
-//   for (uint8_t i = 0; i < DFPLAYER_MINI_PACKET_SIZE; i++) { Serial.print("buff["); Serial.print(i); Serial.print("] = 0x"); Serial.println(_dst[i], HEX);  }
+//   for (uint8_t i = 0; i < DFPLAYER_MINI_PACKET_SIZE; i++) { DEBUG_PORT.print("buff["); DEBUG_PORT.print(i); DEBUG_PORT.print("] = 0x"); DEBUG_PORT.println(_dst[i], HEX);  }
  
   serialSend(_stream, _dst, DFPLAYER_MINI_PACKET_SIZE, !UART_SLOW_MODE);
 
-#if (0x01 == DFPLAYER_MINI_FEEDBACK) 
+#if (DFPLAYER_MINI_FEEDBACK == 0x01) 
      uint8_t len;
      uint16_t recievedCRC;
 
@@ -99,14 +99,14 @@ finish:
 
 /*****************************************************************************************************************************
 *
-*   Run specified commad with specified volume on DFPlayer Mini
+*  Run specified commad with specified volume on DFPlayer Mini
 *
-*   Returns: 
-*     DEVICE_ERROR_TIMEOUT on device stop talking case
-*     DEVICE_ERROR_CHECKSUM when bad CRC is recieved
-*     DEVICE_ERROR_WRONG_ANSWER if DFPlayer Mini answer is not "success" (0x41)
-*     DEVICE_ERROR_NOT_SUPPORTED when wrong command is given
-*     RESULT_IS_FAIL on other fails
+*  Returns: 
+*    - DEVICE_ERROR_TIMEOUT        if device stop talking
+*    - DEVICE_ERROR_CHECKSUM       when bad CRC is recieved
+*    - DEVICE_ERROR_WRONG_ANSWER   on DFPlayer Mini answer "fail" (not 0x41)
+*    - DEVICE_ERROR_NOT_SUPPORTED  when wrong command is given
+*    - RESULT_IS_FAIL              on other fails
 *
 *****************************************************************************************************************************/
 int8_t runDFPlayerMini(const uint8_t _rxPin, const uint8_t _txPin, uint8_t _command, uint16_t _option, int16_t _volume, uint8_t* _dst) {
@@ -133,7 +133,7 @@ int8_t runDFPlayerMini(const uint8_t _rxPin, const uint8_t _txPin, uint8_t _comm
 
   delay(waitTime); 
 
-  if (0 <= _volume) {
+  if (0x00 <= _volume) {
      rc = sendToDFPlayerMini(&swSerial, DFPLAYER_CMD_SET_VOLUME, _volume, _dst);
      if (RESULT_IS_OK == rc) { goto finish; } 
      delay(DFPLAYER_MINI_INACTIVE_INTERVAL);

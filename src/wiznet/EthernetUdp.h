@@ -1,3 +1,8 @@
+#include "../net_platforms.h"
+#ifdef NETWORK_ETHERNET_WIZNET
+
+#pragma once
+
 /*
  *  Udp.cpp: Library to send/receive UDP packets with the Arduino ethernet shield.
  *  This version only offers minimal wrapping of socket.c/socket.h
@@ -34,13 +39,8 @@
  * bjoern@cs.stanford.edu 12/30/2008
  */
 
-#include "../net_platforms.h"
-#ifdef NETWORK_ETH_WIZNET
 
-#ifndef _WIZNET_ETHERNETUDP_H_
-#define _WIZNET_ETHERNETUDP_H_
-
-#include <Udp.h>
+#include "Udp.h"
 #include "w5100.h"
 #include "socket.h"
 
@@ -101,5 +101,4 @@ public:
   virtual uint16_t remotePort() { return _remotePort; };
 };
 
-#endif // _WIZNET_ETHERNETUDP_H_
-#endif // NETWORK_ETH_WIZNET
+#endif // NETWORK_ETHERNET_WIZNET

@@ -1,12 +1,10 @@
+#include "../net_platforms.h"
+#ifdef NETWORK_ETHERNET_WIZNET
+
+#pragma once
 // Arduino DNS client for WizNet5100-based Ethernet shield
 // (c) Copyright 2009-2010 MCQN Ltd.
 // Released under Apache License, version 2.0
-
-#include "../net_platforms.h"
-#ifdef NETWORK_ETH_WIZNET
-
-#ifndef _WIZNET_DNSCLIENT_H_
-#define _WIZNET_DNSCLIENT_H_
 
 
 //#include <string.h>
@@ -47,5 +45,4 @@ protected:
     EthernetUDP iUdp;
 };
 
-#endif // _WIZNET_DNSCLIENT_H_
-#endif // NETWORK_ETH_WIZNET
+#endif // NETWORK_ETHERNET_WIZNET

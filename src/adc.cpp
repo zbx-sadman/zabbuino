@@ -17,7 +17,7 @@
 uint16_t getADCVoltage(const uint8_t _analogChannel) {  
   uint8_t oldADCSRA, oldADMUX;
   uint16_t i;
-  uint32_t avgADC = 0;
+  uint32_t avgADC = 0x00;
   oldADMUX = ADMUX;
 
   // ATmega328 /  ATmega2560 just used different _analogChannel to get 1.1V ref voltage value
@@ -31,18 +31,18 @@ uint16_t getADCVoltage(const uint8_t _analogChannel) {
   ADCSRA |= (1 << ADEN);
   // Wait for Vref to settle. No delay() used because sub can be called from interrupt
   // if delayMicroseconds(2000) used - PWM routines (tone(), for example) work is break ;
-  i = 2000; while (i--){ delayMicroseconds(1);}
+  i = 2000; while (i--) { delayMicroseconds(1); }
 
   // get 255 samples
-  i = 255; 
-  while (i) {
+  i = 0xFF; 
+  while (i--) {
     ADCSRA |= (1 << ADSC);  // start a new conversion
     while (bit_is_set(ADCSRA, ADSC)) {;} // wait for conversion finish
     avgADC += ADC; 
-    i--;
+//    i--;
   }
   // Calculate average
-  avgADC /= 255;
+  avgADC /= 0xFF;
 
   //  restore ADCSRA register
   ADCSRA = oldADCSRA;
@@ -69,6 +69,8 @@ uint16_t getADCVoltage(const uint8_t _analogChannel) {
 *****************************************************************************************************************************/
 int8_t getACS7XXMetric(const uint8_t _sensorPin, uint32_t _sampleTime, uint32_t _aRefVoltage, const uint8_t _metric, const uint8_t _sensitivity, const int32_t _ZeroCurrentPoint, char* _dst)
 {  
+  __SUPPRESS_WARNING_UNUSED(_sampleTime);
+
   uint32_t sampleInterval, mVperUnit, prevMicros = 0;
   int32_t result, adcValue, numUnits = 0;
   int16_t samplesCount = 0; // adcTable[ADC_SAMPLES], 
@@ -137,7 +139,6 @@ int8_t getACS7XXMetric(const uint8_t _sensorPin, uint32_t _sampleTime, uint32_t 
       break;
   }
 
-//  Serial.print("numUnits: ");   Serial.println(numUnits); 
   /**** Calculation ****/
   switch (_metric) {
     case SENS_READ_ZC:

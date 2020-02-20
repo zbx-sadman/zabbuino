@@ -12,7 +12,7 @@ uint8_t alarmLedPinWorkState = HIGH;
 
 *****************************************************************************************************************************/
 void preLoopStageUserFunction(char* _dst) {
-  DTSM( PRINTLN_PSTR("preLoopStageUserFunction"); )
+  __DMLL( Serial.println(F("preLoopStageUserFunction")); )
   //  commandUserFunctionStartTime = millis();
 }
 
@@ -36,7 +36,7 @@ int8_t executeCommandUserFunction(char* _dst, char** _optarg, int32_t* _argv, in
   newAlarmLedPinDefaultState = (0x00 == newAlarmLedPinDefaultState) ? LOW : HIGH;
   newAlarmLedPinWorkState = (0x00 == newAlarmLedPinWorkState) ? LOW : HIGH;
 
-  DTSM( PRINTLN_PSTR("executeCommandUserFunction"); )
+  __DMLL( Serial.println(F("executeCommandUserFunction")); )
 
   if (USER_FUNCTION_SUBCOMMAND_DROP_ALARM_TIMEOUT == userFunctionSubcommandCode) {
     rc = RESULT_IS_FAIL;
@@ -70,9 +70,9 @@ finish:
 
 *****************************************************************************************************************************/
 void loopStageUserFunction(char* _dst) {
-  DTSM( PRINTLN_PSTR("loopStageUserFunction"); )
+  __DMLL( Serial.println(F("loopStageUserFunction")); )
   if (millis() - commandUserFunctionStartTime > commandUserFunctionTimeout) {
-    DTSM( PRINTLN_PSTR("loopStageUserFunction: commandUserFunctionTimeout is expired"); )
+    __DMLL( Serial.println(F("loopStageUserFunction: commandUserFunctionTimeout is expired")); )
     digitalWrite(alarmLedPin, alarmLedPinDefaultState);
   } else {
     digitalWrite(alarmLedPin, alarmLedPinWorkState);

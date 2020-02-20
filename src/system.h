@@ -2,13 +2,13 @@
 
 /*****************************************************************************************************************************
 *
-*  Read bytes from the MCU's Signature Row to buffer 
+*  Read bytes from the MCU's Signature Row and put its to buffer as HEX-string
 *
 *   Returns: 
 *     - none
 *
 *****************************************************************************************************************************/
-void getBootSignatureBytes(char* _dst, uint8_t _startByte, uint8_t _len, uint8_t _step);
+void getBootSignatureAsHexString(char*, const uint8_t, uint8_t, const uint8_t);
 
 /*****************************************************************************************************************************
 *
@@ -18,7 +18,7 @@ void getBootSignatureBytes(char* _dst, uint8_t _startByte, uint8_t _len, uint8_t
 *     - always true at this time
 *
 *****************************************************************************************************************************/
-uint8_t initTimerOne(const uint16_t _milliseconds);
+uint8_t initTimerOne(const uint32_t);
 
 /*****************************************************************************************************************************
 *

@@ -15,23 +15,20 @@
 *     - none
 *
 *****************************************************************************************************************************/
-void getBootSignatureBytes(char* _dst, uint8_t _startByte, uint8_t _len, uint8_t _step) {
+void getBootSignatureAsHexString(char* _dst, const uint8_t _startByte, uint8_t _len, const uint8_t _step) {
   // Interrupts must be disabled before boot_signature_byte_get will be called to avoid code execution crush
-  //noInterrupts();
-  uint8_t i = _startByte,
-          currByte;
+  uint8_t i = _startByte;
 
   ATOMIC_BLOCK(ATOMIC_RESTORESTATE) {
     while (_len) {
-       currByte = boot_signature_byte_get(i);
+       uint8_t currByte = boot_signature_byte_get(i);
        // ((...)) is calculate expression before calling dtoh()
-       *_dst++ = dtoh(((0x0F <= currByte) ? (currByte >> 4) : 0));
-       *_dst++ = dtoh((currByte & 0x0F));
+       *_dst++ = dtoh((uint8_t) (0x0F <= currByte) ? (currByte >> 4) : 0x00 );
+       *_dst++ = dtoh((uint8_t) (currByte & 0x0F));
        i += _step;
        _len--;
     }
   }
-  //interrupts();
   // finalize string
   *_dst = '\0';
 }
@@ -44,7 +41,7 @@ void getBootSignatureBytes(char* _dst, uint8_t _startByte, uint8_t _len, uint8_t
 *     - always true at this time
 *
 *****************************************************************************************************************************/
-uint8_t initTimerOne(const uint16_t _milliseconds) 
+uint8_t initTimerOne(const uint32_t _milliseconds) 
 {
   // Don't allow more that 5 sec to avoid overflow on 16Mhz with prescaler 1024 
   if ((1000 > _milliseconds) && (5000 < _milliseconds)) { return false; }

@@ -24,7 +24,7 @@ version 1.1.2 is used
 *     - none
 *
 *****************************************************************************************************************************/
-void pulseEnableOnLCD(SoftwareWire* _softTWI, const uint8_t _i2cAddress, const uint8_t _data)
+static void pulseEnableOnLCD(SoftwareWire* _softTWI, const uint8_t _i2cAddress, const uint8_t _data)
 {
   uint8_t sendByte;
   sendByte = _data | _BV(LCD_E);
@@ -43,7 +43,7 @@ void pulseEnableOnLCD(SoftwareWire* _softTWI, const uint8_t _i2cAddress, const u
 *     - none
 *
 *****************************************************************************************************************************/
-void write4bitsToLCD(SoftwareWire* _softTWI, const uint8_t _i2cAddress, uint8_t _data) 
+static void write4bitsToLCD(SoftwareWire* _softTWI, const uint8_t _i2cAddress, uint8_t _data) 
 {
   writeBytesToI2C(_softTWI, _i2cAddress, I2C_NO_REG_SPECIFIED, &_data, 1);
   pulseEnableOnLCD(_softTWI, _i2cAddress, _data);
@@ -57,7 +57,7 @@ void write4bitsToLCD(SoftwareWire* _softTWI, const uint8_t _i2cAddress, uint8_t 
 *     - none
 *
 *****************************************************************************************************************************/
-void sendToLCD(SoftwareWire* _softTWI, const uint8_t _i2cAddress, const uint8_t _data, const uint8_t _mode)
+static void sendToLCD(SoftwareWire* _softTWI, const uint8_t _i2cAddress, const uint8_t _data, const uint8_t _mode)
 {
   // Send first nibble (first four bits) into high byte area
   write4bitsToLCD(_softTWI, _i2cAddress, (_data & 0xF0) | _mode);
@@ -76,12 +76,15 @@ void sendToLCD(SoftwareWire* _softTWI, const uint8_t _i2cAddress, const uint8_t 
 *****************************************************************************************************************************/
 int8_t printToPCF8574LCD(SoftwareWire* _softTWI, uint8_t _i2cAddress, uint8_t _lcdBacklight, const uint16_t _lcdType, const char *_src, const uint8_t forceInit)
 {
+  int8_t  rc                       = DEVICE_ERROR_TIMEOUT;
+  uint8_t rowOffsets[]             = {0x00, 0x40, 0x14, 0x54};
   uint8_t displayFunction, lastLine, currLine, currChar, i, isHexString;
-  uint8_t rowOffsets[] = { 0x00, 0x40, 0x14, 0x54 };
-  static uint8_t lcdInited = false;
+  static uint8_t lcdInited         = false;
   
 
-  if (!isI2CDeviceReady(_softTWI, _i2cAddress)) {return DEVICE_ERROR_CONNECT; }
+  if (!_i2cAddress) { _i2cAddress = PCF8574_I2C_ADDRESS; }
+
+  if (!isI2CDeviceReady(_softTWI, _i2cAddress)) { rc = DEVICE_ERROR_CONNECT; goto finish; }
 
   switch (_lcdType) {
     case LCD_TYPE_801:
@@ -100,6 +103,7 @@ int8_t printToPCF8574LCD(SoftwareWire* _softTWI, uint8_t _i2cAddress, uint8_t _l
       // 0, 1 = 2 line
       lastLine = 1;
       break;
+
     case LCD_TYPE_1604:
     case LCD_TYPE_2004:               // Tested on generic 2004A LCD
     case LCD_TYPE_4004:
@@ -107,16 +111,17 @@ int8_t printToPCF8574LCD(SoftwareWire* _softTWI, uint8_t _i2cAddress, uint8_t _l
       // 0, 1, 2, 3 = 4 line
       lastLine = 3;
       break;
+
     default:
       return false;
   }
-      displayFunction = LCD_2LINE;
+  //displayFunction = LCD_2LINE;
 
-  _lcdBacklight = _lcdBacklight ? _BV(LCD_BL) : 0;
+  _lcdBacklight = _lcdBacklight ? _BV(LCD_BL) : 0x00;
 
   // just tooggle backlight and go back if no data given 
   writeByteToI2C(_softTWI, _i2cAddress, I2C_NO_REG_SPECIFIED, _lcdBacklight);
-  if (! *_src) {return RESULT_IS_OK; }
+  if (! *_src) { rc = RESULT_IS_OK; goto finish; }
 
   if (forceInit || !lcdInited) {
      lcdInited = true;
@@ -145,12 +150,12 @@ int8_t printToPCF8574LCD(SoftwareWire* _softTWI, uint8_t _i2cAddress, uint8_t _l
      write4bitsToLCD(_softTWI, _i2cAddress, (0x02 << 4) | _lcdBacklight);
      
      // set # lines, font size, etc.
-     sendToLCD(_softTWI, _i2cAddress, (LCD_FUNCTIONSET | displayFunction), 0 | _lcdBacklight);
-     sendToLCD(_softTWI, _i2cAddress, (LCD_DISPLAYCONTROL | LCD_DISPLAYON | LCD_CURSOROFF | LCD_BLINKOFF), 0 | _lcdBacklight);
+     sendToLCD(_softTWI, _i2cAddress, (LCD_FUNCTIONSET | displayFunction), 0x00 | _lcdBacklight);
+     sendToLCD(_softTWI, _i2cAddress, (LCD_DISPLAYCONTROL | LCD_DISPLAYON | LCD_CURSOROFF | LCD_BLINKOFF), 0x00 | _lcdBacklight);
   
   }
   // Always begin from 0,0
-  currLine = 0; 
+  currLine = 0x00; 
    // HEX strings must be processeed specially
   isHexString = false;
 
@@ -213,11 +218,11 @@ int8_t printToPCF8574LCD(SoftwareWire* _softTWI, uint8_t _i2cAddress, uint8_t _l
       } // if ('\\' == currChar)
     } // if (isHexString) ... else 
 
-//    Serial.print("currChar: 0x"); Serial.println(currChar, HEX);
+//    DEBUG_PORT.print("currChar: 0x"); DEBUG_PORT.println(currChar, HEX);
 #ifndef LCD_MELT_CODEPAGE_COMPABILITY
     if (currChar > 0x7F && currChar < 0x9F) {
        // Jump to position 
-       //Serial.print("Jump to:"); Serial.println(int (currChar - 0x80));
+       //DEBUG_PORT.print("Jump to:"); DEBUG_PORT.println(int (currChar - 0x80));
        sendToLCD(_softTWI, _i2cAddress, LCD_SETDDRAMADDR | ((currChar - 0x80) + rowOffsets[currLine]), 0 | _lcdBacklight);
       } else {
 #endif
@@ -235,7 +240,7 @@ int8_t printToPCF8574LCD(SoftwareWire* _softTWI, uint8_t _i2cAddress, uint8_t _l
            // for (i = 0; i < LCD_BLINK_TIMES; i++) {
            i = LCD_BLINK_TIMES;
            while (i) {
-              --i;
+              i--;
               // _lcdBacklight is not false/true, is 0x00 / 0x08
               _lcdBacklight = _lcdBacklight ? 0x00 : _BV(LCD_BL);
               writeByteToI2C(_softTWI, _i2cAddress, I2C_NO_REG_SPECIFIED, _lcdBacklight);
@@ -257,7 +262,7 @@ int8_t printToPCF8574LCD(SoftwareWire* _softTWI, uint8_t _i2cAddress, uint8_t _l
          case LCD_CMD_CURSORMOVERIGHT:
          case LCD_CMD_SCREENSHIFTLEFT:
          case LCD_CMD_SCREENSHIFTRIGHT:
-           sendToLCD(_softTWI, _i2cAddress, currChar, 0 | _lcdBacklight);
+           sendToLCD(_softTWI, _i2cAddress, currChar, 0x00 | _lcdBacklight);
            delayMicroseconds(42); 
            break;
 
@@ -266,26 +271,28 @@ int8_t printToPCF8574LCD(SoftwareWire* _softTWI, uint8_t _i2cAddress, uint8_t _l
            // Space is 0x20 ASCII
            //for (i = 0; i < LCD_TAB_SIZE; i++) { sendToLCD(_softTWI, _i2cAddress, 0x20, 0 | _BV(LCD_RS) | _lcdBacklight); }
            i = LCD_TAB_SIZE;
-           while (i) { --i; sendToLCD(_softTWI, _i2cAddress, 0x20, 0 | _BV(LCD_RS) | _lcdBacklight); }
+           while (i) { i--; sendToLCD(_softTWI, _i2cAddress, 0x20, 0x00 | _BV(LCD_RS) | _lcdBacklight); }
            break;
        
          // Go to new line
          case LCD_CMD_LF:
            if (lastLine > currLine) { currLine++; }
-           sendToLCD(_softTWI, _i2cAddress, (LCD_SETDDRAMADDR | rowOffsets[currLine]), 0 | _lcdBacklight);
+           sendToLCD(_softTWI, _i2cAddress, (LCD_SETDDRAMADDR | rowOffsets[currLine]), 0x00 | _lcdBacklight);
            break;
 
          // Otherwise - print the char
          default:
-           sendToLCD(_softTWI, _i2cAddress, currChar , 0 | _BV(LCD_RS) | _lcdBacklight);    
+           sendToLCD(_softTWI, _i2cAddress, currChar , 0x00 | _BV(LCD_RS) | _lcdBacklight);    
        } //switch (currChar) {
 #ifndef LCD_MELT_CODEPAGE_COMPABILITY
     } // if (currChar > 0x7F && currChar < 0x9F) .. else 
 #endif
     // move pointer to next char
-    ++_src;
+    _src++;
   } // while(*_src)
-  gatherSystemMetrics(); // Measure memory consumption
-  return RESULT_IS_OK;
-}
+  rc = RESULT_IS_OK;
 
+finish:
+  gatherSystemMetrics(); // Measure memory consumption
+  return rc;
+}

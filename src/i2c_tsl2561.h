@@ -192,22 +192,13 @@
 
 /*****************************************************************************************************************************
 *
-*   Overloads of main subroutine. Used to get numeric metric's value or it's char presentation only
+*  Read specified metric's value of the TSL2561 sensor, put it to specified variable's address on success.
+*
+*  Returns: 
+*    - RESULT_IS_UNSIGNED_VALUE    on success 
+*    - DEVICE_ERROR_NOT_SUPPORTED  on wrong params specified
+*    - DEVICE_ERROR_TIMEOUT        on sensor stops answer to the request
+*    - DEVICE_ERROR_CONNECT        on connection error
 *
 *****************************************************************************************************************************/
-int8_t getTSL2561Metric(SoftwareWire*, const uint8_t, const uint16_t, const uint8_t, const uint8_t, uint32_t*);
-int8_t getTSL2561Metric(SoftwareWire*, const uint8_t, const uint16_t, const uint8_t, const uint8_t, char*);
-
-/*****************************************************************************************************************************
-*
-*   Read specified metric's value of the TSL2561 sensor, put it to output buffer on success. 
-*
-*   Returns: 
-*     - RESULT_IS_BUFFERED on success
-*     - DEVICE_ERROR_CONNECT on connection error
-*     - DEVICE_ERROR_NOT_SUPPORTED on wrong parameter values
-*     - RESULT_IS_FAIL on other fails
-*
-*****************************************************************************************************************************/
-int8_t getTSL2561Metric(SoftwareWire*, const uint8_t, const uint16_t, const uint8_t, const uint8_t, char*, uint32_t*, const uint8_t);
-
+int8_t getTSL2561Metric(SoftwareWire*, uint8_t, const uint16_t, const uint8_t, const uint8_t, uint32_t*);

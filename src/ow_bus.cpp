@@ -2,10 +2,9 @@
 #include "sys_includes.h"
 
 // OneWire lib for Dallas sensors
-#include "OneWire\OneWire.h"
+#include "OneWire/OneWire.h"
 
 #include "service.h"
-#include "network.h"
 
 #include "ow_bus.h"
 
@@ -23,37 +22,27 @@
 *     - number of found devices
 *
 *****************************************************************************************************************************/
-int8_t scanOneWire(const uint8_t _pin, uint8_t* _dst) {
-//#if !defined(NETWORK_RS485)
-  uint8_t dsAddr[8], 
-          numDevices = 0;
+int8_t scanOneWire(const uint8_t _pin, uint8_t* _dst, size_t _bufferSize) {
+  uint8_t dsAddr[ONEWIRE_ID_SIZE], 
+          numDevices = 0x00;
+
   OneWire owDevice(_pin);
 
+  // Test the bus
+  if (!owDevice.reset()) { goto finish; }
+
   owDevice.reset_search();
-  delay(250);
-  owDevice.reset();
+  // Do not write more that _bufferSize (buffer size)
   while (owDevice.search(dsAddr)) {
-    memcpy(_dst, dsAddr, sizeof(dsAddr));
-    _dst += sizeof(dsAddr);
-    ++numDevices;
+    if (_bufferSize >= sizeof(dsAddr)) { 
+       memcpy(_dst, dsAddr, ONEWIRE_ID_SIZE);
+       _bufferSize -= ONEWIRE_ID_SIZE;
+       _dst += ONEWIRE_ID_SIZE;
+        numDevices++;
+    }
   }
+
+finish:
   return numDevices;
 }
 
-
-/*
-
-    if (_networkStream) { _networkStream->print("0x"); }
-    DTSL ( Serial.print("0x"); ) 
-    for (i = 0; i < arraySize(dsAddr); i++ ) {
-      if (dsAddr[i] < 0x10) {
-         if (_networkStream) { _networkStream->print("0"); }
-         DTSL ( Serial.print("0"); ) 
-      }
-      if (_networkStream) { _networkStream->print(dsAddr[i], HEX); }
-      DTSL ( Serial.print(dsAddr[i], HEX); ) 
-    }
-    if (_networkStream) { _networkStream->print('\n'); }
-    DTSL ( Serial.print('\n'); )
-
-*/

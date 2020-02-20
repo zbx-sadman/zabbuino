@@ -24,7 +24,7 @@
 
 
 #include "../net_platforms.h"
-#ifdef NETWORK_ETH_ENC28J60
+#ifdef NETWORK_ETHERNET_ENC28J60
 
 #ifndef _UIP_ENC28J60NETWORK_H_
 #define _UIP_ENC28J60NETWORK_H_
@@ -99,8 +99,9 @@ public:
   static void copyPacket(memhandle dest, memaddress dest_pos, memhandle src, memaddress src_pos, uint16_t len);
   static uint16_t chksum(uint16_t sum, memhandle handle, memaddress pos, uint16_t len);
   static uint8_t readReg(uint8_t address);
+
 };
 
 extern Enc28J60Network Enc28J60;
 #endif // _UIP_ENC28J60NETWORK_H_
-#endif // NETWORK_ETH_ENC28J60
+#endif // NETWORK_ETHERNET_ENC28J60

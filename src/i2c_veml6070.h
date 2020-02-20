@@ -3,10 +3,12 @@
 /*
 
   Datasheet: http://www.vishay.com/docs/84277/veml6070.pdf
+  Designing the VEML6070 UV Light Sensor Into Applications: http://www.vishay.com/docs/84310/designingveml6070.pdf
+  
 */
 
-#define VEML6070_ADDR_H 0x39 ///< High address
-#define VEML6070_ADDR_L 0x38 ///< Low address
+#define VEML6070_ADDR_H 0x39 // High address
+#define VEML6070_ADDR_L 0x38 // Low address
 
 // Shutdown mode setting
 // 0 = disable, 1 = enable
@@ -37,27 +39,24 @@
 #define VEML6070_2_T                                            (0x02)
 #define VEML6070_4_T                                            (0x03)
 
-#define VEML6070_INIT_TIME_MS                                   (160)
+#define VEML6070_INIT_TIME_MS                                   (160UL)
 
-
-/*****************************************************************************************************************************
-*
-*   Overloads of main subroutine. Used to get numeric metric's value or it's char presentation only
-*
-*****************************************************************************************************************************/
-int8_t getVEML6070Metric(SoftwareWire*, const uint8_t, const uint8_t, char*);
-int8_t getVEML6070Metric(SoftwareWire*, const uint8_t, const uint8_t, uint32_t*);
+// Rset in kOhms
+#define VEML6070_RSET_VALUE_DEFAULT                             (270) 
+#define VEML6070_MIN_RSET_VALUE                                 (220)
+#define VEML6070_MAX_RSET_VALUE                                 (1100)
 
 /*****************************************************************************************************************************
 *
-*  Read specified metric's value of the VEML6070 sensor, put it to output buffer on success. 
+*  Read specified metric's value of the VEML6070 sensor, put it to specified variable's address on success.
 *
 *  Returns: 
-*    - RESULT_IS_BUFFERED on success
-*     - DEVICE_ERROR_CONNECT on test connection error
-*     - RESULT_IS_FAIL - on other fails
+*    - RESULT_IS_UNSIGNED_VALUE    on success when RAW metric specified
+*    - DEVICE_ERROR_NOT_SUPPORTED  on wrong params specified
+*    - DEVICE_ERROR_TIMEOUT        on sensor stops answer to the request
+*    - DEVICE_ERROR_CONNECT        on connection error
 *
 *****************************************************************************************************************************/
-int8_t getVEML6070Metric(SoftwareWire*, const uint8_t, char*, uint32_t*, const uint8_t);
+int8_t getVEML6070Metric(SoftwareWire*, uint8_t, uint32_t, const uint8_t, int32_t*);
 
 

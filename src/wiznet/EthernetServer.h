@@ -1,10 +1,9 @@
 #include "../net_platforms.h"
-#ifdef NETWORK_ETH_WIZNET
+#ifdef NETWORK_ETHERNET_WIZNET
 
-#ifndef _WIZNET_ETHERNETSERVER_H_
-#define _WIZNET_ETHERNETSERVER_H_
+#pragma once
 
-#include <Server.h>
+#include "Server.h"
 
 //#include <string.h>
 
@@ -19,15 +18,16 @@ class EthernetServer :
 public Server {
 private:
   uint16_t _port;
-  void accept();
 public:
+
   EthernetServer(uint16_t);
   EthernetClient available();
+  EthernetClient accept();
+  EthernetClient getWorkSocket(uint8_t _withDataAvailable/*=false*/);
   virtual void begin();
   virtual size_t write(uint8_t);
   virtual size_t write(const uint8_t *buf, size_t size);
   using Print::write;
 };
 
-#endif // _WIZNET_ETHERNETSERVER_H_
-#endif // NETWORK_ETH_WIZNET
+#endif // NETWORK_ETHERNET_WIZNET

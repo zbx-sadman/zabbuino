@@ -25,7 +25,7 @@
 #include "sys_includes.h"
 
 #include "SoftwareWire/SoftwareWire.h"
-#include "NetworkAddress.h"
+//#include "NetworkAddress.h"
 #include "network.h"
 #include "sys_commands.h"
 #include "sys_platforms.h"
@@ -56,6 +56,9 @@
 #include "i2c_tsl2561.h"
 #include "i2c_adps9960.h"
 #include "i2c_mlx90614.h"
+#include "i2c_sgp30.h"
+#include "i2c_t67xx.h"
+
 
 // 1-Wire devices 
 #include "ow_bus.h"
@@ -68,6 +71,8 @@
 #include "uart_player.h"
 #include "uart_pzem.h"
 #include "uart_plantower.h"
+#include "uart_novafitness.h"
+#include "uart_ze08_ch02.h"
 
 
 // SPI-compatible devices 
@@ -83,6 +88,7 @@
 #include "shiftout.h"
 #include "microwire_bus.h"
 #include "actuators.h"
+#include "modbus.h"
 
 /*-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
                                                    GLOBAL VARIABLES SECTION
@@ -90,10 +96,9 @@
 
 // some members of struct used in timer's interrupt
 volatile sysmetrics_t sysMetrics;
+netconfig_t sysConfig;
 
-netconfig_t netConfig;
-
-NetworkClass Network;
+//NetworkClass Network;
 
 #ifdef TWI_USE
 SoftwareWire SoftTWI(constDefaultSDAPin, constDefaultSCLPin);

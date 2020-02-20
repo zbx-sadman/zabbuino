@@ -2,7 +2,7 @@
 #include "sys_includes.h"
 
 #include "actuators.h"
-#include <util\atomic.h>
+#include <util/atomic.h>
 
 #include "service.h"
 #include "system.h"
@@ -12,12 +12,12 @@
 *
 *  Send command to Servo to make turn it an turn back
 *
-*   Returns: 
-*     - RESULT_IS_OK
+*  Returns: 
+*    - RESULT_IS_OK    on success
+*    - RESULT_IS_FAIL  if wrong pin number is specified
 *
 *****************************************************************************************************************************/
-int8_t servoTurn(const uint8_t _servoPin, const uint16_t _targetPulseWidth, const uint32_t _turnTime, const uint32_t _holdTime = 0, const uint16_t _returnPulseWidth = 0)
-{
+int8_t servoTurn(const uint8_t _servoPin, const uint16_t _targetPulseWidth, const uint32_t _turnTime, const uint32_t _holdTime = 0x00, const uint16_t _returnPulseWidth = 0x00) {
   uint32_t startHolding, idleTime, turnTime;
   uint8_t servoPinPort, servoPinBit;
   volatile uint8_t *servoOutRegister;
@@ -26,9 +26,7 @@ int8_t servoTurn(const uint8_t _servoPin, const uint16_t _targetPulseWidth, cons
   servoPinBit  = digitalPinToBitMask(_servoPin);
   servoPinPort = digitalPinToPort(_servoPin);
 
-  if (NOT_A_PIN == servoPinPort) {
-    goto finish;
-  }
+  if (NOT_A_PIN == servoPinPort) { goto finish; }
   servoOutRegister = portOutputRegister(servoPinPort);
 
   pinMode(_servoPin, OUTPUT);
@@ -40,7 +38,7 @@ int8_t servoTurn(const uint8_t _servoPin, const uint16_t _targetPulseWidth, cons
     //     for _turnTime and _holdTime to stay on position
     //
     // Work cycle = pulse_width_in_uS + (20 ms - pulse_width_in_ms)
-    idleTime = SERVO_PULSE_INTERVAL - (_targetPulseWidth / 1000UL);
+    idleTime = SERVO_PULSE_INTERVAL - (_targetPulseWidth / MSEC_PER_SECOND);
     turnTime = _turnTime + _holdTime;
 
     startHolding = millis();
@@ -61,7 +59,7 @@ int8_t servoTurn(const uint8_t _servoPin, const uint16_t _targetPulseWidth, cons
     // if return angle (thru _returnPulseWidth) is specified - servo must get pulses every PULSE_INTERVAL (usually 20) ms 
     //     for _turnTime
     //
-    idleTime = SERVO_PULSE_INTERVAL - (_returnPulseWidth / 1000UL);
+    idleTime = SERVO_PULSE_INTERVAL - (_returnPulseWidth / MSEC_PER_SECOND);
 
     startHolding = millis();
     do {
@@ -87,12 +85,13 @@ finish:
 
 /*****************************************************************************************************************************
 *
-*   Returns: 
-*     - RESULT_IS_OK
+*  Set pin to some state, wait, and set pin to other state
+*
+*  Returns: 
+*    - RESULT_IS_OK  on any case
 *
 *****************************************************************************************************************************/
-int8_t pulse(const uint8_t _targetPin, const uint8_t _targetState, const uint32_t _holdTime, const uint8_t _returnState)
-{
+int8_t pulse(const uint8_t _targetPin, const uint8_t _targetState, const uint32_t _holdTime, const uint8_t _returnState) {
   pinMode(_targetPin, OUTPUT);
   digitalWrite(_targetPin, _targetState);
   delay(_holdTime);
@@ -105,14 +104,14 @@ int8_t pulse(const uint8_t _targetPin, const uint8_t _targetState, const uint32_
 
 /*****************************************************************************************************************************
 *
-*  Send command to Servo to make turn it an turn back
+*  Set pin to some state and test control pin (may be second pair of relay contacts)
 *
-*   Returns: 
-*     - RESULT_IS_OK
+*  Returns: 
+*    - RESULT_IS_OK     on test OK
+*    - RESULT_IS_FAIL   on otherwise
 *
 *****************************************************************************************************************************/
-int8_t relay(const uint8_t _targetPin, const uint8_t _targetState, const int8_t _testPin = -1, const int8_t _testState = -0x01,  uint8_t _testPinMode = INPUT)
-{
+int8_t relay(const uint8_t _targetPin, const uint8_t _targetState, const int8_t _testPin = -0x01, const int8_t _testState = -0x01,  uint8_t _testPinMode = INPUT) {
 
   int8_t rc = RESULT_IS_OK;
   uint8_t t;
@@ -120,20 +119,13 @@ int8_t relay(const uint8_t _targetPin, const uint8_t _targetState, const int8_t 
   pinMode(_targetPin, OUTPUT);
   digitalWrite(_targetPin, _targetState);
 
-  if (0 > _testPin || 0 > _testState) {
-     goto finish;
-  }
+  if (0x00 > _testPin || 0x00 > _testState) { goto finish; }
   
   pinMode(_testPin, (INPUT_PULLUP == _testPinMode) ? INPUT_PULLUP : INPUT);
   delay(10);
   t = digitalRead(_testPin);
 
-  if (_testState != t) { 
-   rc = RESULT_IS_FAIL; 
-//   Serial.println("FAIL");
-  }else {
-//   Serial.println("OK");
-  }
+  if (_testState != t) { rc = RESULT_IS_FAIL; }
 
 finish:
   gatherSystemMetrics(); 

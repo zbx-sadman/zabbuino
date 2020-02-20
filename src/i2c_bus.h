@@ -1,24 +1,37 @@
 #pragma once
 
-#define I2C_NO_REG_SPECIFIED                                    (-0x01) //
-#define I2C_NO_ADDR_SPECIFIED                                    (-0x01) //
+#define I2C_NO_REG_SPECIFIED                                     (-0x01) //
+#define I2C_NO_ADDR_SPECIFIED                                    (0x00) // General Call Address
 
-#define WireToU8(_src)  ((uint8_t) _src[0])
-#define WireToS8(_src)  ((int8_t) _src[0])
+//#define WireToU8(_src)     ((uint8_t) _src[0])
+//#define WireToS8(_src)     ((int8_t)  _src[0])
 
 //#define WireToU16(_src)  ((uint16_t) ( ((uint16_t) _src[0] << 8)| (uint16_t) _src[1]))
-#define WireToU16(_src)  ((uint16_t) ( ((uint16_t) _src[0] << 8)| (uint8_t) _src[1]))
-#define WireToS16(_src)  ((int16_t)  ( ((uint16_t) _src[0] << 8)| (uint8_t) _src[1]))
+//#define WireToU16(_src)    ((uint16_t) ( ((uint16_t) _src[0] << 8)| (uint8_t) _src[1]))
+//#define WireToS16(_src)    ((int16_t)  ( ((uint16_t) _src[0] << 8)| (uint8_t) _src[1]))
 
-#define WireToU16LE(_src)  ((uint16_t) ( ((uint16_t) _src[1] << 8)| _src[0]))
-#define WireToS16LE(_src)  ((int16_t) ( ((uint16_t) _src[1] << 8)| _src[0]))
+//#define WireToU16LE(_src)  ((uint16_t) ( ((uint16_t) _src[1] << 8)| (uint8_t) _src[0]))
+//#define WireToS16LE(_src)  ((int16_t)  ( ((uint16_t) _src[1] << 8)| (uint8_t) _src[0]))
 
-#define WireToU24(_src)  ((uint32_t) ( ((uint32_t) _src[0] << 16) | (_src[1] << 8) | _src[2]))
-#define WireToS24(_src)  ((int32_t) ( ((uint32_t) _src[0] << 16) | (_src[1] << 8) | _src[2]))
+//#define WireToU24(_src)    ((uint32_t) ( ((uint32_t) _src[0] << 16) | ((uint16_t) _src[1] << 8) | (uint8_t) _src[2]))
+//#define WireToS24(_src)    ((int32_t)  ( ((uint32_t) _src[0] << 16) | ((uint16_t) _src[1] << 8) | (uint8_t) _src[2]))
 
 
 void U16ToWire(uint8_t*, uint16_t);
 void U16LToWire(uint8_t*, uint16_t);
+
+inline uint8_t WireToU8(uint8_t* _src)     { return ( (uint8_t)   _src[0x00] ); }
+inline int8_t  WireToS8(uint8_t* _src)     { return ( (int8_t)    _src[0x00] ); }
+
+inline uint16_t WireToU16(uint8_t* _src)   { return ( ((uint16_t) _src[0x00] << 8)  | _src[0x01] ); }
+inline int16_t  WireToS16(uint8_t* _src)   { return ( ((int16_t)  _src[0x00] << 8)  | _src[0x01] ); }
+
+inline uint16_t WireToU16LE(uint8_t* _src) { return ( ((uint16_t) _src[0x01] << 8)  | _src[0x00] ); }
+inline int16_t  WireToS16LE(uint8_t* _src) { return ( ((int16_t)  _src[0x01] << 8)  | _src[0x00] ); }
+
+inline uint32_t WireToU24(uint8_t* _src)   { return ( ((uint32_t) _src[0x00] << 16) | ((uint16_t) _src[0x01] << 8) | _src[0x02] ); }
+inline int32_t  WireToS24(uint8_t* _src)   { return ( ((int32_t)  _src[0x00] << 16) | ((uint16_t) _src[0x01] << 8) | _src[0x02] ); }
+
 
 /*****************************************************************************************************************************
 *

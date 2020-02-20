@@ -32,22 +32,15 @@ version 0.1.13 is used
 
 /*****************************************************************************************************************************
 *
-*   Overloads of main subroutine. Used to get numeric metric's value or it's char presentation only
+*  Read specified metric's value of the AM/DHT sensor, put it to specified variable's address on success.
+*
+*  Returns: 
+*     - RESULT_IS_FLOAT_01_DIGIT    on success
+*     - DEVICE_ERROR_NOT_SUPPORTED  on wrong params specified
+*     - DEVICE_ERROR_TIMEOUT        on sensor stops answer to the request
+*     - DEVICE_ERROR_CHECKSUM       on detect data corruption
+*     - DEVICE_ERROR_ACK_L
+*     - DEVICE_ERROR_ACK_H
 *
 *****************************************************************************************************************************/
 int8_t getDHTMetric(const uint8_t, const uint8_t, const uint8_t, int32_t*);
-int8_t getDHTMetric(const uint8_t, const uint8_t, const uint8_t, char*);
-
-/*****************************************************************************************************************************
-*
-*  Read specified metric's value of the AM/DHT sensor, put it to output buffer on success. 
-*
-*  Returns: 
-*    - RESULT_IS_BUFFERED on success
-*    - DEVICE_ERROR_CONNECT on connection error
-*    - DEVICE_ERROR_ACK_L
-*    - DEVICE_ERROR_ACK_H
-*    - DEVICE_ERROR_TIMEOUT if sensor stops answer to the request
-*
-*****************************************************************************************************************************/
-int8_t getDHTMetric(const uint8_t, const uint8_t, const uint8_t, char*, int32_t*, const uint8_t _wantsNumber = false);

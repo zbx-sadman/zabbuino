@@ -58,7 +58,6 @@
 #define APSD9960_ALS_PROXIMITY_ENABLE                           (B00100000)
 #define APSD9960_GESTURE_ENABLE                                 (B01000000)
 
-
 #define APSD9960_STATUS_AVALID                                  (B00000001)
 #define APSD9960_STATUS_PVALID                                  (B00000010)
 #define APSD9960_STATUS_GINT                                    (B00000100)
@@ -66,6 +65,9 @@
 #define APSD9960_STATUS_PINT                                    (B00100000)
 #define APSD9960_STATUS_PGSAT                                   (B01000000)
 #define APSD9960_STATUS_CPSAT                                   (B10000000)
+
+#define APDS9960_MIN_ADC_INTEGRATION_TIME                       (3)
+#define APDS9960_MAX_ADC_INTEGRATION_TIME                       (712)
 
 #define APDS9960_DEFAULT_ADC_INTEGRATION_TIME                   (103)
 #define APDS9960_DEFAULT_ALS_GAIN                               (0x04)
@@ -77,23 +79,16 @@
 
 #define APDS9960_CONVERSION_TIMEOUT                             (1000UL)  // ms
 
-/*****************************************************************************************************************************
-*
-*   Overloads of main subroutine. Used to get numeric metric's value or it's char presentation only
-*
-*****************************************************************************************************************************/
-int8_t getADPS9960Metric(SoftwareWire* _softTWI, const uint8_t _i2cAddress, const uint16_t _integrationTime, uint8_t _gain, uint8_t _ledDrive, const uint8_t _metric, uint32_t* _value);
-int8_t getADPS9960Metric(SoftwareWire* _softTWI, const uint8_t _i2cAddress, const uint16_t _integrationTime, uint8_t _gain, uint8_t _ledDrive, const uint8_t _metric, char* _dst);
 
 /*****************************************************************************************************************************
 *
-*   Read specified metric's value of the ADPS9960 sensor, put it to output buffer on success. 
+*  Read specified metric's value of the ADPS9960 sensor, put it to specified variable's address on success.
 *
-*   Returns: 
-*     - RESULT_IS_BUFFERED on success
-*     - DEVICE_ERROR_CONNECT on connection error
-*     - DEVICE_ERROR_NOT_SUPPORTED on wrong parameter values
-*     - RESULT_IS_FAIL on other fails
+*  Returns: 
+*    - RESULT_IS_UNSIGNED_VALUE    on success 
+*    - DEVICE_ERROR_NOT_SUPPORTED  on wrong params specified
+*    - DEVICE_ERROR_TIMEOUT        on sensor stops answer to the request
+*    - DEVICE_ERROR_CONNECT        on connection error
 *
 *****************************************************************************************************************************/
-int8_t getADPS9960Metric(SoftwareWire* _softTWI, const uint8_t _i2cAddress, uint16_t _integrationTime, uint8_t _gain, uint8_t _ledDrive, const uint8_t _metric, char* _dst, uint32_t* _value, const uint8_t _wantsNumber);
+int8_t getADPS9960Metric(SoftwareWire* _softTWI, uint8_t _i2cAddress, uint16_t _integrationTime, uint8_t _gain, uint8_t _ledDrive, const uint8_t _metric, uint32_t* _value);

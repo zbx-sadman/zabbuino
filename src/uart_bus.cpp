@@ -53,11 +53,11 @@ uint8_t serialRecive(Stream* _stream, uint8_t* _src, const uint8_t _size, const 
           if (!c && !len) {
              continue; // skip 0 at startup
           }
-          DTSD( Serial.print("rcv: "); Serial.println(c, HEX); )
+          __DMLD( DEBUG_PORT.print("rcv: "); DEBUG_PORT.println(c, HEX); )
           _src[len] = c;
           // Stop and jump out from subroutine if some byte is reached
-          if (_stopOnChar && (_stopChar == _src[len])) { return len+1; }
-          ++len;
+          if (_stopOnChar && (_stopChar == _src[len])) { return len + 0x01; }
+          len++;
        }
     }
   }
@@ -74,28 +74,26 @@ uint8_t serialRecive(Stream* _stream, uint8_t* _src, const uint8_t _size, const 
 *****************************************************************************************************************************/
 void serialSend(Stream* _stream, uint8_t* _src, uint8_t _size, const uint8_t _slowMode)
 {
-   DTSD( uint8_t i = 0; )
+  __DMLD( uint8_t i = 0; )
 
   if (_stream) {
      while (_size) {
        // do not rush when work with APC UPS's
        if (_slowMode) { delay(10); }
 
-       DTSD( Serial.print("send byte# "); 
-             Serial.print(i); 
-             Serial.print(" => "); 
-             Serial.print(*_src, HEX);  
-             Serial.print(" '"); 
-             Serial.print((char) *_src); Serial.println("' "); 
-             ++i;
+       __DMLD( DEBUG_PORT.print("send byte# "); 
+               DEBUG_PORT.print(i); 
+               DEBUG_PORT.print(" => "); 
+               DEBUG_PORT.print(*_src, HEX);  
+               DEBUG_PORT.print(" '"); 
+               DEBUG_PORT.print((char) *_src); DEBUG_PORT.println("' "); 
+               ++i;
        )
        // HardwareSerial::write() always return 1
        _stream->write(*_src);
        _src++;
        _size--;
     }
-
-
   }
 }
 

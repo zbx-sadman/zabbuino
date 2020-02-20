@@ -138,47 +138,18 @@
 #define T_SETUP_HUMIDITY_MAX					(10)   // 10/16 = 0.625 ms
 
 
-
 /*****************************************************************************************************************************
 *
-*   Overloads of main subroutine. Used to get numeric metric's value or it's char presentation only
+*  Return code of the called subroutine (based on sensor ID) for obtaining a metric of sensor.
+*
+*  Returns: 
+*    - RESULT_IS_UNSIGNED_VALUE    on success when SENS_READ_PRSS metric specified
+*    - RESULT_IS_FLOAT_01_DIGIT    on success when SENS_READ_TEMP metric specified (BMP085/BMP180)
+*    - RESULT_IS_FLOAT_02_DIGIT    on success when SENS_READ_TEMP metric specified (BMP280/BME280)
+*    - RESULT_IS_FLOAT_QMN         on success when SENS_READ_HUMD metric specified (BMP280/BME280)
+*    - DEVICE_ERROR_NOT_SUPPORTED  on wrong params specified or unknown chip ID detected
+*    - DEVICE_ERROR_TIMEOUT        on sensor stops answer to the request
+*    - DEVICE_ERROR_CONNECT        on connection error
 *
 *****************************************************************************************************************************/
 int8_t getBMPMetric(SoftwareWire*, uint8_t, const uint8_t, const uint8_t, const uint8_t, int32_t*);
-int8_t getBMPMetric(SoftwareWire*, uint8_t, const uint8_t, const uint8_t, const uint8_t, char*);
-
-/*****************************************************************************************************************************
-*
-*   Call the subroutine (based on sensor ID) for obtaining a metric of sensor 
-*
-*   Returns: 
-*     - result code of the called subroutine 
-*     - DEVICE_ERROR_CONNECT on connection error
-*     - RESULT_IS_FAIL if unknown chip ID found
-*
-*****************************************************************************************************************************/
-int8_t getBMPMetric(SoftwareWire*, uint8_t, const uint8_t, const uint8_t, const uint8_t, char*, int32_t*, const uint8_t);
-
-/*****************************************************************************************************************************
-*
-*  Read specified metric's value of the BMP280/BME280 sensor, put it to output buffer on success. 
-*
-*   Returns: 
-*     - RESULT_IS_BUFFERED on success
-*     - DEVICE_ERROR_TIMEOUT if sensor do not ready to work
-*
-*****************************************************************************************************************************/
-int8_t getBME280Metric(SoftwareWire*, uint8_t, const uint8_t, uint8_t, const uint8_t, char* _dst, int32_t*, const uint8_t);
-
-/*****************************************************************************************************************************
-*
-*   Read specified metric's value of the BMP180/BMP085 sensor, put it to output buffer on success. 
-*
-*   Returns: 
-*     - RESULT_IS_BUFFERED on success
-*     - DEVICE_ERROR_TIMEOUT if sensor do not ready to work
-*
-*****************************************************************************************************************************/
-int8_t getBMP180Metric(SoftwareWire*, uint8_t, uint8_t, const uint8_t, char*, int32_t*, const uint8_t);
-
-

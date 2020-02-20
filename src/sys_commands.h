@@ -116,29 +116,46 @@
 
 #define CMD_USER_RUN                                            (0x4E)
 
-#define CMD_VEML6070_UV                                         (0x4F)
+#define CMD_VEML6070_UVI                                        (0x4F)
+#define CMD_VEML6070_UVA                                        (0x50)
 
-#define CMD_MAX6675_TEMPERATURE                                 (0x50)
-#define CMD_PCA9685_WRITE                                       (0x51)
+#define CMD_MAX6675_TEMPERATURE                                 (0x51)
+#define CMD_PCA9685_WRITE                                       (0x52)
 
-#define CMD_RELAY                                               (0x52)
-#define CMD_PULSE                                               (0x53)
+#define CMD_RELAY                                               (0x53)
+#define CMD_PULSE                                               (0x54)
 
-#define CMD_SERVO_TURN                                          (0x54)
+#define CMD_SERVO_TURN                                          (0x55)
 
-#define CMD_TSL2561_LIGHT                                       (0x55)
+#define CMD_TSL2561_LIGHT                                       (0x56)
 
-#define CMD_DFPLAYER_RUN                                        (0x56)
+#define CMD_DFPLAYER_RUN                                        (0x57)
 
-#define CMD_ADPS9960_AMBIENT                                    (0x57)
-#define CMD_ADPS9960_RED                                        (0x58)
-#define CMD_ADPS9960_GREEN                                      (0x59)
-#define CMD_ADPS9960_BLUE                                       (0x5A)
+#define CMD_ADPS9960_AMBIENT                                    (0x58)
+#define CMD_ADPS9960_RED                                        (0x59)
+#define CMD_ADPS9960_GREEN                                      (0x5A)
+#define CMD_ADPS9960_BLUE                                       (0x5B)
 
-#define CMD_PLANTOWER_PMS_ALL                                   (0x5B)
-#define CMD_PLANTOWER_PMS_EPM25                                 (0x5C)
+#define CMD_PLANTOWER_PMSXX_ALL                                 (0x5C)
+#define CMD_PLANTOWER_PMSXX_FPM                                 (0x5D)
+#define CMD_PLANTOWER_PMSXX_EPM                                 (0x5E)
 
-#define CMD_MLX90614_TEMPERATURE                                (0x5D)
+#define CMD_SGP30_CO2E                                          (0x5F)
+#define CMD_SGP30_TVOC                                          (0x60)
+
+#define CMD_MLX90614_TEMPERATURE                                (0x61)
+
+#define CMD_ZE08_CH2O                                           (0x62)
+
+#define CMD_T67XX_I2C_CO2                                       (0x63)
+
+#define CMD_NOVA_SDS_ALL                                        (0x64)
+#define CMD_NOVA_SDS_EPM                                        (0x65)
+
+#define CMD_MB_RTU_FC03                                         (0x66)
+
+#define CMD_WCPM_UART_ALL                                       (0x67)
+#define CMD_WCPM_I2C_ALL                                        (0x68)
 
 // add new command as "const char command_<COMMAND_MACRO> PROGMEM". Only 'const' push string to PROGMEM.
 // command_* values must be in lower case due analyze sub convert all chars to lower
@@ -255,7 +272,8 @@ const char command_CMD_MHZXX_UART_CO2[]                         PROGMEM = "mhzxx
 
 const char command_CMD_USER_RUN[]                               PROGMEM = "user.run";
 
-const char command_CMD_VEML6070_UV[]                            PROGMEM = "veml6070.uv";
+const char command_CMD_VEML6070_UVI[]                           PROGMEM = "veml6070.uvi";
+const char command_CMD_VEML6070_UVA[]                           PROGMEM = "veml6070.uva";
 
 const char command_CMD_MAX6675_TEMPERATURE[]                    PROGMEM = "max6675.temperature";
 const char command_CMD_PCA9685_WRITE[]                          PROGMEM = "pca9685.write";
@@ -273,12 +291,27 @@ const char command_CMD_ADPS9960_RED[]                           PROGMEM = "adps9
 const char command_CMD_ADPS9960_GREEN[]                         PROGMEM = "adps9960.green";
 const char command_CMD_ADPS9960_BLUE[]                          PROGMEM = "adps9960.blue";
 
-const char command_CMD_PLANTOWER_PMS_ALL[]                      PROGMEM = "pms.all";
-const char command_CMD_PLANTOWER_PMS_EPM25[]                    PROGMEM = "pms.epm25";
+const char command_CMD_PLANTOWER_PMSXX_ALL[]                    PROGMEM = "pmsxx.all";
+const char command_CMD_PLANTOWER_PMSXX_EPM[]                    PROGMEM = "pmsxx.epm";
+const char command_CMD_PLANTOWER_PMSXX_FPM[]                    PROGMEM = "pmsxx.fpm";
 
 const char command_CMD_MLX90614_TEMPERATURE[]                   PROGMEM = "mlx90614.temperature";
 
-//
+const char command_CMD_SGP30_CO2E[]                             PROGMEM = "sgp30.co2e";
+const char command_CMD_SGP30_TVOC[]                             PROGMEM = "sgp30.tvoc";
+
+const char command_CMD_ZE08_CH2O[]                              PROGMEM = "ze08.ch2o";
+
+const char command_CMD_T67XX_I2C_CO2[]                          PROGMEM = "t67xx.i2c.co2";
+
+const char command_CMD_MB_RTU_FC03[]                            PROGMEM = "mb.rtu.fc03";
+
+const char command_CMD_NOVA_SDS_ALL[]                           PROGMEM = "sds.all";
+const char command_CMD_NOVA_SDS_EPM[]                           PROGMEM = "sds.epm";
+
+const char command_CMD_WCPM_UART_ALL[]                          PROGMEM = "wcpm.uart.all";
+const char command_CMD_WCPM_I2C_ALL[]                           PROGMEM = "wcpm.i2c.all";
+
 const command_t PROGMEM commands[] = {
     { CMD_ZBX_NOPE                , command_CMD_ZBX_NOPE},               
     { CMD_ZBX_AGENT_PING          , command_CMD_ZBX_AGENT_PING},         
@@ -466,7 +499,8 @@ const command_t PROGMEM commands[] = {
 #endif
 
 #ifdef FEATURE_VEML6070_ENABLE
-    { CMD_VEML6070_UV             , command_CMD_VEML6070_UV},            
+    { CMD_VEML6070_UVI            , command_CMD_VEML6070_UVI},
+    { CMD_VEML6070_UVA            , command_CMD_VEML6070_UVA},
 #endif
 
 #ifdef FEATURE_MAX6675_ENABLE
@@ -501,16 +535,46 @@ const command_t PROGMEM commands[] = {
     { CMD_ADPS9960_BLUE           , command_CMD_ADPS9960_BLUE},
 #endif
 
-#ifdef FEATURE_PLANTOWER_PMS_SEPARATE_ENABLE
-    { CMD_PLANTOWER_PMS_EPM25     , command_CMD_PLANTOWER_PMS_EPM25},
-#endif
-
-#ifdef FEATURE_PLANTOWER_PMS_ALL_ENABLE
-    { CMD_PLANTOWER_PMS_ALL       , command_CMD_PLANTOWER_PMS_ALL},
+#ifdef FEATURE_PLANTOWER_PMSXX_ENABLE
+    { CMD_PLANTOWER_PMSXX_ALL       , command_CMD_PLANTOWER_PMSXX_ALL},
+    { CMD_PLANTOWER_PMSXX_FPM       , command_CMD_PLANTOWER_PMSXX_FPM},
+    { CMD_PLANTOWER_PMSXX_EPM       , command_CMD_PLANTOWER_PMSXX_EPM},
 #endif
 
 #ifdef FEATURE_MLX90614_ENABLE
     { CMD_MLX90614_TEMPERATURE    , command_CMD_MLX90614_TEMPERATURE},
 #endif
 
+#ifdef FEATURE_SGP30_ENABLE
+    { CMD_SGP30_CO2E              , command_CMD_SGP30_CO2E},
+    { CMD_SGP30_TVOC              , command_CMD_SGP30_TVOC},
+#endif
+
+#ifdef FEATURE_ZE08_CH2O_ENABLE
+    { CMD_ZE08_CH2O               , command_CMD_ZE08_CH2O},
+#endif
+
+#ifdef FEATURE_T67XX_ENABLE
+    { CMD_T67XX_I2C_CO2           , command_CMD_T67XX_I2C_CO2},
+#endif
+
+#ifdef FEATURE_NOVA_FITNESS_SDS_ENABLE
+    { CMD_NOVA_SDS_ALL            , command_CMD_NOVA_SDS_ALL},
+    { CMD_NOVA_SDS_EPM            , command_CMD_NOVA_SDS_EPM},
+#endif
+
+#ifdef FEATURE_MODBUS_RTU_ENABLE
+    { CMD_MB_RTU_FC03             , command_CMD_MB_RTU_FC03},
+#endif
+
+#ifdef FEATURE_WUHAN_CUBIC_PM_UART_ENABLE
+    { CMD_WCPM_UART_ALL           , command_CMD_WCPM_UART_ALL},
+#endif
+
+#ifdef FEATURE_WUHAN_CUBIC_PM_I2C_ENABLE
+    { CMD_WCPM_I2C_ALL            , command_CMD_WCPM_I2C_ALL},
+#endif
+
+
 };
+

@@ -1,6 +1,5 @@
 #pragma once
 
-#include "NetworkAddress.h"
 
 /* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
                                                          PROGRAMM STRUCTURES SECTION 
@@ -15,16 +14,17 @@ typedef struct {
   uint8_t useProtection;                          // 1 byte
   uint8_t useDHCP;         	 		  // 1 byte
   uint8_t macAddress[6];                          // 6 byte 
-  NetworkAddress ipAddress;     		  // 4 byte (uint8_t[])
-  NetworkAddress ipNetmask;     		  // 4 byte (uint8_t[])
-  NetworkAddress ipGateway;     	          // 4 byte (uint8_t[])
-  char hostname[constAgentHostnameMaxLength];     // 255 - (1 + 1 + 1 + 6 + 4*4 + 2 ) = 201 bytes max
-  // #ifdef ... #elif ... #endif does not work with struct operator
+  uint32_t ipAddress;     	        	  // 4 byte
+  uint32_t ipNetmask;             		  // 4 byte
+  uint32_t ipGateway;            	          // 4 byte
+  char hostname[constAgentHostnameMaxLength + 1]; // 255 - (1 + 1 + 1 + 6 + 4*4 + 2 ) = 201 bytes max +1 for terminate '\0'
   uint32_t password;                              // 4 byte
   int16_t tzOffset;                               // 2 byte
-} netconfig_t ;
+} netconfig_t;
+#pragma pack(pop)
 
 
+#pragma pack(push,1)
 typedef struct {
   uint32_t sysCmdCount;                           // Number of executed commands 
   uint8_t  sysCmdLast;                            // Index of last executed command
@@ -41,8 +41,10 @@ typedef struct {
   uint32_t sysAlarmRisedTime;                     // Last time, when Alarm was rised
   uint32_t sysStartTimestamp;                     // Last time, when Alarm was rised
 } sysmetrics_t;
+#pragma pack(pop)
 
 
+#pragma pack(push,1)
 typedef struct {                                  // 9 bytes: 
   uint32_t value;        			  
   uint8_t owner;                                  // 1 byte 
@@ -53,19 +55,43 @@ typedef struct {                                  // 9 bytes:
   uint8_t encTerminalAPinBit;                     // 1 byte
   uint8_t encTerminalBPinBit;                     // 1 byte
 } extInterrupt_t ;
+#pragma pack(pop)
 
-typedef struct {                                  
-  uint8_t type;
-  uint16_t dataLength;
-  uint16_t expectedDataLength;
-  char** optarg;
-} packetInfo_t ;
+#pragma pack(push,1)
+typedef struct {
+  uint8_t    type;
+  uint8_t    data[constBufferSize];
+  union {
+    uint8_t*   payloadByte;
+    char*      payloadChar;
+    char*      command;
+  };
+  uint16_t  dataFreeSize;                         // How much we can take from data[] when form ASCIIZ response ("plain text" request give more space than "native zabbix")
+  int32_t   argv[constArgC];
+  char*     args[constArgC];
+} request_t;
+#pragma pack(pop)
 
 
+#pragma pack(push,1)
 struct command_t {
   uint8_t idx;
   PGM_P name;
 };
-
 #pragma pack(pop)
 
+#pragma pack(push,1)
+typedef union {
+  uint8_t octets[4];
+  uint32_t address;
+} ipv4Address_t;
+#pragma pack(pop)
+
+
+
+#pragma pack(push,1)
+typedef union {
+  int32_t  int32;
+  uint32_t uint32;
+} numericValue32_t;
+#pragma pack(pop)

@@ -13,6 +13,10 @@
 #define MAX44009_800MS_CYCLE_MODE                               (0x00)
 #define MAX44009_CONTINUOUS_MODE                                (0x80)
 
+#define MAX44009_MANUAL_TIM_MODE                                (0x40)
+
+#define MAX44009_TIM_MASK                                       (0x07) // B00000111
+
 
 // This is a preferred mode for boosting low-light sensitivity.
 #define MAX44009_INTEGRATION_TIME_800MS                         (0x00)
@@ -35,22 +39,14 @@
 
 /*****************************************************************************************************************************
 *
-*   Overloads of main subroutine. Used to get numeric metric's value or it's char presentation only
+*  Read specified metric's value of the MAX44009 sensor, put it to specified variable's address on success.
+*
+*  Returns: 
+*    - RESULT_IS_FLOAT_03_DIGIT    on success when LUX metric specified
+*    - DEVICE_ERROR_NOT_SUPPORTED  on wrong params specified
+*    - DEVICE_ERROR_TIMEOUT        on sensor stops answer to the request
+*    - DEVICE_ERROR_CONNECT        on connection error
 *
 *****************************************************************************************************************************/
-int8_t getMAX44009Metric(SoftwareWire*, uint8_t, uint8_t, const uint8_t, const uint8_t, char*);
-int8_t getMAX44009Metric(SoftwareWire*, uint8_t, uint8_t, const uint8_t, const uint8_t, uint32_t*);
-
-
-/*****************************************************************************************************************************
-*
-*   Read specified metric's value of the BH1750 sensor, put it to output buffer on success. 
-*
-*   Returns: 
-*     - RESULT_IS_BUFFERED on success
-*     - DEVICE_ERROR_CONNECT on test connection error
-*     - RESULT_IS_FAIL - on other fails
-*
-*****************************************************************************************************************************/
-int8_t getMAX44009Metric(SoftwareWire* _softTWI, uint8_t _i2cAddress, uint8_t _mode, const uint8_t _integration_time, const uint8_t _metric, char *_dst, uint32_t* _value, const uint8_t _wantsNumber = false);
+int8_t getMAX44009Metric(SoftwareWire* _softTWI, uint8_t _i2cAddress, uint8_t _mode, const uint8_t _integration_time, const uint8_t _metric, int32_t* _value);
 

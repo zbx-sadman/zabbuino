@@ -2,12 +2,13 @@
 #include "sys_includes.h"
 
 #include <avr/boot.h>
+#include <util/atomic.h>
 #include <util/crc16.h>
 
 #include "system.h"
-
 #include "service.h"
-#include "sys_macros.h"
+#include "eeprom.h"
+#include "ow_bus.h"
 
 /*****************************************************************************************************************************
 *
@@ -30,6 +31,43 @@ uint8_t flushStreamRXBuffer(Stream* _stream, const uint32_t _timeout, const uint
  return true;
 }
 
+/*****************************************************************************************************************************
+*
+*   
+*   
+*
+*****************************************************************************************************************************/
+uint8_t factoryReset(netconfig_t& _sysConfig) {
+  uint8_t rc = false;
+   // Factory reset button pin must be shorted to ground to action start
+   pinMode(constFactoryResetButtonPin, INPUT_PULLUP);
+
+   digitalWrite(constStateLedPin, LOW);
+
+   // Is constFactoryResetButtonPin shorted?
+   if (LOW == digitalRead(constFactoryResetButtonPin)) {
+      __DMLL( FSH_P((STRING_The_factory_reset_button_is_pressed)); )
+      // Fire up state LED
+      digitalWrite(constStateLedPin, HIGH);
+      // Wait some msecs
+      delay(constHoldTimeToFactoryReset);
+      // constFactoryResetButtonPin still shorted?
+      if (LOW == digitalRead(constFactoryResetButtonPin)) {
+         __DMLL( DEBUG_PORT.print(FSH_P(STRING_Rewrite_EEPROM_with_defaults)); DEBUG_PORT.print(FSH_P(STRING_3xDot_Space)); )
+         setConfigDefaults(_sysConfig);
+         // return "sucess" only if default config saved
+         rc = saveConfigToEEPROM(_sysConfig);
+         if (!rc) { __DMLM( DEBUG_PORT.print(FSH_P(STRING_Config)); DEBUG_PORT.println(FSH_P(STRING_saving_error)); ) }
+
+         // Blink fast while constFactoryResetButtonPin shorted to GND
+         __DMLL( DEBUG_PORT.print(FSH_P(STRING_Release_the_factory_reset_button_now)); )
+         while (LOW == digitalRead(constFactoryResetButtonPin)) { digitalWrite(constStateLedPin, millis() % 100 < 50); }
+      }
+  } // if (LOW == digitalRead(constFactoryResetButtonPin))
+
+  digitalWrite(constStateLedPin, LOW);
+  return rc;
+}
 
 /*****************************************************************************************************************************
 *
@@ -37,7 +75,7 @@ uint8_t flushStreamRXBuffer(Stream* _stream, const uint32_t _timeout, const uint
 *   Must be called every (UINT32_MAX / 2) - 1 ms at least
 *
 *****************************************************************************************************************************/
-uint8_t millisRollover(void) {
+uint16_t millisRollover(void) {
   // get the current millis() value for how long the microcontroller has been running
   //
   // To avoid any possiblity of missing the rollover, we use a boolean toggle that gets flipped
@@ -47,10 +85,10 @@ uint8_t millisRollover(void) {
   //   the function should be called as frequently as possible to capture the actual moment of rollover.
   // The rollover counter is good for over 35 years of runtime. --Rob Faludi http://rob.faludi.com
   //
-  static uint8_t numRollovers = 0,               // variable that permanently holds the number of rollovers since startup
-                 readyToRoll = false;            // tracks whether we've made it halfway to rollover
-  const uint32_t halfwayMillis = UINT32_MAX / 2; // this is halfway to the max millis value (17179868 for earlier versions of Arduino)
-  uint32_t now = millis();                       // the time right now
+  static uint16_t numRollovers = 0,               // variable that permanently holds the number of rollovers since startup
+                  readyToRoll = false;            // tracks whether we've made it halfway to rollover
+  const uint32_t  halfwayMillis = UINT32_MAX / 2; // this is halfway to the max millis value (17179868 for earlier versions of Arduino)
+  uint32_t now =  millis();                       // the time right now
 
   // as long as the value is greater than halfway to the max
   // you are ready to roll over
@@ -81,49 +119,39 @@ uint32_t uptime(void) {
 *   Set default values of network configuration
 *
 *****************************************************************************************************************************/
-void setConfigDefaults(netconfig_t *_configStruct)
-{
-  memset(_configStruct, '\0', sizeof(netconfig_t));
-  // Copying defaut MAC to the config
-  uint8_t mac[] = NET_DEFAULT_MAC_ADDRESS;
-  memcpy(_configStruct->macAddress, mac, arraySize(_configStruct->macAddress));
+void setConfigDefaults(netconfig_t& _sysConfig) {
+  uint8_t copyCharsNumber;
+  // Copying arrays of the default data to the config
+  memcpy_P(&_sysConfig.macAddress, constDefaultMacAddress, sizeof(_sysConfig.macAddress));
+  memcpy_P(&_sysConfig.ipAddress,  constDefaultIPAddress,  sizeof(_sysConfig.ipAddress));
+  memcpy_P(&_sysConfig.ipGateway,  constDefaultGateway,    sizeof(_sysConfig.ipGateway));
+  memcpy_P(&_sysConfig.ipNetmask,  constDefaultNetmask,    sizeof(_sysConfig.ipNetmask));
 
-  _configStruct->useDHCP   = constNetDefaultUseDHCP;
-  _configStruct->ipAddress = NetworkAddress(NET_DEFAULT_IP_ADDRESS);
-  _configStruct->ipNetmask = NetworkAddress(NET_DEFAULT_NETMASK);
-  _configStruct->ipGateway = NetworkAddress(NET_DEFAULT_GATEWAY);
-  _configStruct->password  = constSysDefaultPassword;
-  _configStruct->tzOffset  = constSysTZOffset;
-  _configStruct->useProtection = constSysDefaultProtection;  
+  _sysConfig.useDHCP         = constNetDefaultUseDHCP;
+  _sysConfig.password        = constSysDefaultPassword;
+  _sysConfig.useProtection   = constSysDefaultProtection;
+
+  _sysConfig.tzOffset = constSysTZOffset;
+
+  _sysConfig.hostname[constAgentHostnameMaxLength] = CHAR_NULL;
+
 #ifdef FEATURE_NET_USE_MCUID
-  // if FEATURE_NET_USE_MCUID is defined:
-  // 1. Make FDQN-hostname from MCU ID and default domain name
-  // 2. Modify MAC - the 4,5,6 default's MAC octets is replaced to the last 3 byte of MCU ID
-  // 3. Modify IP - the last default's IP octet is replaced too to the last byte of MCU ID
-  //
-  // Note: Unique MCU ID defined for ATMega328PB and can not exist on other MCU's. 
-  //       You need try to read it before use for network addresses generating.
-  //       Using only 3 last bytes not guarantee making unique MAC or IP.
-  getBootSignatureBytes(_configStruct->hostname, 0x0E, 10, 1);
-  memcpy(&_configStruct->hostname[constMcuIdLength], (ZBX_AGENT_DEFAULT_DOMAIN), arraySize(ZBX_AGENT_DEFAULT_DOMAIN));
-  _configStruct->hostname[constMcuIdLength+sizeof(ZBX_AGENT_DEFAULT_DOMAIN)+1]='\0';
-  
-  // 
-  // Interrupts must be disabled before boot_signature_byte_get will be called to avoid code crush
-  noInterrupts();
-  _configStruct->macAddress[3] = boot_signature_byte_get(0x15);
-  _configStruct->macAddress[4] = boot_signature_byte_get(0x16);
-  _configStruct->macAddress[5] = boot_signature_byte_get(0x17);
-  interrupts();
-  _configStruct->ipAddress[3] = _configStruct->macAddress[5];
-
+  copyCharsNumber = (constAgentHostnameMaxLength <= (constMcuIdSize * 2)) ? constAgentHostnameMaxLength : constMcuIdSize * 2;
+  getBootSignatureAsHexString((char*) &_sysConfig.hostname, 0x0E, copyCharsNumber / 2, 1);
 #else
-  // Otherwise - use default hostname and domain name for FDQN-hostname
-  memcpy(&_configStruct->hostname[0], (ZBX_AGENT_DEFAULT_HOSTNAME), arraySize(ZBX_AGENT_DEFAULT_HOSTNAME));
-  memcpy(&_configStruct->hostname[sizeof(ZBX_AGENT_DEFAULT_HOSTNAME)-1], (ZBX_AGENT_DEFAULT_DOMAIN), arraySize(ZBX_AGENT_DEFAULT_DOMAIN));
-  _configStruct->hostname[sizeof(ZBX_AGENT_DEFAULT_HOSTNAME)+sizeof(ZBX_AGENT_DEFAULT_DOMAIN)+1]='\0';
+  /*
+  // old copying code +22 progspace bytes on GCC optimize ("O0")
+  copyCharsNumber = strlen_P(constZbxAgentDefaultHostname);
+  copyCharsNumber = (constAgentHostnameMaxLength <= copyCharsNumber) ? constAgentHostnameMaxLength : copyCharsNumber;
+  strncpy_P(_sysConfig.hostname, constZbxAgentDefaultHostname, copyCharsNumber);
+  */
+  strncpy_P(_sysConfig.hostname, constZbxAgentDefaultHostname, constAgentHostnameMaxLength);
+  copyCharsNumber = strlen(_sysConfig.hostname);
 #endif
+  strncpy_P(&_sysConfig.hostname[copyCharsNumber], constZbxAgentDefaultDomain, constAgentHostnameMaxLength - copyCharsNumber);
 }
+
+
 /*****************************************************************************************************************************
 *
 *   Convert _Qm.n_ float number (int64_t) to char[] 
@@ -164,7 +192,7 @@ void ltoaf(const int32_t _number, char* _dst, const uint8_t _num_after_dot)
   const int32_t dividers[maxStringLen]={1000000000, 100000000, 10000000, 1000000, 100000, 10000, 1000, 100, 10, 1};
   
   // If Zero given - Zero returned without long processing 
-  if (0 == value) { _dst[0] = '0';  _dst[1] = '\0'; return;} 
+  if (0 == value) { _dst[0] = '0';  _dst[1] = CHAR_NULL; return;} 
  
   // negative value testing and write '-' to output buffer
   if (0 > value) { value = 0 - value; *_dst = '-'; _dst++;} 
@@ -207,7 +235,7 @@ void ltoaf(const int32_t _number, char* _dst, const uint8_t _num_after_dot)
     // do not add trailing zeros after dot
     if (0 >= value and pointIsUsed) {break;}
   }
-  *_dst = '\0';
+  *_dst = CHAR_NULL;
 }
 
 /*****************************************************************************************************************************
@@ -253,7 +281,7 @@ int16_t hstoba(uint8_t* _dst, const char* _src)
 *   This function placed here to aviod compilation error when OneWire library is not #included
 *
 *****************************************************************************************************************************/
-uint8_t dallas_crc8(uint8_t *_src, uint8_t _len)
+uint8_t dallas_crc8(uint8_t* _src, uint8_t _len)
 {
   uint8_t crc = 0;
   while (_len) {
@@ -264,45 +292,20 @@ uint8_t dallas_crc8(uint8_t *_src, uint8_t _len)
   }
   return crc;
 }
-/*****************************************************************************************************************************
-*
-*  Print string stored in PROGMEM to Serial 
-*
-*****************************************************************************************************************************/
-void SerialPrint_P (const char *_src) {
-  char currChar;
-  while ((currChar = pgm_read_byte(_src++)) != '\0') {
-    Serial.print(currChar);
-  }
-}
-/*****************************************************************************************************************************
-*
-*  Print string stored in PROGMEM to Serial + Line Feed
-*
-*****************************************************************************************************************************/
-void SerialPrintln_P (const char *_src) {
-  SerialPrint_P(_src);
-  Serial.println();
-}
 
 /*****************************************************************************************************************************
 *
 *  Print array to Serial as MAC or IP or other string with sign-separated parts
 *
 *****************************************************************************************************************************/
-void printArray(uint8_t *_src, const uint8_t _len, Stream* _stream, const uint8_t _type)
-{
+void printArray(uint8_t* _src, const uint8_t _len, Stream& _stream, const uint8_t _type) {
   char separator;
   uint8_t format, i;
   uint16_t pos = 0;
 
-  // One byte step
-//  step = 1;
   format = HEX;
   switch (_type) {
     case OW_ADDRESS:
-      // Eight bytes step
-//      step = 8;
       separator = '\n';
       break;
     case I2C_ADDRESS:
@@ -317,36 +320,36 @@ void printArray(uint8_t *_src, const uint8_t _len, Stream* _stream, const uint8_
       separator = '.';
    }     
 
-  while (pos < _len) {
-    switch (_type) {
-      case OW_ADDRESS:
-        _stream->print("0x");
-        i = 7;
-        while (i) {
-          --i;
-          if (0x0F > _src[pos]) { _stream->print('0'); }
-          _stream->print(_src[pos], format);
-          ++pos;
-        }
-        break;
+   while (pos < _len) {
+      switch (_type) {
+         case OW_ADDRESS:
+           _stream.print(FSH_P(STRING_HEX_Prefix));
+           // Last byte was printed on the ** (see below)
+           i = ONEWIRE_ID_SIZE - 1;
+           while (i) {
+             i--;
+             if (0x0F > _src[pos]) { _stream.print('0'); }
+             _stream.print(_src[pos], format);
+             pos++;
+           }
+           break;
 
-      case I2C_ADDRESS:
-        _stream->print("0x");
-      case MAC_ADDRESS:
-          if (0x0F > _src[pos]) { _stream->print('0'); }
-        break;
+         case I2C_ADDRESS:
+           _stream.print(FSH_P(STRING_HEX_Prefix));
+         case MAC_ADDRESS:
+           if (0x0F > _src[pos]) { _stream.print('0'); }
+           break;
 
-      case IP_ADDRESS:
-      default:
-        break;
-
-    }     
-
-    _stream->print(_src[pos], format);
-    ++pos;
-    if (pos < _len) { _stream->print(separator); }
-  }
- _stream->print('\n');
+         case IP_ADDRESS:
+         default:
+           break;
+      }     
+      // ** common print procedure
+      _stream.print(_src[pos], format);
+      pos++;
+      if (pos < _len) { _stream.print(separator); }
+   }
+   _stream.print('\n');
 }
 
 void blinkMore(const uint8_t _times, const uint16_t _onTime, const uint16_t _offTime) 
@@ -363,80 +366,123 @@ uint8_t validateNetworkAddress(const NetworkAddress _address) {
   return true;
 }
 */
-uint8_t strToNetworkAddress(const char* _src, NetworkAddress* _dstAddress) {
-  if ('\0' == *_src) { return false; }
-  *_dstAddress = NetworkAddress(htonl(strtoul(_src, NULL, 0)));
-  return true;
+
+uint8_t strToNetworkAddress(char* _src, uint32_t& _ipAddress) {
+  uint8_t formatError = false;
+  _ipAddress = 0x00;
+
+  if (CHAR_NULL == *_src) {
+    formatError = true;
+  } else if (haveHexPrefix(_src)) {
+    _ipAddress = htonl(strtoul(_src, NULL, 0));
+  } else {
+    char* ptrStartString = _src;
+    uint8_t octetNo = 0x00, eolDetected = false, byteShift = 0x00, bytesRead = 0x00;
+    uint32_t octetValue;
+    while (!formatError && !eolDetected) {
+      Serial.println(*_src);
+      if (CHAR_NULL == *_src || '.' == *_src) {
+        eolDetected = (CHAR_NULL == *_src);
+        *_src = CHAR_NULL;
+        octetValue = strtoul(ptrStartString, NULL, 0);
+        Serial.print("Octet #"); Serial.print(octetNo); Serial.print(" => ");  Serial.print(ptrStartString); Serial.print(" => ");  Serial.println(octetValue);
+        octetNo++;
+        // may be use strtoul && 0x00 >= octetValue ?
+        formatError = (0xFF < octetValue || 0x04 < octetNo);
+        ptrStartString = _src + 1;
+        _ipAddress |= (octetValue << byteShift);
+        byteShift += 8;
+      }
+      _src++;
+      bytesRead++;
+      formatError |= (bytesRead > 0x0F);
+    }
+    formatError |= (0x04 != octetNo);
+  }
+
+  if (formatError) {
+    _ipAddress = 0x00;
+  }
+
+  return !formatError;
 }
+
 
 /*****************************************************************************************************************************
 
-   Stream analyzing subroutine
+   Parse request subroutine
    Detect Zabbix packets, on-fly spit incoming stream to command & arguments
 
 **************************************************************************************************************************** */
-uint8_t analyzeStream(char _charFromClient, char* _dst, uint8_t doReInit, packetInfo_t* _packetInfo) {
-  uint8_t static allowAnalyze          = true, 
-                 cmdSliceNumber        = 0,
-                 isEscapedChar         = 0,
-                 doubleQuotedString    = false,
-                 packetRecieved        = false;
-  uint16_t static bufferWritePosition  = 0;
+uint8_t parseRequest(char _charFromClient, const uint8_t doReInit, request_t& _request) {
+  uint8_t  addChunk = false, rc = true;
+  uint8_t  static allowAnalyze, argCounter, isEscapedChar, doubleQuotedString, parsingDone, *ptrChunkStart;
+  uint16_t static bufferWritePosition, payloadReadedLength, payloadExpectedLength;
 
   // Jump into reInitStage procedure. This is a bad programming style, but the subroutine must be lightweight.
   if (doReInit) {
-    // Temporary clean code stub
-    _packetInfo->dataLength = 0x00;
-    _packetInfo->type = PACKET_TYPE_PLAIN;
-    *_dst = '\0';
-    goto reInitStage;
+    __DMLD( DEBUG_PORT.print(FSH_P(STRING_Reinit_parser)); )
+    _request.type = PACKET_TYPE_PLAIN;
+    _request.dataFreeSize = 0x00;
+    // Just init pointers with nullptr to mark args with no content
+    //memset(_request.args, NULL, sizeof(_request.args)); ???
+    uint8_t i = arraySize(_request.args);
+    while (i) {
+      --i;
+      _request.args[i] = nullptr;
+    }
+    ptrChunkStart = nullptr;
+    bufferWritePosition = argCounter = isEscapedChar = doubleQuotedString = payloadReadedLength = 0x00;
+    rc = doubleQuotedString = parsingDone = false;
+    allowAnalyze = true;
+    goto finish;
   }
 
-  // If there is not room in buffer - simulate EOL recieving
-  if (constBufferSize <= bufferWritePosition ) {
-    _charFromClient = '\n';
+  // If there is not room in buffer - create fake command CMD_ZBX_NOPE to return ZBX_NOTSUPPORTED
+  if (sizeof(_request.data) <= bufferWritePosition ) {
+    _request.type = PACKET_TYPE_NONE;
+    // Return false as 'Do not need next char'
+    rc = false;
+    goto finish;
   }
 
   // Put next char to buffer
-  _dst[bufferWritePosition] = (doubleQuotedString) ? _charFromClient : tolower(_charFromClient);
+  _request.data[bufferWritePosition] = (doubleQuotedString) ? _charFromClient : tolower(_charFromClient);
+
+  // Development mode only debug message level used
+  __DMLD( DEBUG_PORT.print(F("in [")); DEBUG_PORT.print(bufferWritePosition); DEBUG_PORT.print(F("]: ")); DEBUG_PORT.print(_request.data[bufferWritePosition], HEX); DEBUG_PORT.print(F(" '")); DEBUG_PORT.print((char) _request.data[bufferWritePosition]); DEBUG_PORT.print(F("' ")); )
 
   // When ZBX_HEADER_PREFIX_LENGTH chars is saved to buffer - test its for Zabbix2 protocol header prefix ("ZBXD\01") presence
   // (ZBX_HEADER_PREFIX_LENGTH-1) was used because bufferWritePosition is start count from 0, not from 1
-  if ((ZBX_HEADER_PREFIX_LENGTH-1) == bufferWritePosition) {
-    if (0 == memcmp(_dst, (ZBX_HEADER_PREFIX), ZBX_HEADER_PREFIX_LENGTH)) {
+  if ((sizeof(zbxHeaderPrefix) - 1) == bufferWritePosition) {
+    if (0x00 == memcmp_P(_request.data, zbxHeaderPrefix, sizeof(zbxHeaderPrefix))) {
       // If packet have prefix - it is Zabbix's native packet
-      _packetInfo->type = PACKET_TYPE_ZABBIX;
-      DTSD( Serial.println("ZBX header detected"); )
+      _request.type = PACKET_TYPE_ZABBIX;
+      __DMLD( DEBUG_PORT.print(FSH_P(STRING_ZBX_header)); DEBUG_PORT.print(FSH_P(STRING_detected)); )
       allowAnalyze = false;
-  //    _packetInfo->dataLength = 0;
     }
   }
 
   // Allow packet analyzing when Zabbix header is skipped
-  if (ZBX_HEADER_LENGTH == bufferWritePosition && PACKET_TYPE_ZABBIX == _packetInfo->type) {
-    //bufferWritePosition = 0;
-    //needSkipZabbix2Header = false;
+  if ((ZBX_HEADER_LENGTH - 1) == bufferWritePosition && PACKET_TYPE_ZABBIX == _request.type) {
     allowAnalyze = true;
-    _packetInfo->dataLength = 0x00;
-    memcpy(&(_packetInfo->expectedDataLength), &_dst[ZBX_HEADER_PREFIX_LENGTH], sizeof(_packetInfo->expectedDataLength));
-
-//    Serial.print("Expected DataLength:"); Serial.println(_packetInfo->expectedDataLength); 
-
-    //DTSD( Serial.println("ZBX header dropped"); )
-    DTSD( Serial.println("ZBX header passed"); )
-    // Return 'Need next char' and save a lot cpu time
-    //return true;
+    payloadReadedLength = 0x00;
+    memcpy(&(payloadExpectedLength), &_request.data[ZBX_HEADER_PREFIX_LENGTH], sizeof(payloadExpectedLength));
+    // Expected length is more that buffer, processing must be stopped
+    if (sizeof(_request.data) < (payloadExpectedLength + ZBX_HEADER_LENGTH)) {
+      __DMLD( DEBUG_PORT.println(FSH_P(STRING_Expected_data_so_big));)
+      _request.type = PACKET_TYPE_NONE;
+      // Return false as 'Do not need next char'
+      rc = false;
+      goto finish;
+    }
+    __DMLD( DEBUG_PORT.print(FSH_P(STRING_ZBX_header)); DEBUG_PORT.print(FSH_P(STRING_passed)); )
   }
 
-  // no PRINT_PSTR(...)) used to avoid slow perfomance on analyze loops
-  // Development mode only debug message level used
-  DTSD( Serial.print("in: "); Serial.print(_dst[bufferWritePosition], HEX); Serial.print(" '");Serial.print((char) _dst[bufferWritePosition]); Serial.print("' "); )
-
   // Process all chars if its not from header data
-//  if (!needSkipZabbix2Header) 
   if (allowAnalyze) {
     // char is not escaped
-    DTSD( Serial.println("...");  )
+    __DMLD( DEBUG_PORT.print(FSH_P(STRING_3xDot_Space));  )
     switch (_charFromClient) {
       // Doublequote sign is arrived
       case '"':
@@ -444,11 +490,12 @@ uint8_t analyzeStream(char _charFromClient, char* _dst, uint8_t doReInit, packet
           // Doublequote is not escaped - just drop it and toggle "string is doublequoted" mode (do not convert char case,
           //  skip action on space, ']', '[', ',' detection). Then jump out from subroutine to get next char from client
           doubleQuotedString = !doubleQuotedString;
-          return true;
+          // rc already inited as true
+          goto finish;
         }
         // Doublequote is escaped. Move write position backward to one step and write doublequote sign to '\' position
         bufferWritePosition--;
-        _dst[bufferWritePosition] = '"';
+        _request.data[bufferWritePosition] = '"';
         isEscapedChar = false;
         break;
 
@@ -463,22 +510,25 @@ uint8_t analyzeStream(char _charFromClient, char* _dst, uint8_t doReInit, packet
       case 0x20:
         // Return 'Need next char'
         if (!doubleQuotedString) {
-          return true;
+          // rc already inited as true
+          goto finish;
         }
         break;
 
-      // Delimiter or separator found.
+      // Starting square bracket found - command part readed, args reading starts
       case '[':
+        if (!doubleQuotedString) {
+          argCounter = 0x00;
+          _request.data[bufferWritePosition] = CHAR_NULL;
+          ptrChunkStart = &_request.data[bufferWritePosition + 1];
+        }
+        break;
+
+      // Separator found.
       case ',':
         // If its reached not in doublequoted string - process it as control char.
         if (!doubleQuotedString) {
-          //  If '_argOffset' array is not exhausted - push begin of next argument (bufferWritePosition+1) on buffer to arguments offset array.
-          if (constArgC > cmdSliceNumber) {
-            _packetInfo->optarg[cmdSliceNumber] = &_dst[bufferWritePosition + 1];
-          }
-          cmdSliceNumber++;
-          // Make current buffer segment like C-string
-          _dst[bufferWritePosition] = '\0';
+          addChunk = true;
         }
         break;
 
@@ -492,57 +542,139 @@ uint8_t analyzeStream(char _charFromClient, char* _dst, uint8_t doReInit, packet
 
       // EOL detected
       case '\n':
-        DTSH( PRINTLN_PSTR("NEWLINE"); )
         // Save last argIndex that pointed to <null> item. All unused _argOffset[] items must be pointed to this <null> item too.
-        _dst[bufferWritePosition] = '\0';
-        packetRecieved = true;
-        //while (constArgC > cmdSliceNumber) { _argOffset[cmdSliceNumber++] = bufferWritePosition;}
-        while (constArgC > cmdSliceNumber) {
-          _packetInfo->optarg[cmdSliceNumber++] = &_dst[bufferWritePosition];
+        if (!doubleQuotedString) {
+          parsingDone = addChunk = true;
+          //__DMLD( DEBUG_PORT.print(F(" NL detected @ ")); DEBUG_PORT.println(bufferWritePosition); )
         }
-        // Change argIndex value to pass (constArgC < argIndex) condition
-        cmdSliceNumber = constArgC + 1;
         break;
 
       // All next chars is non-escaped
       default:
         isEscapedChar = false;
     }
-    _packetInfo->dataLength++;
 
-    if ((_packetInfo->dataLength >= _packetInfo->expectedDataLength) && (PACKET_TYPE_ZABBIX == _packetInfo->type)) {
-        packetRecieved = true;
-        // !!! potential break
-        _dst[bufferWritePosition+1] = '\0';
-    }   
+    // !parsingDone => parsing not already finished due '\n' or ']' found and bufferWritePosition can be increased to terminate string 
+    // if all bytes of packet recieved and analyzed
+    // agent.ping|0x00 => bufferWritePosition++, buffer[bufferWritePosition] = 0x00
+    // agent.ping\n|0x00 => buffer[bufferWritePosition] = 0x00
+    if (!parsingDone && (payloadReadedLength >= payloadExpectedLength) && (PACKET_TYPE_ZABBIX == _request.type)) {
+      parsingDone = true;
+      // ASCIIZ string will be maked later, inside 'if (parsingDone)...' operator
+      bufferWritePosition++;
+    }
 
-    // Rework need
-    if (packetRecieved) {
-  //    Serial.println("Packet finished"); 
-        //while (constArgC > cmdSliceNumber) { _argOffset[cmdSliceNumber++] = bufferWritePosition;}
-        while (constArgC > cmdSliceNumber) {
-          _packetInfo->optarg[cmdSliceNumber++] = &_dst[bufferWritePosition];
+    if (addChunk) {
+      addChunk = false;
+      uint8_t *ptrChunkEnd = &_request.data[bufferWritePosition];
+      //__DMLD( DEBUG_PORT.print(F(" chunk finished with : ")); DEBUG_PORT.println(*ptrChunkEnd, HEX); )
+      // Terminate current chunk and make ASCIIZ string
+      *ptrChunkEnd = CHAR_NULL;
+      // Store pointer if args array is not full, otherwize - finish parsing
+      if (arraySize(_request.args) > argCounter) {
+        // Store pointer only when data contain between separators - pointer distantion more that pointer size
+        if (ptrChunkEnd > ptrChunkStart) {
+          _request.args[argCounter] = (char*) ptrChunkStart;
+          __DMLD( DEBUG_PORT.print(F(" chunked ")); )
         }
-        // Change argIndex value to pass (constArgC < argIndex) condition
-        cmdSliceNumber = constArgC + 1;
+        ptrChunkStart = ptrChunkEnd + 1;
+        argCounter++;
+      } else {
+        parsingDone = true;
+      }
     }
 
-    // EOL reached or there is not room to store args. Stop stream analyzing and do command executing
-    if (constArgC < cmdSliceNumber) {
-reInitStage:
-      DTSH( PRINTLN_PSTR("Reinit analyzer"); )
-      // Clear vars for next round, and return false as 'Do not need next char'
-      bufferWritePosition = cmdSliceNumber = isEscapedChar = doubleQuotedString = 0;
-      doubleQuotedString = false;
-      packetRecieved = false;
-      allowAnalyze = true;
-      return false;
+    if (parsingDone) {
+      _request.data[bufferWritePosition] = CHAR_NULL;
+      // Return false as 'Do not need next char'
+      rc = false; goto finish;
     }
-  } else {
-    DTSD( Serial.println();  )
-  }
+
+    payloadReadedLength++;
+
+  } // if (allowAnalyze) {
   //
-  ++bufferWritePosition;
+  bufferWritePosition++;
+finish:
   // Return 'Need next char' and save a lot cpu time
-  return true;
+  __DMLD( DEBUG_PORT.println(); )
+  return rc;
+}
+
+
+int8_t makeTextPayload(char* _dst, int32_t _value, int8_t _code) {
+
+  int8_t rc = RESULT_IS_OK;
+    switch (_code) {
+      case RESULT_IS_BUFFERED:
+        break;
+      case RESULT_IS_OK:
+      case RESULT_IS_SYSTEM_REBOOT_ACTION:
+        //  '1' must be returned
+        _dst[0] = '1';
+        _dst[1] = CHAR_NULL;
+        break;
+      case RESULT_IS_FAIL:
+        // or '0'
+        _dst[0] = '0';
+        _dst[1] = CHAR_NULL;
+        break;
+      case RESULT_IS_SIGNED_VALUE:
+        //  or _code value placed in 'value' variable and must be converted to C-string.
+        ltoa((int32_t) _value, _dst, 10);
+        break;
+      case RESULT_IS_UNSIGNED_VALUE:
+        //  or _code value placed in 'value' variable and must be converted to C-string.
+        ultoa((uint32_t) _value, _dst, 10);
+        break;
+      case DEVICE_ERROR_CONNECT:
+        strcpy_P(_dst, MSG_DEVICE_ERROR_CONNECT);
+        break;
+      case DEVICE_ERROR_ACK_L:
+        strcpy_P(_dst, MSG_DEVICE_ERROR_ACK_L);
+        break;
+      case DEVICE_ERROR_ACK_H:
+        strcpy_P(_dst, MSG_DEVICE_ERROR_ACK_H);
+        break;
+      case DEVICE_ERROR_CHECKSUM:
+        strcpy_P(_dst, MSG_DEVICE_ERROR_CHECKSUM);
+        break;
+      case DEVICE_ERROR_TIMEOUT:
+        strcpy_P(_dst, MSG_DEVICE_ERROR_TIMEOUT);
+        break;
+      case DEVICE_ERROR_WRONG_ID:
+        strcpy_P(_dst, MSG_DEVICE_ERROR_WRONG_ID);
+        break;
+      case DEVICE_ERROR_NOT_SUPPORTED:
+        strcpy_P(_dst, MSG_DEVICE_ERROR_NOT_SUPPORTED);
+        break;
+      case DEVICE_ERROR_WRONG_ANSWER:
+        strcpy_P(_dst, MSG_DEVICE_ERROR_WRONG_ANSWER);
+        break;
+      case DEVICE_ERROR_EEPROM_CORRUPTED:
+        strcpy_P(_dst, MSG_DEVICE_ERROR_EEPROM);
+        break;
+      case ZBX_NOTSUPPORTED:
+        strcpy_P(_dst, MSG_ZBX_NOTSUPPORTED);
+        break;
+      case RESULT_IS_FLOAT_QMN:
+#if defined(FUNCTION_QTOAF_USE)
+        qtoaf((int32_t)_value, _dst, 10);
+#endif
+        break;
+      default:
+        // fast and ugly code block
+        if (RESULT_IS_FLOAT_01_DIGIT == _code || RESULT_IS_FLOAT_02_DIGIT == _code || RESULT_IS_FLOAT_03_DIGIT == _code || RESULT_IS_FLOAT_04_DIGIT == _code) {
+#if defined(FUNCTION_LTOAF_USE)
+          uint8_t numAfterDot = _code - RESULT_IS_FLOAT;
+          ltoaf((int32_t) _value, _dst, numAfterDot);
+#endif
+        } else {
+          // otherwise subroutine return unexpected value, need to check its source code
+          strcpy_P(_dst, MSG_ZBX_UNEXPECTED_RC);
+          rc = RESULT_IS_FAIL;
+        }
+        break;
+    }
+  return rc;
 }

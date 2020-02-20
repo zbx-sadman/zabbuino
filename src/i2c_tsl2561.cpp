@@ -8,75 +8,55 @@
 #include "i2c_bus.h"
 #include "i2c_tsl2561.h"
 
-/*****************************************************************************************************************************
-*
-*   Overloads of main subroutine. Used to get numeric metric's value or it's char presentation only
-*
-*****************************************************************************************************************************/
-int8_t getTSL2561Metric(SoftwareWire* _softTWI, const uint8_t _i2cAddress, const uint16_t _integrationTime, const uint8_t _gain, const uint8_t _metric, uint32_t* _value)
-{
-  char stubBuffer;
-  return getTSL2561Metric(_softTWI, _i2cAddress, _integrationTime, _gain, _metric, &stubBuffer, _value, true);
-
-}
-
-int8_t getTSL2561Metric(SoftwareWire* _softTWI, const uint8_t _i2cAddress, const uint16_t _integrationTime, const uint8_t _gain, const uint8_t _metric, char* _dst)
-{
-  uint32_t stubValue;
-  return getTSL2561Metric(_softTWI, _i2cAddress, _integrationTime, _gain, _metric, _dst, &stubValue, false);
-}
-
 
 /*****************************************************************************************************************************
 *
-*   Read specified metric's value of the TSL2561 sensor, put it to output buffer on success. 
+*  Read specified metric's value of the TSL2561 sensor, put it to specified variable's address on success.
 *
-*   Returns: 
-*     - RESULT_IS_BUFFERED on success
-*     - DEVICE_ERROR_CONNECT on connection error
-*     - DEVICE_ERROR_NOT_SUPPORTED on wrong parameter values
-*     - RESULT_IS_FAIL on other fails
+*  Returns: 
+*    - RESULT_IS_UNSIGNED_VALUE    on success 
+*    - DEVICE_ERROR_NOT_SUPPORTED  on wrong params specified
+*    - DEVICE_ERROR_TIMEOUT        on sensor stops answer to the request
+*    - DEVICE_ERROR_CONNECT        on connection error
 *
 *****************************************************************************************************************************/
-int8_t getTSL2561Metric(SoftwareWire* _softTWI, const uint8_t _i2cAddress, const uint16_t _integrationTime, const uint8_t _gain, const uint8_t _metric, char* _dst, uint32_t* _value, const uint8_t _wantsNumber)
-{
-  int8_t rc = RESULT_IS_FAIL;
-  uint8_t value[2] = {0x00, 0x00}, configByte, packageType, partNo;
+int8_t getTSL2561Metric(SoftwareWire* _softTWI, uint8_t _i2cAddress, const uint16_t _integrationTime, const uint8_t _gain, const uint8_t _metric, uint32_t* _value){
+
+  int8_t   rc                = DEVICE_ERROR_TIMEOUT;
+  uint8_t  configByte, 
+           packageType, 
+           partNo, 
+           rawData[0x02]     = {0x00};
   uint16_t clipThreshold, b, m;
-  uint32_t ratio, adcValueChannel00, adcValueChannel01, delayTime, chScale;
-  int32_t result;
+  uint32_t ratio, adcValueChannel00, adcValueChannel01, maxConversionTime, chScale;
+  int32_t  result;
+
 
   if (SENS_READ_LUX != _metric) { rc = DEVICE_ERROR_NOT_SUPPORTED; goto finish; }
+
+  if (!_i2cAddress) { _i2cAddress = TSL2561_I2C_ADDRESS; }
 
   if (!isI2CDeviceReady(_softTWI, _i2cAddress)) { rc = DEVICE_ERROR_CONNECT; goto finish; }
 
   if (0x01 != writeByteToI2C(_softTWI, _i2cAddress, (TSL2561_COMMAND_BIT | TSL2561_REG_CONTROL), TSL2561_POWERON)) { goto finish; }
 
-  if (0x01 != readBytesFromI2C(_softTWI, _i2cAddress, TSL2561_COMMAND_BIT | TSL2561_REG_ID, value, 0x01)) { goto finish; }
+  if (0x01 != readBytesFromI2C(_softTWI, _i2cAddress, TSL2561_COMMAND_BIT | TSL2561_REG_ID, rawData, 0x01)) { goto finish; }
 
-  partNo = value[0] & TSL2561_PARTNO_MASK;
-
-//  Serial.print("REGID: "); Serial.println(value[0], BIN); 
-//  Serial.print("partNo: "); Serial.println(partNo, BIN); 
-
-//  Serial.print("TSL2560/TSL2561 ");
+  partNo = rawData[0x00] & TSL2561_PARTNO_MASK;
 
   //  T, FN and CL package or CS package
   switch (partNo) {
     case TSL2561_PARTNO_TSL2560CS:
     case TSL2561_PARTNO_TSL2561CS:
       packageType = TSL2561_TYPE_CS;
-//      Serial.println("CS");
       break;
 
     case TSL2561_PARTNO_TSL2560T:
     case TSL2561_PARTNO_TSL2561T:
       packageType = TSL2561_TYPE_T;
-//      Serial.println("T");
       break;
 
     default:
-      Serial.println("not found");
       rc = DEVICE_ERROR_NOT_SUPPORTED;
       goto finish; 
   }
@@ -89,23 +69,23 @@ int8_t getTSL2561Metric(SoftwareWire* _softTWI, const uint8_t _i2cAddress, const
   switch (_integrationTime) {
     case TSL2561_INTEGRATION_TIME_13MS: 
       configByte |= TSL2561_INTEGRATION_TIME_13MS_BITS;
-      delayTime = TSL2561_INTEGRATION_TIME_13MS_DELAY;
+      maxConversionTime = TSL2561_INTEGRATION_TIME_13MS_DELAY;
       clipThreshold = TSL2561_CLIPPING_13MS;
       chScale = TSL2561_CHSCALE_TINT0;
       break;
    
     case TSL2561_INTEGRATION_TIME_101MS:
       configByte |= TSL2561_INTEGRATION_TIME_101MS_BITS;
-      delayTime = TSL2561_INTEGRATION_TIME_101MS_DELAY;
+      maxConversionTime = TSL2561_INTEGRATION_TIME_101MS_DELAY;
       clipThreshold = TSL2561_CLIPPING_101MS;
       chScale = TSL2561_CHSCALE_TINT1;
       break;
 
     case TSL2561_INTEGRATION_TIME_402MS:
       configByte |= TSL2561_INTEGRATION_TIME_402MS_BITS;
-      delayTime = TSL2561_INTEGRATION_TIME_402MS_DELAY;
+      maxConversionTime = TSL2561_INTEGRATION_TIME_402MS_DELAY;
       clipThreshold = TSL2561_CLIPPING_402MS;
-      chScale = (1 << TSL2561_CH_SCALE); 
+      chScale = (0x01 << TSL2561_CH_SCALE); 
       break;
 
     default:
@@ -117,7 +97,7 @@ int8_t getTSL2561Metric(SoftwareWire* _softTWI, const uint8_t _i2cAddress, const
   switch (_gain) {
     case TSL2561_GAIN_1X: 
       configByte |= TSL2561_GAIN_1X_BITS;
-      chScale = chScale << 4;
+      chScale = chScale << 0x04;
       break;
     
     case TSL2561_GAIN_16X:
@@ -130,52 +110,36 @@ int8_t getTSL2561Metric(SoftwareWire* _softTWI, const uint8_t _i2cAddress, const
   }
 
 
-//  Serial.print("configByte: "); Serial.println(configByte, BIN); 
-  
-
   if (0x01 != writeByteToI2C(_softTWI, _i2cAddress, (TSL2561_COMMAND_BIT | TSL2561_REG_TIMING), configByte)) { goto finish; }
 
   // Restart conversion with new settings
   if (0x01 != writeByteToI2C(_softTWI, _i2cAddress, (TSL2561_COMMAND_BIT | TSL2561_REG_CONTROL), TSL2561_POWEROFF)) { goto finish; }
   if (0x01 != writeByteToI2C(_softTWI, _i2cAddress, (TSL2561_COMMAND_BIT | TSL2561_REG_CONTROL), TSL2561_POWERON)) { goto finish; }
 
-  delay(delayTime);
+  delay(maxConversionTime);
 
   // FullSpectrum
-  if (0x02 != readBytesFromI2C(_softTWI, _i2cAddress, (TSL2561_COMMAND_BIT | TSL2561_WORD_BIT | TSL2561_ADC_CHANNEL00_LOW), value, 0x02)) { goto finish; }
+  if (0x02 != readBytesFromI2C(_softTWI, _i2cAddress, (TSL2561_COMMAND_BIT | TSL2561_WORD_BIT | TSL2561_ADC_CHANNEL00_LOW), rawData, 0x02)) { goto finish; }
   
-  adcValueChannel00 = WireToU16LE(value);
+  adcValueChannel00 = WireToU16LE(rawData);
 
   // Infrared
-  if (0x02 != readBytesFromI2C(_softTWI, _i2cAddress, (TSL2561_COMMAND_BIT | TSL2561_WORD_BIT | TSL2561_ADC_CHANNEL01_LOW), value, 0x02)) { goto finish; }
+  if (0x02 != readBytesFromI2C(_softTWI, _i2cAddress, (TSL2561_COMMAND_BIT | TSL2561_WORD_BIT | TSL2561_ADC_CHANNEL01_LOW), rawData, 0x02)) { goto finish; }
 
-  adcValueChannel01 = WireToU16LE(value);
+  adcValueChannel01 = WireToU16LE(rawData);
 
   if (0x01 != writeByteToI2C(_softTWI, _i2cAddress, (TSL2561_COMMAND_BIT | TSL2561_REG_CONTROL), TSL2561_POWEROFF)) { goto finish; }
 
   /* Return 65536 lux if the sensor is saturated */
-  if ((adcValueChannel00 > clipThreshold) || (adcValueChannel01 > clipThreshold))
-  {
-     result = 65536;
-     goto printOut;
-  }
-
- // adcValueChannel00 - adcValueChannel01 // FullSpectrum - IR => Visible
-/*
-  Serial.print("FullSpectrum: "); Serial.println(adcValueChannel00); 
-  Serial.print("IR: "); Serial.println(adcValueChannel01); 
-  Serial.print("Visible: "); Serial.println(adcValueChannel00-adcValueChannel01); 
-*/
+  if ((adcValueChannel00 > clipThreshold) || (adcValueChannel01 > clipThreshold)) { result = 65536; goto printOut; }
 
   adcValueChannel00 = (adcValueChannel00 * chScale) >> TSL2561_CH_SCALE;
   adcValueChannel01 = (adcValueChannel01 * chScale) >> TSL2561_CH_SCALE;
 
-  ratio = 0;
+  ratio = 0x00;
 
-  if (adcValueChannel00 != 0) {
-     ratio = (adcValueChannel01 << (TSL2561_RATIO_SCALE+1)) / adcValueChannel00;
-  }
-  ratio = (ratio + 1) >> 1;
+  if (0x00 != adcValueChannel00) { ratio = (adcValueChannel01 << (TSL2561_RATIO_SCALE + 0x01)) / adcValueChannel00; }
+  ratio = (ratio + 0x01) >> 0x01;
 
   switch (packageType) {
     case TSL2561_TYPE_T: // T package
@@ -249,31 +213,21 @@ int8_t getTSL2561Metric(SoftwareWire* _softTWI, const uint8_t _i2cAddress, const
   result = ((adcValueChannel00 * b) - (adcValueChannel01 * m));
 
   // do not allow negative lux value
-  if (result < 0) { result = 0; }
+  if (result < 0x00) { result = 0x00; }
   // round lsb (2^(LUX_SCALE-1))
-  result += (1 << (TSL2561_LUX_SCALE-1));
+  result += (0x01 << (TSL2561_LUX_SCALE - 0x01));
   // strip off fractional portion
   result = result >> TSL2561_LUX_SCALE;
 
   // !!! Now result contains lux'es
-
-
-  printOut:
-
+printOut:
 
   *_value = result;
 
-  Serial.print("lux: "); Serial.println(*_value); 
-  
+  //DEBUG_PORT.print("lux: "); DEBUG_PORT.println(*_value); 
+  rc = RESULT_IS_UNSIGNED_VALUE;
 
-  if (!_wantsNumber) {
-     ltoa(*_value, _dst, 10);
-  }
-
-
-  rc = RESULT_IS_BUFFERED;
-
-  finish:
+finish:
   gatherSystemMetrics(); // Measure memory consumption
   return rc;
 

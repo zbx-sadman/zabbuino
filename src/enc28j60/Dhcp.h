@@ -2,7 +2,7 @@
 // Author: Jordan Terrell - blog.jordanterrell.com
 
 #include "../net_platforms.h"
-#ifdef NETWORK_ETH_ENC28J60
+#ifdef NETWORK_ETHERNET_ENC28J60
 
 #ifndef _UIP_DHCP_H_
 #define _UIP_DHCP_H_
@@ -183,4 +183,4 @@ public:
 };
 
 #endif // _UIP_DHCP_H_
-#endif // NETWORK_ETH_ENC28J60
+#endif // NETWORK_ETHERNET_ENC28J60

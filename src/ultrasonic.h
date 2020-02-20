@@ -1,9 +1,14 @@
 #pragma once
 
-#define ULTRASONIC_SAMPLES                       (0x05)
+/*
 
-  // timeout in microseconds. 38000 * 10 / 58 => 6551. It is out of distance range (too close or too far).
-#define ULTRASONIC_TIMEOUT                       (38000UL)
+*/
+
+#define ULTRASONIC_MAX_SAMPLES                   (0x05)
+
+#define ULTRASONIC_MAX_EXPECTED_DISTANCE_CM      (400)
+
+#define ULTRASONIC_US_TO_CM_COEFFICIENT          (58)
 
 /*****************************************************************************************************************************
 *
@@ -13,6 +18,5 @@
 *     - distance in mm
 *
 *****************************************************************************************************************************/
-//uint32_t getUltrasonicMetric(const uint8_t _triggerPin, const uint8_t _echoPin);
-uint32_t getUltrasonicMetric(const uint8_t, const uint8_t);
+int8_t getUltrasonicMetric(const uint8_t, const uint8_t, uint8_t, int32_t*);
 

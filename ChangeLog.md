@@ -1,5 +1,18 @@
 ## Zabbuino change log 
 
+### v1.4.0 (20 Feb 2019)
+
+Added:
+- New sensors, and devices support: Telaire T6703 (T67xx family), Sensirion SGP-30, Wuhan Cubic PM2012 (and similar), iNovaFitness SDS011.
+
+Changed: 
+- Network routines was rewrote;
+- Wiznet driver was updated;
+- W5200 support is removed;
+- Many commands use defaults values (I2C adresses and etc);
+- MAX7219 output more speedy now;
+- DS18x20 error detection is improved.
+
 ### v1.3.0 (24 Feb 2019)
 
 Added:

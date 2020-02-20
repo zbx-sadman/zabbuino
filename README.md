@@ -1,7 +1,7 @@
 # Zabbuino
 An Zabbix agent firmware for Arduino (**AVR only**)
 
-Actual release is v1.3.
+Actual release is v1.4.
 
 Compilation tested on Arduino IDE 1.6.11 (from https://www.arduino.cc/) and above.
 
