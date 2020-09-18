@@ -546,7 +546,6 @@ const uint8_t constDefaultNetmask[4]                   PROGMEM = {255, 255, 255,
 const char* const constWiFiSsid                                = "YourAP";
 const char* const constWiFiPsk                                 = "YourPSK";
 
-
 /* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
   ALARM SECTION
 */

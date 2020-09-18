@@ -296,7 +296,6 @@ const uint8_t constAgentHostnameMaxLength                       = 32;  // MCU ID
                                                           I/O PORTS/PINS PRE-CONFIGURATION SECTION 
 */
 
-const uint8_t port_protect[] = {
 /*
 
   All bits equal '0' cause setting corresponding pin to non-protection mode
@@ -304,6 +303,10 @@ const uint8_t port_protect[] = {
   All bits equal '1' cause setting corresponding pin to protection mode (it's will be not affected by portWrite[], digitalWrite[] and other commands)
   
 */
+
+#if defined(ARDUINO_ARCH_AVR)
+// AVR have port-based protecton configuration
+const uint8_t port_protect[] = {
 #if (PORTS_NUM >= 0x05)
   B00000000, // not a port
   B00000000, // not a port
@@ -345,10 +348,18 @@ D13 -^    ^- D8    <- pins   */
   B00000000, // PORTK
   B00000000  // PORTL
 #endif
+
 };
+#elif defined(ARDUINO_ARCH_ESP8266)  
+// ESP have GPIO-numbered protecton configuration
+// GPIO 6-11 used to connect the flash memory chip, GPIO1 & GPIO3 - UART
+// B00000000000000000000111111001010 = 0x0FCA
+//         GPIO17 -^    B    6  3 1^- GPIO0
+const uint32_t port_protect = 0x0FCA; 
+#endif //#if defined(ARDUINO_ARCH_AVR)
 
 
-
+// !!! feature currently not supported on ESP8266 architecture
 const uint8_t port_mode[] PROGMEM = {
 //const uint8_t port_mode[PORTS_NUM] = {
 /*
@@ -397,6 +408,7 @@ D13 -^    ^- D8    <- pins   */
 };
 
 
+// !!! feature currently not supported on ESP8266 architecture
 const uint8_t port_pullup[] PROGMEM = {
 //const uint8_t port_pullup[PORTS_NUM] = {
 /*

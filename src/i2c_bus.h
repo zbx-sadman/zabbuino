@@ -7,8 +7,7 @@ typedef SoftwareWire SoftwareTWI;
 #elif defined(ARDUINO_ARCH_ESP8266)  
 #include <Wire.h>
 typedef TwoWire SoftwareTWI;
-
-#endif
+#endif //#if defined(ARDUINO_ARCH_AVR)
 
 #define I2C_NO_REG_SPECIFIED                                     (-0x01) //
 #define I2C_NO_ADDR_SPECIFIED                                    (0x00) // General Call Address
@@ -18,20 +17,6 @@ typedef TwoWire SoftwareTWI;
 #define SOFTWARETWI_ADDRESS_NACK                                 (0x02)
 #define SOFTWARETWI_DATA_NACK                                    (0x03)
 #define SOFTWARETWI_OTHER                                        (0x04)
-
-//#define WireToU8(_src)     ((uint8_t) _src[0])
-//#define WireToS8(_src)     ((int8_t)  _src[0])
-
-//#define WireToU16(_src)  ((uint16_t) ( ((uint16_t) _src[0] << 8)| (uint16_t) _src[1]))
-//#define WireToU16(_src)    ((uint16_t) ( ((uint16_t) _src[0] << 8)| (uint8_t) _src[1]))
-//#define WireToS16(_src)    ((int16_t)  ( ((uint16_t) _src[0] << 8)| (uint8_t) _src[1]))
-
-//#define WireToU16LE(_src)  ((uint16_t) ( ((uint16_t) _src[1] << 8)| (uint8_t) _src[0]))
-//#define WireToS16LE(_src)  ((int16_t)  ( ((uint16_t) _src[1] << 8)| (uint8_t) _src[0]))
-
-//#define WireToU24(_src)    ((uint32_t) ( ((uint32_t) _src[0] << 16) | ((uint16_t) _src[1] << 8) | (uint8_t) _src[2]))
-//#define WireToS24(_src)    ((int32_t)  ( ((uint32_t) _src[0] << 16) | ((uint16_t) _src[1] << 8) | (uint8_t) _src[2]))
-
 
 void U16ToWire(uint8_t*, uint16_t);
 void U16LToWire(uint8_t*, uint16_t);

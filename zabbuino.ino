@@ -165,7 +165,7 @@ void loop() {
   // 5. Other system parts initialization
   //
   // I/O ports initialization. Refer to "I/O PORTS SETTING SECTION" in src/cfg_tune.h
-  if (RESULT_IS_FAIL == initPortMode()) {
+  if (RESULT_IS_FAIL == initPinMode()) {
     __DMLM( DEBUG_PORT.println(FSH_P(STRING_IO_ports_presets_is_wrong)); )
   }
 
@@ -788,8 +788,10 @@ static int16_t executeCommand(Stream& _netClient, netconfig_t& _sysConfig, reque
           goto finish;
         }
         // turn on or turn off logic on pin
+
         pinMode(_request.argv[0x00], OUTPUT);
         digitalWrite(_request.argv[0x00], !!_request.argv[0x01]);
+        
         rc = RESULT_IS_OK;
         goto finish;
       }
@@ -1030,8 +1032,12 @@ static int16_t executeCommand(Stream& _netClient, netconfig_t& _sysConfig, reque
         //
         // 'a' used because tolower() used to args saving while parsing
         // PortA have index 1, not 0; PortB is 2, PortC is 3...
+#if defined(ARDUINO_ARCH_AVR)
         uint8_t portNo = *_request.args[0x00] - 'a' + 0x01;
         rc = writeToPort(portNo, _request.argv[0x01]);
+#elif defined(ARDUINO_ARCH_ESP8266)
+        rc = ZBX_NOTSUPPORTED;
+#endif // #if defined(ARDUINO_ARCH_AVR)
         goto finish;
       }
 
@@ -1084,28 +1090,21 @@ static int16_t executeCommand(Stream& _netClient, netconfig_t& _sysConfig, reque
         //
         //  system.hw.cpu[metric]
         //
-        Serial.println("Privet");
-        //rc = RESULT_IS_BUFFERED;
-        rc = RESULT_IS_OK;
-        //_request.payloadChar = '!';
-        //  strcpy_P(_request.payloadChar, PSTR("PRIVET"));
-
-        //          strcpy_P(_request.payloadChar, PSTR(BOARD));
-        /*
-          if (0 == strcmp_P(_request.args[0x00], PSTR("id"))) {
+        rc = RESULT_IS_BUFFERED;
+        //strcpy_P(_request.payloadChar, PSTR(BOARD));
+        if (0x00 == strcmp_P(_request.args[0x00], PSTR("id"))) {
           // Read 10 bytes with step 1 (0x0E..0x17) of the signature row <= http://www.avrfreaks.net/forum/unique-id-atmega328pb
-          getBootSignatureAsHexString(_request.payloadChar, 0x0E, 10, 1);
-          } else if (0 == strcmp_P(_request.args[0x00], PSTR("freq"))) {
+          //getBootSignatureAsHexString(_request.payloadChar, 0x0E, 10, 1);
+        } else if (0x00 == strcmp_P(_request.args[0x00], PSTR("freq"))) {
           // Return back CPU frequency
           value = F_CPU;
           rc = RESULT_IS_UNSIGNED_VALUE;
-          } else if (0 == strcmp_P(_request.args[0x00], PSTR("model"))) {
+        } else if (0x00 == strcmp_P(_request.args[0x00], PSTR("model"))) {
           // Read 3 bytes with step 2 (0x00, 0x02, 0x04) of the signature row <= http://www.avrfreaks.net/forum/device-signatures
-          getBootSignatureAsHexString(_request.payloadChar, 0x00, 3, 2);
-          } else {
-        */
-        // Return back CPU name
-        //}
+          //getBootSignatureAsHexString(_request.payloadChar, 0x00, 3, 2);
+        } else {
+          // Return back CPU name
+        }
         goto finish;
       }
 
