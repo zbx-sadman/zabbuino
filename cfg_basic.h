@@ -22,10 +22,18 @@
                 >>> NOTE that network drivers (UIPEthernet & WIZNet libs) are integrated to Zabbuino source code <<<
 */
 
-#define NETWORK_ETHERNET_W5100           // Arduino Ethernet Shield and Compatibles ...
+
+
+#if defined(ARDUINO_ARCH_AVR)
+  #define NETWORK_ETHERNET_W5100           // Arduino Ethernet Shield and Compatibles ...
 //#define NETWORK_ETHERNET_ENC28J60      // Microchip __ENC28J60__ network modules
 //#define NETWORK_ETHERNET_W5500         // WIZ550io, ioShield series of WIZnet, tested but not satisfied with the performance on intensive traffic
 //#define NETWORK_SERIAL_INTERFACE       // not implemented yet
+#elif defined(ARDUINO_ARCH_ESP8266)
+  #define NETWORK_WIRELESS_ESP_NATIVE
+#else 
+  #error "Unknow architecture"
+#endif
 
 /* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
                                                                  PROGRAMM FEATURES SECTION
@@ -54,7 +62,7 @@
 //            You need try to read it before use for network addresses generating.
 //            Using only 3 last bytes not guarantee making unique MAC or IP.
 //
-//#define FEATURE_NET_USE_MCUID
+#define FEATURE_NET_USE_MCUID
 
 /****       Arduino wrappers     ****/
 
@@ -108,14 +116,14 @@
 //     Enable 1-Wire processing and command:
 //       - OW.Scan[]
 //
-#define FEATURE_OW_ENABLE
+//#define FEATURE_OW_ENABLE
 
 //
 //     Enable Dallas DS18x20 sensors handling and command:
 //       - DS18x20.Temperature[]
 //
 
-#define FEATURE_DS18X20_ENABLE
+//#define FEATURE_DS18X20_ENABLE
 
 /****       I2C bus        ****/
 
@@ -144,7 +152,7 @@
 //       - BMP.Temperature[]
 //
 //
-#define FEATURE_BMP280_ENABLE
+//#define FEATURE_BMP280_ENABLE
 
 //
 //     Enable BOSCH BME280 sensors handling and enable additional command
@@ -195,7 +203,7 @@
 //       - PCF8574.LCDPrint[]
 //
 //
-//#define FEATURE_PCF8574_LCD_ENABLE
+#define FEATURE_PCF8574_LCD_ENABLE
 
 //
 //     Enable Sensirion SHT2x sensors handling and commands:
@@ -324,7 +332,24 @@
 //     Enable Winsen ZE08-CH2O sensor support and command:
 //       - ze08.ch2o[]
 //
-//#define FEATURE_ZE08_CH2O_ENABLE
+//#define FEATURE_WINSEN_ZE08_CH2O_ENABLE
+
+//     Enable Winsen ZE14-O3(ZE25-O3, ZE25-O3) sensor support and command:
+//       - ze14.o3[]
+//
+//#define FEATURE_WINSEN_ZE14_O3_ENABLE
+
+//     Enable Winsen ZP14 (Natural gas / Combustible Gas) sensor support and command:
+//       - zp14.ng[]
+//
+//#define FEATURE_WINSEN_ZP14_ENABLE
+
+//     Enable Winsen ZE15-CO, ZE16-CO, sensor support and command:
+//       - ze15.co[]
+//       - ze16.co[]
+//
+//#define FEATURE_WINSEN_ZE15_CO_ENABLE
+//#define FEATURE_WINSEN_ZE16_CO_ENABLE
 
 /****       DHT/AM family    ****/
 
@@ -333,7 +358,7 @@
 //       - DHT.Humidity[];
 //       - DHT.Temperature[]
 //
-#define FEATURE_DHT_ENABLE
+//#define FEATURE_DHT_ENABLE
 
 /****       Ultrasonic    ****/
 
@@ -406,7 +431,7 @@
 //      Enable calling user functions on device start and every _constUserFunctionCallInterval_ if no active network session exist
 //      You can write to _plugin.ino_ your own code and use all Zabbuino's internal functions to query sensors and handle actuators
 //
-#define FEATURE_USER_FUNCTION_PROCESSING
+//#define FEATURE_USER_FUNCTION_PROCESSING
 
 //
 //      Support Zabbix's Action functionality and enable command:
@@ -434,9 +459,9 @@
 // // // // #define FEATURE_AREF_ENABLE
 
 //
-//     Store runtime settings in EEPROM and use its on start
+//     Store settings to EEPROM and use its on start
 //
-//#define FEATURE_EEPROM_ENABLE
+#define FEATURE_EEPROM_ENABLE
 
 //
 //     Force protect (enable even netConfig.useProtection is false) your system from illegal access for change runtime settings and reboots
@@ -454,7 +479,7 @@
 //       - Sys.RAM.Free[];
 //       - Sys.RAM.FreeMin[]
 //
-//#define FEATURE_SYSINFO_ENABLE
+#define FEATURE_SYSINFO_ENABLE
 
 //
 //      Enable support the system RTC (DS3231 or PCF8563 RTC chip which connected via I2C interface) and commands:
@@ -467,9 +492,9 @@
 //#define FEATURE_SYSTEM_RTC_PCF8563_ENABLE
 
 //
-//    View the more or less debug messages on the Serial Monitor. 0 - no messages .. 2 - max
+//    View the more or less debug messages on the Serial Monitor. 0 - no messages .. 3 - max
 //
-#define FEATURE_DEBUG_MESSAGING_LEVEL     1
+#define FEATURE_DEBUG_MESSAGING_LEVEL     2
 
 //    Various runtime info for development needs
 //#define FEATURE_DEBUG_TO_SERIAL_DEV
@@ -479,17 +504,17 @@
 //
 //     Note that 64 bytes buffer reserved for Serial (refer to HardwareSerial.h) and long commands like ws2812.sendraw[5,1,over9000chars] can be processed uncorrectly
 //
-// #define FEATURE_SERIAL_LISTEN_TOO
+#define FEATURE_SERIAL_LISTEN_TOO
 
 //
 //     Send back to user text messages if error is occurs. Otherwise - send numeric code
 //
-//#define USE_TEXT_ERROR_MESSAGES
+#define USE_TEXT_ERROR_MESSAGES
 
 //
 //     Use interrupt on Timer1 for internal metric gathering
 //
-#define GATHER_METRIC_USING_TIMER_INTERRUPT
+//#define GATHER_METRIC_USING_TIMER_INTERRUPT
 
 /* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
                                                             NETWORK MODULE SECTION
@@ -518,12 +543,23 @@ const uint8_t constDefaultIPAddress[4]                 PROGMEM = {192, 168, 0, 1
 const uint8_t constDefaultGateway[4]                   PROGMEM = {192, 168, 0, 1};
 const uint8_t constDefaultNetmask[4]                   PROGMEM = {255, 255, 255, 0};
 
+const char* const constWiFiSsid                                = "YourAP";
+const char* const constWiFiPsk                                 = "YourPSK";
+
+
 /* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
   ALARM SECTION
 */
 
 // Where is state LED connected
+#if defined(ARDUINO_ARCH_AVR)
 const uint8_t constStateLedPin                                 = 0x09;
+const uint8_t constStateLedOn                                  = HIGH;
+#elif defined(ARDUINO_ARCH_ESP8266)  
+const uint8_t constStateLedPin                                 = 0x02;
+// Some ESP-based (Wemos D1 mini, for wxample) modules have inverted "led control"
+const uint8_t constStateLedOn                                  = LOW;
+#endif
 // State LED must blink or just be turned on?
 #define ON_ALARM_STATE_BLINK
 // Use more blinks to runtime stage indication
@@ -534,15 +570,10 @@ const uint8_t constStateLedPin                                 = 0x09;
 */
 
 #define DEBUG_PORT                                             Serial
-/*
-  #define NETWORK_SERIAL_INTERFACE_PORT                          Serial
-
-  const uint32_t constNetworkSerialInterfaceSpeed                = 115200;
-  const uint8_t  constNetworkSerialInterfaceMode                 = SERIAL_8N1;
-*/
 
 // Debug serial port speed in baud
-const uint32_t constSerialMonitorSpeed                         = 115200;
+//const uint32_t constSerialMonitorSpeed                         = 115200;
+const uint32_t constSerialMonitorSpeed                         = 74880;
 
 // Access password must be used anytime.
 const uint8_t constSysDefaultProtection                        = true;
@@ -551,7 +582,13 @@ const uint8_t constSysDefaultProtection                        = true;
 const uint32_t constSysDefaultPassword                         = 0x00;
 
 // Digital pin which must shorted on the GND for constHoldTimeToFactoryReset time to copy default system setting into EEPROM
+#if defined(ARDUINO_ARCH_AVR)
 const uint8_t constFactoryResetButtonPin                       = 0x08;
+const uint8_t constFactoryResetButtonActive                    = LOW;
+#elif defined(ARDUINO_ARCH_ESP8266)  
+const uint8_t constFactoryResetButtonPin                       = D7;
+const uint8_t constFactoryResetButtonActive                    = LOW;
+#endif
 
 //
 const uint16_t constSysTZOffset                                = 0x2A30; // 10800 sec, 3h;
@@ -568,4 +605,4 @@ const char constZbxAgentDefaultHostname[]            PROGMEM   = "zabbuino";
 const char constZbxAgentDefaultDomain[]              PROGMEM   = ".local.net";
 
 
-const char constZbxAgentVersion[]                    PROGMEM   = "Zabbuino 1.4.0";
+const char constZbxAgentVersion[]                    PROGMEM   = "Zabbuino 1.5.0";

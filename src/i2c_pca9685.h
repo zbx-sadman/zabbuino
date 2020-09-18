@@ -1,6 +1,5 @@
 #pragma once
-#include <Arduino.h>
-#include "SoftwareWire/SoftwareWire.h"
+//#include <Arduino.h>
 
 #define PCA9685_REG_MODE1                                 (0x00)
 #define PCA9685_REG_MODE2                                 (0x01)
@@ -45,4 +44,4 @@
 *    - DEVICE_ERROR_CONNECT        on connection error
 *
 *****************************************************************************************************************************/
-int8_t writePCA9685(SoftwareWire*, const uint8_t, const int8_t, const uint16_t, const uint16_t, const uint8_t);
+int8_t writePCA9685(SoftwareTWI*, const uint8_t, const int8_t, const uint16_t, const uint16_t, const uint8_t);

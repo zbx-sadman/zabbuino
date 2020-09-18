@@ -1,5 +1,7 @@
 #pragma once
-#include <avr/pgmspace.h>
+#if defined(ARDUINO_ARCH_AVR)
+    #include <avr/pgmspace.h>
+#endif
 
 // Zabbix v2.x header prefix ('ZBXD\x01')
 const uint8_t zbxHeaderPrefix[]                         PROGMEM = {'z', 'b', 'x', 'd', '\1'};

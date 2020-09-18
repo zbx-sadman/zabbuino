@@ -1,7 +1,6 @@
 // Config & common included files
 #include "sys_includes.h"
 
-#include "SoftwareWire/SoftwareWire.h"
 #include "service.h"
 #include "system.h"
 
@@ -17,7 +16,7 @@
 *     - false on timeout
 *
 **************************************************************************************************************************** */
-static uint8_t waitToADPS9960Finished(SoftwareWire* _softTWI, const uint8_t _i2cAddress, const int16_t _registerAddress, const uint8_t _mask, const uint16_t _timeout) {
+static uint8_t waitToADPS9960Finished(SoftwareTWI* _softTWI, const uint8_t _i2cAddress, const int16_t _registerAddress, const uint8_t _mask, const uint16_t _timeout) {
   uint8_t  rawData;
   uint32_t startTime;
 
@@ -42,7 +41,7 @@ static uint8_t waitToADPS9960Finished(SoftwareWire* _softTWI, const uint8_t _i2c
 *    - DEVICE_ERROR_CONNECT        on connection error
 *
 *****************************************************************************************************************************/
-int8_t getADPS9960Metric(SoftwareWire* _softTWI, uint8_t _i2cAddress, uint16_t _integrationTime, uint8_t _gain, uint8_t _ledDrive, const uint8_t _metric, uint32_t* _value) {
+int8_t getADPS9960Metric(SoftwareTWI* _softTWI, uint8_t _i2cAddress, uint16_t _integrationTime, uint8_t _gain, uint8_t _ledDrive, const uint8_t _metric, uint32_t* _value) {
   int8_t   rc                = DEVICE_ERROR_TIMEOUT;
   uint8_t  rawData[0x02]     = {0x00}, 
            configByte, 

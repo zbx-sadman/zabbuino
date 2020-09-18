@@ -51,4 +51,4 @@
 *    - DEVICE_ERROR_CONNECT        on connection error
 *
 *****************************************************************************************************************************/
-int8_t getMLX90614Metric(SoftwareWire* _softTWI, const uint8_t _i2cAddress, const uint8_t _temperatureZone, const uint8_t _metric, int32_t* _value);
+int8_t getMLX90614Metric(SoftwareTWI* _softTWI, const uint8_t _i2cAddress, const uint8_t _temperatureZone, const uint8_t _metric, int32_t* _value);

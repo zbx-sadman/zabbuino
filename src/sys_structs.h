@@ -7,7 +7,7 @@
 
 // Note: netconfig_t size must be no more ___uint8_t___ bytes, because readConfig()'s read cycle use uint8_t counter. 
 // Change the index's variable type if bigger size need
-#pragma pack(push,1)
+
 typedef struct {
   uint8_t CRC;                                    // 1 byte, CRC stores first, due it's EEPROM[CRC] cell rewrites everytime on config saving if it changed. 
                                                   //         When the cell was broken, we just shift start config store address to next cell.
@@ -21,10 +21,7 @@ typedef struct {
   uint32_t password;                              // 4 byte
   int16_t tzOffset;                               // 2 byte
 } netconfig_t;
-#pragma pack(pop)
 
-
-#pragma pack(push,1)
 typedef struct {
   uint32_t sysCmdCount;                           // Number of executed commands 
   uint8_t  sysCmdLast;                            // Index of last executed command
@@ -41,10 +38,7 @@ typedef struct {
   uint32_t sysAlarmRisedTime;                     // Last time, when Alarm was rised
   uint32_t sysStartTimestamp;                     // Last time, when Alarm was rised
 } sysmetrics_t;
-#pragma pack(pop)
 
-
-#pragma pack(push,1)
 typedef struct {                                  // 9 bytes: 
   uint32_t value;        			  
   uint8_t owner;                                  // 1 byte 
@@ -55,9 +49,7 @@ typedef struct {                                  // 9 bytes:
   uint8_t encTerminalAPinBit;                     // 1 byte
   uint8_t encTerminalBPinBit;                     // 1 byte
 } extInterrupt_t ;
-#pragma pack(pop)
 
-#pragma pack(push,1)
 typedef struct {
   uint8_t    type;
   uint8_t    data[constBufferSize];
@@ -70,28 +62,19 @@ typedef struct {
   int32_t   argv[constArgC];
   char*     args[constArgC];
 } request_t;
-#pragma pack(pop)
 
-
-#pragma pack(push,1)
 struct command_t {
   uint8_t idx;
   PGM_P name;
+//  const char* const name;
 };
-#pragma pack(pop)
 
-#pragma pack(push,1)
 typedef union {
   uint8_t octets[4];
   uint32_t address;
 } ipv4Address_t;
-#pragma pack(pop)
 
-
-
-#pragma pack(push,1)
 typedef union {
   int32_t  int32;
   uint32_t uint32;
 } numericValue32_t;
-#pragma pack(pop)

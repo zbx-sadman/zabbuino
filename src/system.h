@@ -1,14 +1,32 @@
 #pragma once
 
+// How long the ID of MCU (in bytes)
+#if defined(ARDUINO_ARCH_AVR)
+  const uint8_t constMcuIdSize                                    = 0x0A;
+  const uint8_t constMcuIdStartAddress                            = 0x0E;
+#elif defined(ARDUINO_ARCH_ESP8266)
+  const uint8_t constMcuIdSize                                    = 0x04;
+#endif
+
 /*****************************************************************************************************************************
 *
-*  Read bytes from the MCU's Signature Row and put its to buffer as HEX-string
+*  Reset the system
 *
 *   Returns: 
 *     - none
 *
 *****************************************************************************************************************************/
-void getBootSignatureAsHexString(char*, const uint8_t, uint8_t, const uint8_t);
+void systemReboot();
+
+/*****************************************************************************************************************************
+*
+*  Read bytes from the MCU's Signature Row and put its to array
+*
+*   Returns: 
+*     - none
+*
+*****************************************************************************************************************************/
+void getMcuId(uint8_t* _dst);
 
 /*****************************************************************************************************************************
 *
@@ -39,7 +57,7 @@ void startTimerOne(void);
 *     - none
 *
 *****************************************************************************************************************************/
-ISR(TIMER1_COMPA_vect);
+//ISR(TIMER1_COMPA_vect);
 
 /*****************************************************************************************************************************
 *

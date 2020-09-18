@@ -95,4 +95,4 @@
 *     - DEVICE_ERROR_CONNECT on connection error
 *
 *****************************************************************************************************************************/
-int8_t printToPCF8574LCD(SoftwareWire* _softTWI, uint8_t _i2cAddress, uint8_t _lcdBacklight, const uint16_t _lcdType, const char *_src, const uint8_t forceInit = true);
+int8_t printToPCF8574LCD(SoftwareTWI* _softTWI, uint8_t _i2cAddress, uint8_t _lcdBacklight, const uint16_t _lcdType, const char *_src, const uint8_t forceInit = true);

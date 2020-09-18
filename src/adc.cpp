@@ -15,6 +15,7 @@
 *
 *****************************************************************************************************************************/
 uint16_t getADCVoltage(const uint8_t _analogChannel) {  
+#if defined(ARDUINO_ARCH_AVR)
   uint8_t oldADCSRA, oldADMUX;
   uint16_t i;
   uint32_t avgADC = 0x00;
@@ -39,7 +40,6 @@ uint16_t getADCVoltage(const uint8_t _analogChannel) {
     ADCSRA |= (1 << ADSC);  // start a new conversion
     while (bit_is_set(ADCSRA, ADSC)) {;} // wait for conversion finish
     avgADC += ADC; 
-//    i--;
   }
   // Calculate average
   avgADC /= 0xFF;
@@ -47,11 +47,17 @@ uint16_t getADCVoltage(const uint8_t _analogChannel) {
   //  restore ADCSRA register
   ADCSRA = oldADCSRA;
   ADMUX = oldADMUX;
-  avgADC = 1125300L / avgADC; // Calculate Vcc (in mV); 1125300 = 1.1*1023*1000
+  avgADC = 1125300UL / avgADC; // Calculate Vcc (in mV); 1125300 = 1.1*1023*1000
   // No delay() used because sub can be called from interrupt
   // i = 1500; while (i--){ delayMicroseconds(1);}
   //  delayMicroseconds(2000);
   return ((uint16_t) avgADC);
+#elif defined(ARDUINO_ARCH_ESP8266)
+
+  __SUPPRESS_WARNING_UNUSED(_analogChannel);
+
+  return ((uint16_t) 0x00);
+#endif
 }
 
 // Re: ACS712 Sensor

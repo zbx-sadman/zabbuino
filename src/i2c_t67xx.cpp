@@ -1,14 +1,13 @@
 // Config & common included files
 #include "sys_includes.h"
 
-#include "SoftwareWire/SoftwareWire.h"
 #include "service.h"
 #include "system.h"
 
 #include "i2c_bus.h"
 #include "i2c_t67xx.h"
 
-static int8_t getT67XXRawData(SoftwareWire* _softTWI, const uint8_t _i2cAddress, uint8_t* _buffer) { 
+static int8_t getT67XXRawData(SoftwareTWI* _softTWI, const uint8_t _i2cAddress, uint8_t* _buffer) { 
 
   int8_t  rc = DEVICE_ERROR_TIMEOUT;
 
@@ -47,7 +46,7 @@ finish:
 *
 *****************************************************************************************************************************/
 
-int8_t getT67XXMetric(SoftwareWire* _softTWI, uint8_t _i2cAddress, const uint8_t _metric, int32_t* _value) {
+int8_t getT67XXMetric(SoftwareTWI* _softTWI, uint8_t _i2cAddress, const uint8_t _metric, int32_t* _value) {
   __SUPPRESS_WARNING_UNUSED(_metric);
 
   int8_t  rc = DEVICE_ERROR_CONNECT;

@@ -1,7 +1,19 @@
 #pragma once
 
-#if defined(TEENSYDUINO) 
+#if defined (ARDUINO_ARCH_ESP8266) 
+    #define _CPU_NAME_ "ESP8266"
+    #if defined(ARDUINO_ESP8266_WEMOS_D1MINI)
+        #define BOARD "Wemos D1 MINI"
+    #elif defined(ARDUINO_ESP8266_WEMOS_D1MINILITE)
+        #define BOARD "Wemos D1 MINI Lite"
+    #elif defined(ARDUINO_ESP8266_WEMOS_D1R1) 
+        #define BOARD "Wemos D1 R1"
+    #endif
 
+#elif defined (ARDUINO_ARCH_ESP32) 
+    #define	_CPU_NAME_ "ESP32"
+
+#elif defined(TEENSYDUINO) 
     //  --------------- Teensy -----------------
     #if defined(__AVR_ATmega32U4__)
         #define BOARD "Teensy 2.0"
@@ -16,9 +28,8 @@
     #elif defined(__MK66FX1M0__)
         #define BOARD "Teensy++ 3.0" // coming soon
     #else
-       #error "Unknown board"
+//       #error "Unknown board"
     #endif
-
 #else // --------------- Arduino ------------------
 
     #if   defined(ARDUINO_AVR_ADK)       
@@ -91,7 +102,7 @@
 
 
 #if defined (__AVR_AT94K__)
-                                                                        #define	_AVR_CPU_NAME_	"AT94k"
+                                                                        #define	_CPU_NAME_	"AT94k"
 #elif defined (__AVR_AT43USB320__)
 #elif defined (__AVR_AT43USB355__)
 #elif defined (__AVR_AT76C711__)
@@ -106,127 +117,127 @@
 #elif defined (__AVR_ATmega32C1__)
 #elif defined (__AVR_ATmega32M1__)
 #elif defined (__AVR_ATmega32U4__)
-									#define	_AVR_CPU_NAME_	"ATmega32U4"
+									#define	_CPU_NAME_	"ATmega32U4"
 #elif defined (__AVR_ATmega32U6__)
-									#define	_AVR_CPU_NAME_	"ATmega32U6"
+									#define	_CPU_NAME_	"ATmega32U6"
 #elif defined (__AVR_ATmega128__)
-									#define	_AVR_CPU_NAME_	"Atmega128"
+									#define	_CPU_NAME_	"Atmega128"
 #elif defined (__AVR_ATmega1280__)
-									#define	_AVR_CPU_NAME_	"ATmega1280"
+									#define	_CPU_NAME_	"ATmega1280"
 #elif defined (__AVR_ATmega1281__)
-									#define	_AVR_CPU_NAME_	"ATmega1281"
+									#define	_CPU_NAME_	"ATmega1281"
 #elif defined (__AVR_ATmega1284P__)
-									#define	_AVR_CPU_NAME_	"ATmega1284"
+									#define	_CPU_NAME_	"ATmega1284"
 #elif defined (__AVR_ATmega128RFA1__)
-									#define	_AVR_CPU_NAME_	"ATmega128RFA1"
+									#define	_CPU_NAME_	"ATmega128RFA1"
 #elif defined (__AVR_ATmega2560__)
-									#define	_AVR_CPU_NAME_	"ATmega2560"
+									#define	_CPU_NAME_	"ATmega2560"
 #elif defined (__AVR_ATmega2561__)
-									#define	_AVR_CPU_NAME_	"ATmega2561"
+									#define	_CPU_NAME_	"ATmega2561"
 #elif defined (__AVR_AT90CAN32__)
-									#define	_AVR_CPU_NAME_	"AT90CAN32"
+									#define	_CPU_NAME_	"AT90CAN32"
 #elif defined (__AVR_AT90CAN64__)
-									#define	_AVR_CPU_NAME_	"AT90CAN64"
+									#define	_CPU_NAME_	"AT90CAN64"
 #elif defined (__AVR_AT90CAN128__)
-									#define	_AVR_CPU_NAME_	"AT90CAN128"
+									#define	_CPU_NAME_	"AT90CAN128"
 #elif defined (__AVR_AT90USB82__)
-									#define	_AVR_CPU_NAME_	"AT90USB82"
+									#define	_CPU_NAME_	"AT90USB82"
 #elif defined (__AVR_AT90USB162__)
-									#define	_AVR_CPU_NAME_	"AT90USB162"
+									#define	_CPU_NAME_	"AT90USB162"
 #elif defined (__AVR_AT90USB646__)
-									#define	_AVR_CPU_NAME_	"AT90USB646"
+									#define	_CPU_NAME_	"AT90USB646"
 #elif defined (__AVR_AT90USB647__)
-									#define	_AVR_CPU_NAME_	"AT90USB647"
+									#define	_CPU_NAME_	"AT90USB647"
 #elif defined (__AVR_AT90USB1286__)
-									#define	_AVR_CPU_NAME_	"AT90USB1286"
+									#define	_CPU_NAME_	"AT90USB1286"
 #elif defined (__AVR_AT90USB1287__)
-									#define	_AVR_CPU_NAME_	"AT90USB1287"
+									#define	_CPU_NAME_	"AT90USB1287"
 #elif defined (__AVR_ATmega64__)
-									#define	_AVR_CPU_NAME_	"ATmega64"
+									#define	_CPU_NAME_	"ATmega64"
 #elif defined (__AVR_ATmega640__)
-									#define	_AVR_CPU_NAME_	"ATmega640"
+									#define	_CPU_NAME_	"ATmega640"
 #elif defined (__AVR_ATmega644__)
-									#define	_AVR_CPU_NAME_	"ATmega644"
+									#define	_CPU_NAME_	"ATmega644"
 #elif defined (__AVR_ATmega644P__)
-									#define	_AVR_CPU_NAME_	"ATmega644P"
+									#define	_CPU_NAME_	"ATmega644P"
 #elif defined (__AVR_ATmega645__)
-									#define	_AVR_CPU_NAME_	"ATmega645"
+									#define	_CPU_NAME_	"ATmega645"
 #elif defined (__AVR_ATmega6450__)
-									#define	_AVR_CPU_NAME_	"ATmega6450"
+									#define	_CPU_NAME_	"ATmega6450"
 #elif defined (__AVR_ATmega649__)
-									#define	_AVR_CPU_NAME_	"ATmega649"
+									#define	_CPU_NAME_	"ATmega649"
 #elif defined (__AVR_ATmega6490__)
-									#define	_AVR_CPU_NAME_	"ATmega6490"
+									#define	_CPU_NAME_	"ATmega6490"
 #elif defined (__AVR_ATmega103__)
-									#define	_AVR_CPU_NAME_	"ATmega103"
+									#define	_CPU_NAME_	"ATmega103"
 #elif defined (__AVR_ATmega32__)
-									#define	_AVR_CPU_NAME_	"Atmega32"
+									#define	_CPU_NAME_	"Atmega32"
 #elif defined (__AVR_ATmega323__)
-									#define	_AVR_CPU_NAME_	"ATmega323"
+									#define	_CPU_NAME_	"ATmega323"
 #elif defined (__AVR_ATmega324P__)
-									#define	_AVR_CPU_NAME_	"ATmega324P"
+									#define	_CPU_NAME_	"ATmega324P"
 #elif defined (__AVR_ATmega325__)
-									#define	_AVR_CPU_NAME_	"ATmega325"
+									#define	_CPU_NAME_	"ATmega325"
 #elif defined (__AVR_ATmega325P__)
-									#define	_AVR_CPU_NAME_	"ATmega325P"
+									#define	_CPU_NAME_	"ATmega325P"
 #elif defined (__AVR_ATmega3250__)
-									#define	_AVR_CPU_NAME_	"ATmega3250"
+									#define	_CPU_NAME_	"ATmega3250"
 #elif defined (__AVR_ATmega3250P__)
-									#define	_AVR_CPU_NAME_	"ATmega3250P"
+									#define	_CPU_NAME_	"ATmega3250P"
 #elif defined (__AVR_ATmega328P__)
-									#define	_AVR_CPU_NAME_	"ATmega328P"
+									#define	_CPU_NAME_	"ATmega328P"
 #elif defined (__AVR_ATmega329__)
-									#define	_AVR_CPU_NAME_	"ATmega329"
+									#define	_CPU_NAME_	"ATmega329"
 #elif defined (__AVR_ATmega329P__)
-									#define	_AVR_CPU_NAME_	"ATmega329P"
+									#define	_CPU_NAME_	"ATmega329P"
 #elif defined (__AVR_ATmega3290__)
-									#define	_AVR_CPU_NAME_	"ATmega3290"
+									#define	_CPU_NAME_	"ATmega3290"
 #elif defined (__AVR_ATmega3290P__)
-									#define	_AVR_CPU_NAME_	"ATmega3290P"
+									#define	_CPU_NAME_	"ATmega3290P"
 #elif defined (__AVR_ATmega32HVB__)
-									#define	_AVR_CPU_NAME_	"ATmega32HVB"
+									#define	_CPU_NAME_	"ATmega32HVB"
 #elif defined (__AVR_ATmega406__)
-									#define	_AVR_CPU_NAME_	"ATmega406"
+									#define	_CPU_NAME_	"ATmega406"
 #elif defined (__AVR_ATmega16__)
-									#define	_AVR_CPU_NAME_	"Atmega16"
+									#define	_CPU_NAME_	"Atmega16"
 #elif defined (__AVR_ATmega161__)
-									#define	_AVR_CPU_NAME_	"ATmega161"
+									#define	_CPU_NAME_	"ATmega161"
 #elif defined (__AVR_ATmega162__)
-									#define	_AVR_CPU_NAME_	"ATmega162"
+									#define	_CPU_NAME_	"ATmega162"
 #elif defined (__AVR_ATmega163__)
-									#define	_AVR_CPU_NAME_	"ATmega163"
+									#define	_CPU_NAME_	"ATmega163"
 #elif defined (__AVR_ATmega164P__)
-									#define	_AVR_CPU_NAME_	"ATmega164P"
+									#define	_CPU_NAME_	"ATmega164P"
 #elif defined (__AVR_ATmega165__)
-									#define	_AVR_CPU_NAME_	"ATmega165"
+									#define	_CPU_NAME_	"ATmega165"
 #elif defined (__AVR_ATmega165P__)
-									#define	_AVR_CPU_NAME_	"ATmega165P"
+									#define	_CPU_NAME_	"ATmega165P"
 #elif defined (__AVR_ATmega168__)
-									#define	_AVR_CPU_NAME_	"ATmega168"
+									#define	_CPU_NAME_	"ATmega168"
 #elif defined (__AVR_ATmega168P__)
-									#define	_AVR_CPU_NAME_	"ATmega168P"
+									#define	_CPU_NAME_	"ATmega168P"
 #elif defined (__AVR_ATmega169__)
-									#define	_AVR_CPU_NAME_	"Atmega169"
+									#define	_CPU_NAME_	"Atmega169"
 #elif defined (__AVR_ATmega169P__)
-									#define	_AVR_CPU_NAME_	"ATmega169P"
+									#define	_CPU_NAME_	"ATmega169P"
 #elif defined (__AVR_ATmega8HVA__)
-									#define	_AVR_CPU_NAME_	"ATmega8HVA"
+									#define	_CPU_NAME_	"ATmega8HVA"
 #elif defined (__AVR_ATmega16HVA__)
-									#define	_AVR_CPU_NAME_	"ATmega16HVA"
+									#define	_CPU_NAME_	"ATmega16HVA"
 #elif defined (__AVR_ATmega8__)
-									#define	_AVR_CPU_NAME_	"ATmega8"
+									#define	_CPU_NAME_	"ATmega8"
 #elif defined (__AVR_ATmega48__)
-									#define	_AVR_CPU_NAME_	"ATmega48"
+									#define	_CPU_NAME_	"ATmega48"
 #elif defined (__AVR_ATmega48P__)
-									#define	_AVR_CPU_NAME_	"ATmega48P"
+									#define	_CPU_NAME_	"ATmega48P"
 #elif defined (__AVR_ATmega88__)
-									#define	_AVR_CPU_NAME_	"ATmega88"
+									#define	_CPU_NAME_	"ATmega88"
 #elif defined (__AVR_ATmega88P__)
-									#define	_AVR_CPU_NAME_	"ATmega88P"
+									#define	_CPU_NAME_	"ATmega88P"
 #elif defined (__AVR_ATmega8515__)
-									#define	_AVR_CPU_NAME_	"ATmega8515"
+									#define	_CPU_NAME_	"ATmega8515"
 #elif defined (__AVR_ATmega8535__)
-									#define	_AVR_CPU_NAME_	"ATmega8535"
+									#define	_CPU_NAME_	"ATmega8535"
 #elif defined (__AVR_AT90S8535__)
 #elif defined (__AVR_AT90C8534__)
 #elif defined (__AVR_AT90S8515__)
@@ -240,7 +251,7 @@
 #elif defined (__AVR_AT90S2323__)
 #elif defined (__AVR_AT90S2313__)
 #elif defined (__AVR_ATtiny2313__)
-									#define	_AVR_CPU_NAME_	"ATtiny2313"
+									#define	_CPU_NAME_	"ATtiny2313"
 #elif defined (__AVR_ATtiny13__)
 #elif defined (__AVR_ATtiny13A__)
 #elif defined (__AVR_ATtiny25__)
@@ -257,13 +268,13 @@
 #elif defined (__AVR_ATtiny88__)
 #elif defined (__AVR_ATtiny167__)
 #elif defined (__AVR_ATmega8U2__)
-									#define	_AVR_CPU_NAME_	"ATmega8U2"
+									#define	_CPU_NAME_	"ATmega8U2"
 #else
-	#error cpu not defined
+//	#error cpu not defined
 #endif
 
 
-#if !defined (_AVR_CPU_NAME_)
-//	#define	_AVR_CPU_NAME_	"UNKNOWN"
+#if !defined (_CPU_NAME_)
+	#define	_CPU_NAME_	"UNKNOWN"
 #endif
 

@@ -1,7 +1,6 @@
 // Config & common included files
 #include "sys_includes.h"
 
-#include "SoftwareWire/SoftwareWire.h"
 #include "service.h"
 #include "system.h"
 
@@ -19,7 +18,7 @@
 *    - DEVICE_ERROR_CONNECT        on connection error
 *
 *****************************************************************************************************************************/
-int8_t getVEML6070Metric(SoftwareWire* _softTWI, uint8_t _integrationFactor, uint32_t _rsetValue, const uint8_t _metric, int32_t* _value) {
+int8_t getVEML6070Metric(SoftwareTWI* _softTWI, uint8_t _integrationFactor, uint32_t _rsetValue, const uint8_t _metric, int32_t* _value) {
   int8_t   rc                = DEVICE_ERROR_NOT_SUPPORTED;
   uint8_t  configReg         = (0x01 << VEML6070_CONFIG_RESERVED), 
            rawData[0x02]     = {0x00};

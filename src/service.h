@@ -49,26 +49,19 @@ int16_t hstoba(uint8_t*, const char*);
 
 /*****************************************************************************************************************************
 *
+*  Convert byte array to hex string
+*
+*****************************************************************************************************************************/
+void batohs(uint8_t*, char*, uint8_t);
+
+/*****************************************************************************************************************************
+*
 *   Compute a Dallas Semiconductor 8 bit CRC directly. This is much slower, but much smaller, than the lookup table.
 *
 *   This function placed here to aviod compilation error when OneWire library is not #included
 *
 *****************************************************************************************************************************/
 uint8_t dallas_crc8(uint8_t*, uint8_t);
-
-/*****************************************************************************************************************************
-*
-*  Print string stored in PROGMEM to Serial 
-*
-*****************************************************************************************************************************/
-//extern void SerialPrint_P (const char *_src);
-
-/*****************************************************************************************************************************
-*
-*  Print string stored in PROGMEM to Serial + Line Feed
-*
-*****************************************************************************************************************************/
-//extern void SerialPrintln_P (const char *_src);
 
 /*****************************************************************************************************************************
 *
@@ -123,9 +116,15 @@ inline uint8_t htod(const uint8_t _hex) { return htod((const char) _hex); }
 **************************************************************************************************************************** */
 //inline __attribute__((always_inline)) uint32_t getRamFree(void) {
 inline uint32_t getRamFree(void) {
+  uint32_t result = 0x00;
+#if defined(ARDUINO_ARCH_AVR)
   extern uint16_t __heap_start, *__brkval;
   uint16_t v;
-  return (uint32_t) &v - (__brkval == 0 ? (uint32_t) &__heap_start : (uint32_t) __brkval);
+  result = (uint32_t) (&v - (__brkval == 0 ? (uint32_t) &__heap_start : (uint32_t) __brkval));
+#elif defined(ARDUINO_ARCH_ESP8266)
+  result = ESP.getFreeHeap();
+#endif
+  return result;
 }
 
 /* ****************************************************************************************************************************
@@ -141,18 +140,19 @@ inline void correctVCCMetrics(uint32_t _currVCC) {
   if (sysMetrics.sysVCCMax < _currVCC) { sysMetrics.sysVCCMax = _currVCC; }
 }
 
+#if not defined (htonl)
 #define htonl(x) ( ((x)<<24 & 0xFF000000UL) | \
                    ((x)<< 8 & 0x00FF0000UL) | \
                    ((x)>> 8 & 0x0000FF00UL) | \
                    ((x)>>24 & 0x000000FFUL) )
 #define ntohl(x) htonl(x)
+#endif
 
 // *** Helpers ***
 
 //#define arraySize(_array) ( sizeof(_array) / sizeof(*(_array)) )
 #define arraySize(_array) ( sizeof(_array) / sizeof(*_array) )
 #define FSH_P(p) (reinterpret_cast<const __FlashStringHelper *>(p))
-
 
 inline uint32_t octetsToIpAddress(const uint8_t octets[4]) {
   return (((uint32_t) octets[3] << 24) | ((uint32_t) octets[2] << 16) | ((uint16_t) octets[1] << 8) |  octets[0]);

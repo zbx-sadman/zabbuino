@@ -1,7 +1,6 @@
 // Config & common included files
 #include "sys_includes.h"
 
-#include "SoftwareWire/SoftwareWire.h"
 #include "service.h"
 #include "system.h"
 
@@ -38,7 +37,7 @@ static uint8_t calcSHT2xCRC(uint8_t* _src) {
 *    - DEVICE_ERROR_CHECKSUM       on detect data corruption
 *
 *****************************************************************************************************************************/
-int8_t getSHT2XMetric(SoftwareWire* _softTWI, uint8_t _i2cAddress, const uint8_t _metric, int32_t* _value) {
+int8_t getSHT2XMetric(SoftwareTWI* _softTWI, uint8_t _i2cAddress, const uint8_t _metric, int32_t* _value) {
   int8_t   rc                = DEVICE_ERROR_TIMEOUT;
   uint8_t  command;
   uint8_t  rawData[0x03]     = {0x00};

@@ -59,6 +59,7 @@
 // Use the next define to run a i2c_scanner inside the printStatus() function.
 // #define ENABLE_I2C_SCANNER
 
+#if defined(ARDUINO_ARCH_AVR)
 
 #include "SoftwareWire.h"
 
@@ -106,10 +107,6 @@
 //
 // The pins are not activated until begin() is called.
 //
-SoftwareWire::SoftwareWire() 
-{
-}
-
 SoftwareWire::SoftwareWire(uint8_t sdaPin, uint8_t sclPin, boolean pullups, boolean detectClockStretch)
 {
   
@@ -118,9 +115,8 @@ SoftwareWire::SoftwareWire(uint8_t sdaPin, uint8_t sclPin, boolean pullups, bool
   // Set default timeout to 1000 ms. 
   // 1 second is very long, 10ms would be more appropriate.
   // However, the Arduino libraries use often a default timeout of 1 second.
-  setTimeout( 1000L);        
-
-  reconfigure(sdaPin, sclPin, pullups, detectClockStretch);
+  setTimeout(1000L);        
+  configure(sdaPin, sclPin, pullups, detectClockStretch);
 }
 
 
@@ -132,12 +128,7 @@ SoftwareWire::~SoftwareWire()
   end();
 }
 
-
-void SoftwareWire::reconfigure(uint8_t sdaPin, uint8_t sclPin, boolean pullups, boolean detectClockStretch)
-{
-  // No changes need
-  if (sdaPin == _sdaPin && sclPin == _sclPin && pullups == _pullups && detectClockStretch == _stretch) { return; }
-
+void SoftwareWire::configure(uint8_t sdaPin, uint8_t sclPin, boolean pullups, boolean detectClockStretch) {
   _sdaPin = sdaPin;
   _sclPin = sclPin;
   _pullups = pullups;
@@ -160,12 +151,26 @@ void SoftwareWire::reconfigure(uint8_t sdaPin, uint8_t sclPin, boolean pullups, 
 
 }
 
+void SoftwareWire::begin(uint8_t sdaPin, uint8_t sclPin, boolean pullups, boolean detectClockStretch)
+{
+  // No changes need
+  if (sdaPin == _sdaPin && sclPin == _sclPin && pullups == _pullups && detectClockStretch == _stretch) { return; }
+  // Finish previous "session"
+  end();
+  // Reconfigure
+  configure(sdaPin, sclPin, pullups, detectClockStretch);
+  // Start new "session"
+  begin();
+}
+
 //
 // Release the pins of the Software I2C bus for other use.
 // Also the internal pullup resistors are removed.
 //
 void SoftwareWire::end()
 {
+  if (!initialized) { return; }
+  initialized = false;
   // Remember the pullups variable.
   // They will be used again when begin() is called.
   boolean pullupsCopy = _pullups;
@@ -182,6 +187,8 @@ void SoftwareWire::end()
 // The pins are not changed until begin() is called.
 void SoftwareWire::begin(void)
 {
+  initialized = true;
+
   rxBufPut = 0;          // nothing in the rxBuf
   rxBufGet = 0;
 
@@ -891,3 +898,4 @@ uint8_t SoftwareWire::i2c_read(boolean ack)
   return(res);
 }
 
+#endif

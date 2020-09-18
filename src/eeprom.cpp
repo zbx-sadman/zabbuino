@@ -16,17 +16,21 @@
 *     - false on fail
 *  
 *****************************************************************************************************************************/
-uint8_t saveConfigToEEPROM(netconfig_t& _sysConfig)
-{
-  uint8_t index = 1, // '1' need to enter to the loop
-          startAddress, 
-          restartWriteCycle, 
-          *ptrSysConfig = (uint8_t*) &_sysConfig;
+uint8_t saveConfigToEEPROM(netconfig_t& _sysConfig) {
+
+ uint8_t rc = false,
+         *ptrSysConfig = (uint8_t*) &_sysConfig;
 
   __DMLM( DEBUG_PORT.println(F("Saving config to EEPROM")); )
+
   // Calculate CRC of _sysConfig and place it to first byte of structure to batch writing.
   // CRC-byte must be skipped on CRC calculating
   _sysConfig.CRC = dallas_crc8(((uint8_t*) &_sysConfig) + sizeof(_sysConfig.CRC), sizeof(_sysConfig)-sizeof(_sysConfig.CRC));
+
+#if defined(ARDUINO_ARCH_AVR) 
+  uint8_t index = 0x01, // '1' need to enter to the loop
+          startAddress, 
+          restartWriteCycle;
 
   // Save every byte of _sysConfig to EEPROM
 
@@ -63,7 +67,6 @@ uint8_t saveConfigToEEPROM(netconfig_t& _sysConfig)
           startAddress = startAddress + index + 1;
           restartWriteCycle = true;
        } // if (EEPROM[index + startAddress] != ptrSysConfig[index])
-       //DEBUG_PORT.println(" [U]"); 
 
      } // while (index && !restartWriteCycle)
   } // while (index)
@@ -71,10 +74,21 @@ uint8_t saveConfigToEEPROM(netconfig_t& _sysConfig)
   // Update store config start address if need and return false on error
   if (startAddress != EEPROM[CONFIG_STORE_PTR_ADDRESS]) {
      EEPROM[CONFIG_STORE_PTR_ADDRESS] = startAddress;
-     if (startAddress != EEPROM[CONFIG_STORE_PTR_ADDRESS]) { return false; }
+     if (startAddress != EEPROM[CONFIG_STORE_PTR_ADDRESS]) { goto finish; }
   };
 
-  return true;
+#elif defined(ARDUINO_ARCH_ESP8266) 
+   EEPROM.begin(constEspEepromSize);
+   for (uint8_t idx = 0x00; sizeof(_sysConfig) > idx; idx++) {
+     EEPROM.write(idx, *(ptrSysConfig + idx));
+   }
+   EEPROM.end();
+#endif
+
+  rc = true;
+
+finish:
+  return rc;
 
 }
 
@@ -87,19 +101,20 @@ uint8_t saveConfigToEEPROM(netconfig_t& _sysConfig)
 *     - false on fail
 *
 *****************************************************************************************************************************/
-uint8_t loadConfigFromEEPROM(netconfig_t& _sysConfig) 
-{
-  
-  uint8_t index, 
-          startAddress, 
+uint8_t loadConfigFromEEPROM(netconfig_t& _sysConfig) {
+  uint8_t rc = false,
           *ptrSysConfig = (uint8_t*) &_sysConfig;
+
+#if defined(ARDUINO_ARCH_AVR) 
+  uint8_t index, 
+          startAddress; 
 
 //  __DMLM( DEBUG_PORT.print(F("Load configuration from EEPROM ")); )
   // Read the pointer of config store start address and validate it: default_start_address < startAddress < (last_eeprom_cell_address - config_structure_size) 
   // On error - stop working
   startAddress = EEPROM[CONFIG_STORE_PTR_ADDRESS];
   if ((EEPROM.length()  - sizeof(_sysConfig)) < startAddress || CONFIG_STORE_DEFAULT_START_ADDRESS > startAddress) { 
-     return false; 
+     goto finish;
   }
 
   // Read all bytes from EEPROM to config structure
@@ -113,13 +128,25 @@ uint8_t loadConfigFromEEPROM(netconfig_t& _sysConfig)
      ptrSysConfig[index] = EEPROM[startAddress + index];
   }
                                     
+
+#elif defined(ARDUINO_ARCH_ESP8266) 
+   EEPROM.begin(constEspEepromSize);
+   for (uint8_t idx = 0x00; sizeof(_sysConfig) > idx; idx++) {
+     *(ptrSysConfig + idx) = EEPROM.read(idx);
+   }
+   EEPROM.end();
+#endif
+
   // Comparing loaded and calculated CRC and return false if its not equal
   // First byte of structure is CRC, it's must be skipped on CRC calculating
   if (dallas_crc8(((uint8_t*) &_sysConfig) + sizeof(_sysConfig.CRC), sizeof(_sysConfig)-sizeof(_sysConfig.CRC)) != _sysConfig.CRC) {
-     return false;
+     goto finish;
   } 
 
-  return true;
+  rc = true;
+
+finish:
+  return rc;
 }
 
 

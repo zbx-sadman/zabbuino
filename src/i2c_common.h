@@ -8,5 +8,5 @@
 *     - number of found devices
 *
 *****************************************************************************************************************************/
-int8_t scanI2C(SoftwareWire&, uint8_t*);
+int8_t scanI2C(SoftwareTWI&, uint8_t*);
 

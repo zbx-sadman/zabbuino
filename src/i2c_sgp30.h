@@ -1,5 +1,4 @@
 #pragma once
-#include "SoftwareWire/SoftwareWire.h"
 
 /*
 */
@@ -37,4 +36,4 @@
 *    - RESULT_IS_FAIL - on other fails
 *
 *****************************************************************************************************************************/
-int8_t getSGP30Metric(SoftwareWire* _softTWI, uint8_t _i2cAddress, const int32_t _absHumidity, const uint8_t _metric, const uint8_t _reInit, int32_t* _value);
+int8_t getSGP30Metric(SoftwareTWI* _softTWI, uint8_t _i2cAddress, const int32_t _absHumidity, const uint8_t _metric, const uint8_t _reInit, int32_t* _value);

@@ -1,3 +1,4 @@
+#if defined(ARDUINO_ARCH_AVR)
 
 #ifndef SoftwareWire_h
 #define SoftwareWire_h
@@ -19,12 +20,12 @@
 class SoftwareWire : public TwoWire
 {
 public:
-  SoftwareWire();
-  SoftwareWire(uint8_t sdaPin, uint8_t sclPin, boolean pullups = true, boolean detectClockStretch = true);
+  SoftwareWire(uint8_t sdaPin = SDA, uint8_t sclPin = SCL, boolean pullups = true, boolean detectClockStretch = true);
   ~SoftwareWire();
   void end();
   
   void begin();
+  void begin(uint8_t, uint8_t, boolean = true, boolean = true);
 
   // Generate compile error when slave mode begin(address) is used
   void __attribute__ ((error("I2C/TWI Slave mode is not supported by the SoftwareWire library"))) begin(uint8_t addr);
@@ -33,7 +34,7 @@ public:
   void setClock(uint32_t clock);
   void beginTransmission(uint8_t address);
   void beginTransmission(int address);
-  void reconfigure(uint8_t sdaPin, uint8_t sclPin, boolean pullups = true, boolean detectClockStretch = true);
+  //void reconfigure(uint8_t sdaPin, uint8_t sclPin, boolean pullups = true, boolean detectClockStretch = true);
   uint8_t endTransmission(boolean sendStop = true);
   uint8_t requestFrom(uint8_t address, uint8_t size, boolean sendStop = true);
   uint8_t requestFrom(int address, int size, boolean sendStop = true);
@@ -51,6 +52,8 @@ public:
 
 
 private:
+  uint8_t initialized = false;
+
   // per object data
 
   uint8_t _sdaPin;
@@ -76,7 +79,8 @@ private:
   uint8_t rxBufGet;           // index to rxBuf, the first new to be read byte.
   
   // private methods
-  
+
+  void configure(uint8_t, uint8_t, boolean, boolean);
   void i2c_writebit( uint8_t c );
   uint8_t i2c_readbit(void);
   void i2c_init(void);
@@ -89,3 +93,4 @@ private:
 
 #endif // SoftwareWire_h
 
+#endif // if defined(ARDUINO_ARCH_AVR)

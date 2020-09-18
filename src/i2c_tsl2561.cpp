@@ -1,7 +1,6 @@
 // Config & common included files
 #include "sys_includes.h"
 
-#include "SoftwareWire/SoftwareWire.h"
 #include "service.h"
 #include "system.h"
 
@@ -20,7 +19,7 @@
 *    - DEVICE_ERROR_CONNECT        on connection error
 *
 *****************************************************************************************************************************/
-int8_t getTSL2561Metric(SoftwareWire* _softTWI, uint8_t _i2cAddress, const uint16_t _integrationTime, const uint8_t _gain, const uint8_t _metric, uint32_t* _value){
+int8_t getTSL2561Metric(SoftwareTWI* _softTWI, uint8_t _i2cAddress, const uint16_t _integrationTime, const uint8_t _gain, const uint8_t _metric, uint32_t* _value){
 
   int8_t   rc                = DEVICE_ERROR_TIMEOUT;
   uint8_t  configByte, 

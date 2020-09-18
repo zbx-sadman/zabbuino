@@ -34,6 +34,7 @@ int8_t scanOneWire(const uint8_t _pin, uint8_t* _dst, size_t _bufferSize) {
   owDevice.reset_search();
   // Do not write more that _bufferSize (buffer size)
   while (owDevice.search(dsAddr)) {
+    yield();
     if (_bufferSize >= sizeof(dsAddr)) { 
        memcpy(_dst, dsAddr, ONEWIRE_ID_SIZE);
        _bufferSize -= ONEWIRE_ID_SIZE;

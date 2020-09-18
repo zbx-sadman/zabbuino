@@ -99,13 +99,12 @@ int8_t getDS18X20Metric(const uint8_t _pin, uint8_t _resolution, uint8_t* _id, i
   uint32_t maxConversionTime, startConversionTime;
   const uint8_t resolutionCodes[] = {DS18X20_MODE_9_BIT, DS18X20_MODE_10_BIT, DS18X20_MODE_11_BIT, DS18X20_MODE_12_BIT};
   const uint8_t noiseBits[] = {7, 3, 1, 0};
-
   // Start mass conversion or read data if prev conversion has been finished no more that N sec is good idea, but need to store link busPin<->prevConversionTime
   // static uint32_t prevConversionTime = 0;
 
   OneWire owDevice(_pin);
 
-  if (0x00 == _id[0]) {
+  if (0x00 == _id[0x00]) {
     // If ID not given - search any sensor on OneWire bus and use its. Or return error when no devices found.
     owDevice.reset_search();
     // If search() function returns a '1' then it has enumerated the next device and you may retrieve the ROM from the
@@ -115,7 +114,6 @@ int8_t getDS18X20Metric(const uint8_t _pin, uint8_t _resolution, uint8_t* _id, i
     // rc already init with DEVICE_ERROR_TIMEOUT value
     if (0x00 == owDevice.search(_id)) { goto finish; }
   } 
-
   // Addr is proper? dallas_crc8(_all_message_) return 0x00 on success or !0 on fail
   // rc already init with DEVICE_ERROR_TIMEOUT value
   if (dallas_crc8(_id, ONEWIRE_ID_SIZE)) { goto finish; }
@@ -124,7 +122,7 @@ int8_t getDS18X20Metric(const uint8_t _pin, uint8_t _resolution, uint8_t* _id, i
   rc = readScratchPad(owDevice, _id, scratchPad);
   if (RESULT_IS_OK != rc) { goto finish; }
    
-  switch (_id[0]) {
+  switch (_id[0x00]) {
     //  DS1820 and DS18S20 have no CONFIGURATION registry and work in 9-bit mode only
     case DS18S20_ID:
       _resolution = DS18X20_MIN_RESOLUTION;
@@ -150,7 +148,7 @@ int8_t getDS18X20Metric(const uint8_t _pin, uint8_t _resolution, uint8_t* _id, i
   if (0x00 == owDevice.read_bit()) { parasitePowerUsed = true; }
 
   // Sensor already configured to use '_resolution'? Do not make write operation.
-  if (DS18S20_ID != _id[0] && scratchPad[DS18X20_BYTE_CONFIGURATION] != resolutionCodes[resolutionIdx]) {
+  if (DS18S20_ID != _id[0x00] && scratchPad[DS18X20_BYTE_CONFIGURATION] != resolutionCodes[resolutionIdx]) {
     scratchPad[DS18X20_BYTE_CONFIGURATION] = resolutionCodes[resolutionIdx];
     owDevice.reset();
     owDevice.select(_id);
@@ -179,7 +177,7 @@ int8_t getDS18X20Metric(const uint8_t _pin, uint8_t _resolution, uint8_t* _id, i
   //        09 bit res, 93.75 ms
   // conversionTime = (tCONV) / (2 ^ (12 [bit resolution] - N [bit resolution])). 12bit => 750ms, 11bit => 375ms ...
   // For some DS sensors you may need increase tCONV to 1250ms or more
-  maxConversionTime = DS18X20_MAX_CONVERSION_TIME / (1 << (12 - _resolution));
+  maxConversionTime = DS18X20_MAX_CONVERSION_TIME / (0x01 << (12 - _resolution));
 
   // Temperature read begin
   owDevice.reset();
@@ -225,7 +223,7 @@ int8_t getDS18X20Metric(const uint8_t _pin, uint8_t _resolution, uint8_t* _id, i
     signBit = true;
     // Some magic passes are need to get correct temperature value
     // Refer to DS18B20's datasheet,  Table 1. Temperature/Data Relationship
-    tRaw = (tRaw ^ 0xffff) + 1; // 2's comp
+    tRaw = (tRaw ^ 0xffff) + 0x01; // 2's comp
   }
 
   // Do 'unfloat' procedure for using number with my ltoaf() subroutine: multiply temp to 0.0625 (1/16 C)

@@ -1,13 +1,20 @@
 #pragma once
 /*
 
-   network.h : header file which make virtual network interface from various physical interface drivers
+   wrap_network.h : header file which make virtual network interface from various physical interface drivers
 
 */
 
 #include "net_platforms.h"
 #include "sys_structs.h"
 #include <SPI.h> 
+
+#define DHCP_CHECK_NONE         (0)
+#define DHCP_CHECK_RENEW_FAIL   (1)
+#define DHCP_CHECK_RENEW_OK     (2)
+#define DHCP_CHECK_REBIND_FAIL  (3)
+#define DHCP_CHECK_REBIND_OK    (4)
+
 
 #define NET_OK                      (+0x01)
 #define NET_FAIL                    (+0x00)
@@ -18,23 +25,35 @@
 
 #define WIZNET_WARMING_UP_TIME      (300UL)
 
-
 // Include headers for an network module
 #if defined(NETWORK_ETHERNET_WIZNET)
 #include "wiznet/Ethernet.h" 
 #define ParentEthernetClass EthernetClass
-
-
-#elif defined(NETWORK_ETHERNET_ENC28J60) //NETWORK_ETH_WIZNET 
-#include "enc28j60/UIPEthernet.h"
-#define ParentEthernetClass UIPEthernetClass
-
-#endif // NETWORK_ETH_ENC28J60
-
+#define NetworkTransport Ethernet
 typedef EthernetClient NetworkClient;
 typedef EthernetServer NetworkServer;
 
-class Network : public ParentEthernetClass {
+#elif defined(NETWORK_ETHERNET_ENC28J60)  
+#include "enc28j60/UIPEthernet.h"
+#define ParentEthernetClass UIPEthernetClass
+#define NetworkTransport Ethernet
+typedef EthernetClient NetworkClient;
+typedef EthernetServer NetworkServer;
+
+#elif defined(ARDUINO_ARCH_ESP8266) && defined(NETWORK_WIRELESS_ESP_NATIVE)
+#include <ESP8266WiFi.h>
+#define ParentEthernetClass WiFiServer
+#define NetworkTransport WiFi
+typedef WiFiClient NetworkClient;
+typedef WiFiServer NetworkServer;
+
+#elif defined(ARDUINO_ARCH_ESP32) && defined(NETWORK_WIRELESS_ESP_NATIVE)
+
+#endif
+
+
+//class Network : public ParentEthernetClass {
+class Network {
   private:
     static uint8_t useDhcp;
      // isPhyOk returns error state if detect it
@@ -60,3 +79,10 @@ class Network : public ParentEthernetClass {
 
 //    NetworkClient getClient(void);
 };
+
+/*****************************************************************************************************************************
+*
+*
+*
+*****************************************************************************************************************************/
+void setWifiDefaults();

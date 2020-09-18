@@ -20,7 +20,7 @@
 // sizeof() returns wrong result -> 6
 #define ZBX_HEADER_PREFIX_LENGTH                                (5)
 // Zabbix v2.x header length
-#define ZBX_HEADER_LENGTH                                       (13)
+#define ZBX_HEADER_LENGTH                                       (13U)
 
 #define PACKET_TYPE_NONE                                        (0x00)
 #define PACKET_TYPE_PLAIN                                       (0x01)
@@ -56,6 +56,8 @@
 #define SENS_READ_TVOC                                          (0x41)
 #define SENS_READ_CO2E                                          (0x42)
 #define SENS_READ_CH2O                                          (0x43)
+#define SENS_READ_O3                                            (0x44)
+#define SENS_READ_CH4                                           (0x45)
 
 #define SENS_READ_STATUS                                        (0xFC)
 #define SENS_READ_ID                                            (0xFD)
@@ -95,6 +97,7 @@
 #define DEVICE_ERROR_NOT_SUPPORTED                              (-0x40)
 #define DEVICE_ERROR_WRONG_ANSWER                               (-0x50)
 #define DEVICE_ERROR_EEPROM_CORRUPTED                           (-0x60)
+#define DEVICE_ERROR_FAILURE                                    (-0x70)
 
 /*
 ATMega 328 ADC channels 

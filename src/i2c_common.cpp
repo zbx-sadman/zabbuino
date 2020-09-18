@@ -1,7 +1,6 @@
 // Config & common included files
 #include "sys_includes.h"
 
-#include "SoftwareWire/SoftwareWire.h"
 #include "service.h"
 #include "system.h"
 
@@ -16,7 +15,7 @@
 *     - number of found devices
 *
 *****************************************************************************************************************************/
-int8_t scanI2C(SoftwareWire& _softTWI, uint8_t* _dst)
+int8_t scanI2C(SoftwareTWI& _softTWI, uint8_t* _dst)
 {
 
   int8_t i2cAddress, numDevices = 0;
@@ -30,9 +29,9 @@ int8_t scanI2C(SoftwareWire& _softTWI, uint8_t* _dst)
     // 2:received NACK on transmit of address
     // 3:received NACK on transmit of data
     // 4:other error
-    if (0 == _softTWI.endTransmission(true)) {
+    if (SOFTWARETWI_NO_ERROR == _softTWI.endTransmission(true)) {
       _dst[numDevices] = i2cAddress;
-      __DMLD( DEBUG_PORT.print("0x"); DEBUG_PORT.println(i2cAddress,HEX); )
+      DEBUG_PORT.print("0x"); DEBUG_PORT.println(i2cAddress,HEX);
       numDevices++;
     }
   } 

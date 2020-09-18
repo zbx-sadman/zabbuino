@@ -1,9 +1,12 @@
 // Config & common included files
 #include "sys_includes.h"
+#include "wrap_network.h"
 
-#include <avr/boot.h>
-#include <util/atomic.h>
-#include <util/crc16.h>
+#if defined(ARDUINO_ARCH_AVR)
+    #include <avr/boot.h>
+    #include <util/atomic.h>
+    #include <util/crc16.h>
+#endif
 
 #include "system.h"
 #include "service.h"
@@ -21,12 +24,12 @@ uint8_t flushStreamRXBuffer(Stream* _stream, const uint32_t _timeout, const uint
  uint32_t startTime = millis();
 
  do { 
-    //incomingData = 
+    yield();
     _stream->read();
     if (millis() - startTime > _timeout) {return false; }
     if (_slowMode) { delay(10); }
 
- } while (0 > _stream->available());
+ } while (0x00 > _stream->available());
 
  return true;
 }
@@ -41,31 +44,33 @@ uint8_t factoryReset(netconfig_t& _sysConfig) {
   uint8_t rc = false;
    // Factory reset button pin must be shorted to ground to action start
    pinMode(constFactoryResetButtonPin, INPUT_PULLUP);
-
-   digitalWrite(constStateLedPin, LOW);
+   digitalWrite(constStateLedPin, !constStateLedOn);
 
    // Is constFactoryResetButtonPin shorted?
    if (LOW == digitalRead(constFactoryResetButtonPin)) {
       __DMLL( FSH_P((STRING_The_factory_reset_button_is_pressed)); )
       // Fire up state LED
-      digitalWrite(constStateLedPin, HIGH);
+      digitalWrite(constStateLedPin, constStateLedOn);
       // Wait some msecs
       delay(constHoldTimeToFactoryReset);
       // constFactoryResetButtonPin still shorted?
-      if (LOW == digitalRead(constFactoryResetButtonPin)) {
+      if (constFactoryResetButtonActive == digitalRead(constFactoryResetButtonPin)) {
          __DMLL( DEBUG_PORT.print(FSH_P(STRING_Rewrite_EEPROM_with_defaults)); DEBUG_PORT.print(FSH_P(STRING_3xDot_Space)); )
+#if defined(ARDUINO_ARCH_ESP8266) && defined(NETWORK_WIRELESS_ESP_NATIVE)
+  setWifiDefaults();
+#endif //defined(ARDUINO_ARCH_ESP8266)
          setConfigDefaults(_sysConfig);
          // return "sucess" only if default config saved
          rc = saveConfigToEEPROM(_sysConfig);
          if (!rc) { __DMLM( DEBUG_PORT.print(FSH_P(STRING_Config)); DEBUG_PORT.println(FSH_P(STRING_saving_error)); ) }
 
          // Blink fast while constFactoryResetButtonPin shorted to GND
-         __DMLL( DEBUG_PORT.print(FSH_P(STRING_Release_the_factory_reset_button_now)); )
-         while (LOW == digitalRead(constFactoryResetButtonPin)) { digitalWrite(constStateLedPin, millis() % 100 < 50); }
+         __DMLL( DEBUG_PORT.println(FSH_P(STRING_Release_the_factory_reset_button_now)); )
+         while (constFactoryResetButtonActive == digitalRead(constFactoryResetButtonPin)) { yield(); digitalWrite(constStateLedPin, (millis() % 100 < 50) ? constStateLedOn : !constStateLedOn); }
       }
   } // if (LOW == digitalRead(constFactoryResetButtonPin))
 
-  digitalWrite(constStateLedPin, LOW);
+  digitalWrite(constStateLedPin, !constStateLedOn);
   return rc;
 }
 
@@ -85,8 +90,8 @@ uint16_t millisRollover(void) {
   //   the function should be called as frequently as possible to capture the actual moment of rollover.
   // The rollover counter is good for over 35 years of runtime. --Rob Faludi http://rob.faludi.com
   //
-  static uint16_t numRollovers = 0,               // variable that permanently holds the number of rollovers since startup
-                  readyToRoll = false;            // tracks whether we've made it halfway to rollover
+  static uint16_t numRollovers = 0x00,            // variable that permanently holds the number of rollovers since startup
+                  readyToRoll  = false;           // tracks whether we've made it halfway to rollover
   const uint32_t  halfwayMillis = UINT32_MAX / 2; // this is halfway to the max millis value (17179868 for earlier versions of Arduino)
   uint32_t now =  millis();                       // the time right now
 
@@ -110,7 +115,7 @@ uint16_t millisRollover(void) {
 *
 *****************************************************************************************************************************/
 uint32_t uptime(void) {
-  return ((uint32_t) millisRollover() * (UINT32_MAX / 1000) + (millis() / 1000UL));
+  return ((uint32_t) millisRollover() * (UINT32_MAX / 1000UL) + (millis() / 1000UL));
 }
 
 
@@ -120,6 +125,7 @@ uint32_t uptime(void) {
 *
 *****************************************************************************************************************************/
 void setConfigDefaults(netconfig_t& _sysConfig) {
+  
   uint8_t copyCharsNumber;
   // Copying arrays of the default data to the config
   memcpy_P(&_sysConfig.macAddress, constDefaultMacAddress, sizeof(_sysConfig.macAddress));
@@ -136,21 +142,17 @@ void setConfigDefaults(netconfig_t& _sysConfig) {
   _sysConfig.hostname[constAgentHostnameMaxLength] = CHAR_NULL;
 
 #ifdef FEATURE_NET_USE_MCUID
-  copyCharsNumber = (constAgentHostnameMaxLength <= (constMcuIdSize * 2)) ? constAgentHostnameMaxLength : constMcuIdSize * 2;
-  getBootSignatureAsHexString((char*) &_sysConfig.hostname, 0x0E, copyCharsNumber / 2, 1);
+  uint8_t chipID[constMcuIdSize];
+  memset(chipID, 0x00, sizeof(chipID));
+  copyCharsNumber = (constAgentHostnameMaxLength <= (constMcuIdSize * 0x02)) ? constAgentHostnameMaxLength : constMcuIdSize * 0x02;
+  getMcuId(chipID);
+  batohs(chipID, _sysConfig.hostname, constMcuIdSize);
 #else
-  /*
-  // old copying code +22 progspace bytes on GCC optimize ("O0")
-  copyCharsNumber = strlen_P(constZbxAgentDefaultHostname);
-  copyCharsNumber = (constAgentHostnameMaxLength <= copyCharsNumber) ? constAgentHostnameMaxLength : copyCharsNumber;
-  strncpy_P(_sysConfig.hostname, constZbxAgentDefaultHostname, copyCharsNumber);
-  */
   strncpy_P(_sysConfig.hostname, constZbxAgentDefaultHostname, constAgentHostnameMaxLength);
   copyCharsNumber = strlen(_sysConfig.hostname);
 #endif
   strncpy_P(&_sysConfig.hostname[copyCharsNumber], constZbxAgentDefaultDomain, constAgentHostnameMaxLength - copyCharsNumber);
 }
-
 
 /*****************************************************************************************************************************
 *
@@ -162,13 +164,13 @@ void qtoaf(const int64_t _number, char *_dst, uint8_t _fracBits){
     // Write to _dst text representation of whole part, decimal comma, and add fract part if its exists
     tmp = _number >> _fracBits;
     ltoa(tmp, _dst, 10);
-    if (0 == _fracBits) { return; }
-    while (*_dst) {_dst++;}
+    if (0x00 == _fracBits) { return; }
+    while (*_dst) { yield(); _dst++;}
     *_dst = '.'; _dst++;
     tmp = 1;
-    while (0 < _fracBits) {
-        tmp <<= 1;
-        tmp |= 1;
+    while (0x00 < _fracBits) {
+        tmp <<= 0x01;
+        tmp |=  0x01;
         --_fracBits;
     }
     tmp = _number & tmp;
@@ -192,13 +194,14 @@ void ltoaf(const int32_t _number, char* _dst, const uint8_t _num_after_dot)
   const int32_t dividers[maxStringLen]={1000000000, 100000000, 10000000, 1000000, 100000, 10000, 1000, 100, 10, 1};
   
   // If Zero given - Zero returned without long processing 
-  if (0 == value) { _dst[0] = '0';  _dst[1] = CHAR_NULL; return;} 
+  if (0x00 == value) { _dst[0x00] = '0';  _dst[0x01] = CHAR_NULL; return;} 
  
   // negative value testing and write '-' to output buffer
-  if (0 > value) { value = 0 - value; *_dst = '-'; _dst++;} 
+  if (0x00 > value) { value = 0x00 - value; *_dst = '-'; _dst++;} 
   
   // Use all dividers 
-  for (i = 0; i < maxStringLen; i++) {
+  for (i = 0x00; i < maxStringLen; i++) {
+    yield();
     // Its _num_after_dot-th position ?
     if ((maxStringLen - i) == _num_after_dot) {
         // If non-zero character has not yet processeed - push '0' before decimal point
@@ -216,6 +219,7 @@ void ltoaf(const int32_t _number, char* _dst, const uint8_t _num_after_dot)
     // If divider more than digit in current 'position' 
     // 100 <= 6xx
     while (dividers[i] <= value) {
+      yield();
       // Decrease that digit to next comparison (6xx, 5xx, 4xx, 3xx, 2xx, 1xx, 0xx)
       value -= dividers[i];
       // Increase character value
@@ -233,7 +237,7 @@ void ltoaf(const int32_t _number, char* _dst, const uint8_t _num_after_dot)
     *_dst = currChar;
     ++_dst;
     // do not add trailing zeros after dot
-    if (0 >= value and pointIsUsed) {break;}
+    if (0x00 >= value and pointIsUsed) {break;}
   }
   *_dst = CHAR_NULL;
 }
@@ -243,35 +247,41 @@ void ltoaf(const int32_t _number, char* _dst, const uint8_t _num_after_dot)
 *  Convert _len chars (exclude 0x prefix) of hex string to byte array
 *
 *****************************************************************************************************************************/
-int16_t hstoba(uint8_t* _dst, const char* _src)
-{
-  int16_t len = 0;
+int16_t hstoba(uint8_t* _dst, const char* _src) {
+  int16_t len = 0x00;
   // don't fill _array and return false if mailformed string detected
-  if (!haveHexPrefix(_src)) { return -1; }
+  if (!haveHexPrefix(_src)) { return -0x01; }
   // skip prefix
-  _src += 2;
+  _src += 0x02;
 
   while (*_src) {
-     *_dst = (htod(*_src) << 4);
-     ++_src;
+     yield();
+     *_dst = (htod(*_src) << 0x04);
+     _src++;
      if (*_src) {
         *_dst |= htod(*_src);
-        ++_src; 
+        _src++; 
      }
-    ++_dst;
-    ++len;
+    _dst++;
+    len++;
   }
-
-  /*
-  // for all bytes do...
-  while (_len--)  {
-     *_dst = (htod(*_src) << 4);
-     _src++;
-     *_dst |= htod(*_src);
-      _src++; _dst++;
-  };
-*/
   return len;
+}
+
+/*****************************************************************************************************************************
+*
+*  Convert byte array to hex string
+*
+*****************************************************************************************************************************/
+void batohs(uint8_t* _src, char* _dst, uint8_t _size) {
+  while (_size) {
+     yield();
+     *_dst++ = dtoh((uint8_t) ((0x0F <= *_src) ? (*_src >> 0x04) : 0x00));
+     *_dst++ = dtoh((uint8_t) (*_src & 0x0F));
+     _src++;
+     _size--;
+  }
+  *_dst = CHAR_NULL;
 }
 
 /*****************************************************************************************************************************
@@ -281,14 +291,22 @@ int16_t hstoba(uint8_t* _dst, const char* _src)
 *   This function placed here to aviod compilation error when OneWire library is not #included
 *
 *****************************************************************************************************************************/
-uint8_t dallas_crc8(uint8_t* _src, uint8_t _len)
-{
-  uint8_t crc = 0;
+uint8_t dallas_crc8(uint8_t* _src, uint8_t _len) {
+  uint8_t crc = 0x00;
   while (_len) {
+    yield();
     --_len;
     uint8_t inbyte = *_src++;
+#if defined(ARDUINO_ARCH_AVR)
     crc = _crc_ibutton_update(crc, inbyte);
-
+#else
+    for (uint8_t i = 0x08; i; i--) {
+      uint8_t mix = (crc ^ inbyte) & 0x01;
+      crc >>= 0x01;
+      if (mix) crc ^= 0x8C;
+      inbyte >>= 0x01;
+    }
+#endif
   }
   return crc;
 }
@@ -327,6 +345,7 @@ void printArray(uint8_t* _src, const uint8_t _len, Stream& _stream, const uint8_
            // Last byte was printed on the ** (see below)
            i = ONEWIRE_ID_SIZE - 1;
            while (i) {
+             yield();
              i--;
              if (0x0F > _src[pos]) { _stream.print('0'); }
              _stream.print(_src[pos], format);
@@ -354,7 +373,7 @@ void printArray(uint8_t* _src, const uint8_t _len, Stream& _stream, const uint8_
 
 void blinkMore(const uint8_t _times, const uint16_t _onTime, const uint16_t _offTime) 
 {
-  for (uint8_t i=0; i < _times ; i++) {
+  for (uint8_t i = 0; i < _times ; i++) {
     digitalWrite(constStateLedPin, HIGH);   // turn the LED on (HIGH is the voltage level)
     delay(_onTime);              // wait for a second
     digitalWrite(constStateLedPin, LOW);   // turn the LED on (HIGH is the voltage level)
@@ -371,27 +390,28 @@ uint8_t strToNetworkAddress(char* _src, uint32_t& _ipAddress) {
   uint8_t formatError = false;
   _ipAddress = 0x00;
 
-  if (CHAR_NULL == *_src) {
+  if (!_src || CHAR_NULL == *_src) {
     formatError = true;
   } else if (haveHexPrefix(_src)) {
-    _ipAddress = htonl(strtoul(_src, NULL, 0));
+    _ipAddress = htonl(strtoul(_src, NULL, 0x00));
   } else {
     char* ptrStartString = _src;
     uint8_t octetNo = 0x00, eolDetected = false, byteShift = 0x00, bytesRead = 0x00;
     uint32_t octetValue;
     while (!formatError && !eolDetected) {
-      Serial.println(*_src);
+      yield();
+      //Serial.println(*_src);
       if (CHAR_NULL == *_src || '.' == *_src) {
         eolDetected = (CHAR_NULL == *_src);
         *_src = CHAR_NULL;
-        octetValue = strtoul(ptrStartString, NULL, 0);
-        Serial.print("Octet #"); Serial.print(octetNo); Serial.print(" => ");  Serial.print(ptrStartString); Serial.print(" => ");  Serial.println(octetValue);
+        octetValue = (ptrStartString) ? strtoul(ptrStartString, NULL, 0x00) : 0x00;
+        //Serial.print("Octet #"); Serial.print(octetNo); Serial.print(" => ");  Serial.print(ptrStartString); Serial.print(" => ");  Serial.println(octetValue);
         octetNo++;
         // may be use strtoul && 0x00 >= octetValue ?
         formatError = (0xFF < octetValue || 0x04 < octetNo);
-        ptrStartString = _src + 1;
+        ptrStartString = _src + 0x01;
         _ipAddress |= (octetValue << byteShift);
-        byteShift += 8;
+        byteShift += 0x08;
       }
       _src++;
       bytesRead++;
@@ -464,7 +484,7 @@ uint8_t parseRequest(char _charFromClient, const uint8_t doReInit, request_t& _r
   }
 
   // Allow packet analyzing when Zabbix header is skipped
-  if ((ZBX_HEADER_LENGTH - 1) == bufferWritePosition && PACKET_TYPE_ZABBIX == _request.type) {
+  if ((ZBX_HEADER_LENGTH - 0x01) == bufferWritePosition && PACKET_TYPE_ZABBIX == _request.type) {
     allowAnalyze = true;
     payloadReadedLength = 0x00;
     memcpy(&(payloadExpectedLength), &_request.data[ZBX_HEADER_PREFIX_LENGTH], sizeof(payloadExpectedLength));
@@ -577,7 +597,7 @@ uint8_t parseRequest(char _charFromClient, const uint8_t doReInit, request_t& _r
           _request.args[argCounter] = (char*) ptrChunkStart;
           __DMLD( DEBUG_PORT.print(F(" chunked ")); )
         }
-        ptrChunkStart = ptrChunkEnd + 1;
+        ptrChunkStart = ptrChunkEnd + 0x01;
         argCounter++;
       } else {
         parsingDone = true;

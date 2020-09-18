@@ -1,7 +1,6 @@
 // Config & common included files
 #include "sys_includes.h"
 
-#include "SoftwareWire/SoftwareWire.h"
 #include "service.h"
 #include "system.h"
 
@@ -20,7 +19,7 @@
 *    - DEVICE_ERROR_CONNECT        on connection error
 *
 *****************************************************************************************************************************/
-int8_t getBH1750Metric(SoftwareWire* _softTWI, uint8_t _i2cAddress, const uint8_t _metric, int32_t* _value) {
+int8_t getBH1750Metric(SoftwareTWI* _softTWI, uint8_t _i2cAddress, const uint8_t _metric, int32_t* _value) {
   int8_t   rc                = DEVICE_ERROR_TIMEOUT;
   uint8_t  readingNum        = 0x02, 
            rawData[0x02]     = {0x00},       	

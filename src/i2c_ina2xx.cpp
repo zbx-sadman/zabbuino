@@ -1,7 +1,6 @@
 // Config & common included files
 #include "sys_includes.h"
 
-#include "SoftwareWire/SoftwareWire.h"
 #include "service.h"
 #include "system.h"
 
@@ -18,7 +17,7 @@
 *     - RESULT_IS_FAIL - on other fails
 *
 *****************************************************************************************************************************/
-int8_t getINA219Metric(SoftwareWire* _softTWI, uint8_t _i2cAddress, const uint8_t _voltageRange, const uint16_t _maxExpectedCurrent, const uint8_t _metric, uint32_t& _value) {
+int8_t getINA219Metric(SoftwareTWI* _softTWI, uint8_t _i2cAddress, const uint8_t _voltageRange, const uint16_t _maxExpectedCurrent, const uint8_t _metric, uint32_t& _value) {
   int8_t rc = RESULT_IS_FAIL;
   uint8_t rawData[0x02];
   uint8_t i2cReg, currentDivider_mA, powerDivider_mW;     

@@ -19,7 +19,7 @@
 *     - false on timeout
 *
 **************************************************************************************************************************** */
-static uint8_t waitToBMPReady(SoftwareWire* _softTWI, const uint8_t _i2cAddress, const int16_t _registerAddress, const int16_t _mask, const uint16_t _timeout) {
+static uint8_t waitToBMPReady(SoftwareTWI* _softTWI, const uint8_t _i2cAddress, const int16_t _registerAddress, const int16_t _mask, const uint16_t _timeout) {
   uint8_t value;
   uint32_t startTime;
 
@@ -49,7 +49,7 @@ static uint8_t waitToBMPReady(SoftwareWire* _softTWI, const uint8_t _i2cAddress,
 *    - DEVICE_ERROR_TIMEOUT        on sensor stops answer to the request
 *
 *****************************************************************************************************************************/
-static int8_t getBME280Metric(SoftwareWire* _softTWI, uint8_t _i2cAddress, const uint8_t _overSampling, uint8_t _filterCoef, const uint8_t _metric, int32_t* _value) {
+static int8_t getBME280Metric(SoftwareTWI* _softTWI, uint8_t _i2cAddress, const uint8_t _overSampling, uint8_t _filterCoef, const uint8_t _metric, int32_t* _value) {
   int8_t  rc              = DEVICE_ERROR_TIMEOUT;
   int32_t adc, var1, var2, fineTemperature;
   uint8_t success         = true,
@@ -292,7 +292,7 @@ static int8_t getBME280Metric(SoftwareWire* _softTWI, uint8_t _i2cAddress, const
 *    - DEVICE_ERROR_TIMEOUT        on sensor stops answer to the request
 *
 *****************************************************************************************************************************/
-static int8_t getBMP180Metric(SoftwareWire* _softTWI, uint8_t _i2cAddress, uint8_t _overSampling, const uint8_t _metric, int32_t* _value) {
+static int8_t getBMP180Metric(SoftwareTWI* _softTWI, uint8_t _i2cAddress, uint8_t _overSampling, const uint8_t _metric, int32_t* _value) {
   int8_t  rc              = DEVICE_ERROR_TIMEOUT;
   uint8_t success = true,
           rawData[0x03]   = {0x00};
@@ -459,7 +459,7 @@ finish:
 *    - DEVICE_ERROR_CONNECT        on connection error
 *
 *****************************************************************************************************************************/
-int8_t getBMPMetric(SoftwareWire* _softTWI, uint8_t _i2cAddress, const uint8_t _overSampling, const uint8_t _filterCoef, const uint8_t _metric, int32_t* _value) {
+int8_t getBMPMetric(SoftwareTWI* _softTWI, uint8_t _i2cAddress, const uint8_t _overSampling, const uint8_t _filterCoef, const uint8_t _metric, int32_t* _value) {
   // Just supress warnings if preprocessor do not include some func calls to the source text
   __SUPPRESS_WARNING_UNUSED(_softTWI);
   __SUPPRESS_WARNING_UNUSED(_i2cAddress);

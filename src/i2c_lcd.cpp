@@ -1,7 +1,6 @@
 // Config & common included files
 #include "sys_includes.h"
 
-#include "SoftwareWire/SoftwareWire.h"
 #include "service.h"
 #include "system.h"
 
@@ -24,7 +23,7 @@ version 1.1.2 is used
 *     - none
 *
 *****************************************************************************************************************************/
-static void pulseEnableOnLCD(SoftwareWire* _softTWI, const uint8_t _i2cAddress, const uint8_t _data)
+static void pulseEnableOnLCD(SoftwareTWI* _softTWI, const uint8_t _i2cAddress, const uint8_t _data)
 {
   uint8_t sendByte;
   sendByte = _data | _BV(LCD_E);
@@ -43,7 +42,7 @@ static void pulseEnableOnLCD(SoftwareWire* _softTWI, const uint8_t _i2cAddress, 
 *     - none
 *
 *****************************************************************************************************************************/
-static void write4bitsToLCD(SoftwareWire* _softTWI, const uint8_t _i2cAddress, uint8_t _data) 
+static void write4bitsToLCD(SoftwareTWI* _softTWI, const uint8_t _i2cAddress, uint8_t _data) 
 {
   writeBytesToI2C(_softTWI, _i2cAddress, I2C_NO_REG_SPECIFIED, &_data, 1);
   pulseEnableOnLCD(_softTWI, _i2cAddress, _data);
@@ -57,7 +56,7 @@ static void write4bitsToLCD(SoftwareWire* _softTWI, const uint8_t _i2cAddress, u
 *     - none
 *
 *****************************************************************************************************************************/
-static void sendToLCD(SoftwareWire* _softTWI, const uint8_t _i2cAddress, const uint8_t _data, const uint8_t _mode)
+static void sendToLCD(SoftwareTWI* _softTWI, const uint8_t _i2cAddress, const uint8_t _data, const uint8_t _mode)
 {
   // Send first nibble (first four bits) into high byte area
   write4bitsToLCD(_softTWI, _i2cAddress, (_data & 0xF0) | _mode);
@@ -74,7 +73,7 @@ static void sendToLCD(SoftwareWire* _softTWI, const uint8_t _i2cAddress, const u
 *     - DEVICE_ERROR_CONNECT on test connection error
 *
 *****************************************************************************************************************************/
-int8_t printToPCF8574LCD(SoftwareWire* _softTWI, uint8_t _i2cAddress, uint8_t _lcdBacklight, const uint16_t _lcdType, const char *_src, const uint8_t forceInit)
+int8_t printToPCF8574LCD(SoftwareTWI* _softTWI, uint8_t _i2cAddress, uint8_t _lcdBacklight, const uint16_t _lcdType, const char *_src, const uint8_t forceInit)
 {
   int8_t  rc                       = DEVICE_ERROR_TIMEOUT;
   uint8_t rowOffsets[]             = {0x00, 0x40, 0x14, 0x54};

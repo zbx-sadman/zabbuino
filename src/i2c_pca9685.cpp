@@ -1,12 +1,11 @@
 // Config & common included files
 #include "sys_includes.h"
 
-#include "SoftwareWire/SoftwareWire.h"
 #include "service.h"
 #include "system.h"
 
-#include "i2c_pca9685.h"
 #include "i2c_bus.h"
+#include "i2c_pca9685.h"
 
 /*****************************************************************************************************************************
 *
@@ -19,7 +18,7 @@
 *    - DEVICE_ERROR_CONNECT        on connection error
 *
 *****************************************************************************************************************************/
-int8_t writePCA9685(SoftwareWire* _softTWI, const uint8_t _i2cAddress, const int8_t _outputIdx, const uint16_t _onTime, const uint16_t _offTime, const uint8_t _outputMode) {
+int8_t writePCA9685(SoftwareTWI* _softTWI, const uint8_t _i2cAddress, const int8_t _outputIdx, const uint16_t _onTime, const uint16_t _offTime, const uint8_t _outputMode) {
 
   __SUPPRESS_WARNING_UNUSED(_outputMode);
 

@@ -1,7 +1,6 @@
 // Config & common included files   
 #include "sys_includes.h"
 
-#include "SoftwareWire/SoftwareWire.h"
 #include "service.h"
 #include "system.h"
 
@@ -10,15 +9,16 @@
 
 static uint8_t crcSGP30(uint8_t* _src) {
   uint8_t crc = 0xFF; //Init with 0xFF
-  crc ^= _src[0]; // XOR-in the first input byte
-  for (uint8_t i = 0 ; i < 8 ; i++) {
-    if ((crc & 0x80) != 0) { crc = (uint8_t)((crc << 1) ^ 0x31); } else { crc <<= 1; }
+
+  crc ^= _src[0x00]; // XOR-in the first input byte
+  for (uint8_t i = 0x00 ; 0x08 > i ; i++) {
+    if ((crc & 0x80) != 0x00) { crc = (uint8_t)((crc << 0x01) ^ 0x31); } else { crc <<= 0x01; }
   }
 
-  crc ^= _src[1]; // XOR-in the last input byte
+  crc ^= _src[0x01]; // XOR-in the last input byte
 
-  for (uint8_t i = 0 ; i < 8 ; i++) {
-    if ((crc & 0x80) != 0) { crc = (uint8_t)((crc << 1) ^ 0x31); } else { crc <<= 1; }
+  for (uint8_t i = 0x00 ; 0x08 > i ; i++) {
+    if ((crc & 0x80) != 0x00) { crc = (uint8_t)((crc << 0x01) ^ 0x31); } else { crc <<= 0x01; }
   }
 
   return crc; //No output reflection
@@ -38,7 +38,7 @@ static uint8_t crcSGP30(uint8_t* _src) {
 *
 *****************************************************************************************************************************/
 
-int8_t getSGP30Metric(SoftwareWire* _softTWI, uint8_t _i2cAddress, const int32_t _absHumidity, const uint8_t _metric, const uint8_t _reInit, int32_t* _value) {
+int8_t getSGP30Metric(SoftwareTWI* _softTWI, uint8_t _i2cAddress, const int32_t _absHumidity, const uint8_t _metric, const uint8_t _reInit, int32_t* _value) {
   static uint8_t initialized = false;
   int8_t   rc                = DEVICE_ERROR_TIMEOUT;
   uint8_t  buffer[0x06]      = {0x00};

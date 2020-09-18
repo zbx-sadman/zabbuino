@@ -14,10 +14,17 @@
   SETTING SECTION of "src/cfg_tune.h" file
 */
 #include "src/dispatcher.h"
+#include "plugin.h"
 
 /*-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
                                                            STARTUP SECTION
 */
+
+// This is need to take system's VCC
+#if defined(ARDUINO_ARCH_ESP8266)
+ADC_MODE(ADC_VCC);
+#endif
+
 
 void setup() {
 
@@ -27,14 +34,20 @@ void setup() {
   SPI.begin();
 
   __DMLL( DEBUG_PORT.print(FSH_P(constZbxAgentVersion)); DEBUG_PORT.println(FSH_P(STRING_wakes_up)); )
-  sysMetrics.sysVCCMin = sysMetrics.sysVCCMax = getADCVoltage(ANALOG_CHAN_VBG);
+  sysMetrics.sysVCCMin = sysMetrics.sysVCCMax = 0x00;//getADCVoltage(ANALOG_CHAN_VBG);
   sysMetrics.sysRamFree = sysMetrics.sysRamFreeMin = getRamFree();
-
   pinMode(constStateLedPin, OUTPUT);
-
+  /*
+    Serial.println(sizeof(netconfig_t));
+    WiFi.printDiag(Serial);
+    //      Serial.println(ESP.getChipId(), HEX);
+    while (1) {
+      yield();
+    };
+  */
 #ifdef ADVANCED_BLINKING
   // blink on start
-  blinkMore(6, 50, 500);
+  //  blinkMore(6, 50, 500);
 #endif
 }
 
@@ -51,6 +64,7 @@ void loop() {
   request.type = PACKET_TYPE_NONE;
   request.payloadByte = request.data;
 
+  yield();
   NetworkClient netClient;
   NetworkServer netServer(constZbxAgentTcpPort);
 
@@ -58,9 +72,8 @@ void loop() {
 
   // 0. Init some libs to make system screen works if it enabled
 #ifdef TWI_USE
-  SoftTWI.begin();
+  SoftTWI.begin(constDefaultSDAPin, constDefaultSCLPin);
 #endif
-
 #ifdef FEATURE_SYSTEM_RTC_ENABLE
   __DMLM( DEBUG_PORT.print(FSH_P(STRING_Init_system_RTC)); DEBUG_PORT.print(FSH_P(STRING_3xDot_Space)); )
   if (RESULT_IS_FAIL == initRTC(&SoftTWI)) {
@@ -88,6 +101,7 @@ void loop() {
 
   // 2. Load configuration from EEPROM
   //
+
 #ifdef FEATURE_EEPROM_ENABLE
   __DMLL( DEBUG_PORT.print(FSH_P(STRING_Config)); DEBUG_PORT.print(FSH_P(STRING_loading)); DEBUG_PORT.print(FSH_P(STRING_3xDot_Space)); )
   if (!loadConfigFromEEPROM(sysConfig)) {
@@ -107,6 +121,9 @@ void loop() {
   __DMLL( DEBUG_PORT.println(FSH_P(STRING_Use_default_settings)); )
   // Use hardcoded values if EEPROM feature disabled
   setConfigDefaults(sysConfig);
+#if defined(ARDUINO_ARCH_ESP8266) && defined(NETWORK_WIRELESS_ESP_NATIVE)
+  setWifiDefaults();
+#endif //defined(ARDUINO_ARCH_ESP8266)
 #endif // FEATURE_EEPROM_ENABLE
 
   // 3. Forcing the system parameters in accordance with the user's compilation options & hardware set
@@ -131,10 +148,8 @@ void loop() {
     delay(constEthernetShieldInitDelay - processStartTime);
   }
 #endif
-
   // Call user function
   __USER_FUNCTION( netPrepareStageUserFunction(request.payloadByte); )
-
   // init() just make preset of Network object internal data. Real starting maken on relaunch()
   Network::init(sysConfig.macAddress, sysConfig.ipAddress, sysConfig.ipAddress, sysConfig.ipGateway, sysConfig.ipNetmask, sysConfig.useDHCP);
   //netServer.begin();
@@ -160,7 +175,11 @@ void loop() {
 #endif
 
   // Watchdog activation
+#if defined(ARDUINO_ARCH_AVR)
   __WATCHDOG( wdt_enable(constWtdTimeout); )
+#elif defined(ARDUINO_ARCH_ESP8266)
+  wdt_enable(WDTO_8S);
+#endif
 
 #ifdef GATHER_METRIC_USING_TIMER_INTERRUPT
   // need to analyze return code?
@@ -182,6 +201,7 @@ void loop() {
   // ...and while save some cpu ticks because do not call everytime from "hidden main()" subroutine, and do not init var, and so.
   //*****************************************************************************************************************************************************
 
+
   // Call user function
   __USER_FUNCTION( preLoopStageUserFunction(request.payloadByte); )
 
@@ -190,7 +210,7 @@ void loop() {
   while (true) {
     // reset watchdog every loop
     __WATCHDOG( wdt_reset(); )
-
+    yield();
 
     // Gather internal metrics periodically
     if ((millis() - prevSysMetricGatherTime) > constSysMetricGatherPeriod) {
@@ -198,7 +218,14 @@ void loop() {
 #ifndef GATHER_METRIC_USING_TIMER_INTERRUPT
       gatherSystemMetrics();
 #endif
-      correctVCCMetrics(getADCVoltage(ANALOG_CHAN_VBG));
+      uint32_t currentVcc;
+
+#if defined(ARDUINO_ARCH_AVR)
+      currentVcc = getADCVoltage(ANALOG_CHAN_VBG);
+#elif defined(ARDUINO_ARCH_ESP8266)
+      currentVcc = ESP.getVcc();
+#endif
+      correctVCCMetrics(currentVcc);
       prevSysMetricGatherTime = millis();
       // update millis() rollovers to measure uptime if no RTC onboard
       millisRollover();
@@ -208,7 +235,7 @@ void loop() {
     // Turn off state led if no errors occured in the current loop.
     // Otherwise - make LED blinked or just turn on
     if (ERROR_NONE == errorCode) {
-      digitalWrite(constStateLedPin, LOW);
+      digitalWrite(constStateLedPin, !constStateLedOn);
       sysMetrics.sysAlarmRisedTime = 0x00;
     } else {
       if (sysMetrics.sysAlarmRisedTime) {
@@ -219,9 +246,9 @@ void loop() {
       __USER_FUNCTION( alarmStageUserFunction(request.payloadByte, errorCode); )
 
 #ifdef ON_ALARM_STATE_BLINK
-      digitalWrite(constStateLedPin, millis() % blinkSettings[errorCode].allTime < blinkSettings[errorCode].onTime);
+      digitalWrite(constStateLedPin, (millis() % blinkSettings[errorCode].allTime < blinkSettings[errorCode].onTime) ? constStateLedOn : !constStateLedOn);
 #else
-      digitalWrite(constStateLedPin, HIGH);
+      digitalWrite(constStateLedPin, constStateLedOn);
 #endif
     } // if (ERROR_NONE == errorCode) ... else
 
@@ -234,16 +261,22 @@ void loop() {
       // relaunch() returns code that can be used as status led blink type
       errorCode = Network::relaunch();
       if (ERROR_NONE == errorCode) {
+#if defined (NETWORK_WIFI)
+        delay(constPHYCheckInterval);
+#endif
         netServer.begin();
         // relaunch() returns true if DHCP is OK or Static IP used
         __DMLL( Network::printNetworkInfo(); )
       }
     }
 
+    //  return;
+
     // tick() subroutine is very important for UIPEthernet, and must be called often (every ~250ms). If ENC28J60 driver not used - this subroutine do nothing
     Network::tick();
 
     if ((millis() - prevPHYCheckTime) > constPHYCheckInterval) {
+      //Serial.println("check");
       //phyCheckInterval = constPHYCheckInterval;
       // do not forget SPI.begin() or system is hangs up
       if ((millis() - netDebugPrintTime) > consNetDebugPrintInterval) {
@@ -277,6 +310,7 @@ void loop() {
         } // if (!Network::isPhyConfigured())
       } else { // if (Network::isPhyOk())
         // PHY is disconnected or rise any error flag
+        Serial.println("Need to rlnch");
         needNetworkRelaunch = true;
         // Right errorCode will be taken on relaunch()
       } // if (Network::isPhyOk())
@@ -357,7 +391,7 @@ void loop() {
     }
 #endif
     // Fire up State led, than will be turned off on next loop
-    digitalWrite(constStateLedPin, HIGH);
+    digitalWrite(constStateLedPin, constStateLedOn);
     processStartTime = millis();
     __DMLM( uint32_t ramBefore = getRamFree(); )
     //__DMLL( DEBUG_PORT.print(cBuffer); DEBUG_PORT.print(FSH_P(STRING_right_arrow)); ) // zbxd\1 is broke this output
@@ -416,7 +450,6 @@ static int16_t executeCommand(Stream& _netClient, netconfig_t& _sysConfig, reque
   uint16_t i;
   uint8_t cmdIdx;
   // duration option in the tone[] command is ulong
-  //int32_t argv[constArgC];
   // Zabbix use 64-bit numbers, but we can use only int32_t range. Error can be occurs on ltoa() call with value > long_int_max
   int32_t value = 0x00;
   uint32_t payloadLength;
@@ -456,8 +489,9 @@ static int16_t executeCommand(Stream& _netClient, netconfig_t& _sysConfig, reque
   // Search specified command index in the list of implemented functions
   rc = 0x01;
   while (cmdIdx && (0x00 != rc)) {
+    yield();
     cmdIdx--;
-    PGM_P cmdName = pgm_read_word(&(commands[cmdIdx].name));
+    PGM_P cmdName = (PGM_P) pgm_read_dword(&(commands[cmdIdx].name));
     rc = strcmp_P(_request.command, cmdName);
     __DMLD( DEBUG_PORT.print(F("#")); DEBUG_PORT.print(FSH_P(STRING_HEX_Prefix));  DEBUG_PORT.print(cmdIdx , HEX); DEBUG_PORT.print(FSH_P(STRING_right_arrow)); DEBUG_PORT.println(FSH_P(cmdName)); )
   }
@@ -576,11 +610,14 @@ static int16_t executeCommand(Stream& _netClient, netconfig_t& _sysConfig, reque
         //
         //  sys.ram.freemin
         //
+#if defined(ARDUINO_ARCH_AVR)
         // Without ATOMIC_BLOCK block using sysMetrics[IDX_METRIC_SYS_RAM_FREEMIN] variable can be changed in interrupt on reading
         ATOMIC_BLOCK(ATOMIC_RESTORESTATE) {
           value = sysMetrics.sysRamFreeMin;
         }
-        rc = RESULT_IS_UNSIGNED_VALUE;
+#endif
+        rc = RESULT_IS_FAIL;
+        //        rc = RESULT_IS_UNSIGNED_VALUE;
         goto finish;
       }
 #endif
@@ -590,7 +627,11 @@ static int16_t executeCommand(Stream& _netClient, netconfig_t& _sysConfig, reque
         // sys.vcc
         //
         // Take VCC
+#if defined(ARDUINO_ARCH_AVR)
         value = getADCVoltage(ANALOG_CHAN_VBG);
+#elif defined(ARDUINO_ARCH_ESP8266)
+        value = ESP.getVcc();
+#endif
         // VCC may be bigger than max or smaller than min.
         // To avoid wrong results and graphs in monitoring system - correct min/max metrics
         correctVCCMetrics(value);
@@ -642,8 +683,7 @@ static int16_t executeCommand(Stream& _netClient, netconfig_t& _sysConfig, reque
   i = arraySize(_request.argv);
   while (i) {
     i--;
-    _request.argv[i] = strtol(_request.args[i], NULL, 0);
-
+    _request.argv[i] = (NULL == _request.args[i]) ? 0x00 : strtol(_request.args[i], NULL, 0);
     __DMLH(
       DEBUG_PORT.print(F("argv[")); DEBUG_PORT.print(i); DEBUG_PORT.print(F("] => \""));
     if (_request.args[i]) {
@@ -663,7 +703,7 @@ static int16_t executeCommand(Stream& _netClient, netconfig_t& _sysConfig, reque
     case CMD_USER_RUN: {
         //
         //  user.run[option#0, option#1, option#2, option#3, option#4, option#5]
-// user.run[0xA0,14]
+        // user.run[0xA0,14]
         //
         rc = executeCommandUserFunction(_request.payloadByte, _request.args, _request.argv, &value);
         goto finish;
@@ -742,7 +782,7 @@ static int16_t executeCommand(Stream& _netClient, netconfig_t& _sysConfig, reque
 
     case CMD_ARDUINO_DIGITALWRITE: {
         //
-        //  digitalWrite[pin, value, testPin, testValue]
+        //  digitalWrite[pin, value]
         //
         if (! isSafePin(_request.argv[0x00])) {
           goto finish;
@@ -888,7 +928,6 @@ static int16_t executeCommand(Stream& _netClient, netconfig_t& _sysConfig, reque
         uint8_t success = true;
         netconfig_t newConfig;
         memcpy((uint8_t*) &newConfig, (uint8_t*) &_sysConfig, sizeof(newConfig));
-
         // useDHCP flag coming from argument#1 and must be numeric (boolean) - 1 or 0,
         // argv[0x00] data contain in payload[_argOffset[0x01]] placed from _argOffset[0x00]
         newConfig.useDHCP = !!_request.argv[0x01];
@@ -896,17 +935,59 @@ static int16_t executeCommand(Stream& _netClient, netconfig_t& _sysConfig, reque
         // take 6 bytes from second argument of command and use as new MAC-address
         // if convertation is failed (sub return -1) variable must be falsed too via logic & operator
         success = (success) ? (sizeof(newConfig.macAddress) == hstoba((uint8_t *) &newConfig.macAddress, _request.args[0x02])) : false;
+        Serial.println("=== D4 ===");
         // If string to which point optarg[0x03] can be converted to valid NetworkAddress - just do it.
         // Otherwize (string can not be converted) _sysConfig.ipAddress will stay untouched;
-        success = (success) ? (strToNetworkAddress((char*) _request.args[0x03], newConfig.ipAddress)) : false;
-        success = (success) ? (strToNetworkAddress((char*) _request.args[0x04], newConfig.ipNetmask)) : false;
-        success = (success) ? (strToNetworkAddress((char*) _request.args[0x05], newConfig.ipGateway)) : false;
+        success = (success) ? (strToNetworkAddress(_request.args[0x03], newConfig.ipAddress)) : false;
+        Serial.println("=== D5 ===");
+        success = (success) ? (strToNetworkAddress(_request.args[0x04], newConfig.ipNetmask)) : false;
+        Serial.println("=== D6 ===");
+        success = (success) ? (strToNetworkAddress(_request.args[0x05], newConfig.ipGateway)) : false;
+        Serial.println("=== D7 ===");
         // if any convert operation failed - just do not return "need to eeprom write" return code
         if (success) {
           rc = (saveConfigToEEPROM(newConfig)) ? RESULT_IS_OK : DEVICE_ERROR_EEPROM_CORRUPTED;
         }
         goto finish;
       }
+
+    case CMD_SET_WIFI: {
+        //
+        //  set.wifi[password, ssid, passphrase]
+        //
+#if defined(ARDUINO_ARCH_AVR)
+        rc = ZBX_NOTSUPPORTED;
+#elif defined(ARDUINO_ARCH_ESP8266)
+
+        if (!accessGranted) {
+          goto finish;
+        }
+
+        uint8_t success = true;
+        char* wifiSsid = _request.args[0x01];
+        char* wifiPsk  = _request.args[0x02];
+        uint8_t len;
+
+        // No SSID specified
+        if (!wifiSsid) {
+          goto finish;
+        }
+        len = strlen(wifiSsid);
+        success = success ? (0x00 < len && 0x20 >= len) : false;
+        // strlen  & etc. is reboot system with nullptr argument
+        if (wifiPsk) {
+          len = strlen(wifiPsk);
+          success = success ? (0x08 <= len && 0x40 >= len) : false;
+        }
+        if (success) {
+          // Just save config
+          NetworkTransport.begin(wifiSsid, wifiPsk, 0x00, NULL, false);
+          rc = RESULT_IS_OK;
+        }
+#endif
+        goto finish;
+      }
+
 #endif // FEATURE_EEPROM_ENABLE
 
 #ifdef FEATURE_SYSTEM_RTC_ENABLE
@@ -1003,21 +1084,28 @@ static int16_t executeCommand(Stream& _netClient, netconfig_t& _sysConfig, reque
         //
         //  system.hw.cpu[metric]
         //
-        rc = RESULT_IS_BUFFERED;
-        if (0 == strcmp_P(_request.args[0x00], PSTR("id"))) {
+        Serial.println("Privet");
+        //rc = RESULT_IS_BUFFERED;
+        rc = RESULT_IS_OK;
+        //_request.payloadChar = '!';
+        //  strcpy_P(_request.payloadChar, PSTR("PRIVET"));
+
+        //          strcpy_P(_request.payloadChar, PSTR(BOARD));
+        /*
+          if (0 == strcmp_P(_request.args[0x00], PSTR("id"))) {
           // Read 10 bytes with step 1 (0x0E..0x17) of the signature row <= http://www.avrfreaks.net/forum/unique-id-atmega328pb
           getBootSignatureAsHexString(_request.payloadChar, 0x0E, 10, 1);
-        } else if (0 == strcmp_P(_request.args[0x00], PSTR("freq"))) {
+          } else if (0 == strcmp_P(_request.args[0x00], PSTR("freq"))) {
           // Return back CPU frequency
           value = F_CPU;
           rc = RESULT_IS_UNSIGNED_VALUE;
-        } else if (0 == strcmp_P(_request.args[0x00], PSTR("model"))) {
+          } else if (0 == strcmp_P(_request.args[0x00], PSTR("model"))) {
           // Read 3 bytes with step 2 (0x00, 0x02, 0x04) of the signature row <= http://www.avrfreaks.net/forum/device-signatures
           getBootSignatureAsHexString(_request.payloadChar, 0x00, 3, 2);
-        } else {
-          // Return back CPU name
-          strcpy_P(_request.payloadChar, PSTR(_AVR_CPU_NAME_));
-        }
+          } else {
+        */
+        // Return back CPU name
+        //}
         goto finish;
       }
 
@@ -1458,15 +1546,33 @@ static int16_t executeCommand(Stream& _netClient, netconfig_t& _sysConfig, reque
 
 #endif // FEATURE_NOVA_FITNESS_SDS_ENABLE
 
-#ifdef FEATURE_ZE08_CH2O_ENABLE
+#ifdef FEATURE_WINSEN_ZE08_CH2O_ENABLE
     case CMD_ZE08_CH2O: {
         //
         //  ze08.ch2o[rxPin, txPin]
-        //  ze08.ch2o[2,3]
+        //  ze08.ch2o[16,17]
         rc = getZe08Ch2OMetric(_request.argv[0x00], _request.argv[0x01], SENS_READ_CH2O, &value);
         goto finish;
       }
-#endif // FEATURE_ZE08_CH2O_ENABLE
+#endif // FEATURE_WINSEN_ZE08_CH2O_ENABLE
+
+#ifdef FEATURE_WINSEN_ZE14_O3_ENABLE
+    case CMD_ZE14_O3: {
+        //
+        //  ze14.o3[rxPin, txPin]
+        rc = getZe14O3Metric(_request.argv[0x00], _request.argv[0x01], SENS_READ_O3, &value);
+        goto finish;
+      }
+#endif // FEATURE_WINSEN_ZE14_O3_ENABLE
+
+#ifdef FEATURE_WINSEN_ZP14_ENABLE
+    case CMD_ZP14_NG: {
+        //
+        //  zp14.ng[rxPin, txPin]
+        rc = getZp14Metric(_request.argv[0x00], _request.argv[0x01], SENS_READ_CH4, &value);
+        goto finish;
+      }
+#endif // FEATURE_WINSEN_ZP14_ENABLE
 
 #ifdef FEATURE_MODBUS_RTU_ENABLE
     case CMD_MB_RTU_FC03: {
@@ -1507,7 +1613,7 @@ static int16_t executeCommand(Stream& _netClient, netconfig_t& _sysConfig, reque
   //  I2C-related commands have additional processing
 #ifdef TWI_USE
   // Otherwise - TWI interface can be reconfigured with new pins
-  SoftTWI.reconfigure(_request.argv[0x00], _request.argv[0x01]);
+  SoftTWI.begin(_request.argv[0x00], _request.argv[0x01]);
   uint8_t i2CAddress;
 
   i2CAddress = _request.args[0x02] ? (uint8_t) _request.argv[0x02] : I2C_NO_ADDR_SPECIFIED;
@@ -1621,7 +1727,7 @@ static int16_t executeCommand(Stream& _netClient, netconfig_t& _sysConfig, reque
       // (uint8_t) argv[0x02] is i2c address, 7 bytes size
       rc = getSHT2XMetric(&SoftTWI, i2CAddress, SENS_READ_TEMP, &value);
       goto finish;
-#endif // FEATURE_SHT2X_ENABLE  
+#endif // FEATURE_SHT2X_ENABLE
 
 
 #ifdef FEATURE_SGP30_ENABLE
@@ -1678,7 +1784,7 @@ static int16_t executeCommand(Stream& _netClient, netconfig_t& _sysConfig, reque
     case CMD_BMP_PRESSURE: {
         //
         //  BMP.Pressure[sdaPin, sclPin, i2cAddress, overSampling, filterCoef]
-        //
+        //BMP.Pressure[4, 5, 0x76]
         rc = getBMPMetric(&SoftTWI, i2CAddress, _request.argv[0x03], _request.argv[0x04], SENS_READ_PRSS, &value);
         goto finish;
       }
@@ -1699,8 +1805,8 @@ static int16_t executeCommand(Stream& _netClient, netconfig_t& _sysConfig, reque
         rc = getBMPMetric(&SoftTWI, i2CAddress, _request.argv[0x03], _request.argv[0x04], SENS_READ_HUMD, &value);
         goto finish;
       }
-#endif // SUPPORT_BME280_INCLUDE 
-#endif // FEATURE_BMP_ENABLE  
+#endif // SUPPORT_BME280_INCLUDE
+#endif // FEATURE_BMP_ENABLE
 
 #ifdef FEATURE_TSL2561_ENABLE
     case CMD_TSL2561_LIGHT: {
@@ -1907,15 +2013,7 @@ finish:
     case RESULT_IS_SYSTEM_REBOOT_ACTION:
       //_netClient.stop();
       delay(10);
-      // The reason why using the watchdog timer or RST_SWRST_bm is preferable over jumping to the reset vector, is that when the watchdog or RST_SWRST_bm resets the AVR,
-      // the registers will be reset to their known, default settings. Whereas jumping to the reset vector will leave the registers in their previous state, which is
-      // generally not a good idea. http://www.atmel.com/webdoc/avrlibcreferencemanual/FAQ_1faq_softreset.html
-      //
-      //  ...but some Arduino's bootloaders going to "crazy loopboot" when WTD is enable on reset
-      //
-      // Watchdog deactivation
-      __WATCHDOG( wdt_disable(); )
-      asm volatile ("jmp 0");
+      systemReboot();
       break;
   }
 

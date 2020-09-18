@@ -70,4 +70,4 @@ Based on: https://github.com/adafruit/Adafruit_INA219
 *     - RESULT_IS_FAIL - on other fails
 *
 *****************************************************************************************************************************/
-int8_t getINA219Metric(SoftwareWire*, uint8_t, const uint8_t, const uint16_t, const uint8_t, uint32_t&);
+int8_t getINA219Metric(SoftwareTWI*, uint8_t, const uint8_t, const uint16_t, const uint8_t, uint32_t&);

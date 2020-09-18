@@ -152,4 +152,4 @@
 *    - DEVICE_ERROR_CONNECT        on connection error
 *
 *****************************************************************************************************************************/
-int8_t getBMPMetric(SoftwareWire*, uint8_t, const uint8_t, const uint8_t, const uint8_t, int32_t*);
+int8_t getBMPMetric(SoftwareTWI*, uint8_t, const uint8_t, const uint8_t, const uint8_t, int32_t*);

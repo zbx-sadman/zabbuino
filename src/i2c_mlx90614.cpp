@@ -1,7 +1,6 @@
 // Config & common included files
 #include "sys_includes.h"
 
-#include "SoftwareWire/SoftwareWire.h"
 #include "service.h"
 #include "system.h"
 
@@ -20,10 +19,10 @@ static uint8_t calcMLX90614Crc(const uint8_t _inCrc, const uint8_t _inData) {
   crc = _inCrc ^ _inData;
   for (uint8_t i = 0x00; 0x08 > i; i++) {
     if ((crc & 0x80) != 0x00) {
-       crc <<= 1;
+       crc <<= 0x01;
        crc ^= 0x07;
     } else {
-       crc <<= 1;
+       crc <<= 0x01;
     }
   }
   return crc;
@@ -35,7 +34,7 @@ static uint8_t calcMLX90614Crc(const uint8_t _inCrc, const uint8_t _inData) {
 *  Example: RAM Access opcode is '000x xxxx'. TObj1 register is '0000 0111'. 'Read TObj1' commmand is '000x xxxx' & '0000 0111' => '0000 0111'
 *
 *****************************************************************************************************************************/
-static int8_t readMLX90614Register(SoftwareWire* _softTWI, const uint8_t _i2cAddress, const uint8_t _command, int16_t* _value) {
+static int8_t readMLX90614Register(SoftwareTWI* _softTWI, const uint8_t _i2cAddress, const uint8_t _command, int16_t* _value) {
 
   uint8_t pec, value[0x03] = {0x00}; 
 
@@ -68,7 +67,7 @@ static int8_t readMLX90614Register(SoftwareWire* _softTWI, const uint8_t _i2cAdd
 *    - DEVICE_ERROR_CONNECT        on connection error
 *
 *****************************************************************************************************************************/
-int8_t getMLX90614Metric(SoftwareWire* _softTWI, uint8_t _i2cAddress, const uint8_t _temperatureZone, const uint8_t _metric, int32_t* _value) {
+int8_t getMLX90614Metric(SoftwareTWI* _softTWI, uint8_t _i2cAddress, const uint8_t _temperatureZone, const uint8_t _metric, int32_t* _value) {
 
   int8_t   rc                = DEVICE_ERROR_NOT_SUPPORTED;
   uint8_t  command;

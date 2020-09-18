@@ -17,5 +17,9 @@
    #define PHY_MODULE_NAME                                   "ENC28J60"
 #elif defined(NETWORK_SERIAL_INTERFACE)
    #define PHY_MODULE_NAME                                   "UART"
+#elif defined(ARDUINO_ARCH_ESP8266) && defined(NETWORK_WIRELESS_ESP_NATIVE)
+   #define PHY_MODULE_NAME                                   "ESP8266"
+#elif defined(ARDUINO_ARCH_ESP32) && defined(NETWORK_WIRELESS_ESP_NATIVE)
+   #define PHY_MODULE_NAME                                   "ESP32"
 #endif
 

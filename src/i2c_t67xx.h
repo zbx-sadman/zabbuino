@@ -54,4 +54,4 @@
 *    - DEVICE_ERROR_CONNECT           on connection error
 *
 *****************************************************************************************************************************/
-int8_t getT67XXMetric(SoftwareWire*, uint8_t, uint8_t, int32_t*);
+int8_t getT67XXMetric(SoftwareTWI*, uint8_t, uint8_t, int32_t*);

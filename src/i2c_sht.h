@@ -37,5 +37,5 @@
 *    - DEVICE_ERROR_CONNECT        on connection error
 *
 *****************************************************************************************************************************/
-int8_t getSHT2XMetric(SoftwareWire*, uint8_t, const uint8_t, int32_t*);
+int8_t getSHT2XMetric(SoftwareTWI*, uint8_t, const uint8_t, int32_t*);
 

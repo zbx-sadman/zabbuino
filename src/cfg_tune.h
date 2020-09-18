@@ -1,6 +1,8 @@
 #pragma once
 #include <Arduino.h>
-#include <avr/wdt.h>
+#if defined(ARDUINO_ARCH_AVR)
+    #include <avr/wdt.h>
+#endif
 #include "sys_macros.h"
 
 
@@ -191,15 +193,17 @@ const uint8_t  constDefaultSDAPin                               = SDA;
 const uint8_t  constDefaultSCLPin                               = SCL;
 
 // System RTC module settings (only DS3231 is supported at this time)
-const uint8_t  constSystemRtcSDAPin                             = SDA;     // SDA - A4
-const uint8_t  constSystemRtcSCLPin                             = SCL;     // SCL - A5
+const uint8_t  constSystemRtcSDAPin                             = constDefaultSDAPin;
+const uint8_t  constSystemRtcSCLPin                             = constDefaultSCLPin;
 #if defined (FEATURE_SYSTEM_RTC_DS3231_ENABLE)
 const uint8_t  constSystemRtcI2CAddress                         = 0x68;   // DS3231 RTC I2C address 
 #elif defined (FEATURE_SYSTEM_RTC_PCF8563_ENABLE)
 const uint8_t  constSystemRtcI2CAddress                         = 0x51;   // PCF8563 RTC I2C address 
 #endif
 
-const uint16_t constUserFunctionCallInterval                    = 1000UL; // 1sec
+const uint16_t constUserFunctionCallInterval                    = 1000; // 1sec
+
+const uint16_t constEspEepromSize                               = 1024; // 1Kb
 
 
 /* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
@@ -213,7 +217,8 @@ const uint16_t constUserFunctionCallInterval                    = 1000UL; // 1se
 
 // How often do ENC28J60 module reinit for more stable network
 // 5 sec
-const uint32_t constPHYCheckInterval                            = 10000UL; 
+//const uint32_t constPHYCheckInterval                            = 10000UL; 
+const uint32_t constPHYCheckInterval                            = 5000UL; 
 
 // Network activity timeout (for which no packets processed or no DHCP lease renews finished with success)
 // 60 sec
@@ -255,7 +260,8 @@ const uint32_t constHoldTimeToFactoryReset                      = 5000UL;
 // WDTO_2S
 // WDTO_4S - not for all controllers (please reference to avr/wdt.h)
 // WDTO_8S - not for all controllers (please reference to avr/wdt.h)
-const uint32_t constWtdTimeout                                  = (WDTO_8S);
+//const uint32_t constWtdTimeout                                  = (WDTO_8S);
+const uint32_t constWtdTimeout                                  = (8);
 
 // How often need gather system metrics
 // 1 sec
@@ -277,9 +283,6 @@ const uint8_t constCmdPartSize                                  = 25;
 // - getMegatecUPSMetric() can write to its up to MEGATEC_MAX_ANSWER_LENGTH bytes, for example
 // The total size of the buffer. 
 const uint16_t constBufferSize                                  = constCmdPartSize + constArgsPartSize;
-
-// How long the ID of MCU (in bytes)
-const uint8_t constMcuIdSize                                    = 10;
 
 /* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
                                                           AGENT CONFIGURATION SECTION 
@@ -486,4 +489,4 @@ const uint32_t constSerialWaitTimeout                           = 5000UL;
  
 // 10 bit ADC
 const uint16_t constAnalogReadMappingLowValue                   = 0x00;
-const uint16_t constAnalogReadMappingHighValue                  = 1023;
+const uint16_t constAnalogReadMappingHighValue                  = 0x3FF;

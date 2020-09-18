@@ -50,4 +50,4 @@
 *    - DEVICE_ERROR_CONNECT        on connection error
 *
 *****************************************************************************************************************************/
-int8_t getBH1750Metric(SoftwareWire*, uint8_t, uint8_t, int32_t*);
+int8_t getBH1750Metric(SoftwareTWI*, uint8_t, uint8_t, int32_t*);
