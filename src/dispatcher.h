@@ -75,13 +75,13 @@
 #include "uart_novafitness.h"
 #include "uart_winsen.h"
 
-
 // SPI-compatible devices 
 #include "spi_bus.h"
 #include "spi_max6675.h"
-
+*/
 // Other devices //
 #include "dht.h"
+/*
 #include "ir.h"
 #include "interrupts.h"
 #include "mh_zxx.h"

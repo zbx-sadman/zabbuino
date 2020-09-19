@@ -3,6 +3,8 @@
 int8_t makeTextPayload(char*, int32_t, int8_t);
 uint8_t flushStreamRXBuffer(Stream*, const uint32_t, const uint8_t);
 uint8_t factoryReset(netconfig_t&);
+void getMcuIdAsHexString(char*);
+void getMcuModelAsHexString(char*);
 
 /*****************************************************************************************************************************
 *

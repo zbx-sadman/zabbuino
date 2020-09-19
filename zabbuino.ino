@@ -38,9 +38,11 @@ void setup() {
   sysMetrics.sysRamFree = sysMetrics.sysRamFreeMin = getRamFree();
   pinMode(constStateLedPin, OUTPUT);
   /*
-    Serial.println(sizeof(netconfig_t));
-    WiFi.printDiag(Serial);
-    //      Serial.println(ESP.getChipId(), HEX);
+    Serial.println(ESP.getChipId(), HEX);
+    Serial.println(ESP.getCoreVersion());
+    Serial.println(ESP.getFlashChipId(), HEX);
+
+    //    WiFi.printDiag(Serial);
     while (1) {
       yield();
     };
@@ -791,7 +793,7 @@ static int16_t executeCommand(Stream& _netClient, netconfig_t& _sysConfig, reque
 
         pinMode(_request.argv[0x00], OUTPUT);
         digitalWrite(_request.argv[0x00], !!_request.argv[0x01]);
-        
+
         rc = RESULT_IS_OK;
         goto finish;
       }
@@ -1091,19 +1093,21 @@ static int16_t executeCommand(Stream& _netClient, netconfig_t& _sysConfig, reque
         //  system.hw.cpu[metric]
         //
         rc = RESULT_IS_BUFFERED;
-        //strcpy_P(_request.payloadChar, PSTR(BOARD));
         if (0x00 == strcmp_P(_request.args[0x00], PSTR("id"))) {
-          // Read 10 bytes with step 1 (0x0E..0x17) of the signature row <= http://www.avrfreaks.net/forum/unique-id-atmega328pb
-          //getBootSignatureAsHexString(_request.payloadChar, 0x0E, 10, 1);
+          getMcuIdAsHexString(_request.payloadChar);
         } else if (0x00 == strcmp_P(_request.args[0x00], PSTR("freq"))) {
           // Return back CPU frequency
-          value = F_CPU;
+          value = getMcuFreq();
           rc = RESULT_IS_UNSIGNED_VALUE;
         } else if (0x00 == strcmp_P(_request.args[0x00], PSTR("model"))) {
-          // Read 3 bytes with step 2 (0x00, 0x02, 0x04) of the signature row <= http://www.avrfreaks.net/forum/device-signatures
-          //getBootSignatureAsHexString(_request.payloadChar, 0x00, 3, 2);
+#if defined(ARDUINO_ARCH_AVR)
+          getMcuModelAsHexString(_request.payloadChar);
+#elif defined(ARDUINO_ARCH_ESP8266)
+          rc = ZBX_NOTSUPPORTED;
+#endif //#if defined(ARDUINO_ARCH_AVR)          
         } else {
           // Return back CPU name
+          strcpy_P(_request.payloadChar, PSTR(_CPU_NAME_));
         }
         goto finish;
       }

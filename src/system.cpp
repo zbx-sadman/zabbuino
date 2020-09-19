@@ -44,6 +44,7 @@ void systemReboot() {
 void getMcuId(uint8_t* _dst) {
 #if defined(ARDUINO_ARCH_AVR)
   ATOMIC_BLOCK(ATOMIC_RESTORESTATE) {
+    // Read 10 bytes with step 1 (0x0E..0x17) of the signature row <= http://www.avrfreaks.net/forum/unique-id-atmega328pb
     for (uint8_t i = constMcuIdStartAddress; (constMcuIdStartAddress + constMcuIdSize) > i; i++) {
        *_dst = boot_signature_byte_get(i);
        _dst++;  
@@ -55,7 +56,41 @@ void getMcuId(uint8_t* _dst) {
     *_dst++ = ptrChipID[0x03];
     *_dst++ = ptrChipID[0x02];
     *_dst++ = ptrChipID[0x01];
-    *_dst++ = ptrChipID[0x00];
+    *_dst   = ptrChipID[0x00];
+#endif
+}
+
+uint32_t getMcuFreq() {
+#if defined(ARDUINO_ARCH_AVR)
+    return F_CPU;
+#elif defined(ARDUINO_ARCH_ESP8266)
+    return ESP.getCpuFreqMHz();
+#endif
+}
+/*****************************************************************************************************************************
+*
+*  Read bytes from the MCU's Signature Row and put its to array
+*
+*   Returns: 
+*     - none
+*
+*****************************************************************************************************************************/
+void getMcuModel(uint8_t* _dst) {
+#if defined(ARDUINO_ARCH_AVR)
+  // Read 3 bytes with step 2 (0x00, 0x02, 0x04) of the signature row <= http://www.avrfreaks.net/forum/device-signatures
+  ATOMIC_BLOCK(ATOMIC_RESTORESTATE) {
+    *_dst++ = boot_signature_byte_get(0x00);
+    *_dst++ = boot_signature_byte_get(0x02);
+    *_dst   = boot_signature_byte_get(0x04);
+  }
+#elif defined(ARDUINO_ARCH_ESP8266)
+    // Where are placed model ID?
+    uint32_t flashChipId = ESP.getFlashChipId();
+    uint8_t  *ptrflashChipID = (uint8_t*) &flashChipId;
+    *_dst++ = ptrflashChipID[0x03];
+    *_dst++ = ptrflashChipID[0x02];
+    *_dst++ = ptrflashChipID[0x01];
+    *_dst   = ptrflashChipID[0x00];
 #endif
 }
 

@@ -25,14 +25,14 @@
 
 
 #if defined(ARDUINO_ARCH_AVR)
-  #define NETWORK_ETHERNET_W5100           // Arduino Ethernet Shield and Compatibles ...
+#define NETWORK_ETHERNET_W5100           // Arduino Ethernet Shield and Compatibles ...
 //#define NETWORK_ETHERNET_ENC28J60      // Microchip __ENC28J60__ network modules
 //#define NETWORK_ETHERNET_W5500         // WIZ550io, ioShield series of WIZnet, tested but not satisfied with the performance on intensive traffic
 //#define NETWORK_SERIAL_INTERFACE       // not implemented yet
 #elif defined(ARDUINO_ARCH_ESP8266)
-  #define NETWORK_WIRELESS_ESP_NATIVE
-#else 
-  #error "Unknow architecture"
+#define NETWORK_WIRELESS_ESP_NATIVE
+#else
+#error "Unknow architecture"
 #endif
 
 /* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
@@ -358,7 +358,7 @@
 //       - DHT.Humidity[];
 //       - DHT.Temperature[]
 //
-//#define FEATURE_DHT_ENABLE
+#define FEATURE_DHT_ENABLE
 
 /****       Ultrasonic    ****/
 
@@ -472,8 +472,8 @@
 //     Enable commands which returns system information and can be used in system debug process:
 //       - System.HW.CPU[];
 //       - System.HW.Chassis[];
-//       - Sys.MCU.ID[];
-//       - Sys.PHY.Module[];
+//       - Net.PHY.Name[];
+//       - Net.PHY.Reinits[];
 //       - Sys.Cmd.Count[];
 //       - Sys.Cmd.TimeMax[];
 //       - Sys.RAM.Free[];
@@ -554,7 +554,7 @@ const char* const constWiFiPsk                                 = "YourPSK";
 #if defined(ARDUINO_ARCH_AVR)
 const uint8_t constStateLedPin                                 = 0x09;
 const uint8_t constStateLedOn                                  = HIGH;
-#elif defined(ARDUINO_ARCH_ESP8266)  
+#elif defined(ARDUINO_ARCH_ESP8266)
 const uint8_t constStateLedPin                                 = 0x02;
 // Some ESP-based (Wemos D1 mini, for wxample) modules have inverted "led control"
 const uint8_t constStateLedOn                                  = LOW;
@@ -584,7 +584,7 @@ const uint32_t constSysDefaultPassword                         = 0x00;
 #if defined(ARDUINO_ARCH_AVR)
 const uint8_t constFactoryResetButtonPin                       = 0x08;
 const uint8_t constFactoryResetButtonActive                    = LOW;
-#elif defined(ARDUINO_ARCH_ESP8266)  
+#elif defined(ARDUINO_ARCH_ESP8266)
 const uint8_t constFactoryResetButtonPin                       = D7;
 const uint8_t constFactoryResetButtonActive                    = LOW;
 #endif

@@ -57,7 +57,7 @@ uint8_t factoryReset(netconfig_t& _sysConfig) {
       if (constFactoryResetButtonActive == digitalRead(constFactoryResetButtonPin)) {
          __DMLL( DEBUG_PORT.print(FSH_P(STRING_Rewrite_EEPROM_with_defaults)); DEBUG_PORT.print(FSH_P(STRING_3xDot_Space)); )
 #if defined(ARDUINO_ARCH_ESP8266) && defined(NETWORK_WIRELESS_ESP_NATIVE)
-  setWifiDefaults();
+        setWifiDefaults();
 #endif //defined(ARDUINO_ARCH_ESP8266)
          setConfigDefaults(_sysConfig);
          // return "sucess" only if default config saved
@@ -118,6 +118,20 @@ uint32_t uptime(void) {
   return ((uint32_t) millisRollover() * (UINT32_MAX / 1000UL) + (millis() / 1000UL));
 }
 
+void getMcuIdAsHexString(char* _dst) {
+  uint8_t chipID[constMcuIdSize];
+  memset(chipID, 0x00, sizeof(chipID));
+  getMcuId(chipID);
+  batohs(chipID, _dst, sizeof(constMcuIdSize));
+}
+
+void getMcuModelAsHexString(char* _dst) {
+  uint8_t modelID[0x03];
+  memset(modelID, 0x00, sizeof(modelID));
+  getMcuModel(modelID);
+  batohs(modelID, _dst, sizeof(modelID));
+}
+
 
 /*****************************************************************************************************************************
 *
@@ -142,11 +156,8 @@ void setConfigDefaults(netconfig_t& _sysConfig) {
   _sysConfig.hostname[constAgentHostnameMaxLength] = CHAR_NULL;
 
 #ifdef FEATURE_NET_USE_MCUID
-  uint8_t chipID[constMcuIdSize];
-  memset(chipID, 0x00, sizeof(chipID));
   copyCharsNumber = (constAgentHostnameMaxLength <= (constMcuIdSize * 0x02)) ? constAgentHostnameMaxLength : constMcuIdSize * 0x02;
-  getMcuId(chipID);
-  batohs(chipID, _sysConfig.hostname, constMcuIdSize);
+  getMcuIdAsHexString(_sysConfig.hostname);
 #else
   strncpy_P(_sysConfig.hostname, constZbxAgentDefaultHostname, constAgentHostnameMaxLength);
   copyCharsNumber = strlen(_sysConfig.hostname);
