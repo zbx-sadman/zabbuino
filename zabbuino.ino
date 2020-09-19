@@ -1206,7 +1206,7 @@ static int16_t executeCommand(Stream& _netClient, netconfig_t& _sysConfig, reque
       if (!isSafePin(_request.argv[0x00])) {
         rc = DEVICE_ERROR_CONNECT;
       } else {
-        rc = getDHTMetric(_request.argv[0x00], _request.argv[0x01], SENS_READ_HUMD, &value);
+        rc = getDHTOneMetric(_request.argv[0x00], _request.argv[0x01], SENS_READ_HUMD, &value);
       }
       goto finish;
 
@@ -1217,7 +1217,19 @@ static int16_t executeCommand(Stream& _netClient, netconfig_t& _sysConfig, reque
         if (!isSafePin(_request.argv[0x00])) {
           rc = DEVICE_ERROR_CONNECT;
         } else {
-          rc = getDHTMetric(_request.argv[0x00], _request.argv[0x01], SENS_READ_TEMP, &value);
+          rc = getDHTOneMetric(_request.argv[0x00], _request.argv[0x01], SENS_READ_TEMP, &value);
+        }
+        goto finish;
+      }
+
+    case CMD_DHT_ALL: {
+        //
+        //  DHT.temperature[pin, model]
+        //
+        if (!isSafePin(_request.argv[0x00])) {
+          rc = DEVICE_ERROR_CONNECT;
+        } else {
+          rc = getDHTAllMetric(_request.argv[0x00], _request.argv[0x01], _request.payloadChar, _request.dataFreeSize);
         }
         goto finish;
       }

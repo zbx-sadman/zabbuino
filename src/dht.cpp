@@ -13,18 +13,15 @@ version 0.1.13 is used
 
 #include "dht.h"
 
-#if defined(ARDUINO_ARCH_AVR)
-  #define PIR_TYPE uint8_t
-#elif defined(ARDUINO_ARCH_ESP8266)  
-  #define PIR_TYPE uint32_t
-#endif //#if defined(ARDUINO_ARCH_AVR)
+static int8_t getDHTMetric(const uint8_t, const uint8_t, const uint8_t, char*, const uint16_t, int32_t*);
 
 /*****************************************************************************************************************************
 *
 *  Read specified metric's value of the AM/DHT sensor, put it to specified variable's address on success.
 *
 *  Returns: 
-*     - RESULT_IS_FLOAT_01_DIGIT    on success
+*     - RESULT_IS_BUFFERED          on success and SENS_READ_ALL metric specified
+*     - RESULT_IS_FLOAT_01_DIGIT    on success and single metric specified
 *     - DEVICE_ERROR_NOT_SUPPORTED  on wrong params specified
 *     - DEVICE_ERROR_TIMEOUT        on sensor stops answer to the request
 *     - DEVICE_ERROR_CHECKSUM       on detect data corruption
@@ -32,7 +29,21 @@ version 0.1.13 is used
 *     - DEVICE_ERROR_ACK_H
 *
 *****************************************************************************************************************************/
-int8_t getDHTMetric(const uint8_t _pin, const uint8_t _sensorModel, const uint8_t _metric, int32_t* _value) {
+int8_t getDHTOneMetric(const uint8_t _pin, const uint8_t _sensorModel, const uint8_t _metric, int32_t* _value) {
+  char stubBuffer;
+  return getDHTMetric(_pin, _sensorModel, _metric, &stubBuffer, sizeof(stubBuffer), _value);
+}
+
+int8_t getDHTAllMetric(const uint8_t _pin, const uint8_t _sensorModel, char* _dst, const uint16_t _dstSize) {
+  int32_t stubValue;
+  return getDHTMetric(_pin, _sensorModel, SENS_READ_ALL, _dst, _dstSize, &stubValue);
+}
+
+/*****************************************************************************************************************************
+*
+*
+*****************************************************************************************************************************/
+int8_t getDHTMetric(const uint8_t _pin, const uint8_t _sensorModel, const uint8_t _metric, char* _dst, const uint16_t _dstSize, int32_t* _value) {
   int8_t   rc = DEVICE_ERROR_TIMEOUT;
   // INIT BUFFERVAR TO RECEIVE DATA
   uint8_t  mask = 0x80,
@@ -64,7 +75,7 @@ int8_t getDHTMetric(const uint8_t _pin, const uint8_t _sensorModel, const uint8_
 
   uint8_t bit = digitalPinToBitMask(_pin);
   uint8_t port = digitalPinToPort(_pin);
-  volatile PIR_TYPE *PIR = portInputRegister(port);
+  volatile ioRegister_t *PIR = portInputRegister(port);
 
    switch (_sensorModel) {
     case DHT11_ID:
@@ -175,9 +186,9 @@ int8_t getDHTMetric(const uint8_t _pin, const uint8_t _sensorModel, const uint8_
   // TEST CHECKSUM
   if (bits[0x04] != crc) { rc = DEVICE_ERROR_CHECKSUM; goto finish; }
 
-  *_value = (SENS_READ_HUMD == _metric) ? humidity : temperature;
+//  *_value = (SENS_READ_HUMD == _metric) ? humidity;
+  rc = RESULT_IS_FLOAT_01_DIGIT;
 
-/*
   switch (_metric) {
      case SENS_READ_HUMD:
        *_value = humidity;
@@ -186,18 +197,18 @@ int8_t getDHTMetric(const uint8_t _pin, const uint8_t _sensorModel, const uint8_
      case SENS_READ_TEMP:
        *_value = temperature;
        break;
+
      case SENS_READ_ALL:
-       snprintf_P(_dst, 250, PSTR("{\"t\":%u,\"SPM25\":%u,\"SPM100\":%u,\"EPM10\":%u,\"EPM25\":%u,\"EPM100\":%u,\"PRT03\":%u,\"PRT05\":%u,\"PRT10\":%u,\"PRT25\":%u,\"PRT50\":%u,\"PRT100\":%u}"),
-                ptrDataStructured->standartPM10, ptrDataStructured->standartPM25, ptrDataStructured->standartPM100,
-                ptrDataStructured->environmentPM10, ptrDataStructured->environmentPM25, ptrDataStructured->environmentPM100, 
-                ptrDataStructured->particles03um, ptrDataStructured->particles05um, ptrDataStructured->particles10um, 
-                ptrDataStructured->particles25um, ptrDataStructured->particles50um, ptrDataStructured->particles100um
-                );
+       uint8_t wholeHumidity = humidity / 10;
+       uint8_t fracHumidity  = humidity % 10;
+       uint8_t wholeTemperature = temperature / 10;
+       uint8_t fracTemperature  = temperature % 10;
+
+       snprintf_P(_dst, _dstSize, PSTR("{\"h\":%u.%u,\"t\":%u.%u}"), wholeHumidity, fracHumidity, wholeTemperature, fracTemperature);
+       rc = RESULT_IS_BUFFERED;
        break;
    }
-*/
 
-  rc = RESULT_IS_FLOAT_01_DIGIT;
 
 finish:
   startTimerOne(); 
@@ -205,22 +216,3 @@ finish:
   return rc;
 }
 
-
-/*****************************************************************************************************************************
-*
-*   Overloads of main subroutine. Used to get numeric metric's value or it's char presentation only
-*
-*****************************************************************************************************************************/
-/*
-int8_t getDHTMetric(const uint8_t _pin, const uint8_t _sensorModel, const uint8_t _metric, int32_t* _value)
-{
-  //char stubBuffer;
-  return getDHTMetric(_pin, _sensorModel, _metric, &stubBuffer, _value);
-
-}
-int8_t getDHTMetric(const uint8_t _pin, const uint8_t _sensorModel, const uint8_t _metric, char* _dst)
-{
-  int32_t stubValue;
-  return getDHTMetric(_pin, _sensorModel, _metric, _dst, &stubValue);
-}
-*/

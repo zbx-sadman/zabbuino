@@ -4,6 +4,9 @@
 Segments probally done:
 - DHT/AM sensors;
 
+Added new command:
+- `dht.all[pin, model]` - returns JSON with both metric values. Example: `dht.all[5,21]`=> `{"h":31.9,"t":25.4}`
+
 ### 18-09-2020
 Segments probally done:
 

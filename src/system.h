@@ -2,11 +2,15 @@
 
 // How long the ID of MCU (in bytes)
 #if defined(ARDUINO_ARCH_AVR)
+  // variable type used with portOutputRegister/portInputRegister/portModeRegister 
+  #define ioRegister_t uint8_t
   const uint8_t constMcuIdSize                                    = 0x0A;
   const uint8_t constMcuIdStartAddress                            = 0x0E;
 #elif defined(ARDUINO_ARCH_ESP8266)
+  // variable type used with portOutputRegister/portInputRegister/portModeRegister 
+  #define ioRegister_t uint32_t
   const uint8_t constMcuIdSize                                    = 0x04;
-#endif
+#endif //#if defined(ARDUINO_ARCH_AVR)
 
 /*****************************************************************************************************************************
 *

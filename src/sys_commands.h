@@ -69,98 +69,99 @@
                                                                     
 #define CMD_DHT_HUMIDITY                                        (0x2F)
 #define CMD_DHT_TEMPERATURE                                     (0x30)
+#define CMD_DHT_ALL                                             (0x31)
                                                                     
-#define CMD_BMP_PRESSURE                                        (0x31) 
-#define CMD_BMP_TEMPERATURE                                     (0x32)
-#define CMD_BME_HUMIDITY                                        (0x33)
+#define CMD_BMP_PRESSURE                                        (0x32) 
+#define CMD_BMP_TEMPERATURE                                     (0x33)
+#define CMD_BME_HUMIDITY                                        (0x34)
                                                                     
-#define CMD_BH1750_LIGHT                                        (0x34)
+#define CMD_BH1750_LIGHT                                        (0x35)
 
-#define CMD_MAX7219_WRITE                                       (0x35)
+#define CMD_MAX7219_WRITE                                       (0x36)
                                                                     
-#define CMD_PCF8574_LCDPRINT                                    (0x36)
+#define CMD_PCF8574_LCDPRINT                                    (0x37)
                                                                     
-#define CMD_SHT2X_HUMIDITY                                      (0x37)
-#define CMD_SHT2X_TEMPERATURE                                   (0x38)
+#define CMD_SHT2X_HUMIDITY                                      (0x38)
+#define CMD_SHT2X_TEMPERATURE                                   (0x39)
                                                                     
-#define CMD_ACS7XX_ZC                                           (0x39)
-#define CMD_ACS7XX_AC                                           (0x3A)
-#define CMD_ACS7XX_DC                                           (0x3B)
+#define CMD_ACS7XX_ZC                                           (0x3A)
+#define CMD_ACS7XX_AC                                           (0x3B)
+#define CMD_ACS7XX_DC                                           (0x3C)
 
-#define CMD_ULTRASONIC_DISTANCE                                 (0x3C)
+#define CMD_ULTRASONIC_DISTANCE                                 (0x3D)
                                                                     
-#define CMD_IR_SEND                                             (0x3D)
-#define CMD_IR_SENDRAW                                          (0x3E)
+#define CMD_IR_SEND                                             (0x3E)
+#define CMD_IR_SENDRAW                                          (0x3F)
                                                                     
-#define CMD_WS2812_SENDRAW                                      (0x3F)
+#define CMD_WS2812_SENDRAW                                      (0x40)
                                                                     
-#define CMD_PZEM004_CURRENT                                     (0x40) 
-#define CMD_PZEM004_VOLTAGE                                     (0x41) 
-#define CMD_PZEM004_POWER                                       (0x42)  
-#define CMD_PZEM004_ENERGY                                      (0x43)
-#define CMD_PZEM004_SETADDR                                     (0x44)
+#define CMD_PZEM004_CURRENT                                     (0x41) 
+#define CMD_PZEM004_VOLTAGE                                     (0x42) 
+#define CMD_PZEM004_POWER                                       (0x43)  
+#define CMD_PZEM004_ENERGY                                      (0x44)
+#define CMD_PZEM004_SETADDR                                     (0x45)
                                                                     
-#define CMD_UPS_APCSMART                                        (0x45)
-#define CMD_UPS_MEGATEC                                         (0x46)
+#define CMD_UPS_APCSMART                                        (0x46)
+#define CMD_UPS_MEGATEC                                         (0x47)
                                                                     
-#define CMD_INA219_BUSVOLTAGE                                   (0x47)
-#define CMD_INA219_CURRENT                                      (0x48)
-#define CMD_INA219_POWER                                        (0x49)
+#define CMD_INA219_BUSVOLTAGE                                   (0x48)
+#define CMD_INA219_CURRENT                                      (0x49)
+#define CMD_INA219_POWER                                        (0x4A)
                                                                     
-#define CMD_AT24CXX_WRITE                                       (0x4A)
-#define CMD_AT24CXX_READ                                        (0x4B)
+#define CMD_AT24CXX_WRITE                                       (0x4B)
+#define CMD_AT24CXX_READ                                        (0x4C)
 
-#define CMD_MAX44009_LIGHT                                      (0x4C)
+#define CMD_MAX44009_LIGHT                                      (0x4D)
 
-#define CMD_MHZXX_PWM_CO2                                       (0x4D)
-#define CMD_MHZXX_UART_CO2                                      (0x4E)
+#define CMD_MHZXX_PWM_CO2                                       (0x4E)
+#define CMD_MHZXX_UART_CO2                                      (0x4F)
 
-#define CMD_USER_RUN                                            (0x4F)
+#define CMD_USER_RUN                                            (0x50)
 
-#define CMD_VEML6070_UVI                                        (0x50)
-#define CMD_VEML6070_UVA                                        (0x51)
+#define CMD_VEML6070_UVI                                        (0x51)
+#define CMD_VEML6070_UVA                                        (0x52)
 
-#define CMD_MAX6675_TEMPERATURE                                 (0x52)
-#define CMD_PCA9685_WRITE                                       (0x53)
+#define CMD_MAX6675_TEMPERATURE                                 (0x53)
+#define CMD_PCA9685_WRITE                                       (0x54)
 
-#define CMD_RELAY                                               (0x54)
-#define CMD_PULSE                                               (0x55)
+#define CMD_RELAY                                               (0x55)
+#define CMD_PULSE                                               (0x56)
 
-#define CMD_SERVO_TURN                                          (0x56)
+#define CMD_SERVO_TURN                                          (0x57)
 
-#define CMD_TSL2561_LIGHT                                       (0x57)
+#define CMD_TSL2561_LIGHT                                       (0x58)
 
-#define CMD_DFPLAYER_RUN                                        (0x58)
+#define CMD_DFPLAYER_RUN                                        (0x59)
 
-#define CMD_ADPS9960_AMBIENT                                    (0x59)
-#define CMD_ADPS9960_RED                                        (0x5A)
-#define CMD_ADPS9960_GREEN                                      (0x5B)
-#define CMD_ADPS9960_BLUE                                       (0x5C)
+#define CMD_ADPS9960_AMBIENT                                    (0x5A)
+#define CMD_ADPS9960_RED                                        (0x5B)
+#define CMD_ADPS9960_GREEN                                      (0x5C)
+#define CMD_ADPS9960_BLUE                                       (0x5D)
                                                                     
-#define CMD_PLANTOWER_PMSXX_ALL                                 (0x5D)
-#define CMD_PLANTOWER_PMSXX_FPM                                 (0x5E)
-#define CMD_PLANTOWER_PMSXX_EPM                                 (0x5F)
+#define CMD_PLANTOWER_PMSXX_ALL                                 (0x5E)
+#define CMD_PLANTOWER_PMSXX_FPM                                 (0x5F)
+#define CMD_PLANTOWER_PMSXX_EPM                                 (0x60)
 
-#define CMD_SGP30_CO2E                                          (0x60)
-#define CMD_SGP30_TVOC                                          (0x61)
+#define CMD_SGP30_CO2E                                          (0x61)
+#define CMD_SGP30_TVOC                                          (0x62)
 
-#define CMD_MLX90614_TEMPERATURE                                (0x62)
+#define CMD_MLX90614_TEMPERATURE                                (0x63)
 
-#define CMD_T67XX_I2C_CO2                                       (0x63)
+#define CMD_T67XX_I2C_CO2                                       (0x64)
 
-#define CMD_NOVA_SDS_ALL                                        (0x64)
-#define CMD_NOVA_SDS_EPM                                        (0x65)
+#define CMD_NOVA_SDS_ALL                                        (0x65)
+#define CMD_NOVA_SDS_EPM                                        (0x66)
 
-#define CMD_MB_RTU_FC03                                         (0x66)
+#define CMD_MB_RTU_FC03                                         (0x67)
 
-#define CMD_WCPM_UART_ALL                                       (0x67)
-#define CMD_WCPM_I2C_ALL                                        (0x68)
+#define CMD_WCPM_UART_ALL                                       (0x68)
+#define CMD_WCPM_I2C_ALL                                        (0x69)
 
-#define CMD_ZE08_CH2O                                           (0x69)
-#define CMD_ZE14_O3                                             (0x6A)
-#define CMD_ZP14_NG                                             (0x6B)
-#define CMD_ZE15_CO                                             (0x6C)
-#define CMD_ZE16_CO                                             (0x6D)
+#define CMD_ZE08_CH2O                                           (0x6A)
+#define CMD_ZE14_O3                                             (0x6B)
+#define CMD_ZP14_NG                                             (0x6C)
+#define CMD_ZE15_CO                                             (0x6D)
+#define CMD_ZE16_CO                                             (0x6E)
 
 // add new command as "const char command_<COMMAND_MACRO> PROGMEM". Only 'const' push string to PROGMEM.
 // command_* values must be in lower case due analyze sub convert all chars to lower
@@ -232,6 +233,7 @@ const char command_CMD_DS18X20_TEMPERATURE[]                    PROGMEM = "ds18x
 
 const char command_CMD_DHT_HUMIDITY[]                           PROGMEM = "dht.humidity";
 const char command_CMD_DHT_TEMPERATURE[]                        PROGMEM = "dht.temperature";
+const char command_CMD_DHT_ALL[]                                PROGMEM = "dht.all";
 
 const char command_CMD_BMP_PRESSURE[]                           PROGMEM = "bmp.pressure";
 const char command_CMD_BMP_TEMPERATURE[]                        PROGMEM = "bmp.temperature";
@@ -423,6 +425,7 @@ const command_t PROGMEM commands[] = {
 #ifdef FEATURE_DHT_ENABLE
     { CMD_DHT_HUMIDITY            , command_CMD_DHT_HUMIDITY},           
     { CMD_DHT_TEMPERATURE         , command_CMD_DHT_TEMPERATURE},        
+    { CMD_DHT_ALL                 , command_CMD_DHT_ALL},        
 #endif
 
 #ifdef FEATURE_BMP_ENABLE

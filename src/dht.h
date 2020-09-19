@@ -22,9 +22,9 @@ version 0.1.13 is used
 // so 100 us takes max 400 loops
 // so by dividing F_CPU by 40000 we "fail" as fast as possible
 #ifndef F_CPU
-  #define DHTLIB_TIMEOUT                                        (1000)  // ahould be approx. clock/40000
+  #define DHTLIB_TIMEOUT                                        (1000UL)  // ahould be approx. clock/40000
 #else
-  #define DHTLIB_TIMEOUT                                        (F_CPU/40000)
+  #define DHTLIB_TIMEOUT                                        (F_CPU/40000UL)
 #endif
 
 #define DHTLIB_DHT11_WAKEUP                                     (18)
@@ -35,7 +35,8 @@ version 0.1.13 is used
 *  Read specified metric's value of the AM/DHT sensor, put it to specified variable's address on success.
 *
 *  Returns: 
-*     - RESULT_IS_FLOAT_01_DIGIT    on success
+*     - RESULT_IS_BUFFERED          on success and SENS_READ_ALL metric specified
+*     - RESULT_IS_FLOAT_01_DIGIT    on success and single metric specified
 *     - DEVICE_ERROR_NOT_SUPPORTED  on wrong params specified
 *     - DEVICE_ERROR_TIMEOUT        on sensor stops answer to the request
 *     - DEVICE_ERROR_CHECKSUM       on detect data corruption
@@ -43,4 +44,5 @@ version 0.1.13 is used
 *     - DEVICE_ERROR_ACK_H
 *
 *****************************************************************************************************************************/
-int8_t getDHTMetric(const uint8_t, const uint8_t, const uint8_t, int32_t*);
+int8_t getDHTOneMetric(const uint8_t, const uint8_t, const uint8_t, int32_t*);
+int8_t getDHTAllMetric(const uint8_t, const uint8_t, char*, const uint16_t);
