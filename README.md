@@ -1,5 +1,10 @@
 # Zabbuino (ESP integration test)
 
+### 20-09-2020
+Segments probally done:
+- Servo, relay;
+- UART sensors sensors;
+
 ### 19-09-2020
 Segments probally done:
 - DHT/AM sensors;
@@ -9,11 +14,10 @@ Added new command:
 
 ### 18-09-2020
 Segments probally done:
-
 - Network (alpha release mode ;)
 - Generic Arduino commands wraps;
 - EEPROM (configure stuff);
-- I2C;
+- I2C sensors;
 - OneWire (Maxim Dallas protocol)
 
 Added new command:

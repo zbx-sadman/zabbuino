@@ -203,7 +203,7 @@
 //       - PCF8574.LCDPrint[]
 //
 //
-#define FEATURE_PCF8574_LCD_ENABLE
+//#define FEATURE_PCF8574_LCD_ENABLE
 
 //
 //     Enable Sensirion SHT2x sensors handling and commands:
@@ -358,7 +358,7 @@
 //       - DHT.Humidity[];
 //       - DHT.Temperature[]
 //
-#define FEATURE_DHT_ENABLE
+//#define FEATURE_DHT_ENABLE
 
 /****       Ultrasonic    ****/
 
@@ -417,7 +417,7 @@
 //     Enable digital Servo's (like SG-90) support and command:
 //       - Servo.turn[]
 //
-//#define FEATURE_SERVO_ENABLE
+#define FEATURE_SERVO_ENABLE
 
 //
 //     Enable various turn on / turn off tricks support and command:

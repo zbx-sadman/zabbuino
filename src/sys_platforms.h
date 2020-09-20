@@ -1,13 +1,61 @@
 #pragma once
 
 #if defined (ARDUINO_ARCH_ESP8266) 
-    #define _CPU_NAME_ "ESP8266"
-    #if defined(ARDUINO_ESP8266_WEMOS_D1MINI)
+    #define _CPU_NAME_ "ESP8266EX"
+    #if defined(ARDUINO_ESP8266_GENERIC)
+        #define BOARD "Generic ESP8266 Module"
+    #elif defined(ARDUINO_ESP8266_ESP01)
+        #define BOARD "Generic ESP8285 Module"
+    #elif defined(ARDUINO_ESP8266_ESP13)
+        #define BOARD "ESPDuino / "
+    #elif defined(ARDUINO_ESP8266_ESP12)
+        #define BOARD "Adafruit Feather HUZZAH"
+    #elif defined(ARDUINO_ESP8266_ESPRESSO_LITE_V1)
+        #define BOARD "ESPresso Lite 1.0"
+    #elif defined(ARDUINO_ESP8266_ESPRESSO_LITE_V2)
+        #define BOARD "ESPresso Lite 2.0"
+    #elif defined(ARDUINO_ESP8266_PHOENIX_V1)
+        #define BOARD "Phoenix 1.0"
+    #elif defined(ARDUINO_ESP8266_PHOENIX_V2)
+        #define BOARD "Phoenix 2.0"
+    #elif defined(ARDUINO_ESP8266_NODEMCU)
+        #define BOARD "NodeMCU"
+    #elif defined(ARDUINO_MOD_WIFI_ESP8266)
+        #define BOARD "Olimex MOD-WIFI-ESP8266"
+    #elif defined(ARDUINO_ESP8266_THING)
+        #define BOARD "SparkFun ESP8266 Thing"
+    #elif defined(ARDUINO_ESP8266_THING_DEV)
+        #define BOARD "SparkFun ESP8266 Thing Dev"
+    #elif defined(ARDUINO_ESP8266_ESP210)
+        #define BOARD "SweetPea ESP-210"
+    #elif defined(ARDUINO_ESP8266_WEMOS_D1MINI)
         #define BOARD "Wemos D1 MINI"
+    #elif defined(ARDUINO_ESP8266_WEMOS_D1MINIPRO)
+        #define BOARD "Wemos D1 MINI Pro"
     #elif defined(ARDUINO_ESP8266_WEMOS_D1MINILITE)
         #define BOARD "Wemos D1 MINI Lite"
     #elif defined(ARDUINO_ESP8266_WEMOS_D1R1) 
         #define BOARD "Wemos D1 R1"
+    #elif defined(ARDUINO_WIFINFO)
+        #define BOARD "WifInfo"
+    #elif defined(ARDUINO_ESP8266_ARDUINO)
+        #define BOARD "Arduino (ESP8266)"
+    #elif defined(ARDUINO_GEN4_IOD)
+        #define BOARD "4D Systems gen4 IoD Range"
+    #elif defined(ARDUINO_ESP8266_OAK)
+        #define BOARD "Digistump Oak"
+    #elif defined(ARDUINO_WIFIDUINO_ESP8266)
+        #define BOARD "WiFiduino"
+    #elif defined(ARDUINO_AMPERKA_WIFI_SLOT)
+        #define BOARD "Amperka WiFi Slot"
+    #elif defined(ARDUINO_ESP8266_WIO_LINK)
+        #define BOARD "Seeed Wio Link"
+    #elif defined(ARDUINO_ESP8266_ESPECTRO_CORE)
+        #define BOARD "ESPectro Core"
+    #elif defined(ARDUINO_ESP8266_SCHIRMILABS_EDUINO_WIFI)
+        #define BOARD "Schirmilabs Eduino WiFi"
+    #elif defined(ARDUINO_ESP8266_SONOFF_SV)
+        #define BOARD "ITEAD Sonoff"
     #endif
 
 #elif defined (ARDUINO_ARCH_ESP32) 

@@ -4,10 +4,6 @@
                                                               SYSTEM HEADERS SECTION
 */
 
-#include <Arduino.h>
-#include <IPAddress.h>
-#include <SoftwareSerial.h>
-
 #include <time.h>
 
 #if defined(ARDUINO_ARCH_AVR)
@@ -27,7 +23,6 @@
 #include "sys_includes.h"
 
 #include "wrap_network.h"
-#include "wrap_i2c.h"
 #include "sys_commands.h"
 #include "sys_platforms.h"
 
@@ -64,7 +59,6 @@
 #include "ow_bus.h"
 #include "ow_sensors.h"
 
-/*
 // UART connected devices 
 #include "uart_bus.h"
 #include "uart_apcsmart.h"
@@ -76,11 +70,14 @@
 #include "uart_winsen.h"
 
 // SPI-compatible devices 
+/*
 #include "spi_bus.h"
 #include "spi_max6675.h"
 */
 // Other devices //
+#include "actuators.h"
 #include "dht.h"
+
 /*
 #include "ir.h"
 #include "interrupts.h"
@@ -88,7 +85,6 @@
 #include "ultrasonic.h"
 #include "shiftout.h"
 #include "microwire_bus.h"
-#include "actuators.h"
 #include "modbus.h"
 */
 
