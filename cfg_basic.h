@@ -364,7 +364,7 @@
 //     Enable HC-SR04 sensor and command:
 //       - Ultrasonic.Distance[];
 //
-//#define FEATURE_ULTRASONIC_ENABLE
+#define FEATURE_ULTRASONIC_ENABLE
 
 /****       InfraRed transmitters emulation    ****/
 //
@@ -399,7 +399,7 @@
 //     Enable MAX6675 support and command:
 //       - MAX6675.temperature[]
 //
-//#define FEATURE_MAX6675_ENABLE
+#define FEATURE_MAX6675_ENABLE
 
 
 //
@@ -475,8 +475,9 @@
 //        - set.localtime[]
 //        - system.localtime[]
 //
-//      Refer to SYSTEM HARDWARE SECTION in src\tune.h
+//      Refer to SYSTEM HARDWARE SECTION in src/cfg_tune.h
 //
+// !!!! Currently available on AVR only
 //#define FEATURE_SYSTEM_RTC_DS3231_ENABLE
 //#define FEATURE_SYSTEM_RTC_PCF8563_ENABLE
 
@@ -573,12 +574,12 @@ const uint32_t constSysDefaultPassword                         = 0x00;
 #if defined(ARDUINO_ARCH_AVR)
 const uint8_t constUserFunctionButtonPin                       = 0x08;
 const uint8_t constUserFunctionButtonActiveState               = LOW;
-#elif defined(ARDUINO_ARCH_ESP8266)                         
+#elif defined(ARDUINO_ARCH_ESP8266)
 const uint8_t constUserFunctionButtonPin                       = D7;
 const uint8_t constUserFunctionButtonActiveState               = LOW;
-#endif                                                      
-                                                            
-// 5000 ms                                                  
+#endif
+
+// 5000 ms
 const uint32_t constUserFunctionButtonDebounceTime             = 5000;
 
 //

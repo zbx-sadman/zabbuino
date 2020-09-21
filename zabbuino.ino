@@ -143,7 +143,9 @@ void loop() {
 #endif // FEATURE_NET_DHCP_FORCE
 
 #if defined(FEATURE_SYSTEM_RTC_ENABLE)
+#if defined(ARDUINO_ARCH_AVR)
   set_zone(sysConfig.tzOffset);
+#endif // ARDUINO_ARCH_AVR
 #endif
 
   // 4. Network initialization and starting
@@ -573,7 +575,7 @@ static int16_t executeCommand(Stream& _netClient, netconfig_t& _sysConfig, reque
 #ifdef FEATURE_SYSTEM_RTC_ENABLE
         // Just rewrite millises uptime by another, which taken from system RTC
         if (0x00 != sysMetrics.sysStartTimestamp) {
-          SoftTWI.reconfigure(constSystemRtcSDAPin, constSystemRtcSCLPin);
+          SoftTWI.begin(constSystemRtcSDAPin, constSystemRtcSCLPin);
           if (getUnixTime(&SoftTWI, (uint32_t*) &value)) {
             value = value - sysMetrics.sysStartTimestamp;
           }
@@ -1028,6 +1030,7 @@ static int16_t executeCommand(Stream& _netClient, netconfig_t& _sysConfig, reque
         }
         uint8_t success = true;
 #ifdef FEATURE_EEPROM_ENABLE
+#if defined(ARDUINO_ARCH_AVR)
         // tzOffset is defined?
         if (_request.args[0x02]) {
           _sysConfig.tzOffset = (int16_t) _request.argv[0x02];
@@ -1038,6 +1041,7 @@ static int16_t executeCommand(Stream& _netClient, netconfig_t& _sysConfig, reque
             rc = RESULT_IS_OK;
           }
         }
+#endif // ARDUINO_ARCH_AVR
 #endif // FEATURE_EEPROM_ENABLE
 
         // unixTimestamp option is given?

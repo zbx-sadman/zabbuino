@@ -63,13 +63,12 @@ int8_t getT67XXMetric(SoftwareTWI* _softTWI, uint8_t _i2cAddress, const uint8_t 
 
   if (RESULT_IS_OK != rc) { goto finish; }
 
-  rawValue = ((uint16_t) rawData[T67XX_I2C_FIELD_DATA_MSB] << 8) | rawData[T67XX_I2C_FIELD_DATA_LSB];
+  rawValue = ((uint16_t) rawData[T67XX_I2C_FIELD_DATA_MSB] << 0x08) | rawData[T67XX_I2C_FIELD_DATA_LSB];
 
   if (T67XX_MASK_STATUS_ERROR_FLASH & rawValue) { rc = DEVICE_ERROR_EEPROM_CORRUPTED; goto finish; }
 
   if (T67XX_MASK_STATUS_OK != rawValue) { rawValue = T67XX_PREHEAT_GAS_CONCENTRATION; goto printOut; }
 
-  //Serial.print("Status: B"); Serial.println(rawValue, BIN);
 
   // Take PPM
 
@@ -82,11 +81,8 @@ int8_t getT67XXMetric(SoftwareTWI* _softTWI, uint8_t _i2cAddress, const uint8_t 
 
   if (RESULT_IS_OK != rc) { goto finish; }
 
-  //Serial.println("* 4");
+  rawValue = ((uint16_t) rawData[T67XX_I2C_FIELD_DATA_MSB] << 0x08) | rawData[T67XX_I2C_FIELD_DATA_LSB];
 
-  rawValue = ((uint16_t) rawData[T67XX_I2C_FIELD_DATA_MSB] << 8) | rawData[T67XX_I2C_FIELD_DATA_LSB];
-
-  //Serial.print("rawValue: "); Serial.println(rawValue);
 
 printOut:
 
@@ -94,7 +90,6 @@ printOut:
   *_value = rawValue;
 
 finish:
-
 
   return rc;
 }

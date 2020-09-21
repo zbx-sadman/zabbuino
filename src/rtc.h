@@ -1,86 +1,85 @@
 #pragma once
 
-// How long the ID of MCU (in bytes)
-#if defined(ARDUINO_ARCH_AVR)
-  // variable type used with portOutputRegister/portInputRegister/portModeRegister 
-  #define ioRegister_t uint8_t
-  const uint8_t constMcuIdSize                                    = 0x0A;
-  const uint8_t constMcuIdStartAddress                            = 0x0E;
-#elif defined(ARDUINO_ARCH_ESP8266)
-  // variable type used with portOutputRegister/portInputRegister/portModeRegister 
-  #define ioRegister_t uint32_t
-  #define _delay_ms(ms) delayMicroseconds((ms) * 1000UL)
-  const uint8_t constMcuIdSize                                    = 0x04;
-#endif //#if defined(ARDUINO_ARCH_AVR)
+#include "i2c_bus.h"
 
 /*****************************************************************************************************************************
 *
-*  Reset the system
+*   Convert the number from uint8_t to BCD format
 *
 *   Returns: 
-*     - none
+*     - BCD value
 *
 *****************************************************************************************************************************/
-void systemReboot();
+uint8_t Uint8ToBcd(const uint8_t);
 
 /*****************************************************************************************************************************
 *
-*  Read bytes from the MCU's Signature Row and put its to array
+*   Convert the number from BCD format to uint8_t
 *
 *   Returns: 
-*     - none
+*     - unit8_t value
 *
 *****************************************************************************************************************************/
-void getMcuId(uint8_t* _dst);
-void getMcuModel(uint8_t* _dst);
-uint32_t getMcuFreq();
-/*****************************************************************************************************************************
-*
-*  Init Timer1 
-*
-*   Returns: 
-*     - always true at this time
-*
-*****************************************************************************************************************************/
-uint8_t initTimerOne(const uint32_t);
+uint8_t BcdToUint8(const uint8_t);
 
 /*****************************************************************************************************************************
 *
-*  Start Timer1
+*   Init RTC 
 *
 *   Returns: 
-*     - none
+*     - RESULT_IS_OK         on success
+*     - RESULT_IS_FAIL       on write error
 *
 *****************************************************************************************************************************/
-void startTimerOne(void);
-
-
-/*****************************************************************************************************************************
-*
-*  Handle Timer1 interrupt 
-*
-*   Returns: 
-*     - none
-*
-*****************************************************************************************************************************/
-//ISR(TIMER1_COMPA_vect);
+int8_t initRTC(SoftwareTWI*);
 
 /*****************************************************************************************************************************
 *
-*  Stop Timer1
+*   Set UTC time using Y2K timestamp
 *
 *   Returns: 
-*     - none
+*     - RESULT_IS_OK         on success
+*     - RESULT_IS_FAIL       on write error
+*     - DEVICE_ERROR_CONNECT on connection error
 *
 *****************************************************************************************************************************/
-void stopTimerOne(void);
+int8_t setY2KTime(SoftwareTWI*, const time_t);
 
 /*****************************************************************************************************************************
 *
-*  Gather internal metrics and save it to global variable
+*   Get UTC time as Y2K timestamp
 *
 *   Returns: 
-*     - none
+*     - RESULT_IS_OK         on success
+*     - RESULT_IS_FAIL       on read error
+*     - DEVICE_ERROR_CONNECT on connection error
+*     - actual timestamp returns in _Y2KTimestamp
 *
 *****************************************************************************************************************************/
-void gatherSystemMetrics(void);
+int8_t getY2KTime(SoftwareTWI*, time_t*);
+
+/*****************************************************************************************************************************
+*
+*   Set UTC time using Unix timestamp
+*
+*   Returns: 
+*     - RESULT_IS_OK         on success
+*     - RESULT_IS_FAIL       on write error
+*     - DEVICE_ERROR_CONNECT on connection error
+*
+*****************************************************************************************************************************/
+int8_t setUnixTime(SoftwareTWI*, const uint32_t);
+
+/*****************************************************************************************************************************
+*
+*   Get UTC time as Unix timestamp
+*
+*   Returns: 
+*     - RESULT_IS_OK         on success
+*     - RESULT_IS_FAIL       on read error
+*     - DEVICE_ERROR_CONNECT on connection error
+*     - actual timestamp returns in _unixTimestamp 
+*
+*****************************************************************************************************************************/
+int8_t getUnixTime(SoftwareTWI*, uint32_t*);
+

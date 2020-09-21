@@ -30,7 +30,7 @@
 #include "adc.h"
 #include "eeprom.h"
 #include "io_regs.h"
-//#include "rtc.h"
+#include "rtc.h"
 #include "system.h"
 #include "service.h"
 
@@ -43,9 +43,9 @@
 #include "i2c_lcd.h"
 #include "i2c_sht.h"
 #include "i2c_bmp.h"
-//#include "i2c_ds3231.h"
+#include "i2c_ds3231.h"
 #include "i2c_pca9685.h"
-//#include "i2c_pcf8563.h"
+#include "i2c_pcf8563.h"
 #include "i2c_at24cxx.h"
 #include "i2c_max44009.h"
 #include "i2c_veml6070.h"
@@ -70,21 +70,20 @@
 #include "uart_winsen.h"
 
 // SPI-compatible devices 
-/*
 #include "spi_bus.h"
 #include "spi_max6675.h"
-*/
+
 // Other devices //
 #include "actuators.h"
 #include "dht.h"
+#include "microwire_bus.h"
+#include "ultrasonic.h"
 
 /*
 #include "ir.h"
 #include "interrupts.h"
 #include "mh_zxx.h"
-#include "ultrasonic.h"
 #include "shiftout.h"
-#include "microwire_bus.h"
 #include "modbus.h"
 */
 
