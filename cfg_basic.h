@@ -95,7 +95,7 @@
 //      Enable command:
 //        - ShiftOut[]
 //
-//#define FEATURE_SHIFTOUT_ENABLE
+#define FEATURE_SHIFTOUT_ENABLE
 
 /****       Interrupts related   ****/
 
@@ -391,6 +391,7 @@
 //     Enable WS2812 led chip support and command:
 //       - ws2812.sendraw[]
 //
+// !!!! Currently available on AVR only
 //#define FEATURE_WS2812_ENABLE
 
 

@@ -78,12 +78,12 @@
 #include "dht.h"
 #include "microwire_bus.h"
 #include "ultrasonic.h"
+#include "shiftout.h"
 
 /*
 #include "ir.h"
 #include "interrupts.h"
 #include "mh_zxx.h"
-#include "shiftout.h"
 #include "modbus.h"
 */
 
