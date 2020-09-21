@@ -3,6 +3,7 @@
 ### 21-09-2020
 Segments probally done:
  - Software SPI stuff and sensors handling;
+ - Shiftout feature (w/o pixel leds support).
 
 Changed:
  - "Factory reset button" is "User function button" now.
