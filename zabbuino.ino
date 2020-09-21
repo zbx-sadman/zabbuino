@@ -37,6 +37,8 @@ void setup() {
   sysMetrics.sysVCCMin = sysMetrics.sysVCCMax = 0x00;//getADCVoltage(ANALOG_CHAN_VBG);
   sysMetrics.sysRamFree = sysMetrics.sysRamFreeMin = getRamFree();
   pinMode(constStateLedPin, OUTPUT);
+  pinMode(constUserFunctionButtonPin, INPUT_PULLUP);
+
   /*
     Serial.println(ESP.getChipId(), HEX);
     Serial.println(ESP.getCoreVersion());
@@ -59,8 +61,12 @@ void setup() {
 void loop() {
   uint8_t result = 0x00, needNetworkRelaunch = true, errorCode = ERROR_NONE;
   char incomingData;
-  //uint16_t blinkType = constBlinkNope;
   uint32_t processStartTime, processEndTime, prevPHYCheckTime, prevNetActivityTime, prevSysMetricGatherTime, clientConnectTime, netDebugPrintTime;
+
+#if defined(FEATURE_USER_FUNCTION_PROCESSING)
+  uint8_t  userFunctionButtonStatePrev;
+  uint32_t userFunctionButtonChangeStateTime = 0x00, prevUserFuncCallTime = 0x00;
+#endif
 
   request_t request;
   request.type = PACKET_TYPE_NONE;
@@ -70,7 +76,6 @@ void loop() {
   NetworkClient netClient;
   NetworkServer netServer(constZbxAgentTcpPort);
 
-  __USER_FUNCTION( uint32_t prevUserFuncCall = 0x00; )
 
   // 0. Init some libs to make system screen works if it enabled
 #ifdef TWI_USE
@@ -98,7 +103,7 @@ void loop() {
   // 1. Factory reset block
 #ifdef FEATURE_EEPROM_ENABLE
   // factoryReset() return false on EEPROM saving fail or not executed
-  factoryReset(sysConfig);
+  factoryReset(constUserFunctionButtonPin, constUserFunctionButtonActiveState, sysConfig);
 #endif // FEATURE_EEPROM_ENABLE
 
   // 2. Load configuration from EEPROM
@@ -208,11 +213,29 @@ void loop() {
   __USER_FUNCTION( preLoopStageUserFunction(request.payloadByte); )
 
   parseRequest(CHAR_NULL, REINIT_ANALYZER, request);
+  userFunctionButtonStatePrev = (constUserFunctionButtonActiveState == digitalRead(constUserFunctionButtonPin));
 
   while (true) {
     // reset watchdog every loop
     __WATCHDOG( wdt_reset(); )
     yield();
+
+
+#if defined(FEATURE_USER_FUNCTION_PROCESSING)
+    // System Button pressing on runttime
+    uint8_t userFunctionButtonState = (constUserFunctionButtonActiveState == digitalRead(constUserFunctionButtonPin));
+    if (userFunctionButtonState != userFunctionButtonStatePrev) {
+      userFunctionButtonStatePrev = userFunctionButtonState;
+      // Cancel "wait for debounce"
+      userFunctionButtonChangeStateTime = userFunctionButtonChangeStateTime ? 0x00 : millis();
+    }
+
+    if (userFunctionButtonChangeStateTime && (millis() - userFunctionButtonChangeStateTime > constUserFunctionButtonDebounceTime)) {
+      userFunctionButtonState ? userFunctionButtonActivate(request.payloadByte) : userFunctionButtonDeactivate(request.payloadByte);
+      userFunctionButtonChangeStateTime = 0x00;
+    }
+#endif
+
 
     // Gather internal metrics periodically
     if ((millis() - prevSysMetricGatherTime) > constSysMetricGatherPeriod) {
@@ -341,12 +364,12 @@ void loop() {
         if (!netClient) {
           // Call "loop stage" user function screen every constRenewSystemDisplayInterval only if no connection exist, because that function can modify cBuffer content
           // and recieved data can be corrupted
-          __USER_FUNCTION(
-          if (constUserFunctionCallInterval <= (uint32_t) (millis() - prevUserFuncCall)) {
-          loopStageUserFunction(request.payloadByte);
-            prevUserFuncCall = millis();
+#if defined(FEATURE_USER_FUNCTION_PROCESSING)
+          if (constUserFunctionCallInterval <= (uint32_t) (millis() - prevUserFuncCallTime)) {
+            loopStageUserFunction(request.payloadByte);
+            prevUserFuncCallTime = millis();
           }
-          )
+#endif
           // Jump to new round of main loop
           continue;
         }
@@ -1832,7 +1855,6 @@ static int16_t executeCommand(Stream& _netClient, netconfig_t& _sysConfig, reque
         goto finish;
       }
 #endif // FEATURE_TSL2561_ENABLE
-
 
 #ifdef FEATURE_ADPS9960_ENABLE
     // !!! IR Led not used for ALS conversion

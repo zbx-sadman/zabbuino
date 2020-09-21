@@ -198,4 +198,4 @@
 *    - DEVICE_ERROR_CONNECT        on connection error
 *
 *****************************************************************************************************************************/
-int8_t getTSL2561Metric(SoftwareTWI*, uint8_t, const uint16_t, const uint8_t, const uint8_t, uint32_t*);
+int8_t getTSL2561Metric(SoftwareTWI*, uint8_t, const uint16_t, const uint8_t, const uint8_t, int32_t*);

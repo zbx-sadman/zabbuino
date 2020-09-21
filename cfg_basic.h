@@ -62,7 +62,7 @@
 //            You need try to read it before use for network addresses generating.
 //            Using only 3 last bytes not guarantee making unique MAC or IP.
 //
-#define FEATURE_NET_USE_MCUID
+//#define FEATURE_NET_USE_MCUID
 
 /****       Arduino wrappers     ****/
 
@@ -74,7 +74,7 @@
 //        - delay[]
 //
 //
-#define FEATURE_ARDUINO_BASIC_ENABLE
+//#define FEATURE_ARDUINO_BASIC_ENABLE
 
 //
 //      Enable commands:
@@ -122,7 +122,6 @@
 //     Enable Dallas DS18x20 sensors handling and command:
 //       - DS18x20.Temperature[]
 //
-
 //#define FEATURE_DS18X20_ENABLE
 
 /****       I2C bus        ****/
@@ -136,7 +135,7 @@
 //       - I2C.BitRead[]
 //
 //
-#define FEATURE_I2C_ENABLE
+//#define FEATURE_I2C_ENABLE
 
 //
 //     Enable BOSCH BMP180 sensors handling and commands:
@@ -276,14 +275,6 @@
 //#define FEATURE_PZEM004_ENABLE
 
 //
-//     Enable MH-Zxx family PWM/UART protocol support and command:
-//       - mhzxx.pwm.co2[]
-//       - mhzxx.uart.co2[]
-//
-//#define FEATURE_MHZXX_PWM_ENABLE
-//#define FEATURE_MHZXX_UART_ENABLE
-
-//
 //     Enable DFPlayer Mini support and command:
 //       - DFPlayer.run[]
 //
@@ -328,28 +319,34 @@
 //
 //#define FEATURE_WUHAN_CUBIC_PM_UART_ENABLE
 
+/****       UART bus / Winsen sensors    ****/
 //
-//     Enable Winsen ZE08-CH2O sensor support and command:
+//     Enable MH-Zxx family PWM/UART protocol support and command:
+//       - mhzxx.pwm.co2[]
+//       - mhzxx.uart.co2[]
+//
+//#define FEATURE_MHZXX_PWM_ENABLE
+//#define FEATURE_MHZXX_UART_ENABLE
+
+//     Enable Winsen sensor:
+// - ZE08-CH2O
+// - ZE14-O3 (ZE25-O3, ZE25-O3);
+// - ZP14 (Natural gas / Combustible Gas);
+// - ZE15-CO;
+// - ZE16-CO;
+//  support and commands:
 //       - ze08.ch2o[]
-//
-//#define FEATURE_WINSEN_ZE08_CH2O_ENABLE
-
-//     Enable Winsen ZE14-O3(ZE25-O3, ZE25-O3) sensor support and command:
 //       - ze14.o3[]
-//
-//#define FEATURE_WINSEN_ZE14_O3_ENABLE
-
-//     Enable Winsen ZP14 (Natural gas / Combustible Gas) sensor support and command:
 //       - zp14.ng[]
-//
-//#define FEATURE_WINSEN_ZP14_ENABLE
-
-//     Enable Winsen ZE15-CO, ZE16-CO, sensor support and command:
 //       - ze15.co[]
 //       - ze16.co[]
 //
-//#define FEATURE_WINSEN_ZE15_CO_ENABLE
-//#define FEATURE_WINSEN_ZE16_CO_ENABLE
+#define FEATURE_WINSEN_ZE08_CH2O_ENABLE
+#define FEATURE_WINSEN_ZE14_O3_ENABLE
+#define FEATURE_WINSEN_ZP14_ENABLE
+#define FEATURE_WINSEN_ZE15_CO_ENABLE
+#define FEATURE_WINSEN_ZE16_CO_ENABLE
+
 
 /****       DHT/AM family    ****/
 
@@ -357,6 +354,7 @@
 //     Enable DHT/AM humidity sensors handling and commands:
 //       - DHT.Humidity[];
 //       - DHT.Temperature[]
+//       - DHT.All[]
 //
 //#define FEATURE_DHT_ENABLE
 
@@ -367,15 +365,6 @@
 //       - Ultrasonic.Distance[];
 //
 //#define FEATURE_ULTRASONIC_ENABLE
-
-/****       ACS7XX family    ****/
-
-//
-//     Enable Allegro ACS7XX current sensor and commands:
-//       - ACS7XX.ZC[];
-//       - ACS7XX.AC[]
-//
-//#define FEATURE_ACS7XX_ENABLE
 
 /****       InfraRed transmitters emulation    ****/
 //
@@ -417,7 +406,7 @@
 //     Enable digital Servo's (like SG-90) support and command:
 //       - Servo.turn[]
 //
-#define FEATURE_SERVO_ENABLE
+//#define FEATURE_SERVO_ENABLE
 
 //
 //     Enable various turn on / turn off tricks support and command:
@@ -431,7 +420,7 @@
 //      Enable calling user functions on device start and every _constUserFunctionCallInterval_ if no active network session exist
 //      You can write to _plugin.ino_ your own code and use all Zabbuino's internal functions to query sensors and handle actuators
 //
-//#define FEATURE_USER_FUNCTION_PROCESSING
+#define FEATURE_USER_FUNCTION_PROCESSING
 
 //
 //      Support Zabbix's Action functionality and enable command:
@@ -497,7 +486,7 @@
 #define FEATURE_DEBUG_MESSAGING_LEVEL     2
 
 //    Various runtime info for development needs
-//#define FEATURE_DEBUG_TO_SERIAL_DEV
+#define FEATURE_DEBUG_TO_SERIAL_DEV
 
 //
 //     Recieve command from Serial Monitor too. Do not forget to enable one of FEATURE_DEBUG_TO_SERIAL_* macro
@@ -582,12 +571,15 @@ const uint32_t constSysDefaultPassword                         = 0x00;
 
 // Digital pin which must shorted on the GND for constHoldTimeToFactoryReset time to copy default system setting into EEPROM
 #if defined(ARDUINO_ARCH_AVR)
-const uint8_t constFactoryResetButtonPin                       = 0x08;
-const uint8_t constFactoryResetButtonActive                    = LOW;
-#elif defined(ARDUINO_ARCH_ESP8266)
-const uint8_t constFactoryResetButtonPin                       = D7;
-const uint8_t constFactoryResetButtonActive                    = LOW;
-#endif
+const uint8_t constUserFunctionButtonPin                       = 0x08;
+const uint8_t constUserFunctionButtonActiveState               = LOW;
+#elif defined(ARDUINO_ARCH_ESP8266)                         
+const uint8_t constUserFunctionButtonPin                       = D7;
+const uint8_t constUserFunctionButtonActiveState               = LOW;
+#endif                                                      
+                                                            
+// 5000 ms                                                  
+const uint32_t constUserFunctionButtonDebounceTime             = 5000;
 
 //
 const uint16_t constSysTZOffset                                = 0x2A30; // 10800 sec, 3h;

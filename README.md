@@ -1,5 +1,14 @@
 # Zabbuino (ESP integration test)
 
+### 21-09-2020
+Changed:
+ - "Factory reset button" is "User function button" now.
+
+Added new feature:
+ - Two new user-level function added: userFunctionButtonActivate() & userFunctionButtonDeactivate(). They are called when "User function button" stay in some state (on/off) for constUserFunctionButtonDebounceTime.
+
+For example, you can use userFunctionButtonActivate() to system factory reset on ESP2866 based device like Sonoff TH10/TH16, which have onboard button connected to GPIO0 (GPIO0 can't be used to factory reset on boot stage);
+
 ### 20-09-2020
 Segments probally done:
 - Servo, relay;

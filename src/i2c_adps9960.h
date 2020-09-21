@@ -89,4 +89,4 @@
 *    - DEVICE_ERROR_CONNECT        on connection error
 *
 *****************************************************************************************************************************/
-int8_t getADPS9960Metric(SoftwareTWI* _softTWI, uint8_t _i2cAddress, uint16_t _integrationTime, uint8_t _gain, uint8_t _ledDrive, const uint8_t _metric, uint32_t* _value);
+int8_t getADPS9960Metric(SoftwareTWI* _softTWI, uint8_t _i2cAddress, uint16_t _integrationTime, uint8_t _gain, uint8_t _ledDrive, const uint8_t _metric, int32_t* _value);

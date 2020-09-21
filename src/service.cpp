@@ -40,21 +40,20 @@ uint8_t flushStreamRXBuffer(Stream* _stream, const uint32_t _timeout, const uint
 *   
 *
 *****************************************************************************************************************************/
-uint8_t factoryReset(netconfig_t& _sysConfig) {
+uint8_t factoryReset(uint8_t _buttonPin, uint8_t _buttonState, netconfig_t& _sysConfig) {
   uint8_t rc = false;
    // Factory reset button pin must be shorted to ground to action start
-   pinMode(constFactoryResetButtonPin, INPUT_PULLUP);
    digitalWrite(constStateLedPin, !constStateLedOn);
 
    // Is constFactoryResetButtonPin shorted?
-   if (LOW == digitalRead(constFactoryResetButtonPin)) {
+   if (_buttonState == digitalRead(_buttonPin)) {
       __DMLL( FSH_P((STRING_The_factory_reset_button_is_pressed)); )
       // Fire up state LED
       digitalWrite(constStateLedPin, constStateLedOn);
       // Wait some msecs
       delay(constHoldTimeToFactoryReset);
       // constFactoryResetButtonPin still shorted?
-      if (constFactoryResetButtonActive == digitalRead(constFactoryResetButtonPin)) {
+      if (_buttonState == digitalRead(_buttonPin)) {
          __DMLL( DEBUG_PORT.print(FSH_P(STRING_Rewrite_EEPROM_with_defaults)); DEBUG_PORT.print(FSH_P(STRING_3xDot_Space)); )
 #if defined(ARDUINO_ARCH_ESP8266) && defined(NETWORK_WIRELESS_ESP_NATIVE)
         setWifiDefaults();
@@ -66,7 +65,7 @@ uint8_t factoryReset(netconfig_t& _sysConfig) {
 
          // Blink fast while constFactoryResetButtonPin shorted to GND
          __DMLL( DEBUG_PORT.println(FSH_P(STRING_Release_the_factory_reset_button_now)); )
-         while (constFactoryResetButtonActive == digitalRead(constFactoryResetButtonPin)) { yield(); digitalWrite(constStateLedPin, (millis() % 100 < 50) ? constStateLedOn : !constStateLedOn); }
+         while (_buttonState == digitalRead(_buttonPin)) { yield(); digitalWrite(constStateLedPin, (millis() % 100 < 50) ? constStateLedOn : !constStateLedOn); }
       }
   } // if (LOW == digitalRead(constFactoryResetButtonPin))
 
