@@ -73,8 +73,9 @@ int8_t getDHTMetric(const uint8_t _pin, const uint8_t _sensorModel, const uint8_
   if ((_pin != lastPin) || (0 == waitTime)) {}
   */
 
-  uint8_t bit = digitalPinToBitMask(_pin);
-  uint8_t port = digitalPinToPort(_pin);
+  ioRegister_t bit  = digitalPinToBitMask(_pin);
+  ioRegister_t port = digitalPinToPort(_pin);
+
   volatile ioRegister_t *PIR = portInputRegister(port);
 
    switch (_sensorModel) {

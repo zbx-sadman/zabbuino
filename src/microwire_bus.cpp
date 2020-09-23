@@ -51,7 +51,7 @@ static void pushDataToMAX7219(const uint8_t spiType, volatile ioRegister_t* _mos
 void writeToMAX7219(const uint8_t _mosiPin, const uint8_t _sclkPin, const uint8_t _loadPin, const uint8_t _intensity, uint8_t* _src) {
   uint8_t dataSize = 0x00, spiType = SPI_TYPE_SOFTWARE;
 
-  uint8_t mosiPinBit = 0x00, sclkPinBit = 0x00, loadPinBit = 0x00;
+  ioRegister_t mosiPinBit = 0x00, sclkPinBit = 0x00, loadPinBit = 0x00;
   volatile ioRegister_t *mosiPinPOR = nullptr, *sclkPinPOR = nullptr, *loadPinPOR = nullptr;
 
 #if defined(ARDUINO_ARCH_AVR)

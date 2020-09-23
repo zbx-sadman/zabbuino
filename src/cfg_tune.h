@@ -102,7 +102,7 @@
 #endif
 
 // Need to use init Interrupt stuff if any interrupt related feature enabled
-#if defined(FEATURE_EXTERNAL_INTERRUPT_ENABLE) || defined(FEATURE_INCREMENTAL_ENCODER_ENABLE)
+#if (defined(FEATURE_EXTERNAL_INTERRUPT_ENABLE) || defined(FEATURE_INCREMENTAL_ENCODER_ENABLE)) && defined(ARDUINO_ARCH_AVR)
    #define INTERRUPT_USE
 #endif
 

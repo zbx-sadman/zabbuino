@@ -104,18 +104,23 @@ void getMcuModel(uint8_t* _dst) {
 *****************************************************************************************************************************/
 uint8_t initTimerOne(const uint32_t _milliseconds) 
 {
+#if defined(ARDUINO_ARCH_AVR)
+  TCCR1B = _BV(CS12) | _BV(CS10); 
   // Don't allow more that 5 sec to avoid overflow on 16Mhz with prescaler 1024 
-  //if ((1000 > _milliseconds) && (5000 < _milliseconds)) { return false; }
+  if ((1000 > _milliseconds) && (5000 < _milliseconds)) { return false; }
   // Clear control register A 
-  //TCCR1A = 0;                 
+  TCCR1A = 0;                 
   // Set  prescaler
-  //TCCR1B =  _BV(CS12) | _BV(CS10);
+  TCCR1B =  _BV(CS12) | _BV(CS10);
   // Allow to do interrupt on counter overflow
-  //TIMSK1 |= _BV(OCIE1A); 
+  TIMSK1 |= _BV(OCIE1A); 
   // Set boundary
   // It is good practice to set OCR1A after you configure the rest of the timer
   // Take care with OCR1A writing: http://www.atmel.com/webdoc/avrlibcreferencemanual/FAQ_1faq_16bitio.html
-  //ATOMIC_BLOCK(ATOMIC_RESTORESTATE) { OCR1A = (F_CPU / 1024) * (_milliseconds/1000); }
+  ATOMIC_BLOCK(ATOMIC_RESTORESTATE) { OCR1A = (F_CPU / 1024) * (_milliseconds/1000); }
+#elif defined(ARDUINO_ARCH_ESP8266)
+  __SUPPRESS_WARNING_UNUSED(_milliseconds);
+#endif
   return true; 
 }
 
@@ -128,7 +133,10 @@ uint8_t initTimerOne(const uint32_t _milliseconds)
 *
 *****************************************************************************************************************************/
 void startTimerOne() {
-// TCCR1B = _BV(CS12) | _BV(CS10); 
+#if defined(ARDUINO_ARCH_AVR)
+    TCCR1B = _BV(CS12) | _BV(CS10); 
+#elif defined(ARDUINO_ARCH_ESP8266)
+#endif
 }
 
 /*****************************************************************************************************************************
@@ -139,15 +147,15 @@ void startTimerOne() {
 *     - none
 *
 *****************************************************************************************************************************/
-/*
+#if defined(ARDUINO_ARCH_AVR)
 ISR(TIMER1_COMPA_vect)
 {
   // Gather internal metric
   gatherSystemMetrics();
   // Let's count from the begin
-  TCNT1 = 0;
+  TCNT1 = 0x00;
 }
-*/
+#endif
 /*****************************************************************************************************************************
 *
 *  Stop Timer1
@@ -157,7 +165,10 @@ ISR(TIMER1_COMPA_vect)
 *
 *****************************************************************************************************************************/
 void stopTimerOne() { 
-//TCCR1B = 0; 
+#if defined(ARDUINO_ARCH_AVR)
+    TCCR1B = 0; 
+#elif defined(ARDUINO_ARCH_ESP8266)
+#endif
 }
 
 /*****************************************************************************************************************************

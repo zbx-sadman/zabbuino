@@ -83,38 +83,47 @@ int8_t shiftOutAdvanced(const uint8_t _dataPin, const uint8_t _clockPin, const u
 *            first pixel's data input and minimize distance between Arduino and first pixel.  
 *            Avoid connecting on a live circuit...if you must, connect GND first.
 *****************************************************************************************************************************/
-#if defined(ARDUINO_ARCH_AVR)
+#if defined(ARDUINO_ARCH_ESP8266)  
+static uint32_t _getCycleCount(void) __attribute__((always_inline));
+static inline uint32_t _getCycleCount(void) {
+  uint32_t ccount;
+  __asm__ __volatile__("rsr %0,ccount":"=a" (ccount));
+  return ccount;
+}
+#endif
 
-int8_t WS2812Out(const uint8_t _dataPin, const uint8_t _compressionType, uint8_t* _src, uint16_t _len)  {
-  volatile uint8_t  *port;         // Output PORT register
-  uint8_t pinMask;                 // Output PORT bitmask
-  volatile uint16_t i;             // Loop counter
-  volatile uint8_t
-                   *ptr,           // Pointer to next byte
-                   b,              // Current byte value
-                   hi,             // PORT w/output bit set high
-                   lo;             // PORT w/output bit set low
-  volatile uint8_t next, bit;
 
-  i = (0x00 >= _len) ? prepareBufferForAdvShiftout(MSBFIRST, _compressionType, _src) : _len; 
+int8_t WS281xOut(const uint8_t _dataPin, const uint8_t _bitstream800KHz, const uint8_t _compressionType, uint8_t* _src, uint16_t _len)  {
 
-  if (0x00  >= i ) {
+  volatile ioRegister_t  *port;         // Output PORT register
+  ioRegister_t pinMask;                 // Output PORT bitmask
+
+  volatile uint16_t dataSize;           // Loop counter
+  volatile uint8_t *ptrData;            // Pointer to next byte
+  volatile uint8_t currentByte, currentBit;
+
+  dataSize = (0x00 >= _len) ? prepareBufferForAdvShiftout(MSBFIRST, _compressionType, _src) : _len; 
+
+  if (0x00  >= dataSize ) {
      return RESULT_IS_FAIL;
   }
  
   pinMode(_dataPin, OUTPUT);
   digitalWrite(_dataPin, LOW);
+
   port    = portOutputRegister(digitalPinToPort(_dataPin));
   pinMask = digitalPinToBitMask(_dataPin);
 
-  hi   = *port |  pinMask;
-  lo   = *port & ~pinMask;
-  next = lo;
-  // push by nibbles (4 bits pieces)
-  bit  = 0x08;
+  ptrData = _src;
+  currentByte = *ptrData++;
 
-  ptr = (uint8_t *) _src;
-  b = *ptr++;
+#if defined(ARDUINO_ARCH_AVR)
+  volatile uint8_t 
+           hi = *port |  pinMask;,             // PORT w/output bit set high
+           lo = *port & ~pinMask;;             // PORT w/output bit set low
+  volatile uint8_t next = lo;
+
+  currentBit = 0x08;
 
   noInterrupts(); // Need 100% focus on instruction timing
 
@@ -128,6 +137,8 @@ int8_t WS2812Out(const uint8_t _dataPin, const uint8_t _compressionType, uint8_t
   //  
   // 20 inst. clocks per bit: HHHHHxxxxxxxxLLLLLLL
   // ST instructions:         ^   ^        ^       (T=0,5,13)
+
+  if (_bitstream800KHz) {
 
    asm volatile (
      "head20:"                   "\n\t" // Clk  Pseudocode    (T =  0)
@@ -153,19 +164,108 @@ int8_t WS2812Out(const uint8_t _dataPin, const uint8_t _compressionType, uint8_t
       "sbiw %[count], 1"         "\n\t" // 2    i--           (T = 18)
        "brne head20"             "\n"   // 2    if(i != 0) -> (next byte)
       : [port]  "+e" (port),
-        [byte]  "+r" (b),
-        [bit]   "+r" (bit),
+        [byte]  "+r" (currentByte),
+        [bit]   "+r" (currentBit),
         [next]  "+r" (next),
-        [count] "+w" (i)
-      : [ptr]    "e" (ptr),
+        [count] "+w" (dataSize)
+      : [ptr]    "e" (ptrData),
         [hi]     "r" (hi),
         [lo]     "r" (lo)
    );
 
+} else {
+
+    // The 400 KHz clock on 16 MHz MCU is the most 'relaxed' version.
+
+    // 40 inst. clocks per bit: HHHHHHHHxxxxxxxxxxxxLLLLLLLLLLLLLLLLLLLL
+    // ST instructions:         ^       ^           ^         (T=0,8,20)
+
+    asm volatile(
+     "head40:"                  "\n\t" // Clk  Pseudocode    (T =  0)
+      "st   %a[port], %[hi]"    "\n\t" // 2    PORT = hi     (T =  2)
+      "sbrc %[byte] , 7"        "\n\t" // 1-2  if(b & 128)
+       "mov  %[next] , %[hi]"   "\n\t" // 0-1   next = hi    (T =  4)
+      "rjmp .+0"                "\n\t" // 2    nop nop       (T =  6)
+      "rjmp .+0"                "\n\t" // 2    nop nop       (T =  8)
+      "st   %a[port], %[next]"  "\n\t" // 2    PORT = next   (T = 10)
+      "rjmp .+0"                "\n\t" // 2    nop nop       (T = 12)
+      "rjmp .+0"                "\n\t" // 2    nop nop       (T = 14)
+      "rjmp .+0"                "\n\t" // 2    nop nop       (T = 16)
+      "rjmp .+0"                "\n\t" // 2    nop nop       (T = 18)
+      "rjmp .+0"                "\n\t" // 2    nop nop       (T = 20)
+      "st   %a[port], %[lo]"    "\n\t" // 2    PORT = lo     (T = 22)
+      "nop"                     "\n\t" // 1    nop           (T = 23)
+      "mov  %[next] , %[lo]"    "\n\t" // 1    next = lo     (T = 24)
+      "dec  %[bit]"             "\n\t" // 1    bit--         (T = 25)
+      "breq nextbyte40"         "\n\t" // 1-2  if(bit == 0)
+      "rol  %[byte]"            "\n\t" // 1    b <<= 1       (T = 27)
+      "nop"                     "\n\t" // 1    nop           (T = 28)
+      "rjmp .+0"                "\n\t" // 2    nop nop       (T = 30)
+      "rjmp .+0"                "\n\t" // 2    nop nop       (T = 32)
+      "rjmp .+0"                "\n\t" // 2    nop nop       (T = 34)
+      "rjmp .+0"                "\n\t" // 2    nop nop       (T = 36)
+      "rjmp .+0"                "\n\t" // 2    nop nop       (T = 38)
+      "rjmp head40"             "\n\t" // 2    -> head40 (next bit out)
+     "nextbyte40:"              "\n\t" //                    (T = 27)
+      "ldi  %[bit]  , 8"        "\n\t" // 1    bit = 8       (T = 28)
+      "ld   %[byte] , %a[ptr]+" "\n\t" // 2    b = *ptr++    (T = 30)
+      "rjmp .+0"                "\n\t" // 2    nop nop       (T = 32)
+      "st   %a[port], %[lo]"    "\n\t" // 2    PORT = lo     (T = 34)
+      "rjmp .+0"                "\n\t" // 2    nop nop       (T = 36)
+      "sbiw %[count], 1"        "\n\t" // 2    i--           (T = 38)
+      "brne head40"             "\n"   // 1-2  if(i != 0) -> (next byte)
+      : [port]  "+e" (port),
+        [byte]  "+r" (currentByte),
+        [bit]   "+r" (currentBit),
+        [next]  "+r" (next),
+        [count] "+w" (dataSize)
+      : [ptr]    "e" (ptrData),
+        [hi]     "r" (hi),
+        [lo]     "r" (lo));
+
+}
+
    interrupts(); 
+#elif defined(ARDUINO_ARCH_ESP8266)  
+
+  uint8_t *endData = _src + dataSize;
+  uint32_t t, time0, time1, period, c, startTime;
+
+  currentBit = 0x80;
+
+  startTime = 0x00;
+
+  if (_bitstream800KHz) {
+    time0  = CYCLES_800_T0H;
+    time1  = CYCLES_800_T1H;
+    period = CYCLES_800;
+  } else { // 400 KHz bitstream
+    time0  = CYCLES_400_T0H;
+    time1  = CYCLES_400_T1H;
+    period = CYCLES_400;
+  }
+
+  for (t = time0;; t = time0) {
+    if (currentByte & currentBit) t = time1;               // Bit high duration
+    while (((c = _getCycleCount()) - startTime) < period); // Wait for bit start
+    *port |= pinMask;                                      // Pin HIGH
+    startTime = c;                                         // Save start time
+    while (((c = _getCycleCount()) - startTime) < t);      // Wait high duration
+    *port &= ~pinMask;                                     // Pin LOW
+    if (!(currentBit >>= 1)) {                             // Next bit/byte
+      if (ptrData >= endData) {
+        break;
+      }
+      currentByte = *ptrData++;
+      currentBit = 0x80;
+    }
+  }
+  while ((_getCycleCount() - startTime) < period);          // Wait for last bit
+
+#endif
+
    return RESULT_IS_OK;
 }
-#endif
 
 /*****************************************************************************************************************************
 *

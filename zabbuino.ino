@@ -213,9 +213,9 @@ void loop() {
 
   // Call user function
   __USER_FUNCTION( preLoopStageUserFunction(request.payloadByte); )
+  __USER_FUNCTION( userFunctionButtonStatePrev = (constUserFunctionButtonActiveState == digitalRead(constUserFunctionButtonPin)); )
 
   parseRequest(CHAR_NULL, REINIT_ANALYZER, request);
-  userFunctionButtonStatePrev = (constUserFunctionButtonActiveState == digitalRead(constUserFunctionButtonPin));
 
   while (true) {
     // reset watchdog every loop
@@ -695,10 +695,14 @@ static int16_t executeCommand(Stream& _netClient, netconfig_t& _sysConfig, reque
         //  If "system.localtime" returns fail - try to use "set.localtime" first. May be battery or vcc voltage is low.
         //  System do not kickstart RTC if any problem detected to avoid taking random time and unexpected behaviour
         //
-
+#if defined(ARDUINO_ARCH_AVR)
         if (RESULT_IS_OK == getUnixTime(&SoftTWI, (uint32_t*) &value)) {
           rc = RESULT_IS_UNSIGNED_VALUE;
         }
+#elif defined(ARDUINO_ARCH_ESP8266)
+        rc = ZBX_NOTSUPPORTED;
+#endif //#if defined(ARDUINO_ARCH_AVR)
+
         goto finish;
       }
 #endif // FEATURE_SYSTEM_RTC_ENABLE
@@ -1025,12 +1029,13 @@ static int16_t executeCommand(Stream& _netClient, netconfig_t& _sysConfig, reque
         //  set.localtime[password, unixTimestamp, tzOffset]
         //  set.localtime must take unixTimestamp as UTC, because system.localtime command returns UTC too
         //
+#if defined(ARDUINO_ARCH_AVR)
+
         if (!accessGranted) {
           goto finish;
         }
         uint8_t success = true;
 #ifdef FEATURE_EEPROM_ENABLE
-#if defined(ARDUINO_ARCH_AVR)
         // tzOffset is defined?
         if (_request.args[0x02]) {
           _sysConfig.tzOffset = (int16_t) _request.argv[0x02];
@@ -1041,7 +1046,6 @@ static int16_t executeCommand(Stream& _netClient, netconfig_t& _sysConfig, reque
             rc = RESULT_IS_OK;
           }
         }
-#endif // ARDUINO_ARCH_AVR
 #endif // FEATURE_EEPROM_ENABLE
 
         // unixTimestamp option is given?
@@ -1051,6 +1055,9 @@ static int16_t executeCommand(Stream& _netClient, netconfig_t& _sysConfig, reque
             rc = RESULT_IS_OK;
           }
         }
+#elif defined(ARDUINO_ARCH_ESP8266)
+        rc = ZBX_NOTSUPPORTED;
+#endif //#if defined(ARDUINO_ARCH_AVR)
         goto finish;
       }
 #endif // FEATURE_SYSTEM_RTC_ENABLE
@@ -1100,7 +1107,9 @@ static int16_t executeCommand(Stream& _netClient, netconfig_t& _sysConfig, reque
       // Tested on ATmega328@16 and 8 pcs WS2812 5050 RGB LED bar
       if (isSafePin(_request.argv[0x00])) {
         // 4-th param equal 0x00 mean that buffer not contain raw color bytes and must be prepared (converted from "0xABCDEF.." string)
-        rc = WS2812Out(_request.argv[0x00], _request.argv[0x01], (uint8_t*) _request.args[0x02], 0x00);
+        // true for 800Khz (2812) and false for 400Khz (2811)
+        uint8_t _bitstream800KHz = (_request.args[0x01]) ? ((400 == _request.argv[0x01]) ? false : true) : true;
+        rc = WS281xOut(_request.argv[0x00], _bitstream800KHz, _request.argv[0x02], (uint8_t*) _request.args[0x03], 0x00);
       }
       goto finish;
 #endif // FEATURE_WS2812_ENABLE
@@ -1171,10 +1180,14 @@ static int16_t executeCommand(Stream& _netClient, netconfig_t& _sysConfig, reque
         //
         //  Unfortunately, (rc == RESULT_IS_UNSIGNED_VALUE && value == 0) and (rc == RESULT_IS_FAIL) are looks equal for zabbix -> '0'
         //
+#if defined(ARDUINO_ARCH_AVR)
         if (!isSafePin(_request.argv[0x00])) {
           goto finish;
         }
         rc = manageExtInt(_request.argv[0x00], _request.argv[0x01], (uint32_t*) &value);
+#elif defined(ARDUINO_ARCH_ESP8266)
+        rc = ZBX_NOTSUPPORTED;
+#endif //#if defined(ARDUINO_ARCH_AVR)
         goto finish;
       }
 #endif // FEATURE_EXTERNAL_INTERRUPT_ENABLE
@@ -1301,7 +1314,11 @@ static int16_t executeCommand(Stream& _netClient, netconfig_t& _sysConfig, reque
         //      if (isSafePin(argv[0x00]) && TIMER2B == digitalPinToTimer(argv[0x00])) {
         // irPWMPin - global wariable that replace IRremote's TIMER_PWM_PIN
         //         irPWMPin = argv[0x00];
+#if defined(ARDUINO_ARCH_AVR)
         rc = sendCommandByIR(_request.argv[0x01], _request.argv[0x02], _request.argv[0x03], _request.argv[0x04], _request.argv[0x05]);
+#elif defined(ARDUINO_ARCH_ESP8266)
+        rc = ZBX_NOTSUPPORTED;
+#endif //#if defined(ARDUINO_ARCH_AVR)
         //      }
         goto finish;
       }
@@ -1316,7 +1333,11 @@ static int16_t executeCommand(Stream& _netClient, netconfig_t& _sysConfig, reque
         //     if (isSafePin(argv[0x00]) && TIMER2B == digitalPinToTimer(argv[0x00])) {
         // irPWMPin - global wariable that replace IRremote's TIMER_PWM_PIN
         //         irPWMPin = argv[0x00];
+#if defined(ARDUINO_ARCH_AVR)
         rc = sendRawByIR(_request.argv[0x01], _request.argv[0x02], _request.args[0x03]);
+#elif defined(ARDUINO_ARCH_ESP8266)
+        rc = ZBX_NOTSUPPORTED;
+#endif //#if defined(ARDUINO_ARCH_AVR)
         //     }
         goto finish;
       }
@@ -1426,7 +1447,11 @@ static int16_t executeCommand(Stream& _netClient, netconfig_t& _sysConfig, reque
       //  incEnc.value[terminalAPin, terminalBPin, initialValue]
       //
       // argv[0x03] (intNumber) currently not used
+#if defined(ARDUINO_ARCH_AVR)
       rc = manageIncEnc(&value, _request.argv[0x00], _request.argv[0x01], _request.argv[0x02]);
+#elif defined(ARDUINO_ARCH_ESP8266)
+      rc = ZBX_NOTSUPPORTED;
+#endif //#if defined(ARDUINO_ARCH_AVR)
       goto finish;
 #endif // FEATURE_INCREMENTAL_ENCODER_ENABLE
 

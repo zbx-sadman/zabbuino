@@ -10,7 +10,7 @@
 *   Read one byte from SPI compatible bus
 *
 *****************************************************************************************************************************/
-uint8_t spiReadByte(volatile ioRegister_t* _sclkPortOutputRegister, const uint8_t _sclkPinBit, volatile ioRegister_t* _misoPortInputRegister, const uint8_t _misoPinBit) { 
+uint8_t spiReadByte(volatile ioRegister_t* _sclkPortOutputRegister, const ioRegister_t _sclkPinBit, volatile ioRegister_t* _misoPortInputRegister, const ioRegister_t _misoPinBit) { 
   int8_t i;
   uint8_t value = 0x00;
 
@@ -29,7 +29,7 @@ uint8_t spiReadByte(volatile ioRegister_t* _sclkPortOutputRegister, const uint8_
 }
 
 
-void spiWriteByte(const uint8_t _spiType, volatile ioRegister_t* _sclkPortOutputRegister, const uint8_t _sclkPinBit, volatile ioRegister_t* _mosiPortInputRegister, const uint8_t _mosiPinBit, const uint8_t _data) {
+void spiWriteByte(const uint8_t _spiType, volatile ioRegister_t* _sclkPortOutputRegister, const ioRegister_t _sclkPinBit, volatile ioRegister_t* _mosiPortInputRegister, const ioRegister_t _mosiPinBit, const uint8_t _data) {
   if (SPI_TYPE_SOFTWARE == _spiType) {
      int8_t i = 0x08;
      while(i) {

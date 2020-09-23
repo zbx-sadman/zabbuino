@@ -93,7 +93,7 @@
 #define CMD_IR_SEND                                             (0x3E)
 #define CMD_IR_SENDRAW                                          (0x3F)
                                                                     
-#define CMD_WS2812_SENDRAW                                      (0x40)
+#define CMD_WS281X_SENDRAW                                      (0x40)
                                                                     
 #define CMD_PZEM004_CURRENT                                     (0x41) 
 #define CMD_PZEM004_VOLTAGE                                     (0x42) 
@@ -256,7 +256,7 @@ const char command_CMD_ULTRASONIC_DISTANCE[]                    PROGMEM = "ultra
 const char command_CMD_IR_SEND[]                                PROGMEM = "ir.send";
 const char command_CMD_IR_SENDRAW[]                             PROGMEM = "ir.sendraw";
 
-const char command_CMD_WS2812_SENDRAW[]                         PROGMEM = "ws2812.sendraw";
+const char command_CMD_WS281X_SENDRAW[]                         PROGMEM = "ws281x.sendraw";
 
 const char command_CMD_PZEM004_CURRENT[]                        PROGMEM = "pzem004.current";
 const char command_CMD_PZEM004_VOLTAGE[]                        PROGMEM = "pzem004.voltage";
@@ -470,7 +470,7 @@ const command_t PROGMEM commands[] = {
 #endif
 
 #ifdef FEATURE_WS2812_ENABLE
-    { CMD_WS2812_SENDRAW          , command_CMD_WS2812_SENDRAW},         
+    { CMD_WS281X_SENDRAW          , command_CMD_WS281X_SENDRAW},         
 #endif
 
 #ifdef FEATURE_PZEM004_ENABLE

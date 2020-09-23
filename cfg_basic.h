@@ -95,7 +95,7 @@
 //      Enable command:
 //        - ShiftOut[]
 //
-#define FEATURE_SHIFTOUT_ENABLE
+//#define FEATURE_SHIFTOUT_ENABLE
 
 /****       Interrupts related   ****/
 
@@ -103,7 +103,7 @@
 //      Enable external interrupts handling and commands:
 //        - ExtInt.Count[]
 //
-//#define FEATURE_EXTERNAL_INTERRUPT_ENABLE
+#define FEATURE_EXTERNAL_INTERRUPT_ENABLE
 
 //
 //     Handle incremental encoder that connected to interrupt-pin and enable command:
@@ -341,11 +341,11 @@
 //       - ze15.co[]
 //       - ze16.co[]
 //
-#define FEATURE_WINSEN_ZE08_CH2O_ENABLE
-#define FEATURE_WINSEN_ZE14_O3_ENABLE
-#define FEATURE_WINSEN_ZP14_ENABLE
-#define FEATURE_WINSEN_ZE15_CO_ENABLE
-#define FEATURE_WINSEN_ZE16_CO_ENABLE
+//#define FEATURE_WINSEN_ZE08_CH2O_ENABLE
+//#define FEATURE_WINSEN_ZE14_O3_ENABLE
+//#define FEATURE_WINSEN_ZP14_ENABLE
+//#define FEATURE_WINSEN_ZE15_CO_ENABLE
+//#define FEATURE_WINSEN_ZE16_CO_ENABLE
 
 
 /****       DHT/AM family    ****/
@@ -356,7 +356,7 @@
 //       - DHT.Temperature[]
 //       - DHT.All[]
 //
-//#define FEATURE_DHT_ENABLE
+#define FEATURE_DHT_ENABLE
 
 /****       Ultrasonic    ****/
 
@@ -374,7 +374,8 @@
 //
 //     Note: See below to include special signal types supporting
 //
-//#define FEATURE_IR_ENABLE
+ // !!!! Currently available on AVR only
+#define FEATURE_IR_ENABLE
 //#define SUPPORT_IR_RC5
 //#define SUPPORT_IR_RC6
 //#define SUPPORT_IR_SONY
@@ -388,11 +389,10 @@
 
 /****      Led Pixel modules     ****/
 //
-//     Enable WS2812 led chip support and command:
-//       - ws2812.sendraw[]
+//     Enable WS281x (2811,2812,2813) led chip support and command:
+//       - ws281x.sendraw[]
 //
-// !!!! Currently available on AVR only
-//#define FEATURE_WS2812_ENABLE
+//#define FEATURE_WS281x_ENABLE
 
 
 /****      Unsorted features     ****/
@@ -400,7 +400,7 @@
 //     Enable MAX6675 support and command:
 //       - MAX6675.temperature[]
 //
-#define FEATURE_MAX6675_ENABLE
+//#define FEATURE_MAX6675_ENABLE
 
 
 //
@@ -421,7 +421,7 @@
 //      Enable calling user functions on device start and every _constUserFunctionCallInterval_ if no active network session exist
 //      You can write to _plugin.ino_ your own code and use all Zabbuino's internal functions to query sensors and handle actuators
 //
-#define FEATURE_USER_FUNCTION_PROCESSING
+//#define FEATURE_USER_FUNCTION_PROCESSING
 
 //
 //      Support Zabbix's Action functionality and enable command:
@@ -469,7 +469,7 @@
 //       - Sys.RAM.Free[];
 //       - Sys.RAM.FreeMin[]
 //
-#define FEATURE_SYSINFO_ENABLE
+//#define FEATURE_SYSINFO_ENABLE
 
 //
 //      Enable support the system RTC (DS3231 or PCF8563 RTC chip which connected via I2C interface) and commands:

@@ -1,5 +1,14 @@
 # Zabbuino (ESP integration test)
 
+### 23-09-2020
+Segments probally done:
+ - Pixel leds support;
+
+Changed:
+ - Command `ws2812.sendraw[]` renamed to `ws281x.sendraw[dataPin, speed, compressionType, data]` and take new option `speed` - 400/800KHz switch. Now you can use old WS2811 leds too. Just use value `400` for 400Khz, `800` or nothing for 800Khz.
+Example: `ws281x.sendraw[5,400,1,0x0F0 010 00F 001 F00 100 033 303]` - send data do WS2811 (400KHz), `ws281x.sendraw[5,,1,0x0F0 010 00F 001 F00 100 033 303]` - send data do WS2812/2813 (800KHz by default).
+
+
 ### 21-09-2020
 Segments probally done:
  - Software SPI stuff and sensors handling;

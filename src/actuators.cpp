@@ -18,7 +18,7 @@
 *****************************************************************************************************************************/
 int8_t servoTurn(const uint8_t _servoPin, const uint16_t _targetPulseWidth, const uint32_t _turnTime, const uint32_t _holdTime = 0x00, const uint16_t _returnPulseWidth = 0x00) {
   uint32_t startHolding, idleTime, turnTime;
-  uint8_t servoPinPort, servoPinBit;
+  ioRegister_t servoPinPort, servoPinBit;
   volatile ioRegister_t *servoOutRegister;
   int8_t rc = RESULT_IS_FAIL;
 

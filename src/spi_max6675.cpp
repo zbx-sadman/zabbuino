@@ -22,7 +22,7 @@ int8_t getMAX6675Metric(const uint8_t _misoPin, const uint8_t _sclkPin, const ui
   int8_t rc = RESULT_IS_FAIL;
   uint32_t result;
 
-  uint8_t sclkPinBit, misoPinBit;
+  ioRegister_t sclkPinBit, misoPinBit;
   volatile ioRegister_t *sclkPortOutputRegister, *misoPortInputRegister;
 
     

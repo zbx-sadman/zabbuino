@@ -8,11 +8,11 @@
 *   Read one byte from SPI compatible bus
 *
 *****************************************************************************************************************************/
-uint8_t spiReadByte(volatile ioRegister_t*, const uint8_t, volatile ioRegister_t*, const uint8_t);
+uint8_t spiReadByte(volatile ioRegister_t*, const ioRegister_t, volatile ioRegister_t*, const ioRegister_t);
 
 /*****************************************************************************************************************************
 *
 *   Write one byte to SPI compatible bus
 *
 *****************************************************************************************************************************/
-void spiWriteByte(const uint8_t, volatile ioRegister_t*, const uint8_t, volatile ioRegister_t*, const uint8_t, const uint8_t);
+void spiWriteByte(const uint8_t, volatile ioRegister_t*, const ioRegister_t, volatile ioRegister_t*, const ioRegister_t, const uint8_t);
