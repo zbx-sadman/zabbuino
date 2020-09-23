@@ -1,4 +1,4 @@
-# Zabbuino (ESP integration test)
+# Zabbuino 1.5 (ESP integration test)
 
 ### 23-09-2020
 Segments probally done:
