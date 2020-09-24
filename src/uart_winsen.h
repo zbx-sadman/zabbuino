@@ -42,7 +42,6 @@ Number of Digital 0 = 1
 
 ZE03
 Q&A only
-
 https://www.winsen-sensor.com/d/files/PDF/Gas%20Sensor%20Module/Industrial%20Application%20Gas%20Sensor%20Module/ZE03%20Electrochemical%20Module%20V2.4.pdf
 
 ZE03-CO (active+Q&A)
@@ -70,6 +69,8 @@ Number of Digital 0 = 1
 #define WINSEN_UART_SPEED                                       (9600)
 #define WINSEN_UART_DEFAULT_READ_TIMEOUT                        (2500UL)
 #define WINSEN_UART_START_BYTE                                  (0xFF)
+#define WINSEN_UART_PACKET_SIZE                                 (0x09)
+#define WINSEN_UART_GET_COMMAND                                 (0x86)
 
 #define WINSEN_GAS_TYPE_ID_CH4                                  (0x01)
 #define WINSEN_GAS_TYPE_ID_CH2O                                 (0x17)
@@ -89,18 +90,61 @@ Number of Digital 0 = 1
 #define WINSEN_SENSOR_FAILURE_MASK_ZE15                         (0x80)
 #define WINSEN_SENSOR_FAILURE_MASK_ZP14                         (0x80)
 
+#define WINSEN_QMODE_PACKET_BYTE_COMMAND_ID                     (0x01)
+#define WINSEN_QMODE_PACKET_BYTE_PARTSPER_CONCENTRATION_HIGH    (0x02)
+#define WINSEN_QMODE_PACKET_BYTE_PARTSPER_CONCENTRATION_LOW     (0x03)
+#define WINSEN_QMODE_PACKET_BYTE_MASS_CONCENTRATION_HIGH        (0x06)
+#define WINSEN_QMODE_PACKET_BYTE_MASS_CONCENTRATION_LOW         (0x07)
 
+#define WINSEN_SENSOR_TYPE_ID_MH_ZXX                            (0x01)
+#define WINSEN_SENSOR_TYPE_ID_ZE08_CH2O                         (0x02)
+#define WINSEN_SENSOR_TYPE_ID_ZE14_O3                           (0x03)
+// ZE25-O3 eq ZE27-O3
+#define WINSEN_SENSOR_TYPE_ID_ZE25_O3                           (0x04)
+#define WINSEN_SENSOR_TYPE_ID_ZP14                              (0x05)
+#define WINSEN_SENSOR_TYPE_ID_ZE15_CO                           (0x06)
+
+
+
+// ??? Struct must be packed to works properly on non 8-bit MCUs?
 typedef struct {
+  uint8_t startByte;
   uint8_t gasTypeId;
   uint8_t gasUnitId;
   uint8_t noDecimalByte;
   uint8_t concentrationHighByte, concentrationLowByte;
   uint8_t fullRangeHighByte, fullRangeLowByte;
   uint8_t crc;
-} winsenSensorData_t;
+} winsenSensorAModeData_t;
+
+// !!! Q&A mode's answer frame is not equal for various type of sensors
+// MH-Z14, MH-Z19 data structure
+/*
+typedef struct {
+  uint8_t commandId;
+  uint8_t concentrationMassHighByte, concentrationMassLowByte;
+  uint8_t unusedNo1, unusedNo2;
+  uint8_t concentrationPartsPerHighByte, concentrationPartsPerLowByte;
+  uint8_t crc;
+} winsenSensorQModeData_t;
+*/
 
 uint8_t winsenUartRecieve(Stream&, const uint32_t, uint8_t*, const uint8_t);
 uint8_t winsenCalcCrc(uint8_t*, const uint8_t);
+
+/*****************************************************************************************************************************
+*
+*  Read values of the specified metric from the MH-Zxx sensor, put it to output buffer on success. 
+*
+*   Returns: 
+*     - RESULT_IS_BUFFERED on success
+*     - DEVICE_ERROR_TIMEOUT if device stop talking
+*     - DEVICE_ERROR_WRONG_ANSWER if device returns unexpected gas ID 
+*     - DEVICE_ERROR_FAILURE on device failure flag returned
+*     - DEVICE_ERROR_CHECKSUM on recieve error
+*
+*****************************************************************************************************************************/
+int8_t getQModeMhZxMetric(const uint8_t, const uint8_t, const uint8_t, int32_t*);
 
 /*****************************************************************************************************************************
 *
@@ -114,7 +158,7 @@ uint8_t winsenCalcCrc(uint8_t*, const uint8_t);
 *     - DEVICE_ERROR_CHECKSUM on recieve error
 *
 *****************************************************************************************************************************/
-int8_t getZe08Ch2OMetric(const uint8_t, const uint8_t, const uint8_t, int32_t*);
+int8_t getAModeZe08Ch2OMetric(const uint8_t, const uint8_t, const uint8_t, int32_t*);
 
 /*****************************************************************************************************************************
 *
@@ -128,7 +172,7 @@ int8_t getZe08Ch2OMetric(const uint8_t, const uint8_t, const uint8_t, int32_t*);
 *     - DEVICE_ERROR_CHECKSUM on recieve error
 *
 *****************************************************************************************************************************/
-int8_t getZe14O3Metric(const uint8_t, const uint8_t, const uint8_t, int32_t*);
+int8_t getAModeZe14O3Metric(const uint8_t, const uint8_t, const uint8_t, int32_t*);
 
 /*****************************************************************************************************************************
 *
@@ -142,8 +186,8 @@ int8_t getZe14O3Metric(const uint8_t, const uint8_t, const uint8_t, int32_t*);
 *     - DEVICE_ERROR_CHECKSUM on recieve error
 *
 *****************************************************************************************************************************/
-int8_t getZe15COMetric(const uint8_t, const uint8_t, const uint8_t, int32_t*);
-int8_t getZe16COMetric(const uint8_t, const uint8_t, const uint8_t, int32_t*);
+int8_t getAModeZe15COMetric(const uint8_t, const uint8_t, const uint8_t, int32_t*);
+int8_t getAModeZe16COMetric(const uint8_t, const uint8_t, const uint8_t, int32_t*);
 
 /*****************************************************************************************************************************
 *
@@ -157,11 +201,11 @@ int8_t getZe16COMetric(const uint8_t, const uint8_t, const uint8_t, int32_t*);
 *     - DEVICE_ERROR_CHECKSUM on recieve error
 *
 *****************************************************************************************************************************/
-int8_t getZp14Metric(const uint8_t, const uint8_t, const uint8_t, int32_t*);
+int8_t getAModeZp14Metric(const uint8_t, const uint8_t, const uint8_t, int32_t*);
 
 /*****************************************************************************************************************************
 *
-*  Read values of the specified metric from the Winsen sensors, put it to output buffer on success. 
+*  Read values of the specified metric from the Winsen sensors works in Active Mode, put it to output buffer on success. 
 *
 *   Returns: 
 *     - RESULT_IS_BUFFERED on success
@@ -173,3 +217,16 @@ int8_t getZp14Metric(const uint8_t, const uint8_t, const uint8_t, int32_t*);
 *****************************************************************************************************************************/
 int8_t getAModeWinsenMetric(const uint8_t, const uint8_t, const uint8_t, const uint8_t, const uint8_t, const uint8_t, int32_t*);
 
+/*****************************************************************************************************************************
+*
+*  Read values of the specified metric from the Winsen sensors works in Query Mode, put it to output buffer on success. 
+*
+*   Returns: 
+*     - RESULT_IS_BUFFERED on success
+*     - DEVICE_ERROR_TIMEOUT if device stop talking
+*     - DEVICE_ERROR_WRONG_ANSWER if device returns unexpected gas ID 
+*     - DEVICE_ERROR_FAILURE on device failure flag returned
+*     - DEVICE_ERROR_CHECKSUM on recieve error
+*
+*****************************************************************************************************************************/
+int8_t getQModeWinsenMetric(const uint8_t, const uint8_t, const uint8_t, const uint8_t, int32_t*);

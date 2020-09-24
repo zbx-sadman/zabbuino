@@ -34,21 +34,11 @@ void setup() {
   SPI.begin();
 
   __DMLL( DEBUG_PORT.print(FSH_P(constZbxAgentVersion)); DEBUG_PORT.println(FSH_P(STRING_wakes_up)); )
-  sysMetrics.sysVCCMin = sysMetrics.sysVCCMax = 0x00;//getADCVoltage(ANALOG_CHAN_VBG);
+  sysMetrics.sysVCCMin = sysMetrics.sysVCCMax = getMcuVoltage();
   sysMetrics.sysRamFree = sysMetrics.sysRamFreeMin = getRamFree();
   pinMode(constStateLedPin, OUTPUT);
   pinMode(constUserFunctionButtonPin, INPUT_PULLUP);
 
-  /*
-    Serial.println(ESP.getChipId(), HEX);
-    Serial.println(ESP.getCoreVersion());
-    Serial.println(ESP.getFlashChipId(), HEX);
-
-    //    WiFi.printDiag(Serial);
-    while (1) {
-      yield();
-    };
-  */
 #ifdef ADVANCED_BLINKING
   // blink on start
   //  blinkMore(6, 50, 500);
@@ -245,14 +235,7 @@ void loop() {
 #ifndef GATHER_METRIC_USING_TIMER_INTERRUPT
       gatherSystemMetrics();
 #endif
-      uint32_t currentVcc;
-
-#if defined(ARDUINO_ARCH_AVR)
-      currentVcc = getADCVoltage(ANALOG_CHAN_VBG);
-#elif defined(ARDUINO_ARCH_ESP8266)
-      currentVcc = ESP.getVcc();
-#endif
-      correctVCCMetrics(currentVcc);
+      getMcuVoltage();
       prevSysMetricGatherTime = millis();
       // update millis() rollovers to measure uptime if no RTC onboard
       millisRollover();
@@ -613,22 +596,19 @@ static int16_t executeCommand(Stream& _netClient, netconfig_t& _sysConfig, reque
         goto finish;
       }
 
-    case CMD_SYS_CMD_TIMEMAX_N: {
-        //
-        //  sys.cmd.timemax.n
-        //
-        // ???? may be use rc = RESULT_IS_HEX ?
-        ultoa(sysMetrics.sysCmdTimeMaxN, _request.payloadChar, 16);
-        rc = RESULT_IS_BUFFERED;
-        goto finish;
-      }
-
     case CMD_SYS_RAM_FREE: {
         //
         //  sys.ram.free
         //
         //  That metric must be collected periodically to avoid returns always same data
+#if defined(ARDUINO_ARCH_AVR)
+        // Without ATOMIC_BLOCK block using sysMetrics.sysRamFree variable can be changed in interrupt on reading
+        ATOMIC_BLOCK(ATOMIC_RESTORESTATE) {
+#endif
         value = sysMetrics.sysRamFree;
+#if defined(ARDUINO_ARCH_AVR)
+        }
+#endif
         rc = RESULT_IS_UNSIGNED_VALUE;
         goto finish;
       }
@@ -638,13 +618,14 @@ static int16_t executeCommand(Stream& _netClient, netconfig_t& _sysConfig, reque
         //  sys.ram.freemin
         //
 #if defined(ARDUINO_ARCH_AVR)
-        // Without ATOMIC_BLOCK block using sysMetrics[IDX_METRIC_SYS_RAM_FREEMIN] variable can be changed in interrupt on reading
+        // Without ATOMIC_BLOCK block using sysMetrics.sysRamFreeMin variable can be changed in interrupt on reading
         ATOMIC_BLOCK(ATOMIC_RESTORESTATE) {
+#endif
           value = sysMetrics.sysRamFreeMin;
+#if defined(ARDUINO_ARCH_AVR)
         }
 #endif
-        rc = RESULT_IS_FAIL;
-        //        rc = RESULT_IS_UNSIGNED_VALUE;
+        rc = RESULT_IS_UNSIGNED_VALUE;
         goto finish;
       }
 #endif
@@ -654,14 +635,7 @@ static int16_t executeCommand(Stream& _netClient, netconfig_t& _sysConfig, reque
         // sys.vcc
         //
         // Take VCC
-#if defined(ARDUINO_ARCH_AVR)
-        value = getADCVoltage(ANALOG_CHAN_VBG);
-#elif defined(ARDUINO_ARCH_ESP8266)
-        value = ESP.getVcc();
-#endif
-        // VCC may be bigger than max or smaller than min.
-        // To avoid wrong results and graphs in monitoring system - correct min/max metrics
-        correctVCCMetrics(value);
+        value = getMcuVoltage();
         rc = RESULT_IS_UNSIGNED_VALUE;
         goto finish;
       }
@@ -684,6 +658,17 @@ static int16_t executeCommand(Stream& _netClient, netconfig_t& _sysConfig, reque
         rc = RESULT_IS_UNSIGNED_VALUE;
         goto finish;
       }
+
+#ifdef FEATURE_SYSINFO_ALL_ENABLE
+    case CMD_SYS_ALL: {
+        //
+        //  sys.all
+        //
+        //ultoa(sysMetrics.sysCmdTimeMaxN, , 16);
+        rc = getSystemAllInfo((sysmetrics_t&)sysMetrics, _request.payloadChar, _request.dataFreeSize);
+        goto finish;
+      }
+#endif
 
 #ifdef FEATURE_SYSTEM_RTC_ENABLE
 
@@ -1545,15 +1530,6 @@ static int16_t executeCommand(Stream& _netClient, netconfig_t& _sysConfig, reque
       }
 #endif // FEATURE_DFPLAYER_ENABLE
 
-#ifdef FEATURE_MHZXX_UART_ENABLE
-    case CMD_MHZXX_UART_CO2:
-      //
-      //  MHZxx.UART.CO2[rxPin, txPin]
-      //
-      rc = getMHZxxMetricUART(_request.argv[0x00], _request.argv[0x01], &value);
-      goto finish;
-#endif // FEATURE_MHZXX_UART_ENABLE
-
 #ifdef FEATURE_PLANTOWER_PMSXX_ENABLE
     case CMD_PLANTOWER_PMSXX_ALL: {
         //
@@ -1613,12 +1589,21 @@ static int16_t executeCommand(Stream& _netClient, netconfig_t& _sysConfig, reque
 
 #endif // FEATURE_NOVA_FITNESS_SDS_ENABLE
 
+#ifdef FEATURE_MHZXX_UART_ENABLE
+    case CMD_MHZXX_UART_CO2:
+      //
+      //  MHZxx.UART.CO2[rxPin, txPin]
+      //
+      rc = getQModeMhZxMetric(_request.argv[0x00], _request.argv[0x01], SENS_READ_CO2, &value);
+      goto finish;
+#endif // FEATURE_MHZXX_UART_ENABLE
+
 #ifdef FEATURE_WINSEN_ZE08_CH2O_ENABLE
     case CMD_ZE08_CH2O: {
         //
         //  ze08.ch2o[rxPin, txPin]
         //  ze08.ch2o[16,17]
-        rc = getZe08Ch2OMetric(_request.argv[0x00], _request.argv[0x01], SENS_READ_CH2O, &value);
+        rc = getAModeZe08Ch2OMetric(_request.argv[0x00], _request.argv[0x01], SENS_READ_CH2O, &value);
         goto finish;
       }
 #endif // FEATURE_WINSEN_ZE08_CH2O_ENABLE
@@ -1627,7 +1612,7 @@ static int16_t executeCommand(Stream& _netClient, netconfig_t& _sysConfig, reque
     case CMD_ZE14_O3: {
         //
         //  ze14.o3[rxPin, txPin]
-        rc = getZe14O3Metric(_request.argv[0x00], _request.argv[0x01], SENS_READ_O3, &value);
+        rc = getAModeZe14O3Metric(_request.argv[0x00], _request.argv[0x01], SENS_READ_O3, &value);
         goto finish;
       }
 #endif // FEATURE_WINSEN_ZE14_O3_ENABLE
@@ -1636,7 +1621,7 @@ static int16_t executeCommand(Stream& _netClient, netconfig_t& _sysConfig, reque
     case CMD_ZP14_NG: {
         //
         //  zp14.ng[rxPin, txPin]
-        rc = getZp14Metric(_request.argv[0x00], _request.argv[0x01], SENS_READ_CH4, &value);
+        rc = getAModeZp14Metric(_request.argv[0x00], _request.argv[0x01], SENS_READ_CH4, &value);
         goto finish;
       }
 #endif // FEATURE_WINSEN_ZP14_ENABLE

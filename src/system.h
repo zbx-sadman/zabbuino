@@ -33,7 +33,10 @@ void systemReboot();
 *****************************************************************************************************************************/
 void getMcuId(uint8_t* _dst);
 void getMcuModel(uint8_t* _dst);
-uint32_t getMcuFreq();
+int32_t getMcuFreq();
+int32_t getMcuVoltage();
+int8_t getSystemAllInfo(sysmetrics_t&, char*, const uint16_t);
+
 /*****************************************************************************************************************************
 *
 *  Init Timer1 

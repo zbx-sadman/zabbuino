@@ -1,5 +1,12 @@
 # Zabbuino 1.5 (ESP integration test)
 
+### 24-09-2020
+Changes:
+ - Winsen sensors "core" reworked.
+
+Added new command:
+ - `sys.all` - returns JSON with some system metric. Example: `sys.all`=> `{"sysRamFree":51768,"sysRamFreeMin":51584,"sysVcc":3078,"sysVccMin":3077,"sysVccMax":3085,"sysCmdCount":2,"netPHYReinits":55}`
+
 ### 23-09-2020
 Segments probally done:
  - Pixel leds support;

@@ -326,7 +326,7 @@
 //       - mhzxx.uart.co2[]
 //
 //#define FEATURE_MHZXX_PWM_ENABLE
-//#define FEATURE_MHZXX_UART_ENABLE
+#define FEATURE_MHZXX_UART_ENABLE
 
 //     Enable Winsen sensor:
 // - ZE08-CH2O
@@ -341,7 +341,7 @@
 //       - ze15.co[]
 //       - ze16.co[]
 //
-//#define FEATURE_WINSEN_ZE08_CH2O_ENABLE
+#define FEATURE_WINSEN_ZE08_CH2O_ENABLE
 //#define FEATURE_WINSEN_ZE14_O3_ENABLE
 //#define FEATURE_WINSEN_ZP14_ENABLE
 //#define FEATURE_WINSEN_ZE15_CO_ENABLE
@@ -374,7 +374,7 @@
 //
 //     Note: See below to include special signal types supporting
 //
- // !!!! Currently available on AVR only
+// !!!! Currently available on AVR only
 #define FEATURE_IR_ENABLE
 //#define SUPPORT_IR_RC5
 //#define SUPPORT_IR_RC6
@@ -470,6 +470,10 @@
 //       - Sys.RAM.FreeMin[]
 //
 //#define FEATURE_SYSINFO_ENABLE
+
+//     Enable commands which returns system information and can be used in system debug process:
+//       - Sys.All;
+#define FEATURE_SYSINFO_ALL_ENABLE
 
 //
 //      Enable support the system RTC (DS3231 or PCF8563 RTC chip which connected via I2C interface) and commands:

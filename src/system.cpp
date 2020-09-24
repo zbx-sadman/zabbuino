@@ -60,7 +60,7 @@ void getMcuId(uint8_t* _dst) {
 #endif
 }
 
-uint32_t getMcuFreq() {
+int32_t getMcuFreq() {
 #if defined(ARDUINO_ARCH_AVR)
     return F_CPU;
 #elif defined(ARDUINO_ARCH_ESP8266)
@@ -92,6 +92,31 @@ void getMcuModel(uint8_t* _dst) {
     *_dst++ = ptrflashChipID[0x01];
     *_dst   = ptrflashChipID[0x00];
 #endif
+}
+
+int32_t getMcuVoltage() {
+  int32_t result;
+#if defined(ARDUINO_ARCH_AVR)
+  result = getADCVoltage(ANALOG_CHAN_VBG);
+#elif defined(ARDUINO_ARCH_ESP8266)
+  result = ESP.getVcc();
+#endif
+  // VCC may be bigger than max or smaller than min.
+  // To avoid wrong results and graphs in monitoring system - correct min/max metrics
+  correctVCCMetrics(result);
+  return result;
+}
+
+int8_t getSystemAllInfo(sysmetrics_t& _sysMetrics, char* _dst, const uint16_t _dstSize) {
+  uint32_t sysVcc = getMcuVoltage();
+  snprintf_P(_dst, _dstSize, 
+     PSTR("{\"sysRamFree\":%u,\"sysRamFreeMin\":%u,\"sysVcc\":%u,\"sysVccMin\":%u,\"sysVccMax\":%u,\"sysCmdCount\":%u,\"netPHYReinits\":%u}"), 
+         _sysMetrics.sysRamFree,  _sysMetrics.sysRamFreeMin, sysVcc, _sysMetrics.sysVCCMin, _sysMetrics.sysVCCMax, 
+         _sysMetrics.sysCmdCount, _sysMetrics.netPHYReinits);  
+#if defined(ARDUINO_ARCH_AVR)
+#elif defined(ARDUINO_ARCH_ESP8266)
+#endif
+  return RESULT_IS_BUFFERED;
 }
 
 /*****************************************************************************************************************************

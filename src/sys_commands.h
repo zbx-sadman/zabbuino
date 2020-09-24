@@ -45,14 +45,15 @@
                                                                     
 #define CMD_SYS_CMD_COUNT                                       (0x1E)
 #define CMD_SYS_CMD_TIMEMAX                                     (0x1F)
-#define CMD_SYS_CMD_TIMEMAX_N                                   (0x20)
                                                                     
-#define CMD_SYS_RAM_FREE                                        (0x21)
-#define CMD_SYS_RAM_FREEMIN                                     (0x22)
+#define CMD_SYS_RAM_FREE                                        (0x20)
+#define CMD_SYS_RAM_FREEMIN                                     (0x21)
 
-#define CMD_SYS_VCC                                             (0x23)
-#define CMD_SYS_VCCMIN                                          (0x24)
-#define CMD_SYS_VCCMAX                                          (0x25)
+#define CMD_SYS_VCC                                             (0x22)
+#define CMD_SYS_VCCMIN                                          (0x23)
+#define CMD_SYS_VCCMAX                                          (0x24)
+
+#define CMD_SYS_ALL                                             (0x25)
                                                                     
 #define CMD_EXTINT_COUNT                                        (0x26)
 #define CMD_INCENC_VALUE                                        (0x27)
@@ -209,7 +210,6 @@ const char command_CMD_NET_PHY_REINITS[]                        PROGMEM = "net.p
 
 const char command_CMD_SYS_CMD_COUNT[]                          PROGMEM = "sys.cmd.count";
 const char command_CMD_SYS_CMD_TIMEMAX[]                        PROGMEM = "sys.cmd.timemax";
-const char command_CMD_SYS_CMD_TIMEMAX_N[]                      PROGMEM = "sys.cmd.timemax.n";
 
 const char command_CMD_SYS_RAM_FREE[]                           PROGMEM = "sys.ram.free";
 const char command_CMD_SYS_RAM_FREEMIN[]                        PROGMEM = "sys.ram.freemin";
@@ -217,6 +217,8 @@ const char command_CMD_SYS_RAM_FREEMIN[]                        PROGMEM = "sys.r
 const char command_CMD_SYS_VCC[]                                PROGMEM = "sys.vcc";
 const char command_CMD_SYS_VCCMIN[]                             PROGMEM = "sys.vccmin";
 const char command_CMD_SYS_VCCMAX[]                             PROGMEM = "sys.vccmax";
+
+const char command_CMD_SYS_ALL[]                                PROGMEM = "sys.all";
 
 const char command_CMD_EXTINT_COUNT[]                           PROGMEM = "extint.count";
 const char command_CMD_INCENC_VALUE[]                           PROGMEM = "incenc.value";
@@ -389,9 +391,12 @@ const command_t PROGMEM commands[] = {
     { CMD_NET_PHY_REINITS         , command_CMD_NET_PHY_REINITS},        
     { CMD_SYS_CMD_COUNT           , command_CMD_SYS_CMD_COUNT},          
     { CMD_SYS_CMD_TIMEMAX         , command_CMD_SYS_CMD_TIMEMAX},        
-    { CMD_SYS_CMD_TIMEMAX_N       , command_CMD_SYS_CMD_TIMEMAX_N},      
     { CMD_SYS_RAM_FREE            , command_CMD_SYS_RAM_FREE},           
     { CMD_SYS_RAM_FREEMIN         , command_CMD_SYS_RAM_FREEMIN},        
+#endif
+
+#ifdef FEATURE_SYSINFO_ALL_ENABLE
+    { CMD_SYS_ALL                 , command_CMD_SYS_ALL},
 #endif
 
     { CMD_SYS_VCC                 , command_CMD_SYS_VCC},                
@@ -506,6 +511,8 @@ const command_t PROGMEM commands[] = {
 
 #ifdef FEATURE_MHZXX_PWM_ENABLE
     { CMD_MHZXX_PWM_CO2           , command_CMD_MHZXX_PWM_CO2},          
+#endif
+#ifdef FEATURE_MHZXX_UART_ENABLE
     { CMD_MHZXX_UART_CO2          , command_CMD_MHZXX_UART_CO2},         
 #endif
 

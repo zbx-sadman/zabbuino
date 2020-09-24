@@ -42,10 +42,11 @@ uint8_t serialRecive(Stream* _stream, uint8_t* _dst, const uint8_t _size, const 
   uint8_t len = 0x00;
   //  while ((len <  _size) && (millis() - startTime < _readTimeout)) {
   while (millis() - startTime < _readTimeout) {
+    yield();
     if (len >=  _size) { break; }
     if (_stream) {
        // Slow talk with APC UPC'es
-       if (_slowMode) { delay(10); }
+       // if (_slowMode) { delay(10); }
        if (0x00 < _stream->available()) {
           uint8_t c = (uint8_t) _stream->read();
           if (!c && !len) {
@@ -70,12 +71,12 @@ uint8_t serialRecive(Stream* _stream, uint8_t* _dst, const uint8_t _size, const 
 *     - always true
 *
 *****************************************************************************************************************************/
-void serialSend(Stream* _stream, uint8_t* _src, uint8_t _size, const uint8_t _slowMode)
-{
+void serialSend(Stream* _stream, uint8_t* _src, uint8_t _size, const uint8_t _slowMode) {
   __DMLD( uint8_t i = 0x00; )
 
   if (_stream) {
      while (_size) {
+       yield();
        // do not rush when work with APC UPS's
        if (_slowMode) { delay(10); }
 
