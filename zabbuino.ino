@@ -85,7 +85,6 @@ void loop() {
     }
   }
 #endif
-
   // Run user function
   __USER_FUNCTION( initStageUserFunction(request.payloadByte); )
 
@@ -147,11 +146,11 @@ void loop() {
     delay(constEthernetShieldInitDelay - processStartTime);
   }
 #endif
+
   // Call user function
   __USER_FUNCTION( netPrepareStageUserFunction(request.payloadByte); )
   // init() just make preset of Network object internal data. Real starting maken on relaunch()
   Network::init(sysConfig.macAddress, sysConfig.ipAddress, sysConfig.ipAddress, sysConfig.ipGateway, sysConfig.ipNetmask, sysConfig.useDHCP);
-  //netServer.begin();
 
   __DMLL(
     //DEBUG_PORT.println(F("Wait for network warming up... "));
@@ -205,13 +204,13 @@ void loop() {
   __USER_FUNCTION( preLoopStageUserFunction(request.payloadByte); )
   __USER_FUNCTION( userFunctionButtonStatePrev = (constUserFunctionButtonActiveState == digitalRead(constUserFunctionButtonPin)); )
 
+
   parseRequest(CHAR_NULL, REINIT_ANALYZER, request);
 
   while (true) {
     // reset watchdog every loop
     __WATCHDOG( wdt_reset(); )
     yield();
-
 
 #if defined(FEATURE_USER_FUNCTION_PROCESSING)
     // System Button pressing on runttime
@@ -280,7 +279,6 @@ void loop() {
       }
     }
 
-    //  return;
 
     // tick() subroutine is very important for UIPEthernet, and must be called often (every ~250ms). If ENC28J60 driver not used - this subroutine do nothing
     Network::tick();
@@ -333,6 +331,8 @@ void loop() {
     }
 
     //*********************************************
+
+    /////////////////////////////////
 
 #ifdef FEATURE_SERIAL_LISTEN_TOO
     // !!! Need to drop slow serial connection too
@@ -445,10 +445,12 @@ void loop() {
     parseRequest(CHAR_NULL, REINIT_ANALYZER, request);
 #endif
     sysMetrics.sysCmdLastExecTime = prevPHYCheckTime = prevNetActivityTime = millis();
-    //blinkType = constBlinkNope;
     errorCode = ERROR_NONE;
+
   } // while(true)
+
 }
+
 
 /* ****************************************************************************************************************************
 
@@ -605,7 +607,7 @@ static int16_t executeCommand(Stream& _netClient, netconfig_t& _sysConfig, reque
         // Without ATOMIC_BLOCK block using sysMetrics.sysRamFree variable can be changed in interrupt on reading
         ATOMIC_BLOCK(ATOMIC_RESTORESTATE) {
 #endif
-        value = sysMetrics.sysRamFree;
+          value = sysMetrics.sysRamFree;
 #if defined(ARDUINO_ARCH_AVR)
         }
 #endif
@@ -664,8 +666,7 @@ static int16_t executeCommand(Stream& _netClient, netconfig_t& _sysConfig, reque
         //
         //  sys.all
         //
-        //ultoa(sysMetrics.sysCmdTimeMaxN, , 16);
-        rc = getSystemAllInfo((sysmetrics_t&)sysMetrics, _request.payloadChar, _request.dataFreeSize);
+        rc = getSystemAllInfo(_request.payloadChar, _request.dataFreeSize);
         goto finish;
       }
 #endif
@@ -692,6 +693,7 @@ static int16_t executeCommand(Stream& _netClient, netconfig_t& _sysConfig, reque
       }
 #endif // FEATURE_SYSTEM_RTC_ENABLE
   } // switch (cmdIdx) part #1
+
 
   // ***************************************************************************************************************
   // Command with options take more time
@@ -738,10 +740,10 @@ static int16_t executeCommand(Stream& _netClient, netconfig_t& _sysConfig, reque
         ptrOption = _request.args[0x00];
         ptrPayload = _request.payloadChar;
         while (*ptrOption) {
-          *ptrPayload = *ptrOption;
+          ptrPayload = *ptrOption;
           ptrPayload++; ptrOption++;
         }
-        *ptrPayload = '\n';
+        ptrPayload = '\n';
         // immediately return RESULT_IS_NEW_COMMAND to re-run executeCommand() with new command
         return RESULT_IS_NEW_COMMAND;
         goto finish;
@@ -1125,7 +1127,7 @@ static int16_t executeCommand(Stream& _netClient, netconfig_t& _sysConfig, reque
           getMcuModelAsHexString(_request.payloadChar);
 #elif defined(ARDUINO_ARCH_ESP8266)
           rc = ZBX_NOTSUPPORTED;
-#endif //#if defined(ARDUINO_ARCH_AVR)          
+#endif //#if defined(ARDUINO_ARCH_AVR)
         } else {
           // Return back CPU name
           strcpy_P(_request.payloadChar, PSTR(_CPU_NAME_));
@@ -1347,13 +1349,6 @@ static int16_t executeCommand(Stream& _netClient, netconfig_t& _sysConfig, reque
         holdTime = (_request.args[0x03] && _request.argv[0x03] > 0x00) ? _request.argv[0x03] : 0x00;
         targetAnglePulseWidth = (_request.args[0x01] && _request.argv[0x01] > 0x00) ? _request.argv[0x01] : 0x00;
         returnAnglePulseWidth = (_request.args[0x04] && _request.argv[0x04] > 0x00) ? _request.argv[0x04] : 0x00;
-        /*
-          this code a little fat when compiled
-          turnTime = (_request.argv[0x02] > 0x00) ? _request.argv[0x02] : 0x00;
-          holdTime = (_request.argv[0x03] > 0x00) ? _request.argv[0x03] : 0x00;
-          targetAnglePulseWidth = (_request.argv[0x01] > 0x00) ? _request.argv[0x01] : 0x00;
-          returnAnglePulseWidth = (_request.argv[0x04] > 0x00) ? _request.argv[0x04] : 0x00;
-        */
         rc = servoTurn(_request.argv[0x00], targetAnglePulseWidth, turnTime, holdTime, returnAnglePulseWidth);
         goto finish;
       }
@@ -1965,7 +1960,6 @@ static int16_t executeCommand(Stream& _netClient, netconfig_t& _sysConfig, reque
 
   }
 #endif // TWI_USE
-
 
 finish:
   // Form the output buffer routine

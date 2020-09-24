@@ -23,12 +23,14 @@
 */
 
 
-
+// AVR-based systems
 #if defined(ARDUINO_ARCH_AVR)
-#define NETWORK_ETHERNET_W5100           // Arduino Ethernet Shield and Compatibles ...
-//#define NETWORK_ETHERNET_ENC28J60      // Microchip __ENC28J60__ network modules
+#define NETWORK_ETHERNET_W5100           // Arduino Ethernet Shield and Compatible ...
+//#define NETWORK_ETHERNET_ENC28J60      // Microchip __ENC28J60__ network module
 //#define NETWORK_ETHERNET_W5500         // WIZ550io, ioShield series of WIZnet, tested but not satisfied with the performance on intensive traffic
 //#define NETWORK_SERIAL_INTERFACE       // not implemented yet
+
+// ESP8266-based systems
 #elif defined(ARDUINO_ARCH_ESP8266)
 #define NETWORK_WIRELESS_ESP_NATIVE
 #else
@@ -375,7 +377,7 @@
 //     Note: See below to include special signal types supporting
 //
 // !!!! Currently available on AVR only
-#define FEATURE_IR_ENABLE
+//#define FEATURE_IR_ENABLE
 //#define SUPPORT_IR_RC5
 //#define SUPPORT_IR_RC6
 //#define SUPPORT_IR_SONY
@@ -492,14 +494,14 @@
 #define FEATURE_DEBUG_MESSAGING_LEVEL     2
 
 //    Various runtime info for development needs
-#define FEATURE_DEBUG_TO_SERIAL_DEV
+//#define FEATURE_DEBUG_TO_SERIAL_DEV
 
 //
 //     Recieve command from Serial Monitor too. Do not forget to enable one of FEATURE_DEBUG_TO_SERIAL_* macro
 //
 //     Note that 64 bytes buffer reserved for Serial (refer to HardwareSerial.h) and long commands like ws2812.sendraw[5,1,over9000chars] can be processed uncorrectly
 //
-#define FEATURE_SERIAL_LISTEN_TOO
+//#define FEATURE_SERIAL_LISTEN_TOO
 
 //
 //     Send back to user text messages if error is occurs. Otherwise - send numeric code

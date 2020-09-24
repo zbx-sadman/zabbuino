@@ -8,6 +8,7 @@
 
 #include "service.h"
 #include "system.h"
+#include "adc.h"
 
 /*****************************************************************************************************************************
 *
@@ -107,12 +108,11 @@ int32_t getMcuVoltage() {
   return result;
 }
 
-int8_t getSystemAllInfo(sysmetrics_t& _sysMetrics, char* _dst, const uint16_t _dstSize) {
+int8_t getSystemAllInfo(char* _dst, const uint16_t _dstSize) {
+  extern volatile sysmetrics_t sysMetrics;
   uint32_t sysVcc = getMcuVoltage();
-  snprintf_P(_dst, _dstSize, 
-     PSTR("{\"sysRamFree\":%u,\"sysRamFreeMin\":%u,\"sysVcc\":%u,\"sysVccMin\":%u,\"sysVccMax\":%u,\"sysCmdCount\":%u,\"netPHYReinits\":%u}"), 
-         _sysMetrics.sysRamFree,  _sysMetrics.sysRamFreeMin, sysVcc, _sysMetrics.sysVCCMin, _sysMetrics.sysVCCMax, 
-         _sysMetrics.sysCmdCount, _sysMetrics.netPHYReinits);  
+
+  snprintf_P(_dst, _dstSize, PSTR("{\"sysRamFree\":%u,\"sysRamFreeMin\":%u,\"sysVcc\":%u,\"sysVccMin\":%u,\"sysVccMax\":%u,\"sysCmdCount\":%u,\"netPHYReinits\":%u}"), sysMetrics.sysRamFree,  sysMetrics.sysRamFreeMin, sysVcc, sysMetrics.sysVCCMin, sysMetrics.sysVCCMax, sysMetrics.sysCmdCount, sysMetrics.netPHYReinits);  
 #if defined(ARDUINO_ARCH_AVR)
 #elif defined(ARDUINO_ARCH_ESP8266)
 #endif

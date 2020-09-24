@@ -119,8 +119,8 @@ int8_t WS281xOut(const uint8_t _dataPin, const uint8_t _bitstream800KHz, const u
 
 #if defined(ARDUINO_ARCH_AVR)
   volatile uint8_t 
-           hi = *port |  pinMask;,             // PORT w/output bit set high
-           lo = *port & ~pinMask;;             // PORT w/output bit set low
+           hi = *port |  pinMask,             // PORT w/output bit set high
+           lo = *port & ~pinMask;             // PORT w/output bit set low
   volatile uint8_t next = lo;
 
   currentBit = 0x08;
