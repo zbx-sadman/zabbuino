@@ -9,6 +9,8 @@ Compilation tested on Arduino IDE 1.6.11 (from https://www.arduino.cc/) and abov
 
 All new features can be found on [experimental](https://github.com/zbx-sadman/Zabbuino/tree/experimental) branch. Old releases placed in [old_releases](https://github.com/zbx-sadman/Zabbuino/tree/old_releases) branch.
 
+**ESP8266 beta-release** [here](https://github.com/zbx-sadman/zabbuino/tree/esp-integration-test)
+
 See [change log](https://github.com/zbx-sadman/Zabbuino/blob/master/ChangeLog.md) before update.
 
 **You can help to the project** by providing new ideas and/or hardware to testing and integrating. Or yoг can just donate for further development. Contact to me via [email](mailto://zbx.sadman@gmail.com) or use 
