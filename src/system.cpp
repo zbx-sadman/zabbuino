@@ -128,13 +128,11 @@ int8_t getSystemAllInfo(char* _dst, const uint16_t _dstSize) {
   uint32_t sysVcc = getMcuVoltage();
 
 #if defined(ARDUINO_ARCH_AVR)
-  snprintf_P(_dst, _dstSize, PSTR("{\"sysRamFree\":%u,\"sysRamFreeMin\":%u,\"sysVcc\":%u,\"sysVccMin\":%u,\"sysVccMax\":%u, \
-             \"sysCmdCount\":%u,\"netPHYReinits\":%u}"), 
+  snprintf_P(_dst, _dstSize, PSTR("{\"sysRamFree\":%u,\"sysRamFreeMin\":%u,\"sysVcc\":%u,\"sysVccMin\":%u,\"sysVccMax\":%u,\"sysCmdCount\":%u,\"netPHYReinits\":%u}"), 
              sysMetrics.sysRamFree,  sysMetrics.sysRamFreeMin, sysVcc, sysMetrics.sysVCCMin, sysMetrics.sysVCCMax, 
              sysMetrics.sysCmdCount, sysMetrics.netPHYReinits);  
 #elif (defined(ARDUINO_ARCH_ESP8266) || defined(ARDUINO_ARCH_ESP32))
-  snprintf_P(_dst, _dstSize, PSTR("{\"sysRamFree\":%u,\"sysRamFreeMin\":%u,\"sysVcc\":%u,\"sysVccMin\":%u,\"sysVccMax\":%u, \
-             \"sysCmdCount\":%u,\"netPHYReinits\":%u, \"wifiRssi\":%d}"), 
+  snprintf_P(_dst, _dstSize, PSTR("{\"sysRamFree\":%u,\"sysRamFreeMin\":%u,\"sysVcc\":%u,\"sysVccMin\":%u,\"sysVccMax\":%u,\"sysCmdCount\":%u,\"netPHYReinits\":%u, \"wifiRssi\":%d}"), 
              sysMetrics.sysRamFree,  sysMetrics.sysRamFreeMin, sysVcc, sysMetrics.sysVCCMin, sysMetrics.sysVCCMax, 
              sysMetrics.sysCmdCount, sysMetrics.netPHYReinits, NetworkTransport.RSSI());  
 #endif

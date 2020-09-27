@@ -4,6 +4,8 @@
 
 ESP32 support added and tested with pair of sensors - OneWire & I2C. I hope this will works in general...
 
+Used software: Arduino IDE 1.8.9 + Espressif Arduino core for the ESP32 1.0.4.
+
 ### 24-09-2020
 Changes:
  - Winsen sensor "core" reworked.
