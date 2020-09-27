@@ -9,6 +9,7 @@
 #include "service.h"
 #include "system.h"
 #include "adc.h"
+#include "wrap_network.h"
 
 /*****************************************************************************************************************************
 *
@@ -29,7 +30,7 @@ void systemReboot() {
   __WATCHDOG( wdt_disable(); )
 #if defined(ARDUINO_ARCH_AVR)
   asm volatile ("jmp 0");
-#elif defined(ARDUINO_ARCH_ESP8266)
+#elif (defined(ARDUINO_ARCH_ESP8266) || defined(ARDUINO_ARCH_ESP32))
   ESP.restart();
 #endif
 }
@@ -58,13 +59,19 @@ void getMcuId(uint8_t* _dst) {
     *_dst++ = ptrChipID[0x02];
     *_dst++ = ptrChipID[0x01];
     *_dst   = ptrChipID[0x00];
+#elif defined(ARDUINO_ARCH_ESP32)
+    uint64_t chipId = ESP.getEfuseMac();
+    uint8_t  *ptrChipID = (uint8_t*) &chipId;
+    for (int8_t i = constMcuIdSize; 0x00 <= i; i--) {
+       *_dst++ = ptrChipID[i];
+    }
 #endif
 }
 
 int32_t getMcuFreq() {
 #if defined(ARDUINO_ARCH_AVR)
     return F_CPU;
-#elif defined(ARDUINO_ARCH_ESP8266)
+#elif (defined(ARDUINO_ARCH_ESP8266) || defined(ARDUINO_ARCH_ESP32))
     return ESP.getCpuFreqMHz();
 #endif
 }
@@ -86,14 +93,17 @@ void getMcuModel(uint8_t* _dst) {
   }
 #elif defined(ARDUINO_ARCH_ESP8266)
     // Where are placed model ID?
-    uint32_t flashChipId = ESP.getFlashChipId();
-    uint8_t  *ptrflashChipID = (uint8_t*) &flashChipId;
-    *_dst++ = ptrflashChipID[0x03];
-    *_dst++ = ptrflashChipID[0x02];
-    *_dst++ = ptrflashChipID[0x01];
-    *_dst   = ptrflashChipID[0x00];
+  __SUPPRESS_WARNING_UNUSED(_dst);
+#elif defined(ARDUINO_ARCH_ESP32)
+    // Where are placed model ID?
+  __SUPPRESS_WARNING_UNUSED(_dst);
 #endif
 }
+
+// !!! No any warrianty when rom_phy_get_vdd33 used
+#if defined(ARDUINO_ARCH_ESP32)
+//extern "C" int rom_phy_get_vdd33();
+#endif
 
 int32_t getMcuVoltage() {
   int32_t result;
@@ -101,6 +111,10 @@ int32_t getMcuVoltage() {
   result = getADCVoltage(ANALOG_CHAN_VBG);
 #elif defined(ARDUINO_ARCH_ESP8266)
   result = ESP.getVcc();
+#elif defined(ARDUINO_ARCH_ESP32)
+  // !!! No any warrianty when rom_phy_get_vdd33 used
+  result = 0x00;
+  //result = rom_phy_get_vdd33();
 #endif
   // VCC may be bigger than max or smaller than min.
   // To avoid wrong results and graphs in monitoring system - correct min/max metrics
@@ -108,14 +122,23 @@ int32_t getMcuVoltage() {
   return result;
 }
 
+
 int8_t getSystemAllInfo(char* _dst, const uint16_t _dstSize) {
   extern volatile sysmetrics_t sysMetrics;
   uint32_t sysVcc = getMcuVoltage();
 
-  snprintf_P(_dst, _dstSize, PSTR("{\"sysRamFree\":%u,\"sysRamFreeMin\":%u,\"sysVcc\":%u,\"sysVccMin\":%u,\"sysVccMax\":%u,\"sysCmdCount\":%u,\"netPHYReinits\":%u}"), sysMetrics.sysRamFree,  sysMetrics.sysRamFreeMin, sysVcc, sysMetrics.sysVCCMin, sysMetrics.sysVCCMax, sysMetrics.sysCmdCount, sysMetrics.netPHYReinits);  
 #if defined(ARDUINO_ARCH_AVR)
-#elif defined(ARDUINO_ARCH_ESP8266)
+  snprintf_P(_dst, _dstSize, PSTR("{\"sysRamFree\":%u,\"sysRamFreeMin\":%u,\"sysVcc\":%u,\"sysVccMin\":%u,\"sysVccMax\":%u, \
+             \"sysCmdCount\":%u,\"netPHYReinits\":%u}"), 
+             sysMetrics.sysRamFree,  sysMetrics.sysRamFreeMin, sysVcc, sysMetrics.sysVCCMin, sysMetrics.sysVCCMax, 
+             sysMetrics.sysCmdCount, sysMetrics.netPHYReinits);  
+#elif (defined(ARDUINO_ARCH_ESP8266) || defined(ARDUINO_ARCH_ESP32))
+  snprintf_P(_dst, _dstSize, PSTR("{\"sysRamFree\":%u,\"sysRamFreeMin\":%u,\"sysVcc\":%u,\"sysVccMin\":%u,\"sysVccMax\":%u, \
+             \"sysCmdCount\":%u,\"netPHYReinits\":%u, \"wifiRssi\":%d}"), 
+             sysMetrics.sysRamFree,  sysMetrics.sysRamFreeMin, sysVcc, sysMetrics.sysVCCMin, sysMetrics.sysVCCMax, 
+             sysMetrics.sysCmdCount, sysMetrics.netPHYReinits, NetworkTransport.RSSI());  
 #endif
+
   return RESULT_IS_BUFFERED;
 }
 
@@ -143,7 +166,7 @@ uint8_t initTimerOne(const uint32_t _milliseconds)
   // It is good practice to set OCR1A after you configure the rest of the timer
   // Take care with OCR1A writing: http://www.atmel.com/webdoc/avrlibcreferencemanual/FAQ_1faq_16bitio.html
   ATOMIC_BLOCK(ATOMIC_RESTORESTATE) { OCR1A = (F_CPU / 1024) * (_milliseconds/1000); }
-#elif defined(ARDUINO_ARCH_ESP8266)
+#elif (defined(ARDUINO_ARCH_ESP8266) || defined(ARDUINO_ARCH_ESP32))
   __SUPPRESS_WARNING_UNUSED(_milliseconds);
 #endif
   return true; 
@@ -160,7 +183,7 @@ uint8_t initTimerOne(const uint32_t _milliseconds)
 void startTimerOne() {
 #if defined(ARDUINO_ARCH_AVR)
     TCCR1B = _BV(CS12) | _BV(CS10); 
-#elif defined(ARDUINO_ARCH_ESP8266)
+#elif (defined(ARDUINO_ARCH_ESP8266) || defined(ARDUINO_ARCH_ESP32))
 #endif
 }
 
@@ -192,7 +215,7 @@ ISR(TIMER1_COMPA_vect)
 void stopTimerOne() { 
 #if defined(ARDUINO_ARCH_AVR)
     TCCR1B = 0; 
-#elif defined(ARDUINO_ARCH_ESP8266)
+#elif (defined(ARDUINO_ARCH_ESP8266) || defined(ARDUINO_ARCH_ESP32))
 #endif
 }
 

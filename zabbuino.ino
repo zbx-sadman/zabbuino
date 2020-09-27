@@ -25,20 +25,23 @@
 ADC_MODE(ADC_VCC);
 #endif
 
-
 void setup() {
 
 #ifdef SERIAL_USE
   DEBUG_PORT.begin(constSerialMonitorSpeed);
 #endif // SERIAL_USE
+
+#if defined(ARDUINO_ARCH_AVR)
   SPI.begin();
+#endif
 
   __DMLL( DEBUG_PORT.print(FSH_P(constZbxAgentVersion)); DEBUG_PORT.println(FSH_P(STRING_wakes_up)); )
   sysMetrics.sysVCCMin = sysMetrics.sysVCCMax = getMcuVoltage();
   sysMetrics.sysRamFree = sysMetrics.sysRamFreeMin = getRamFree();
   pinMode(constStateLedPin, OUTPUT);
+//  digitalWrite(constUserFunctionButtonPin, INPUT_PULLUP);
   pinMode(constUserFunctionButtonPin, INPUT_PULLUP);
-
+  delay(1000);
 #ifdef ADVANCED_BLINKING
   // blink on start
   //  blinkMore(6, 50, 500);
@@ -51,7 +54,7 @@ void setup() {
 void loop() {
   uint8_t result = 0x00, needNetworkRelaunch = true, errorCode = ERROR_NONE;
   char incomingData;
-  uint32_t processStartTime, processEndTime, prevPHYCheckTime, prevNetActivityTime, prevSysMetricGatherTime, clientConnectTime, netDebugPrintTime;
+  uint32_t processStartTime, processEndTime, prevPHYCheckTime, prevNetActivityTime, prevSysMetricGatherTime, clientConnectTime, netDebugPrintTime, networkInfoShowDelayStartTime = 0x00;
 
 #if defined(FEATURE_USER_FUNCTION_PROCESSING)
   uint8_t  userFunctionButtonStatePrev;
@@ -117,7 +120,7 @@ void loop() {
   __DMLL( DEBUG_PORT.println(FSH_P(STRING_Use_default_settings)); )
   // Use hardcoded values if EEPROM feature disabled
   setConfigDefaults(sysConfig);
-#if defined(ARDUINO_ARCH_ESP8266) && defined(NETWORK_WIRELESS_ESP_NATIVE)
+#if (defined(ARDUINO_ARCH_ESP8266) || defined(ARDUINO_ARCH_ESP32)) && defined(NETWORK_WIRELESS_ESP_NATIVE)
   setWifiDefaults();
 #endif //defined(ARDUINO_ARCH_ESP8266)
 #endif // FEATURE_EEPROM_ENABLE
@@ -160,6 +163,7 @@ void loop() {
     DEBUG_PORT.print(FSH_P(STRING_Password)); DEBUG_PORT.println(sysConfig.password, DEC);
   )
 
+
   // 5. Other system parts initialization
   //
   // I/O ports initialization. Refer to "I/O PORTS SETTING SECTION" in src/cfg_tune.h
@@ -177,6 +181,7 @@ void loop() {
   __WATCHDOG( wdt_enable(constWtdTimeout); )
 #elif defined(ARDUINO_ARCH_ESP8266)
   wdt_enable(WDTO_8S);
+#elif defined(ARDUINO_ARCH_ESP32)
 #endif
 
 #ifdef GATHER_METRIC_USING_TIMER_INTERRUPT
@@ -203,7 +208,6 @@ void loop() {
   // Call user function
   __USER_FUNCTION( preLoopStageUserFunction(request.payloadByte); )
   __USER_FUNCTION( userFunctionButtonStatePrev = (constUserFunctionButtonActiveState == digitalRead(constUserFunctionButtonPin)); )
-
 
   parseRequest(CHAR_NULL, REINIT_ANALYZER, request);
 
@@ -261,84 +265,88 @@ void loop() {
 #endif
     } // if (ERROR_NONE == errorCode) ... else
 
-    if (needNetworkRelaunch) {
-      needNetworkRelaunch = false;
-      // Network module lost address (was resetted) or was not init (first time run)
-      // Relaunch will reset hardware and re-init its registers
-      sysMetrics.netPHYReinits++;
-      __DMLL( DEBUG_PORT.print(FSH_P(STRING_Network_module_reset_No)); DEBUG_PORT.println(sysMetrics.netPHYReinits); )
-      // relaunch() returns code that can be used as status led blink type
-      errorCode = Network::relaunch();
-      if (ERROR_NONE == errorCode) {
-#if defined (NETWORK_WIFI)
-        delay(constPHYCheckInterval);
-#endif
-        netServer.begin();
-        // relaunch() returns true if DHCP is OK or Static IP used
-        __DMLL( Network::printNetworkInfo(); )
-      }
-    }
-
-
     // tick() subroutine is very important for UIPEthernet, and must be called often (every ~250ms). If ENC28J60 driver not used - this subroutine do nothing
     Network::tick();
-
-    if ((millis() - prevPHYCheckTime) > constPHYCheckInterval) {
-      //Serial.println("check");
-      //phyCheckInterval = constPHYCheckInterval;
-      // do not forget SPI.begin() or system is hangs up
-      if ((millis() - netDebugPrintTime) > consNetDebugPrintInterval) {
-        //__DMLL( Network::printPHYState(); )
-        netDebugPrintTime = millis();
-      }
-
-      // Network hardware is ok?
-      if (Network::isPhyOk()) {
-        // Network hardware settings is the same that MCU needs?
-        if (!Network::isPhyConfigured()) {
-          // Need relaunch on next loop in hardware settings error detected
-          needNetworkRelaunch = true;
-        } else { // if (!Network::isPhyConfigured())
-          // PHY is works properly
-          result = Network::maintain();
-          // Renew procedure finished with success
-          switch (result) {
-            case DHCP_CHECK_NONE:
-            case DHCP_CHECK_RENEW_OK:
-            case DHCP_CHECK_REBIND_OK:
-              // No alarm blink need, network activity registred
-              errorCode = ERROR_NONE;
-              break;
-            default:
-              // Got some errors - blink with "DHCP problem message"
-              //blinkType = constBlinkDhcpProblem;
-              errorCode = ERROR_DHCP;
-              __DMLM( DEBUG_PORT.println(FSH_P(STRING_DHCP_renew_problem_occured)); )
-          } // switch (result)
-        } // if (!Network::isPhyConfigured())
-      } else { // if (Network::isPhyOk())
-        // PHY is disconnected or rise any error flag
-        Serial.println("Need to rlnch");
-        needNetworkRelaunch = true;
-        // Right errorCode will be taken on relaunch()
-      } // if (Network::isPhyOk())
-      prevPHYCheckTime = millis();
-    }
 
     // No DHCP problem found, but no data recieved or network activity for a long time
     if (ERROR_NONE == errorCode && (constNetIdleTimeout <= (millis() - prevNetActivityTime))) {
       errorCode = ERROR_NO_NET_ACTIVITY;
     }
 
-    //*********************************************
-
-    /////////////////////////////////
 
 #ifdef FEATURE_SERIAL_LISTEN_TOO
     // !!! Need to drop slow serial connection too
     // Network connections will processed if no data in Serial buffer exist
-    if (DEBUG_PORT.available() <= 0) {
+    if (0x00 >= DEBUG_PORT.available()) {
 #endif
+      // Serial port incoming data have highest priority to give chance user reconfigure network interface when it was wrong configured (ESP32 reconnect instantly after SSID/PSK change)
+      if (needNetworkRelaunch) {
+        needNetworkRelaunch = false;
+        // Network module lost address (was resetted) or was not init (first time run)
+        // Relaunch will reset hardware and re-init its registers
+        sysMetrics.netPHYReinits++;
+        __DMLL( DEBUG_PORT.print(FSH_P(STRING_Network_module_reset_No)); DEBUG_PORT.println(sysMetrics.netPHYReinits); )
+        // relaunch() returns code that can be used as status led blink type
+        errorCode = Network::relaunch();
+        if (ERROR_NONE == errorCode) {
+          networkInfoShowDelayStartTime = millis();
+          //#if defined (NETWORK_WIFI)
+          //          delay(constPHYCheckInterval);
+          //#endif
+          netServer.begin();
+        }
+      }
+
+      if (networkInfoShowDelayStartTime) {
+        if ((millis() - networkInfoShowDelayStartTime) > constNetworkInfoShowDelay) {
+          networkInfoShowDelayStartTime = 0x00;
+          __DMLL( Network::printNetworkInfo(); )
+        }
+      } else {
+
+        if ((millis() - prevPHYCheckTime) > constPHYCheckInterval) {
+          //Serial.println("check");
+          //phyCheckInterval = constPHYCheckInterval;
+          // do not forget SPI.begin() or system is hangs up
+          if ((millis() - netDebugPrintTime) > consNetDebugPrintInterval) {
+            //__DMLL( Network::printPHYState(); )
+            netDebugPrintTime = millis();
+          }
+
+          // Network hardware is ok?
+          if (Network::isPhyOk()) {
+            // Network hardware settings is the same that MCU needs?
+            if (!Network::isPhyConfigured()) {
+              // Need relaunch on next loop in hardware settings error detected
+              needNetworkRelaunch = true;
+            } else { // if (!Network::isPhyConfigured())
+              // PHY is works properly
+              result = Network::maintain();
+              // Renew procedure finished with success
+              switch (result) {
+                case DHCP_CHECK_NONE:
+                case DHCP_CHECK_RENEW_OK:
+                case DHCP_CHECK_REBIND_OK:
+                  // No alarm blink need, network activity registred
+                  errorCode = ERROR_NONE;
+                  break;
+                default:
+                  // Got some errors - blink with "DHCP problem message"
+                  //blinkType = constBlinkDhcpProblem;
+                  errorCode = ERROR_DHCP;
+                  __DMLM( DEBUG_PORT.println(FSH_P(STRING_DHCP_renew_problem_occured)); )
+              } // switch (result)
+            } // if (!Network::isPhyConfigured())
+          } else { // if (Network::isPhyOk())
+            // PHY is disconnected or rise any error flag
+            //Serial.println("Need to rlnch");
+            needNetworkRelaunch = true;
+            // Right errorCode will be taken on relaunch()
+          } // if (Network::isPhyOk())
+          prevPHYCheckTime = millis();
+        }
+      }
+
       if (!netClient) {
         // accept() returns client with "Connected but not send data" state and system must have more stability on this
 #if defined(NETWORK_ETH_WIZNET)
@@ -423,9 +431,10 @@ void loop() {
 #endif
     processEndTime = millis();
     // use processEndTime as processDurationTime
-    processEndTime = processEndTime - processStartTime ;
-    __DMLM( DEBUG_PORT.print(F("Spended: ")); DEBUG_PORT.print(processEndTime);
-            DEBUG_PORT.print(F(" ms, ")); DEBUG_PORT.print((ramBefore - getRamFree()));
+    processEndTime = processEndTime - processStartTime;
+    __DMLM( uint32_t ramSpended = ramBefore - getRamFree();
+            DEBUG_PORT.print(F("Spended: ")); DEBUG_PORT.print(processEndTime);
+            DEBUG_PORT.print(F(" ms, ")); DEBUG_PORT.print(ramSpended);
             DEBUG_PORT.println(F(" memory bytes"));
           )
     // Correct internal runtime metrics if need
@@ -646,7 +655,6 @@ static int16_t executeCommand(Stream& _netClient, netconfig_t& _sysConfig, reque
         //
         // sys.vccMin
         //
-        //value = sysMetrics[IDX_METRIC_SYS_VCCMIN];
         value = sysMetrics.sysVCCMin;
         rc = RESULT_IS_UNSIGNED_VALUE;
         goto finish;
@@ -685,7 +693,7 @@ static int16_t executeCommand(Stream& _netClient, netconfig_t& _sysConfig, reque
         if (RESULT_IS_OK == getUnixTime(&SoftTWI, (uint32_t*) &value)) {
           rc = RESULT_IS_UNSIGNED_VALUE;
         }
-#elif defined(ARDUINO_ARCH_ESP8266)
+#elif (defined(ARDUINO_ARCH_ESP8266) || defined(ARDUINO_ARCH_ESP32))
         rc = ZBX_NOTSUPPORTED;
 #endif //#if defined(ARDUINO_ARCH_AVR)
 
@@ -740,10 +748,10 @@ static int16_t executeCommand(Stream& _netClient, netconfig_t& _sysConfig, reque
         ptrOption = _request.args[0x00];
         ptrPayload = _request.payloadChar;
         while (*ptrOption) {
-          ptrPayload = *ptrOption;
+          *ptrPayload = *ptrOption;
           ptrPayload++; ptrOption++;
         }
-        ptrPayload = '\n';
+        *ptrPayload = '\n';
         // immediately return RESULT_IS_NEW_COMMAND to re-run executeCommand() with new command
         return RESULT_IS_NEW_COMMAND;
         goto finish;
@@ -758,8 +766,12 @@ static int16_t executeCommand(Stream& _netClient, netconfig_t& _sysConfig, reque
         if (! isSafePin(_request.argv[0x00])) {
           goto finish;
         }
+#if defined(ARDUINO_ARCH_ESP32)
+        rc = ZBX_NOTSUPPORTED;
+#else
         analogWrite(_request.argv[0x00], _request.argv[0x01]);
         rc = RESULT_IS_OK;
+#endif
         goto finish;
       }
 
@@ -767,6 +779,7 @@ static int16_t executeCommand(Stream& _netClient, netconfig_t& _sysConfig, reque
         //
         //  analogRead[pin, analogReferenceSource, mapToLow, mapToHigh]
         //
+
 #ifdef FEATURE_AREF_ENABLE
         // change source of the reference voltage if its given
         if (_request.args[0x00]) {
@@ -782,6 +795,7 @@ static int16_t executeCommand(Stream& _netClient, netconfig_t& _sysConfig, reque
           value = map(value, constAnalogReadMappingLowValue, constAnalogReadMappingHighValue, _request.argv[0x02], _request.argv[0x03]);
         }
         rc = RESULT_IS_UNSIGNED_VALUE;
+
         goto finish;
 
       }
@@ -977,7 +991,7 @@ static int16_t executeCommand(Stream& _netClient, netconfig_t& _sysConfig, reque
         //
 #if defined(ARDUINO_ARCH_AVR)
         rc = ZBX_NOTSUPPORTED;
-#elif defined(ARDUINO_ARCH_ESP8266)
+#elif (defined(ARDUINO_ARCH_ESP8266) || defined(ARDUINO_ARCH_ESP32))
 
         if (!accessGranted) {
           goto finish;
@@ -999,6 +1013,9 @@ static int16_t executeCommand(Stream& _netClient, netconfig_t& _sysConfig, reque
           len = strlen(wifiPsk);
           success = success ? (0x08 <= len && 0x40 >= len) : false;
         }
+        Serial.print("SSID: "); Serial.println(wifiSsid);
+        Serial.print("PSK: "); Serial.println(wifiPsk);
+
         if (success) {
           // Just save config
           NetworkTransport.begin(wifiSsid, wifiPsk, 0x00, NULL, false);
@@ -1042,7 +1059,7 @@ static int16_t executeCommand(Stream& _netClient, netconfig_t& _sysConfig, reque
             rc = RESULT_IS_OK;
           }
         }
-#elif defined(ARDUINO_ARCH_ESP8266)
+#elif (defined(ARDUINO_ARCH_ESP8266) || defined(ARDUINO_ARCH_ESP32))
         rc = ZBX_NOTSUPPORTED;
 #endif //#if defined(ARDUINO_ARCH_AVR)
         goto finish;
@@ -1058,7 +1075,7 @@ static int16_t executeCommand(Stream& _netClient, netconfig_t& _sysConfig, reque
 #if defined(ARDUINO_ARCH_AVR)
         uint8_t portNo = *_request.args[0x00] - 'a' + 0x01;
         rc = writeToPort(portNo, _request.argv[0x01]);
-#elif defined(ARDUINO_ARCH_ESP8266)
+#elif (defined(ARDUINO_ARCH_ESP8266) || defined(ARDUINO_ARCH_ESP32))
         rc = ZBX_NOTSUPPORTED;
 #endif // #if defined(ARDUINO_ARCH_AVR)
         goto finish;
@@ -1114,7 +1131,7 @@ static int16_t executeCommand(Stream& _netClient, netconfig_t& _sysConfig, reque
     case CMD_SYSTEM_HW_CPU: {
         //
         //  system.hw.cpu[metric]
-        //
+        //  system.hw.cpu[id]
         rc = RESULT_IS_BUFFERED;
         if (0x00 == strcmp_P(_request.args[0x00], PSTR("id"))) {
           getMcuIdAsHexString(_request.payloadChar);
@@ -1125,7 +1142,7 @@ static int16_t executeCommand(Stream& _netClient, netconfig_t& _sysConfig, reque
         } else if (0x00 == strcmp_P(_request.args[0x00], PSTR("model"))) {
 #if defined(ARDUINO_ARCH_AVR)
           getMcuModelAsHexString(_request.payloadChar);
-#elif defined(ARDUINO_ARCH_ESP8266)
+#elif (defined(ARDUINO_ARCH_ESP8266) || defined(ARDUINO_ARCH_ESP32))
           rc = ZBX_NOTSUPPORTED;
 #endif //#if defined(ARDUINO_ARCH_AVR)
         } else {
@@ -1172,7 +1189,7 @@ static int16_t executeCommand(Stream& _netClient, netconfig_t& _sysConfig, reque
           goto finish;
         }
         rc = manageExtInt(_request.argv[0x00], _request.argv[0x01], (uint32_t*) &value);
-#elif defined(ARDUINO_ARCH_ESP8266)
+#elif (defined(ARDUINO_ARCH_ESP8266) || defined(ARDUINO_ARCH_ESP32))
         rc = ZBX_NOTSUPPORTED;
 #endif //#if defined(ARDUINO_ARCH_AVR)
         goto finish;
@@ -1303,7 +1320,7 @@ static int16_t executeCommand(Stream& _netClient, netconfig_t& _sysConfig, reque
         //         irPWMPin = argv[0x00];
 #if defined(ARDUINO_ARCH_AVR)
         rc = sendCommandByIR(_request.argv[0x01], _request.argv[0x02], _request.argv[0x03], _request.argv[0x04], _request.argv[0x05]);
-#elif defined(ARDUINO_ARCH_ESP8266)
+#elif (defined(ARDUINO_ARCH_ESP8266) || defined(ARDUINO_ARCH_ESP32))
         rc = ZBX_NOTSUPPORTED;
 #endif //#if defined(ARDUINO_ARCH_AVR)
         //      }
@@ -1322,7 +1339,7 @@ static int16_t executeCommand(Stream& _netClient, netconfig_t& _sysConfig, reque
         //         irPWMPin = argv[0x00];
 #if defined(ARDUINO_ARCH_AVR)
         rc = sendRawByIR(_request.argv[0x01], _request.argv[0x02], _request.args[0x03]);
-#elif defined(ARDUINO_ARCH_ESP8266)
+#elif (defined(ARDUINO_ARCH_ESP8266) || defined(ARDUINO_ARCH_ESP32))
         rc = ZBX_NOTSUPPORTED;
 #endif //#if defined(ARDUINO_ARCH_AVR)
         //     }
@@ -1429,7 +1446,7 @@ static int16_t executeCommand(Stream& _netClient, netconfig_t& _sysConfig, reque
       // argv[0x03] (intNumber) currently not used
 #if defined(ARDUINO_ARCH_AVR)
       rc = manageIncEnc(&value, _request.argv[0x00], _request.argv[0x01], _request.argv[0x02]);
-#elif defined(ARDUINO_ARCH_ESP8266)
+#elif (defined(ARDUINO_ARCH_ESP8266) || defined(ARDUINO_ARCH_ESP32))
       rc = ZBX_NOTSUPPORTED;
 #endif //#if defined(ARDUINO_ARCH_AVR)
       goto finish;

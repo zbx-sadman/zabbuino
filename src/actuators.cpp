@@ -78,7 +78,9 @@ int8_t servoTurn(const uint8_t _servoPin, const uint16_t _targetPulseWidth, cons
   startTimerOne(); 
   rc = RESULT_IS_OK;
 
+#if defined(ARDUINO_ARCH_AVR) 
 finish:
+#endif
   gatherSystemMetrics(); 
   return rc;
 }

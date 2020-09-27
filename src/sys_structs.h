@@ -13,7 +13,7 @@ typedef struct {
                                                   //         When the cell was broken, we just shift start config store address to next cell.
   uint8_t useProtection;                          // 1 byte
   uint8_t useDHCP;         	 		  // 1 byte
-  uint8_t macAddress[6];                          // 6 byte 
+  uint8_t macAddress[0x06];                       // 6 byte 
   uint32_t ipAddress;     	        	  // 4 byte
   uint32_t ipNetmask;             		  // 4 byte
   uint32_t ipGateway;            	          // 4 byte
@@ -70,7 +70,7 @@ struct command_t {
 };
 
 typedef union {
-  uint8_t octets[4];
+  uint8_t octets[sizeof(uint32_t)];
   uint32_t address;
 } ipv4Address_t;
 

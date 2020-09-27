@@ -4,7 +4,7 @@
 #include "SoftwareWire/SoftwareWire.h"
 typedef SoftwareWire SoftwareTWI;
 
-#elif defined(ARDUINO_ARCH_ESP8266)  
+#elif (defined(ARDUINO_ARCH_ESP8266) || defined(ARDUINO_ARCH_ESP32))
 #include <Wire.h>
 typedef TwoWire SoftwareTWI;
 #endif //#if defined(ARDUINO_ARCH_AVR)

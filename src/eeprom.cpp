@@ -77,9 +77,10 @@ uint8_t saveConfigToEEPROM(netconfig_t& _sysConfig) {
      if (startAddress != EEPROM[CONFIG_STORE_PTR_ADDRESS]) { goto finish; }
   };
 
-#elif defined(ARDUINO_ARCH_ESP8266) 
+#elif (defined(ARDUINO_ARCH_ESP8266) || defined(ARDUINO_ARCH_ESP32))
    EEPROM.begin(constEspEepromSize);
    for (uint8_t idx = 0x00; sizeof(_sysConfig) > idx; idx++) {
+     yield();  
      EEPROM.write(idx, *(ptrSysConfig + idx));
    }
    EEPROM.end();
@@ -87,7 +88,10 @@ uint8_t saveConfigToEEPROM(netconfig_t& _sysConfig) {
 
   rc = true;
 
+#if defined(ARDUINO_ARCH_AVR) 
 finish:
+#endif
+
   return rc;
 
 }
@@ -129,9 +133,10 @@ uint8_t loadConfigFromEEPROM(netconfig_t& _sysConfig) {
   }
                                     
 
-#elif defined(ARDUINO_ARCH_ESP8266) 
+#elif (defined(ARDUINO_ARCH_ESP8266) || defined(ARDUINO_ARCH_ESP32))
    EEPROM.begin(constEspEepromSize);
    for (uint8_t idx = 0x00; sizeof(_sysConfig) > idx; idx++) {
+     yield();  
      *(ptrSysConfig + idx) = EEPROM.read(idx);
    }
    EEPROM.end();

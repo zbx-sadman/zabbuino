@@ -6,6 +6,7 @@
 #endif
 
 #include "service.h"
+#include "system.h"
 #include "io_regs.h"
 
 int8_t initPinMode() {
@@ -17,14 +18,14 @@ int8_t initPinMode() {
     portNo--;
     setPortMode(portNo, pgm_read_byte(port_mode + portNo), pgm_read_byte(port_pullup + portNo));
   }
-  rc = RESULT_IS_OK;
-#elif defined(ARDUINO_ARCH_ESP8266)
-  
-  rc = RESULT_IS_OK;
-  goto finish;
+#elif (defined(ARDUINO_ARCH_ESP8266) || defined(ARDUINO_ARCH_ESP32))
 #endif
 
+  rc = RESULT_IS_OK;
+
+#if defined(ARDUINO_ARCH_AVR) 
 finish:
+#endif
   return rc;
 }
 
@@ -53,15 +54,16 @@ int8_t setPortMode(const uint8_t _portNo, const uint8_t _mode, const uint8_t _pu
     *pullUpRegister |= _pullup;
   }
   rc = RESULT_IS_OK;
-#elif defined(ARDUINO_ARCH_ESP8266)
+#elif (defined(ARDUINO_ARCH_ESP8266) || defined(ARDUINO_ARCH_ESP32))
   __SUPPRESS_WARNING_UNUSED(_portNo);
   __SUPPRESS_WARNING_UNUSED(_mode);
   __SUPPRESS_WARNING_UNUSED(_pullup);
   rc = RESULT_IS_OK;
-  goto finish;
 #endif
 
+#if defined(ARDUINO_ARCH_AVR) 
 finish:
+#endif
   return rc; 
 }
 
@@ -87,15 +89,17 @@ int8_t writeToPort(const uint8_t _portNo, const uint8_t _value) {
   // Port write transaction
   // Use protection mask when write to port for saving some pins state
   ATOMIC_BLOCK(ATOMIC_RESTORESTATE) { *portRegister = (*portRegister & port_protect[_portNo]) | (_value & ~port_protect[_portNo]); }
-  rc = RESULT_IS_OK;
-#elif defined(ARDUINO_ARCH_ESP8266)
+
+#elif (defined(ARDUINO_ARCH_ESP8266) || defined(ARDUINO_ARCH_ESP32))
   __SUPPRESS_WARNING_UNUSED(_portNo);
   __SUPPRESS_WARNING_UNUSED(_value);
-  rc = RESULT_IS_OK;
-  goto finish;
 #endif
 
+  rc = RESULT_IS_OK;
+
+#if defined(ARDUINO_ARCH_AVR) 
 finish:
+#endif
   return rc; 
 }
 
@@ -112,15 +116,16 @@ finish:
 uint8_t isSafePin(const uint8_t _pin) {
   // Taking pin's correspondent bit 
   uint8_t rc = true; 
+  ioRegister_t result;
   // Taking pin's correspondent bit 
-  rc = digitalPinToBitMask(_pin);
+  result = digitalPinToBitMask(_pin);
   // Protection checking
-  rc &= ~port_protect[digitalPinToPort(_pin)];
+  result &= ~port_protect[digitalPinToPort(_pin)];
   // pinmask=B00100000, safemask=B11011100. result = B00100000 & ~B11011100 = B00100000 & B00100011 = B00100000. B00100000 > 0, pin is safe (not protected)
   // pinmask=B00100000, safemask=B11111100. result = B00100000 & ~B11111100 = B00100000 & B00000011 = B00000000. B00000000 == 0, pin is unsafe (protected)
-  rc = !!rc;
+  rc = !!result;
 
-finish:
+//finish:
   return rc; 
 }
 

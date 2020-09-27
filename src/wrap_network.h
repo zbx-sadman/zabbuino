@@ -27,28 +27,30 @@
 
 // Include headers for an network module
 #if defined(NETWORK_ETHERNET_WIZNET)
-#include "wiznet/Ethernet.h" 
-#define ParentEthernetClass EthernetClass
-#define NetworkTransport Ethernet
-typedef EthernetClient NetworkClient;
-typedef EthernetServer NetworkServer;
+  #include "wiznet/Ethernet.h" 
+  #define ParentEthernetClass EthernetClass
+  #define NetworkTransport Ethernet
+  typedef EthernetClient NetworkClient;
+  typedef EthernetServer NetworkServer;
 
 #elif defined(NETWORK_ETHERNET_ENC28J60)  
-#include "enc28j60/UIPEthernet.h"
-#define ParentEthernetClass UIPEthernetClass
-#define NetworkTransport Ethernet
-typedef EthernetClient NetworkClient;
-typedef EthernetServer NetworkServer;
+  #include "enc28j60/UIPEthernet.h"
+  #define ParentEthernetClass UIPEthernetClass
+  #define NetworkTransport Ethernet
+  typedef EthernetClient NetworkClient;
+  typedef EthernetServer NetworkServer;
 
-#elif defined(ARDUINO_ARCH_ESP8266) && defined(NETWORK_WIRELESS_ESP_NATIVE)
-#include <ESP8266WiFi.h>
-#define ParentEthernetClass WiFiServer
-#define NetworkTransport WiFi
-typedef WiFiClient NetworkClient;
-typedef WiFiServer NetworkServer;
+#elif defined(NETWORK_WIRELESS_ESP_NATIVE)
+  #if defined(ARDUINO_ARCH_ESP8266) 
+    #include <ESP8266WiFi.h>
+  #elif defined(ARDUINO_ARCH_ESP32)
+    #include <WiFi.h>
+  #endif
 
-#elif defined(ARDUINO_ARCH_ESP32) && defined(NETWORK_WIRELESS_ESP_NATIVE)
-
+  #define ParentEthernetClass WiFiServer
+  #define NetworkTransport WiFi
+  typedef WiFiClient NetworkClient;
+  typedef WiFiServer NetworkServer;
 #endif
 
 

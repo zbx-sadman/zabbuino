@@ -18,7 +18,7 @@ uint32_t Network::defaultDns       = 0x00000000UL;
 *
 *****************************************************************************************************************************/
 void setWifiDefaults() {
-#if defined(ARDUINO_ARCH_ESP8266) && defined(NETWORK_WIRELESS_ESP_NATIVE)
+#if (defined(ARDUINO_ARCH_ESP8266) || defined(ARDUINO_ARCH_ESP32)) && defined(NETWORK_WIRELESS_ESP_NATIVE)
   const char* wifiSsid =  WiFi.SSID().c_str();
   const char* wifiPsk  = WiFi.psk().c_str();
   if (strcmp(wifiSsid, constWiFiSsid) || strcmp(wifiPsk, constWiFiPsk)) {

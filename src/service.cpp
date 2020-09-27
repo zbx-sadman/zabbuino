@@ -44,7 +44,6 @@ uint8_t factoryReset(uint8_t _buttonPin, uint8_t _buttonState, netconfig_t& _sys
   uint8_t rc = false;
    // Factory reset button pin must be shorted to ground to action start
    digitalWrite(constStateLedPin, !constStateLedOn);
-
    // Is constFactoryResetButtonPin shorted?
    if (_buttonState == digitalRead(_buttonPin)) {
       __DMLL( FSH_P((STRING_The_factory_reset_button_is_pressed)); )
@@ -55,7 +54,7 @@ uint8_t factoryReset(uint8_t _buttonPin, uint8_t _buttonState, netconfig_t& _sys
       // constFactoryResetButtonPin still shorted?
       if (_buttonState == digitalRead(_buttonPin)) {
          __DMLL( DEBUG_PORT.print(FSH_P(STRING_Rewrite_EEPROM_with_defaults)); DEBUG_PORT.print(FSH_P(STRING_3xDot_Space)); )
-#if defined(ARDUINO_ARCH_ESP8266) && defined(NETWORK_WIRELESS_ESP_NATIVE)
+#if (defined(ARDUINO_ARCH_ESP8266) || defined(ARDUINO_ARCH_ESP32)) && defined(NETWORK_WIRELESS_ESP_NATIVE)
         setWifiDefaults();
 #endif //defined(ARDUINO_ARCH_ESP8266)
          setConfigDefaults(_sysConfig);
@@ -68,7 +67,6 @@ uint8_t factoryReset(uint8_t _buttonPin, uint8_t _buttonState, netconfig_t& _sys
          while (_buttonState == digitalRead(_buttonPin)) { yield(); digitalWrite(constStateLedPin, (millis() % 100 < 50) ? constStateLedOn : !constStateLedOn); }
       }
   } // if (LOW == digitalRead(constFactoryResetButtonPin))
-
   digitalWrite(constStateLedPin, !constStateLedOn);
   return rc;
 }
@@ -121,7 +119,7 @@ void getMcuIdAsHexString(char* _dst) {
   uint8_t chipID[constMcuIdSize];
   memset(chipID, 0x00, sizeof(chipID));
   getMcuId(chipID);
-  batohs(chipID, _dst, sizeof(constMcuIdSize));
+  batohs(chipID, _dst, sizeof(chipID));
 }
 
 void getMcuModelAsHexString(char* _dst) {

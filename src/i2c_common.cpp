@@ -20,6 +20,7 @@ int8_t scanI2C(SoftwareTWI& _softTWI, uint8_t* _dst)
 
   int8_t i2cAddress, numDevices = 0;
   for(i2cAddress = 0x01; i2cAddress < 0x7F; i2cAddress++ ) {
+    yield();
     // The i2c_scanner uses the return value of
     // the Write.endTransmisstion to see if
     // a device did acknowledge to the address.

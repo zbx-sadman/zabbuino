@@ -42,11 +42,11 @@ void userFunctionButtonActivate(uint8_t* _buffer) {
   __SUPPRESS_WARNING_UNUSED(_buffer);
 
   __DMLD( Serial.println(F("userFunctionButtonActivate")); )
-  
+
   // Factory reset block for Sonoff TH10/TH16 with button on GPIO0
 #ifdef FEATURE_EEPROM_ENABLE
   // factoryReset() return false on EEPROM saving fail or not executed
-//  factoryReset(constSystemFunctionButtonPin, constSystemFunctionButtonActiveState, sysConfig);
+  //  factoryReset(constSystemFunctionButtonPin, constSystemFunctionButtonActiveState, sysConfig);
 #endif // FEATURE_EEPROM_ENABLE
 
 }
@@ -70,7 +70,7 @@ void alarmStageUserFunction(uint8_t* _buffer, uint8_t _errorCode) {
   __SUPPRESS_WARNING_UNUSED(_buffer);
   __SUPPRESS_WARNING_UNUSED(_errorCode);
 
-// __DMLD( Serial.println(F("alarmStageUserFunction")); )
+  // __DMLD( Serial.println(F("alarmStageUserFunction")); )
 }
 
 /*****************************************************************************************************************************

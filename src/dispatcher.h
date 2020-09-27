@@ -34,6 +34,7 @@
 #include "system.h"
 #include "service.h"
 
+
 // I2C devices 
 #include "i2c_bus.h"
 #include "i2c_common.h"
@@ -91,8 +92,13 @@
 volatile sysmetrics_t sysMetrics;
 netconfig_t sysConfig;
 #ifdef TWI_USE
+#if defined (ARDUINO_ARCH_ESP32)
+SoftwareTWI SoftTWI(0);
+#else
 SoftwareTWI SoftTWI;
 #endif
+#endif
+
 #ifdef INTERRUPT_USE
 extern volatile extInterrupt_t extInterrupt[];
 #endif

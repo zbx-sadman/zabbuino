@@ -1,8 +1,12 @@
-# Zabbuino 1.5 (ESP integration test)
+# Zabbuino (ESP integration test)
+
+### 27-09-2020
+
+ESP32 support added and tested with pair of sensors - OneWire & I2C. I hope this will works in general...
 
 ### 24-09-2020
 Changes:
- - Winsen sensors "core" reworked.
+ - Winsen sensor "core" reworked.
 
 Added new command:
  - `sys.all` - returns JSON with some system metric. Example: `sys.all`=> `{"sysRamFree":51768,"sysRamFreeMin":51584,"sysVcc":3078,"sysVccMin":3077,"sysVccMax":3085,"sysCmdCount":2,"netPHYReinits":55}`

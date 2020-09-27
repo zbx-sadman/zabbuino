@@ -60,6 +60,11 @@
 
 #elif defined (ARDUINO_ARCH_ESP32) 
     #define	_CPU_NAME_ "ESP32"
+    #if defined(ARDUINO_D1_MINI32)
+        #define BOARD "Wemos D1 MINI ESP32"
+    #elif defined(ARDUINO_MH_ET_LIVE_ESP32MINIKIT)
+        #define BOARD "MH ET LIVE ESP32MiniKit"
+    #endif
 
 #elif defined(TEENSYDUINO) 
     //  --------------- Teensy -----------------

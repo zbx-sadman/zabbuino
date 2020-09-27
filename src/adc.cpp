@@ -52,7 +52,7 @@ uint16_t getADCVoltage(const uint8_t _analogChannel) {
   // i = 1500; while (i--){ delayMicroseconds(1);}
   //  delayMicroseconds(2000);
   return ((uint16_t) avgADC);
-#elif defined(ARDUINO_ARCH_ESP8266)
+#elif (defined(ARDUINO_ARCH_ESP8266) || defined(ARDUINO_ARCH_ESP32))
 
   __SUPPRESS_WARNING_UNUSED(_analogChannel);
 

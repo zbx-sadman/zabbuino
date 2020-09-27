@@ -1,6 +1,10 @@
 #pragma once
 
-#include <SoftwareSerial.h>
+#if defined(ARDUINO_ARCH_AVR)
+  #include <SoftwareSerial.h>
+#elif defined(ARDUINO_ARCH_ESP8266) || defined (ARDUINO_ARCH_ESP32)
+  #include "EspSoftwareSerial/SoftwareSerial.h"
+#endif
 
 /*-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
 

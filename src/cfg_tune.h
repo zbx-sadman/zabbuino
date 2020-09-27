@@ -359,10 +359,21 @@ D13 -^    ^- D8    <- pins   */
 const uint16_t port_protect[] = { 
 // 000111111001010 = 0x0FCA
 //    B    6  3 1^- GPIO0
-  0x0FCA,    // Port 0: GPIO 0..15
+   0x0FCA,     // Port 0: GPIO 0..15
+//  0x0000,    // Port 0: GPIO 0..15
 // 000000000000000 = 0x0000
 //               ^- GPIO16
   0x0000     // Port 1: GPIO 16..31
+}; 
+#elif defined(ARDUINO_ARCH_ESP32)  
+// ESP have GPIO-numbered protecton configuration
+// GPIO 6-11 used to connect the flash memory chip, GPIO1 & GPIO3 - UART
+// B00000000000000000
+//const uint32_t port_protect = 0x0FCA; 
+//ESP8266 core , Arduino.h => #define digitalPinToPort(pin)       (((pin)==16)?(_PORT_GPIO16):(0))
+const uint32_t port_protect[] = { 
+  0x00000FCA,   
+  0x00000000 
 }; 
 #endif //#if defined(ARDUINO_ARCH_AVR)
 

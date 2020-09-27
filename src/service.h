@@ -111,23 +111,6 @@ inline uint8_t htod(const char   _hex) {
 inline uint8_t htod(const uint8_t _hex) { return htod((const char) _hex); }
 //inline uint8_t htod(const int16_t _hex) { return htod((const char) _hex); }
 
-/* ****************************************************************************************************************************
-*
-*  Return "Free" memory size
-*
-**************************************************************************************************************************** */
-//inline __attribute__((always_inline)) uint32_t getRamFree(void) {
-inline uint32_t getRamFree(void) {
-  uint32_t result = 0x00;
-#if defined(ARDUINO_ARCH_AVR)
-  extern uint16_t __heap_start, *__brkval;
-  uint16_t v;
-  result = (uint32_t) (&v - (__brkval == 0 ? (uint32_t) &__heap_start : (uint32_t) __brkval));
-#elif defined(ARDUINO_ARCH_ESP8266)
-  result = ESP.getFreeHeap();
-#endif
-  return result;
-}
 
 /* ****************************************************************************************************************************
 *

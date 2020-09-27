@@ -11,6 +11,11 @@
   #define ioRegister_t uint32_t
   #define _delay_ms(ms) delayMicroseconds((ms) * 1000UL)
   const uint8_t constMcuIdSize                                    = 0x04;
+#elif defined(ARDUINO_ARCH_ESP32)
+  // variable type used with portOutputRegister/portInputRegister/portModeRegister 
+  #define ioRegister_t uint32_t
+  #define _delay_ms(ms) delayMicroseconds((ms) * 1000UL)
+  const uint8_t constMcuIdSize                                    = 0x06;
 #endif //#if defined(ARDUINO_ARCH_AVR)
 
 /*****************************************************************************************************************************
@@ -87,3 +92,22 @@ void stopTimerOne(void);
 *
 *****************************************************************************************************************************/
 void gatherSystemMetrics(void);
+
+/* ****************************************************************************************************************************
+*
+*  Return "Free" memory size
+*
+**************************************************************************************************************************** */
+//inline __attribute__((always_inline)) uint32_t getRamFree(void) {
+inline uint32_t getRamFree(void) {
+  uint32_t result = 0x00;
+#if defined(ARDUINO_ARCH_AVR)
+  extern uint16_t __heap_start, *__brkval;
+  uint16_t v;
+  result = (uint32_t) (&v - (__brkval == 0 ? (uint32_t) &__heap_start : (uint32_t) __brkval));
+#elif (defined(ARDUINO_ARCH_ESP8266) || defined(ARDUINO_ARCH_ESP32))
+  result = ESP.getFreeHeap();
+#endif
+  return result;
+}
+

@@ -9,3 +9,5 @@
 #include "sys_macros.h"
 #include "sys_structs.h"
 #include "sys_debug.h"
+
+#include "esp32_wtd.h"
