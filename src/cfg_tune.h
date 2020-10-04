@@ -92,7 +92,9 @@
     defined (FEATURE_MAX6675_ENABLE)     || \
     defined (FEATURE_PZEM004_ENABLE)     || \
     defined (FEATURE_BMP180_ENABLE)      || \
-    defined (FEATURE_BMP280_ENABLE)      
+    defined (FEATURE_BMP280_ENABLE)      || \
+    defined (FEATURE_WINSEN_ZE14_O3_ENABLE)  || \
+    defined (FEATURE_WINSEN_ZE15_CO_ENABLE)    
     #define FUNCTION_LTOAF_USE
 #endif
 

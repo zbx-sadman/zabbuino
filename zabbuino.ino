@@ -39,9 +39,8 @@ void setup() {
   sysMetrics.sysVCCMin = sysMetrics.sysVCCMax = getMcuVoltage();
   sysMetrics.sysRamFree = sysMetrics.sysRamFreeMin = getRamFree();
   pinMode(constStateLedPin, OUTPUT);
-//  digitalWrite(constUserFunctionButtonPin, INPUT_PULLUP);
   pinMode(constUserFunctionButtonPin, INPUT_PULLUP);
-  delay(1000);
+
 #ifdef ADVANCED_BLINKING
   // blink on start
   //  blinkMore(6, 50, 500);
@@ -55,6 +54,8 @@ void loop() {
   uint8_t result = 0x00, needNetworkRelaunch = true, errorCode = ERROR_NONE;
   char incomingData;
   uint32_t processStartTime, processEndTime, prevPHYCheckTime, prevNetActivityTime, prevSysMetricGatherTime, clientConnectTime, netDebugPrintTime, networkInfoShowDelayStartTime = 0x00;
+
+  //  int32_t ramPrev = ESP.getFreeHeap();
 
 #if defined(FEATURE_USER_FUNCTION_PROCESSING)
   uint8_t  userFunctionButtonStatePrev;
@@ -448,6 +449,18 @@ void loop() {
     // Actually Ethernet lib's flush() do nothing, but UIPEthernet flush() free ENC28J60 memory blocks where incoming (?) data stored
     netClient.flush();
     netClient.stop();
+
+    /*
+       int32_t ramNow = ESP.getFreeHeap();
+       int32_t delta =  ramPrev - ramNow;
+       netClient.print("\n========== "); netClient.print(ramPrev); netClient.print("-"); netClient.print(ramNow); netClient.print("="); netClient.print(delta); netClient.println(" ==========\n\n");
+       netClient.stop();
+       Serial.print("Heap prev: "); Serial.print(ramPrev);
+       Serial.print(", now: "); Serial.print(ramNow);
+       Serial.print(", delta: "); Serial.println(delta);
+       ramPrev = ramNow;
+    */
+
 #ifdef FEATURE_SERIAL_LISTEN_TOO
     // Flush the incoming Serial buffer by reading because Serial object have no clear procedure.
     flushStreamRXBuffer(&Serial, 1000UL, false);
@@ -1637,6 +1650,18 @@ static int16_t executeCommand(Stream& _netClient, netconfig_t& _sysConfig, reque
         goto finish;
       }
 #endif // FEATURE_WINSEN_ZP14_ENABLE
+
+#ifdef FEATURE_WINSEN_ZE15_CO_ENABLE
+    case CMD_ZE15_CO: {
+        //
+        //  ze15.co[rxPin, txPin]
+        //  ze15.co[14,15]
+        //  ze15.co[12,13]
+        rc = getAModeZe15COMetric(_request.argv[0x00], _request.argv[0x01], SENS_READ_CO, &value);
+        goto finish;
+      }
+#endif // FEATURE_WINSEN_ZE14_O3_ENABLE
+
 
 #ifdef FEATURE_MODBUS_RTU_ENABLE
     case CMD_MB_RTU_FC03: {

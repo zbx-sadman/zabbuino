@@ -161,12 +161,15 @@ uint8_t Network::relaunch() {
   NETWORK_SERIAL_INTERFACE_PORT.begin(constNetworkSerialInterfaceSpeed, constNetworkSerialInterfaceMode);
 
 #elif defined(NETWORK_WIRELESS_ESP_NATIVE) // 
+  NetworkTransport.mode(WIFI_STA);
+  if (0x00 == NetworkTransport.SSID().length()) { setWifiDefaults(); }
+
   if (!useDhcp) {
-     WiFi.config(IPAddress(defaultIpAddress), IPAddress(defaultGateway), IPAddress(defaultNetmask), IPAddress(defaultDns), IPAddress(defaultDns));
+     NetworkTransport.config(IPAddress(defaultIpAddress), IPAddress(defaultGateway), IPAddress(defaultNetmask), IPAddress(defaultDns), IPAddress(defaultDns));
   }
 
   if (WiFi.status() != WL_CONNECTED) {
-     WiFi.begin();
+     NetworkTransport.begin();
   }
 
 #endif // #if defined(NETWORK_ETHERNET_ENC28J60) || defined(NETWORK_ETHERNET_WIZNET)
@@ -177,14 +180,15 @@ void Network::printNetworkInfo() {
 #if defined(NETWORK_WIRELESS_ESP_NATIVE) 
   // BSSID is MAC
 //  DEBUG_PORT.print(F("BSSID\t: ")); DEBUG_PORT.println(NetworkTransport.BSSID());
-  DEBUG_PORT.print(F("SSID\t: ")); DEBUG_PORT.println(NetworkTransport.SSID());
+  DEBUG_PORT.print(F("SSID\t: ")); DEBUG_PORT.println(NetworkTransport.SSID()); 
   DEBUG_PORT.print(F("PSK\t: ")); DEBUG_PORT.println(NetworkTransport.psk());
   DEBUG_PORT.print(F("RSSI\t: ")); DEBUG_PORT.println(NetworkTransport.RSSI());
+  DEBUG_PORT.print(F("lwIP\t: v")); DEBUG_PORT.print((uint8_t)LWIP_VERSION_MAJOR); DEBUG_PORT.print('.');  DEBUG_PORT.println((uint8_t)LWIP_VERSION_MINOR);
 #endif
 
 #if defined(NETWORK_ETHERNET_ENC28J60) || defined(NETWORK_ETHERNET_WIZNET) ||  defined(NETWORK_WIRELESS_ESP_NATIVE)
   //DEBUG_PORT.print(F("MAC     : ")); printArray(macAddress, sizeof(macAddress), &Serial, MAC_ADDRESS);
-  DEBUG_PORT.print(F("IP\t: ")); DEBUG_PORT.println(NetworkTransport.localIP());
+  DEBUG_PORT.print(F("IP\t\t: ")); DEBUG_PORT.println(NetworkTransport.localIP());
   DEBUG_PORT.print(F("Subnet\t: ")); DEBUG_PORT.println(NetworkTransport.subnetMask());
   DEBUG_PORT.print(F("Gateway\t: ")); DEBUG_PORT.println(NetworkTransport.gatewayIP());
   #if defined (NETWORK_ETHERNET_ENC28J60)

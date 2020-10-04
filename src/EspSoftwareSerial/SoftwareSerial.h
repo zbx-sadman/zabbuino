@@ -1,3 +1,4 @@
+#if (defined(ARDUINO_ARCH_ESP8266) || defined(ARDUINO_ARCH_ESP32))
 /*
 SoftwareSerial.h
 
@@ -256,3 +257,4 @@ private:
 };
 
 #endif // __SoftwareSerial_h
+#endif // #if (defined(ARDUINO_ARCH_ESP8266) || defined(ARDUINO_ARCH_ESP32))

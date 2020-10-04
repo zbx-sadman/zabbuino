@@ -58,6 +58,7 @@
 #define SENS_READ_CH2O                                          (0x43)
 #define SENS_READ_O3                                            (0x44)
 #define SENS_READ_CH4                                           (0x45)
+#define SENS_READ_CO                                            (0x46)
 
 #define SENS_READ_STATUS                                        (0xFC)
 #define SENS_READ_ID                                            (0xFD)

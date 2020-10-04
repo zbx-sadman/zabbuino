@@ -1,3 +1,5 @@
+#if (defined(ARDUINO_ARCH_ESP8266) || defined(ARDUINO_ARCH_ESP32))
+
 /*
 
 SoftwareSerial.cpp - Implementation of the Arduino software serial for ESP8266/ESP32.
@@ -544,3 +546,4 @@ void SoftwareSerial::perform_work() {
         if (avail) { receiveHandler(avail); }
     }
 }
+#endif // #if (defined(ARDUINO_ARCH_ESP8266) || defined(ARDUINO_ARCH_ESP32))

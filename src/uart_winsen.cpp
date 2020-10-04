@@ -175,8 +175,8 @@ int8_t getAModeWinsenMetric(const uint8_t _rxPin, const uint8_t _txPin, const ui
   uint8_t* ptrRawBuffer = (uint8_t*) &winsenSensorData;
 
   SoftwareSerial swSerial(_rxPin, _txPin);
-  swSerial.begin(WINSEN_UART_SPEED);
 
+  swSerial.begin(WINSEN_UART_SPEED);
   recievedBytes = winsenUartRecieve(swSerial, WINSEN_UART_DEFAULT_READ_TIMEOUT, ptrRawBuffer, sizeof(winsenSensorData));
 
   // Reading is not finished sucessfully: not all bytes recieved 
@@ -198,6 +198,7 @@ int8_t getAModeWinsenMetric(const uint8_t _rxPin, const uint8_t _txPin, const ui
 
   switch (_gasTypeId) {
 //     case WINSEN_GAS_TYPE_ID_CO2:
+     case WINSEN_GAS_TYPE_ID_CO:
      case WINSEN_GAS_TYPE_ID_CH2O:
      case WINSEN_GAS_TYPE_ID_O3:   
        { 

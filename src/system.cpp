@@ -126,15 +126,16 @@ int32_t getMcuVoltage() {
 int8_t getSystemAllInfo(char* _dst, const uint16_t _dstSize) {
   extern volatile sysmetrics_t sysMetrics;
   uint32_t sysVcc = getMcuVoltage();
+  uint32_t sysUptime  = ((uint32_t) millisRollover() * UINT32_MAX + millis()) / 1000UL;
 
 #if defined(ARDUINO_ARCH_AVR)
-  snprintf_P(_dst, _dstSize, PSTR("{\"sysRamFree\":%u,\"sysRamFreeMin\":%u,\"sysVcc\":%u,\"sysVccMin\":%u,\"sysVccMax\":%u,\"sysCmdCount\":%u,\"netPHYReinits\":%u}"), 
-             sysMetrics.sysRamFree,  sysMetrics.sysRamFreeMin, sysVcc, sysMetrics.sysVCCMin, sysMetrics.sysVCCMax, 
+  snprintf_P(_dst, _dstSize, PSTR("{\"upTime\":%lu,\"sysRamFree\":%lu,\"sysRamFreeMin\":%lu,\"sysVcc\":%lu,\"sysVccMin\":%lu,\"sysVccMax\":%lu,\"sysCmdCount\":%lu,\"netPHYReinits\":%lu}"), 
+             sysUptime, sysMetrics.sysRamFree,  sysMetrics.sysRamFreeMin, sysVcc, sysMetrics.sysVCCMin, sysMetrics.sysVCCMax, 
              sysMetrics.sysCmdCount, sysMetrics.netPHYReinits);  
 #elif (defined(ARDUINO_ARCH_ESP8266) || defined(ARDUINO_ARCH_ESP32))
-  snprintf_P(_dst, _dstSize, PSTR("{\"sysRamFree\":%u,\"sysRamFreeMin\":%u,\"sysVcc\":%u,\"sysVccMin\":%u,\"sysVccMax\":%u,\"sysCmdCount\":%u,\"netPHYReinits\":%u, \"wifiRssi\":%d}"), 
-             sysMetrics.sysRamFree,  sysMetrics.sysRamFreeMin, sysVcc, sysMetrics.sysVCCMin, sysMetrics.sysVCCMax, 
-             sysMetrics.sysCmdCount, sysMetrics.netPHYReinits, NetworkTransport.RSSI());  
+  snprintf_P(_dst, _dstSize, PSTR("{\"upTime\":%lu,\"sysRamFree\":%lu,\"sysRamFreeMin\":%lu,\"sysVcc\":%lu,\"sysVccMin\":%lu,\"sysVccMax\":%lu,\"sysCmdCount\":%lu,\"lwipVersion\":%u.%u,\"netPHYReinits\":%lu, \"wifiRssi\":%d}"), 
+             sysUptime, sysMetrics.sysRamFree,  sysMetrics.sysRamFreeMin, sysVcc, sysMetrics.sysVCCMin, sysMetrics.sysVCCMax, 
+             sysMetrics.sysCmdCount, (uint8_t)LWIP_VERSION_MAJOR, (uint8_t)LWIP_VERSION_MINOR, sysMetrics.netPHYReinits, NetworkTransport.RSSI());
 #endif
 
   return RESULT_IS_BUFFERED;

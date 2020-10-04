@@ -12,8 +12,8 @@
 #define NOVA_SDS_PARTICLES_SIZE_NONE                            (0x00)
 #define NOVA_SDS_CONCENTRATION_TYPE_NONE                        (0x00)
 
-#define NOVA_SDS_PARTICLES_SIZE_010                             (0x0A)
 #define NOVA_SDS_PARTICLES_SIZE_025                             (0x19)
+#define NOVA_SDS_PARTICLES_SIZE_100                             (0x64)
 
 #define NOVA_SDS_FIELD_REQUEST_HEAD                             (0x00)
 #define NOVA_SDS_FIELD_REQUEST_COMMAND_ID                       (0x01)
