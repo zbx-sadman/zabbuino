@@ -3,13 +3,14 @@ An Zabbix agent firmware for Arduino (**AVR only**)
 
 Actual release is v1.4.
 
+**ESP8266 & ESP32 beta-release** [here](https://github.com/zbx-sadman/zabbuino/tree/esp-integration-test)
+
 Compilation tested on Arduino IDE 1.6.11 (from https://www.arduino.cc/) and above.
 
 **Note: Zabbuino is not any kind of Arduino library. It is a "ready-to-use" project. Rename "zabbuino-master" dir to "zabbuino" just after cloning/downloading/unzipping/etc. to avoid compilation error.**
 
 All new features can be found on [experimental](https://github.com/zbx-sadman/Zabbuino/tree/experimental) branch. Old releases placed in [old_releases](https://github.com/zbx-sadman/Zabbuino/tree/old_releases) branch.
 
-**ESP8266 beta-release** [here](https://github.com/zbx-sadman/zabbuino/tree/esp-integration-test)
 
 See [change log](https://github.com/zbx-sadman/Zabbuino/blob/master/ChangeLog.md) before update.
 
