@@ -1,9 +1,9 @@
 # Zabbuino
-An Zabbix agent firmware for Arduino (**AVR only**)
+An Zabbix agent firmware for Arduino
 
-Actual release is v1.4.
+Actual release is v1.4 (**AVR only**).
 
-**ESP8266 & ESP32 beta-release** [here](https://github.com/zbx-sadman/zabbuino/tree/esp-integration-test)
+Testing release is v1.5 (**AVR & ESP8266 & ESP32** [here](https://github.com/zbx-sadman/zabbuino/tree/esp-integration-test).
 
 Compilation tested on Arduino IDE 1.6.11 (from https://www.arduino.cc/) and above.
 
@@ -39,9 +39,8 @@ Implemented:
 - Support BMP180/085, BMP280/BME280 pressure and temperature sensors;
 - Support BH1750, MAX44009, TSL2561 light sensors;
 - Support ADPS9960 light/color sensor;
-- Support MH-Z14/MH-Z19/MH-Z19B CO2 sensor;
 - Support Telaire T67xx family CO2 sensor;
-- Support Winsen ZE08-CH2O formaldehyde sensor;
+- Support Winsen MH-Z14/MH-Z19/MH-Z19B, ZE08-CH2O, ZE14-O3 (ZE25-O3, ZE27-O3), ZP14 (ZC05), ZE15-CO, ZE16-CO sensor modules;
 - Support VEML6070 ultraviolet sensor;
 - Support DS3231 & PCF8563 RTC I2C module;
 - Support incremental encoder (on interrupt's pin);
@@ -73,7 +72,7 @@ Tested with:
 - Arduino Mini Pro / Nano / Duemilanove (ATmega328 MCU, 5V), Arduino Micro (ATmega32u4);
 - ENC28J60 mini module & ENC28J60 shield for Arduino Nano (5V both), Ethernet Shield (W5100), Mini Red W5100 Ethernet Module (5V), WIZ811MJ Ethernet module (3.3V);
 - SW-520D sensors, encoders (EC11), buttons & etc;
-- Sensors: DS18B20, AM2302 (DHT22), AM2320, BMP180, BME280, SHT21 (SI7021), BH1750, MAX44009, TSL2561, ADPS9960, MH-Z19B, T6703, VEML6070, INA219,
+- Sensors: DS18B20, AM2302 (DHT22), AM2320, BMP180, BME280, SHT21 (SI7021), BH1750, MAX44009, TSL2561, ADPS9960, MH-Z19B, ZE08-CH2O, ZE15-CO, T6703, VEML6070, INA219,
 HC-SR04, Plantower PMS-A003, PM2012, SDS011, MLX90614, MAX6675;
 - MAX7219 8x8 LED module & 8-Digit LED Display Module; 
 - LCD 2002 (Winstar) & 2004 (Generic) displays with PC8574 I2C convertor;
@@ -88,7 +87,8 @@ HC-SR04, Plantower PMS-A003, PM2012, SDS011, MLX90614, MAX6675;
 - may be i forget someting...
 
 Manuals:
-- In [Russian](https://github.com/zbx-sadman/zabbuino/wiki/Zabbuino-in-Russian-(for-release-1.3.x));
+- For v1.4 [In Russian](https://github.com/zbx-sadman/zabbuino/wiki/Zabbuino-in-Russian-(for-release-1.4.x));
+- For v1.5 [in Russian](https://github.com/zbx-sadman/zabbuino/wiki/Zabbuino-in-Russian-(for-release-1.5.x));
 
 User cases:
 - In [Russian](https://github.com/zbx-sadman/Zabbuino/wiki/Zabbuino-User-Cases-in-Russian)
