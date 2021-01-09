@@ -12,7 +12,7 @@
 
 #include "interrupts.h"
 
-#if defined(ARDUINO_ARCH_AVR)
+// #if defined(ARDUINO_ARCH_AVR)
 
 
 // EXTERNAL_NUM_INTERRUPTS its a macro from <wiring_private.h>
@@ -47,6 +47,30 @@ void initExtInt() {
  // EXTERNAL_NUM_INTERRUPTS its a macro from <wiring_private.h>
 #ifdef FEATURE_EXTERNAL_INTERRUPT_ENABLE
 
+#if (EXTERNAL_NUM_INTERRUPTS > 0x0F)
+   HANDLE_INT_N_FOR_EXTINT(INT15)
+#endif
+#if (EXTERNAL_NUM_INTERRUPTS > 0x0E)
+   HANDLE_INT_N_FOR_EXTINT(INT14)
+#endif
+#if (EXTERNAL_NUM_INTERRUPTS > 0x0D)
+   HANDLE_INT_N_FOR_EXTINT(INT13)
+#endif
+#if (EXTERNAL_NUM_INTERRUPTS > 0x0C)
+   HANDLE_INT_N_FOR_EXTINT(INT12)
+#endif
+#if (EXTERNAL_NUM_INTERRUPTS > 0x0B)
+   HANDLE_INT_N_FOR_EXTINT(INT11)
+#endif
+#if (EXTERNAL_NUM_INTERRUPTS > 0x0A)
+   HANDLE_INT_N_FOR_EXTINT(INT10)
+#endif
+#if (EXTERNAL_NUM_INTERRUPTS > 0x09)
+   HANDLE_INT_N_FOR_EXTINT(INT9)
+#endif
+#if (EXTERNAL_NUM_INTERRUPTS > 0x08)
+   HANDLE_INT_N_FOR_EXTINT(INT8)
+#endif
 #if (EXTERNAL_NUM_INTERRUPTS > 0x07)
    HANDLE_INT_N_FOR_EXTINT(INT7)
 #endif
@@ -85,22 +109,34 @@ void initExtInt() {
 // This function make more that just return counter...
 int8_t manageExtInt(const uint8_t _pin, const uint8_t _mode, uint32_t* _value) {
    int8_t rc = RESULT_IS_FAIL;
-//   int8_t rc = 32;
    // This condition placed here to avoid using defaut case (EXTERNAL_NUM_INTERRUPTS <= 0) in switch(interruptNumber) due its very strange but 
    // theoretically possible situation 
 #if (EXTERNAL_NUM_INTERRUPTS > 0x00)
 
    voidFuncPtr interruptHandler;
    int8_t interruptNumber = digitalPinToInterrupt(_pin);
+
+   // ESP8266 & ESP32 Core have different number of modes && AVR RISING value != ESP RISING value
+#if defined(ARDUINO_ARCH_AVR)
+  const uint8_t maxInterruptMode = RISING;
+#elif (defined(ARDUINO_ARCH_ESP8266) || defined(ARDUINO_ARCH_ESP32))
+  const uint8_t maxInterruptMode = ONHIGH;
+#endif
+   Serial.println("- 1 -");
    // NOT_AN_INTERRUPT == -1 - it's macro from Arduino.h
    // Interrupt number and mode is correct? If not - just jump to the end, because rc already init with RESULT_IS_FAIL value
-   if ((NOT_AN_INTERRUPT == interruptNumber) || (EXTERNAL_NUM_INTERRUPTS < interruptNumber) || (RISING < _mode)) { goto finish; }
+   if ((NOT_AN_INTERRUPT == interruptNumber) || (EXTERNAL_NUM_INTERRUPTS < interruptNumber) || (maxInterruptMode < _mode)) { goto finish; }
+
+   Serial.println("- 2 -");
+   Serial.print("extInterrupt[interruptNumber].mode: "); Serial.println(extInterrupt[interruptNumber].mode);
+   Serial.print("_mode: "); Serial.println(_mode);
 
    // Just return counter value if interrupt mode is not changed, but interrupt is attached
    // Atomic block is used to get relable counter value due AVR8 make read long variables with series of ASM commands 
    // and value of the variable can be changed before reading is finished
    if ((extInterrupt[interruptNumber].mode != _mode)) {
 
+   Serial.println("- 3 -");
       // Detach is need to avoid get strange results in extInterrupt[interruptNumber].value if external signals still incoming to pin
       // .owner field need to detect owner of counter by manageIncEnc() sub due it don't operate .mode field 
       detachInterrupt(interruptNumber);
@@ -118,8 +154,33 @@ int8_t manageExtInt(const uint8_t _pin, const uint8_t _mode, uint32_t* _value) {
 
       switch (interruptNumber) {
 // This code taken from WInterrupts.c and modifed
+#if (EXTERNAL_NUM_INTERRUPTS > 0x10)
+    #warning There are more than 16 external interrupts. Some callbacks may not be initialized.
+#endif
+
+#if (EXTERNAL_NUM_INTERRUPTS > 0x0F)
+        CASE_INT_N_FOR_EXTINT(INT15)
+#endif
+#if (EXTERNAL_NUM_INTERRUPTS > 0x0E)
+        CASE_INT_N_FOR_EXTINT(INT14)
+#endif
+#if (EXTERNAL_NUM_INTERRUPTS > 0x0D)
+        CASE_INT_N_FOR_EXTINT(INT13)
+#endif
+#if (EXTERNAL_NUM_INTERRUPTS > 0x0C)
+        CASE_INT_N_FOR_EXTINT(INT12)
+#endif
+#if (EXTERNAL_NUM_INTERRUPTS > 0x0B)
+        CASE_INT_N_FOR_EXTINT(INT11)
+#endif
+#if (EXTERNAL_NUM_INTERRUPTS > 0x0A)
+        CASE_INT_N_FOR_EXTINT(INT10)
+#endif
+#if (EXTERNAL_NUM_INTERRUPTS > 0x09)
+        CASE_INT_N_FOR_EXTINT(INT9)
+#endif
 #if (EXTERNAL_NUM_INTERRUPTS > 0x08)
-    #warning There are more than 8 external interrupts. Some callbacks may not be initialized.
+        CASE_INT_N_FOR_EXTINT(INT8)
 #endif
 #if (EXTERNAL_NUM_INTERRUPTS > 0x07)
         CASE_INT_N_FOR_EXTINT(INT7)
@@ -147,11 +208,17 @@ int8_t manageExtInt(const uint8_t _pin, const uint8_t _mode, uint32_t* _value) {
 #endif
       }  // switch (interruptNumber)
 
+      Serial.println("- 4 -");
+
       // Need to do checking NOT_AN_INTERRUPT == _mode and not attach if true?
       attachInterrupt(interruptNumber, interruptHandler, _mode);
    }
 
+#if defined(ARDUINO_ARCH_AVR)
    ATOMIC_BLOCK(ATOMIC_RESTORESTATE) { *_value = (uint32_t) extInterrupt[interruptNumber].value; }
+#elif (defined(ARDUINO_ARCH_ESP8266) || defined(ARDUINO_ARCH_ESP32))
+   ATOMIC() { *_value = (uint32_t) extInterrupt[interruptNumber].value; }
+#endif
 
    rc = RESULT_IS_UNSIGNED_VALUE;
           
@@ -274,7 +341,12 @@ int8_t manageIncEnc(int32_t* _dst, uint8_t const _terminalAPin, uint8_t const _t
         attachInterrupt(interruptNumber, interruptHandler, CHANGE);
    } // (OWNER_IS_INCENC != extInterrupt[interruptNumber].owner)
 
+#if defined(ARDUINO_ARCH_AVR)
    ATOMIC_BLOCK(ATOMIC_RESTORESTATE) { *_dst = (int32_t) extInterrupt[interruptNumber].value; }
+#elif (defined(ARDUINO_ARCH_ESP8266) || defined(ARDUINO_ARCH_ESP32))
+   ATOMIC() { *_dst = (int32_t) extInterrupt[interruptNumber].value; }
+#endif
+
    rc = RESULT_IS_SIGNED_VALUE;
 #endif
 
@@ -284,4 +356,4 @@ int8_t manageIncEnc(int32_t* _dst, uint8_t const _terminalAPin, uint8_t const _t
 }
 #endif // FEATURE_INCREMENTAL_ENCODER_ENABLE
 
-#endif // #if defined(ARDUINO_ARCH_AVR)
+// #endif // #if defined(ARDUINO_ARCH_AVR)

@@ -105,7 +105,7 @@
 //      Enable external interrupts handling and commands:
 //        - ExtInt.Count[]
 //
-//#define FEATURE_EXTERNAL_INTERRUPT_ENABLE
+#define FEATURE_EXTERNAL_INTERRUPT_ENABLE
 
 //
 //     Handle incremental encoder that connected to interrupt-pin and enable command:
@@ -435,7 +435,7 @@
 //
 //     Enable watchdog
 //
-//     AVR Note: 
+//     AVR Note:
 //     NOT ALL BOOTLOADERS HANDLE WATCHDOG PROPERLY: http://forum.arduino.cc/index.php?topic=157406.0
 //
 //     Note: OptiBoot is watchdog compatible and use less flash space that stock bootloader.
@@ -487,7 +487,7 @@
 //      Refer to SYSTEM HARDWARE SECTION in src/cfg_tune.h
 //
 //      Compability: AVR
-// 
+//
 //#define FEATURE_SYSTEM_RTC_DS3231_ENABLE
 //#define FEATURE_SYSTEM_RTC_PCF8563_ENABLE
 
@@ -543,8 +543,11 @@ const uint8_t constDefaultIPAddress[0x04]              PROGMEM = {192, 168, 0, 1
 const uint8_t constDefaultGateway[0x04]                PROGMEM = {192, 168, 0, 1};
 const uint8_t constDefaultNetmask[0x04]                PROGMEM = {255, 255, 255, 0};
 
-const char* const constWiFiSsid                                = "YourAP";
-const char* const constWiFiPsk                                 = "YourPSK";
+//const char* const constWiFiSsid                                = "YourAP";
+//const char* const constWiFiPsk                                 = "YourPSK";
+
+const char* const constWiFiSsid                                = "DonDon";
+const char* const constWiFiPsk                                 = "8fjd3ciy";
 
 /* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
   ALARM SECTION
@@ -601,9 +604,9 @@ const uint8_t constUserFunctionButtonActiveState               = LOW;
 
 // Time to wait network adapter ready state after reinit action
 #if defined(ARDUINO_ARCH_AVR)
-const uint32_t constNetworkInfoShowDelay                       = 1000;  
+const uint32_t constNetworkInfoShowDelay                       = 1000;
 #elif (defined(ARDUINO_ARCH_ESP8266) || defined(ARDUINO_ARCH_ESP32))
-const uint32_t constNetworkInfoShowDelay                       = 5000;  
+const uint32_t constNetworkInfoShowDelay                       = 5000;
 #endif
 
 // How much "User Function" button must be active/unactive before userFunctionButtonActivate() / userFunctionButtonDeactivate() will be called

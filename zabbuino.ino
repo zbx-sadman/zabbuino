@@ -1,3 +1,4 @@
+
 /*-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
 
                             Use proper release Arduino IDE to avoid compilation errors , please.
@@ -235,6 +236,7 @@ void loop() {
 
     // Gather internal metrics periodically
     if ((millis() - prevSysMetricGatherTime) > constSysMetricGatherPeriod) {
+      digitalWrite(LED_BUILTIN, LOW);
       // When FEATURE_SYSINFO_ENABLE is disabled, compiler can be omit gatherSystemMetrics() sub (due find no operators inside) and trow exception
 #ifndef GATHER_METRIC_USING_TIMER_INTERRUPT
       gatherSystemMetrics();
@@ -449,17 +451,6 @@ void loop() {
     // Actually Ethernet lib's flush() do nothing, but UIPEthernet flush() free ENC28J60 memory blocks where incoming (?) data stored
     netClient.flush();
     netClient.stop();
-
-    /*
-       int32_t ramNow = ESP.getFreeHeap();
-       int32_t delta =  ramPrev - ramNow;
-       netClient.print("\n========== "); netClient.print(ramPrev); netClient.print("-"); netClient.print(ramNow); netClient.print("="); netClient.print(delta); netClient.println(" ==========\n\n");
-       netClient.stop();
-       Serial.print("Heap prev: "); Serial.print(ramPrev);
-       Serial.print(", now: "); Serial.print(ramNow);
-       Serial.print(", delta: "); Serial.println(delta);
-       ramPrev = ramNow;
-    */
 
 #ifdef FEATURE_SERIAL_LISTEN_TOO
     // Flush the incoming Serial buffer by reading because Serial object have no clear procedure.
@@ -736,7 +727,6 @@ static int16_t executeCommand(Stream& _netClient, netconfig_t& _sysConfig, reque
 
   // Check rights for password protected action
   accessGranted = (!_sysConfig.useProtection || (uint32_t) _request.argv[0x00] == _sysConfig.password);
-
   switch (cmdIdx) {
 #ifdef FEATURE_USER_FUNCTION_PROCESSING
     case CMD_USER_RUN: {
@@ -1197,14 +1187,10 @@ static int16_t executeCommand(Stream& _netClient, netconfig_t& _sysConfig, reque
         //
         //  Unfortunately, (rc == RESULT_IS_UNSIGNED_VALUE && value == 0) and (rc == RESULT_IS_FAIL) are looks equal for zabbix -> '0'
         //
-#if defined(ARDUINO_ARCH_AVR)
         if (!isSafePin(_request.argv[0x00])) {
           goto finish;
         }
         rc = manageExtInt(_request.argv[0x00], _request.argv[0x01], (uint32_t*) &value);
-#elif (defined(ARDUINO_ARCH_ESP8266) || defined(ARDUINO_ARCH_ESP32))
-        rc = ZBX_NOTSUPPORTED;
-#endif //#if defined(ARDUINO_ARCH_AVR)
         goto finish;
       }
 #endif // FEATURE_EXTERNAL_INTERRUPT_ENABLE

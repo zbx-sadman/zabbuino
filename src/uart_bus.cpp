@@ -36,8 +36,8 @@
 *     - The number of the readed bytes
 *
 *****************************************************************************************************************************/
-uint8_t serialRecive(Stream* _stream, uint8_t* _dst, const uint8_t _size, const uint32_t _readTimeout, const uint8_t _stopOnChar, const uint8_t _stopChar, const uint8_t _slowMode)
-{
+uint8_t serialRecive(Stream* _stream, uint8_t* _dst, const uint8_t _size, const uint32_t _readTimeout, const uint8_t _stopOnChar, const uint8_t _stopChar, const uint8_t _slowMode) {
+  __SUPPRESS_WARNING_UNUSED(_slowMode);
   uint32_t startTime = millis();
   uint8_t len = 0x00;
   //  while ((len <  _size) && (millis() - startTime < _readTimeout)) {

@@ -111,3 +111,47 @@ inline uint32_t getRamFree(void) {
   return result;
 }
 
+/* ****************************************************************************************************************************
+*
+*   Atomic reading functions for ESP boards
+*
+**************************************************************************************************************************** */
+#if defined(ARDUINO_ARCH_ESP8266)
+
+#ifndef __STRINGIFY
+    #define __STRINGIFY(a) #a
+#endif
+
+#ifndef xt_rsil
+    #define xt_rsil(level) (__extension__({uint32_t state; __asm__ __volatile__("rsil %0," __STRINGIFY(level) : "=a" (state)); state;}))
+#endif
+
+#ifndef xt_wsr_ps
+    #define xt_wsr_ps(state)  __asm__ __volatile__("wsr %0,ps; isync" :: "a" (state) : "memory")
+#endif
+
+static __inline__ void SA_iRestore(const  uint32_t *__s) { xt_wsr_ps(*__s); }
+
+// Note value can be 0-15, 0 = Enable all interrupts, 15 = no interrupts
+#define SA_ATOMIC_RESTORESTATE uint32_t _sa_saved __attribute__((__cleanup__(SA_iRestore))) = xt_rsil(15)
+
+#endif // #if defined(ARDUINO_ARCH_ESP8266)
+
+#if defined(ARDUINO_ARCH_ESP32)
+
+static __inline__ void SA_iRestore(const  uint32_t *__s) {
+    XTOS_RESTORE_INTLEVEL(*__s);
+}
+
+// Note value can be 0-15, 0 = Enable all interrupts, 15 = no interrupts
+#define SA_ATOMIC_RESTORESTATE uint32_t _sa_saved __attribute__((__cleanup__(SA_iRestore))) = XTOS_DISABLE_LOWPRI_INTERRUPTS
+
+#endif // #if defined(ARDUINO_ARCH_ESP32)
+
+
+/*************** MACRO **********************/
+
+#if defined(ARDUINO_ARCH_ESP8266) || defined(ARDUINO_ARCH_ESP32)
+  #define ATOMIC() for ( SA_ATOMIC_RESTORESTATE, _sa_done =  1; _sa_done; _sa_done = 0 )
+#endif // defined(ARDUINO_ARCH_ESP8266) || defined(ARDUINO_ARCH_ESP32)
+ 

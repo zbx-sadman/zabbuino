@@ -1,5 +1,13 @@
 # Zabbuino (ESP integration test)
 
+### 09-01-2021
+
+Segments probally done:
+ - extInt[] command for ESP8266/ESP32;
+ 
+Note #1: ESP cores have other modes numbering: RISING - 1, FALLING - 2, CHANGE - 3, LOW - 4, HIGH - 5. AVR mode numbering: 0 - LOW, 1 - CHANGE, 2 - FALLING, 3 - RISING.
+Note #2: unfortunately only first 16 pins supported on ESP32 now.
+
 ### 27-09-2020
 
 ESP32 support added and tested with pair of sensors - OneWire & I2C. I hope this will works in general...

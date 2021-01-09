@@ -6,6 +6,11 @@
     #include <util/atomic.h>
 #endif
 
+#if defined(ARDUINO_ARCH_ESP32)
+    // LWIP_VERSION_XXX macros is here
+    #include <lwip/init.h>
+#endif
+
 #include "service.h"
 #include "system.h"
 #include "adc.h"
@@ -132,10 +137,16 @@ int8_t getSystemAllInfo(char* _dst, const uint16_t _dstSize) {
   snprintf_P(_dst, _dstSize, PSTR("{\"upTime\":%lu,\"sysRamFree\":%lu,\"sysRamFreeMin\":%lu,\"sysVcc\":%lu,\"sysVccMin\":%lu,\"sysVccMax\":%lu,\"sysCmdCount\":%lu,\"netPHYReinits\":%lu}"), 
              sysUptime, sysMetrics.sysRamFree,  sysMetrics.sysRamFreeMin, sysVcc, sysMetrics.sysVCCMin, sysMetrics.sysVCCMax, 
              sysMetrics.sysCmdCount, sysMetrics.netPHYReinits);  
-#elif (defined(ARDUINO_ARCH_ESP8266) || defined(ARDUINO_ARCH_ESP32))
+#elif defined(ARDUINO_ARCH_ESP8266) 
   snprintf_P(_dst, _dstSize, PSTR("{\"upTime\":%lu,\"sysRamFree\":%lu,\"sysRamFreeMin\":%lu,\"sysVcc\":%lu,\"sysVccMin\":%lu,\"sysVccMax\":%lu,\"sysCmdCount\":%lu,\"lwipVersion\":%u.%u,\"netPHYReinits\":%lu, \"wifiRssi\":%d}"), 
              sysUptime, sysMetrics.sysRamFree,  sysMetrics.sysRamFreeMin, sysVcc, sysMetrics.sysVCCMin, sysMetrics.sysVCCMax, 
              sysMetrics.sysCmdCount, (uint8_t)LWIP_VERSION_MAJOR, (uint8_t)LWIP_VERSION_MINOR, sysMetrics.netPHYReinits, NetworkTransport.RSSI());
+
+#elif defined(ARDUINO_ARCH_ESP32)
+  snprintf_P(_dst, _dstSize, PSTR("{\"upTime\":%u,\"sysRamFree\":%u,\"sysRamFreeMin\":%u,\"sysVcc\":%u,\"sysVccMin\":%u,\"sysVccMax\":%u,\"sysCmdCount\":%u,\"lwipVersion\":%u.%u,\"netPHYReinits\":%u, \"wifiRssi\":%d}"), 
+             sysUptime, sysMetrics.sysRamFree,  sysMetrics.sysRamFreeMin, sysVcc, sysMetrics.sysVCCMin, sysMetrics.sysVCCMax, 
+             sysMetrics.sysCmdCount, (uint8_t)LWIP_VERSION_MAJOR, (uint8_t)LWIP_VERSION_MINOR, sysMetrics.netPHYReinits, NetworkTransport.RSSI());
+
 #endif
 
   return RESULT_IS_BUFFERED;

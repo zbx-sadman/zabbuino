@@ -4,6 +4,11 @@
 #include "net_platforms.h"
 #include "wrap_network.h"
 
+#if defined(ARDUINO_ARCH_ESP32)
+    // LWIP_VERSION_XXX macros is here
+    #include <lwip/init.h>
+#endif
+
 uint8_t  Network::useDhcp          = false;
 uint8_t  Network::phyConfigured    = false;
 uint8_t  Network::macAddress[6]    = {0};

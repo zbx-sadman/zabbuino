@@ -1,5 +1,27 @@
 #pragma once
-#if defined(ARDUINO_ARCH_AVR)
+
+#if defined(ARDUINO_ARCH_ESP8266) || defined(ARDUINO_ARCH_ESP32)
+  #define INT0   0
+  #define INT1   1
+  #define INT2   2
+  #define INT3   3
+  #define INT4   4
+  #define INT5   5
+  #define INT6   6
+  #define INT7   7
+  #define INT8   8
+  #define INT9   9
+  #define INT10 10
+  #define INT11 11
+  #define INT12 12
+  #define INT13 13
+  #define INT14 14
+  #define INT15 15
+#endif
+
+
+
+// #if defined(ARDUINO_ARCH_AVR)
 
 /*-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
 
@@ -52,16 +74,45 @@ int8_t manageExtInt(const uint8_t, const uint8_t, uint32_t*);
 #define HANDLE_INT_N_FOR_EXTINT(_interrupt) \
    void handleExt##_interrupt(void) { extInterrupt[_interrupt].value++; }
 
-#elif defined(ARDUINO_ARCH_ESP8266)  
+#elif defined(ARDUINO_ARCH_ESP8266) 
 
 #define HANDLE_INT_N_FOR_EXTINT(_interrupt) \
    ICACHE_RAM_ATTR void handleExt##_interrupt(void) { extInterrupt[_interrupt].value++; }
+
+#elif defined(ARDUINO_ARCH_ESP32)
+
+#define HANDLE_INT_N_FOR_EXTINT(_interrupt) \
+   IRAM_ATTR void handleExt##_interrupt(void) { extInterrupt[_interrupt].value++; }
 
 #endif
 
 
 
  
+#if (EXTERNAL_NUM_INTERRUPTS > 0x0F)
+  void handleExtINT15(void);
+#endif
+#if (EXTERNAL_NUM_INTERRUPTS > 0x0E)
+  void handleExtINT14(void);
+#endif
+#if (EXTERNAL_NUM_INTERRUPTS > 0x0D)
+  void handleExtINT13(void);
+#endif
+#if (EXTERNAL_NUM_INTERRUPTS > 0x0C)
+  void handleExtINT12(void);
+#endif
+#if (EXTERNAL_NUM_INTERRUPTS > 0x0B)
+  void handleExtINT11(void);
+#endif
+#if (EXTERNAL_NUM_INTERRUPTS > 0x0A)
+  void handleExtINT10(void);
+#endif
+#if (EXTERNAL_NUM_INTERRUPTS > 0x09)
+  void handleExtINT9(void);
+#endif
+#if (EXTERNAL_NUM_INTERRUPTS > 0x08)
+  void handleExtINT8(void);
+#endif
 #if (EXTERNAL_NUM_INTERRUPTS > 0x07)
   void handleExtINT7(void);
 #endif
@@ -161,4 +212,4 @@ int8_t manageIncEnc(int32_t* _dst, uint8_t const _terminalAPin, uint8_t const _t
 
 #endif // FEATURE_INCREMENTAL_ENCODER_ENABLE
 
-#endif // #if defined(ARDUINO_ARCH_AVR)
+// #endif // #if defined(ARDUINO_ARCH_AVR)
