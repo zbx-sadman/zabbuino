@@ -543,11 +543,8 @@ const uint8_t constDefaultIPAddress[0x04]              PROGMEM = {192, 168, 0, 1
 const uint8_t constDefaultGateway[0x04]                PROGMEM = {192, 168, 0, 1};
 const uint8_t constDefaultNetmask[0x04]                PROGMEM = {255, 255, 255, 0};
 
-//const char* const constWiFiSsid                                = "YourAP";
-//const char* const constWiFiPsk                                 = "YourPSK";
-
-const char* const constWiFiSsid                                = "DonDon";
-const char* const constWiFiPsk                                 = "8fjd3ciy";
+const char* const constWiFiSsid                                = "YourAP";
+const char* const constWiFiPsk                                 = "YourPSK";
 
 /* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
   ALARM SECTION
