@@ -193,7 +193,7 @@ void Network::printNetworkInfo() {
 
 #if defined(NETWORK_ETHERNET_ENC28J60) || defined(NETWORK_ETHERNET_WIZNET) ||  defined(NETWORK_WIRELESS_ESP_NATIVE)
   //DEBUG_PORT.print(F("MAC     : ")); printArray(macAddress, sizeof(macAddress), &Serial, MAC_ADDRESS);
-  DEBUG_PORT.print(F("IP\t\t: ")); DEBUG_PORT.println(NetworkTransport.localIP());
+  DEBUG_PORT.print(F("IP\t: ")); DEBUG_PORT.println(NetworkTransport.localIP());
   DEBUG_PORT.print(F("Subnet\t: ")); DEBUG_PORT.println(NetworkTransport.subnetMask());
   DEBUG_PORT.print(F("Gateway\t: ")); DEBUG_PORT.println(NetworkTransport.gatewayIP());
   #if defined (NETWORK_ETHERNET_ENC28J60)

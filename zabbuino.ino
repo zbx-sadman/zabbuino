@@ -236,7 +236,7 @@ void loop() {
 
     // Gather internal metrics periodically
     if ((millis() - prevSysMetricGatherTime) > constSysMetricGatherPeriod) {
-      digitalWrite(LED_BUILTIN, LOW);
+      // digitalWrite(LED_BUILTIN, LOW);
       // When FEATURE_SYSINFO_ENABLE is disabled, compiler can be omit gatherSystemMetrics() sub (due find no operators inside) and trow exception
 #ifndef GATHER_METRIC_USING_TIMER_INTERRUPT
       gatherSystemMetrics();
