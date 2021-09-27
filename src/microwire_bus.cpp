@@ -123,7 +123,7 @@ void writeToMAX7219(const uint8_t _mosiPin, const uint8_t _sclkPin, const uint8_
           // dotOwner is not nullptr if dot sign is not first char in the string
           if (dotOwner) { *dotOwner |= 0x80; }
        } else {
-          letterDrawingsNo = arraySize(letterDrawings) + 0x01;
+          letterDrawingsNo = arraySize(letterDrawings); // + 0x01;
           // Search the drawing No into reference array
           do { letterDrawingsNo--; } while (letterDrawingsNo && *ptrReadPosition != pgm_read_byte(&(letterDrawings[letterDrawingsNo].sign)));
           *ptrWritePosition = pgm_read_byte(&(letterDrawings[letterDrawingsNo].draw));
